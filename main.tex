@@ -29,19 +29,44 @@
 % IN THE DOCUMENTATION (ClassicThesis.pdf --> Chapter 1 / Chapter01.tex)
 % **************************************************************************************************************
 \RequirePackage{silence} % :-\
-    \WarningFilter{scrreprt}{Usage of package `titlesec'}
-    %\WarningFilter{scrreprt}{Activating an ugly workaround}
-    \WarningFilter{titlesec}{Non standard sectioning command detected}
+%    \WarningFilter{scrreprt}{Usage of package `titlesec'}
+%    \WarningFilter{scrreprt}{Activating an ugly workaround}
+%    \WarningFilter{titlesec}{Non standard sectioning command detected}
 \documentclass[ twoside,openright,titlepage,numbers=noenddot,%1headlines,
-                headinclude,footinclude,cleardoublepage=empty,abstract=on,
-                BCOR=5mm,paper=a4,fontsize=11pt
-                ]{scrreprt}
+headinclude,footinclude,cleardoublepage=empty,abstract=on,
+BCOR=5mm,paper=a4,fontsize=11pt
+]{scrreprt}
+
 
 %********************************************************************
 % Note: Make all your adjustments in here
-%*******************************************************
-\input{classicthesis-config}
+% *******************************************************
 
+
+
+\input{classicthesis-config}
+\usepackage[acronym]{glossaries}
+\makeglossaries
+\newacronym{UAMMD}{UAMMD}{Universaly Adaptable Multiscale Molecular Dynamics}
+\newacronym{MD}{MD}{Molecular Dynamics}
+\newacronym{BD}{BD}{Brownian Dynamics}
+\newacronym{BDHI}{BDHI}{Brownian Dynamics with Hydrodynamic Interactions}
+\newacronym{IBM}{IBM}{Immersed Boundary}
+\newacronym{PSE}{PSE}{Positively Split Ewald}
+\newacronym{FCM}{FCM}{Force Coupling Method}
+\newacronym{ICM}{ICM}{Inertial Coupling Method}
+\newacronym{FIB}{FIB}{Fluctuating Immersed Boundary}
+\newacronym{DPD}{DPD}{Dissipative Particle Dynamics}
+\newacronym{SPH}{SPH}{Smoothed Particle Hydrodynamics}
+\newacronym{SE}{SE}{Spectral Ewald}
+\newacronym{FFT}{FFT}{Fast Fourier Transform}
+\newacronym{iFFT}{iFFT}{Inverse Fast Fourier Transform}
+\newacronym{GPU}{GPU}{Graphical Processor Units}
+
+
+
+
+%
 %********************************************************************
 % Bibliographies
 %*******************************************************
@@ -84,27 +109,58 @@
 %\setcounter{page}{90}
 % use \cleardoublepage here to avoid problems with pdfbookmark
 \cleardoublepage
-\part{Some Kind of Manual}\label{pt:manual}
+\part{Introduction}\label{pt:intro}
 \include{Chapters/Chapter01}
 \cleardoublepage
-\ctparttext{You can put some informational part preamble text here.}
-\part{The Showcase}\label{pt:showcase}
+\ctparttext{Description of the UAMMD infrastructure. Importance of fundamentally GPU-driven design.}
+\part{UAMMD: Design and components}\label{pt:uammd}
 \include{Chapters/Chapter02}
-\include{Chapters/Chapter03}
+\newpage\include{Chapters/Chapter03}
+\newpage\include{Chapters/Chapter04}
+\newpage\include{Chapters/Chapter05}
+\cleardoublepage
+\part{Novel algorithms for complex fluids}\label{pt:algo}
+\include{Chapters/Chapter06}
+\newpage\include{Chapters/Chapter07}
+\newpage\include{Chapters/Chapter08}
+\newpage
+\cleardoublepage
+% \part{Implemented functionality}\label{pt:implemented}
+\part{Implemented Integration schemes}\label{pt:integrators}
+\include{Chapters/Chapter09}
+\newpage
+%\cleardoublepage
+\part{Implemented Interaction modules}\label{pt:interactors}
+\cleardoublepage
+\include{Chapters/Chapter10}
+\newpage
+\cleardoublepage
+\ctparttext{Collection of tools and algorithms useful in soft matter simulations.}
+\part{Tools of the trade}\label{pt:tools}
+\include{Chapters/Chapter11}
+\include{Chapters/Chapter12}
+\newpage
+\cleardoublepage
+\part{New physics and applications}\label{pt:applications}
+\include{Chapters/Chapter13}
+\newpage
+
+
 % ********************************************************************
 % Backmatter
 %*******************************************************
 \appendix
-%\renewcommand{\thechapter}{\alph{chapter}}
-\cleardoublepage
-\part{Appendix}
-\include{Chapters/Chapter0A}
+%%\renewcommand{\thechapter}{\alph{chapter}}
+%\cleardoublepage
+%\part{Appendix}
+%\include{Chapters/Chapter0A}
 %********************************************************************
 % Other Stuff in the Back
 %*******************************************************
 \cleardoublepage\include{FrontBackmatter/Bibliography}
 \cleardoublepage\include{FrontBackmatter/Declaration}
 \cleardoublepage\include{FrontBackmatter/Colophon}
+\newpage
 % ********************************************************************
 % Game Over: Restore, Restart, or Quit?
 %*******************************************************
