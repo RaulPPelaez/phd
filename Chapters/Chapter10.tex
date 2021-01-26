@@ -1,4 +1,92 @@
 \chapter{PairForces}
 \chapter{ExternalForces}
 \chapter{BondedForces}
-\chapter{SpectralEwaldPoisson}
+\chapter{Triply Periodic Electrostatics} \label{ch:tppoisson}
+
+Long range electrostatics in a triply periodic domain are available in \gls{UAMMD} as the \emph{SpectralEwaldPoisson} \hyperref[sec:interactor]{Interactor} module 
+SpectralEwaldPoisson is an Interactor[1] Module.  
+Solves the Poisson equation with periodic boundary conditions and Gaussian sources at the charges locations. Computes electrostatic force and energy for each particle. 
+UAMMD also offers a doubly periodic Poisson solver, periodic in XY and unbounded in Z, with the possibility of placing surface charges at the domain limits. See the DPPoisson[2] for more information.
+\section{Theory}  
+Thus this module solves the following equation  
+\begin{equation}
+ \epsilon\Delta\phi=-f=-\sum_{k=1}^Mq_kg(r_k)
+\end{equation}   
+Where   
+\begin{equation}
+ g(r_k)=\sum_x{\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-||{\boldsymbol{x}-\boldsymbol{z}_k}||^2}{2g_w^2}\right)}}
+\end{equation}  
+In a grid with periodic boundary conditions.  
+Charges (Gaussian sources) are spread to the grid using the IBM module[3]. The interpolation of the potential on the grid back to the charges positions is also handled by this module.  
+The potential can be solved by convolving with the Poisson's Greens function in Fourier space  
+\begin{equation}
+ \hat\phi = \frac{\hat f}{\epsilon k^2}
+\end{equation}   
+And the electric field (and thus the force on each particle) can be derived from the potential in fourier space via ik differenciation.
+Fourier transform is performed in a discrete grid with cuFFT. The grid size is related with the gaussian width such that having a small width results in a high number of grid cells. In order to overcome this limitation SpectralEwaldPoisson has an spectral Ewald mode. We can write the potential as  
+\begin{equation}
+ \phi=(\phi - \gamma^{1/2}*\psi) + \gamma^{1/2}*\psi = \phi^{(near)} + \phi^{(far)}
+\end{equation}  
+Where   
+ \begin{equation}
+ \epsilon\Delta\psi=-f*\gamma^{1/2}
+\end{equation}   
+and  
+ \begin{equation}
+ \gamma^{1/2} = \frac{8\xi^3}{(2\pi)^{3/2}}\exp\left(-2r^2\xi^2\right)
+\end{equation}   
+Here $\xi$, denoted as the splitting parameter, is an arbitrary number that is chosen to optimize performance.  
+Given that the Laplacian commutes with the convolution we can divide the problem in two separate parts (near and far field)  
+ \begin{equation}
+ \epsilon\Delta\phi^{(far)}=-f*\gamma
+\end{equation}   
+ \begin{equation}
+ \epsilon\Delta\phi^{(near)}=-f*(1-\gamma)
+\end{equation}   
+The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case.  
+On the other hand the near field resulting charges are sharply peaked and more compactly supported than the originals, furthermore integrating to zero in 3D.  
+The near field Green's function is computed analytically in real space and evaluated for each pair of particles inside a given radius (that is controlled by the desired tolerance). The electric field is computed by analytically differentiating and evaluating this Green's function.  
+For a given tolerance, the splitting parameters controls the load that each part of the algorithm takes. In each case there will be an optimal split that gives the best performance.  
+For more information about the algorithm see [4] and [5].  
+
+\section{For users}
+
+\subsection{Example}
+Poisson is created as the typical UAMMD module:
+
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Interactor/SpectralEwaldPoisson.cuh>
+using namespace uammd;
+...
+int main(int argc, char *argv[]){
+...
+  int N = 1<<14;
+  auto sys = make_shared<System>(arc, argv);
+  auto pd = make_shared<ParticleData>(N, sys);          
+  auto pg = make_shared<ParticleGroup>(pd, sys, "All"); //A group with all the particles
+  {
+    auto pos = pd->getPos(access::location::cpu, access::mode::write);
+    auto charge = pd->getCharge(access::location::cpu, access::mode::write);
+   ...
+  }
+  Poisson::Parameters par;
+  par.box = Box(128);
+  par.epsilon = 1; //Permittivity
+  par.gw = 1.0;
+  par.tolerance = 1e-4;
+  par.split = 1.0;
+  auto poisson = make_shared<Poisson>(pd, pg, sys, par);
+...
+  myintegrator->addInteractor(poisson);
+...
+return 0;
+}
+\end{minted}
+The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for L->inf is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance. See test/Potential/Poisson  
+\section{REFERENCES}
+[1] https://github.com/RaulPPelaez/UAMMD/wiki/Interactor   
+[2] https://github.com/RaulPPelaez/UAMMD/wiki/DPPoisson  
+[3] https://github.com/RaulPPelaez/UAMMD/wiki/IBM  
+[4] https://doi.org/10.1016/j.jcp.2011.08.022  
+[5] https://arxiv.org/pdf/1404.3534.pdf  

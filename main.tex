@@ -1,33 +1,3 @@
-% **************************************************************************************************************
-% A Classic Thesis Style
-% An Homage to The Elements of Typographic Style
-%
-% Copyright (C) 2018 André Miede and Ivo Pletikosić
-%
-% If you like the style then I would appreciate a postcard. My address
-% can be found in the file ClassicThesis.pdf. A collection of the
-% postcards I received so far is available online at
-% http://postcards.miede.de
-%
-% License:
-% This program is free software; you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation; either version 2 of the License, or
-% (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; see the file COPYING.  If not, write to
-% the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-% Boston, MA 02111-1307, USA.
-%
-% PLEASE SEE ALSO THE AUTHORS' NOTE REGARDING THIS LICENSE
-% IN THE DOCUMENTATION (ClassicThesis.pdf --> Chapter 1 / Chapter01.tex)
-% **************************************************************************************************************
 \RequirePackage{silence} % :-\
 %    \WarningFilter{scrreprt}{Usage of package `titlesec'}
 %    \WarningFilter{scrreprt}{Activating an ugly workaround}
@@ -37,14 +7,11 @@ headinclude,footinclude,cleardoublepage=empty,abstract=on,
 BCOR=5mm,paper=a4,fontsize=11pt
 ]{scrreprt}
 
-
-%********************************************************************
-% Note: Make all your adjustments in here
-% *******************************************************
-
-
-
+\usepackage{minted}
 \input{classicthesis-config}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage{hyperref}
 \usepackage[acronym]{glossaries}
 \makeglossaries
 \newacronym{UAMMD}{UAMMD}{Universaly Adaptable Multiscale Molecular Dynamics}
@@ -62,24 +29,17 @@ BCOR=5mm,paper=a4,fontsize=11pt
 \newacronym{FFT}{FFT}{Fast Fourier Transform}
 \newacronym{iFFT}{iFFT}{Inverse Fast Fourier Transform}
 \newacronym{GPU}{GPU}{Graphical Processor Units}
+\newacronym{RHS}{RHS}{Right Hand Side}
 
 
+\renewcommand{\vec}[1]{\bm{#1}}
+\newcommand{\uammd}{\gls{UAMMD}}
+\DeclareMathOperator{\erf}{erf}
 
-
-%
-%********************************************************************
-% Bibliographies
-%*******************************************************
 \addbibresource{Bibliography.bib}
 
-%********************************************************************
-% Hyphenation
-%*******************************************************
 %\hyphenation{put special hyphenation here}
 
-% ********************************************************************
-% GO!GO!GO! MOVE IT!
-%*******************************************************
 \begin{document}
 \frenchspacing
 \raggedbottom
@@ -88,21 +48,17 @@ BCOR=5mm,paper=a4,fontsize=11pt
 %\setbibpreamble{}
 \pagenumbering{roman}
 \pagestyle{plain}
-%********************************************************************
-% Frontmatter
-%*******************************************************
-\include{FrontBackmatter/DirtyTitlepage}
-\include{FrontBackmatter/Titlepage}
-\include{FrontBackmatter/Titleback}
-\cleardoublepage\include{FrontBackmatter/Dedication}
-%\cleardoublepage\include{FrontBackmatter/Foreword}
-\cleardoublepage\include{FrontBackmatter/Abstract}
-\cleardoublepage\include{FrontBackmatter/Publications}
-\cleardoublepage\include{FrontBackmatter/Acknowledgments}
-\cleardoublepage\include{FrontBackmatter/Contents}
-%********************************************************************
-% Mainmatter
-%*******************************************************
+
+\input{FrontBackmatter/DirtyTitlepage}
+\input{FrontBackmatter/Titlepage}
+\input{FrontBackmatter/Titleback}
+\cleardoublepage\input{FrontBackmatter/Dedication}
+%\cleardoublepage\input{FrontBackmatter/Foreword}
+\cleardoublepage\input{FrontBackmatter/Abstract}
+\cleardoublepage\input{FrontBackmatter/Publications}
+\cleardoublepage\input{FrontBackmatter/Acknowledgments}
+\cleardoublepage\input{FrontBackmatter/Contents}
+
 \cleardoublepage
 \pagestyle{scrheadings}
 \pagenumbering{arabic}
@@ -110,59 +66,311 @@ BCOR=5mm,paper=a4,fontsize=11pt
 % use \cleardoublepage here to avoid problems with pdfbookmark
 \cleardoublepage
 \part{Introduction}\label{pt:intro}
-\include{Chapters/Chapter01}
+\input{Chapters/Chapter01}
 \cleardoublepage
 \ctparttext{Description of the UAMMD infrastructure. Importance of fundamentally GPU-driven design.}
 \part{UAMMD: Design and components}\label{pt:uammd}
-\include{Chapters/Chapter02}
-\newpage\include{Chapters/Chapter03}
-\newpage\include{Chapters/Chapter04}
-\newpage\include{Chapters/Chapter05}
+\input{Chapters/Chapter02}
+\newpage\input{Chapters/Chapter03}
+\newpage\input{Chapters/Chapter04}
+\newpage\input{Chapters/Chapter05}
 \cleardoublepage
 \part{Novel algorithms for complex fluids}\label{pt:algo}
-\include{Chapters/Chapter06}
-\newpage\include{Chapters/Chapter07}
-\newpage\include{Chapters/Chapter08}
+\input{Chapters/Chapter06}
+\newpage\input{Chapters/Chapter07}
+\newpage\input{Chapters/Chapter08}
 \newpage
 \cleardoublepage
 % \part{Implemented functionality}\label{pt:implemented}
 \part{Implemented Integration schemes}\label{pt:integrators}
-\include{Chapters/Chapter09}
+
+\chapter{VerletNVT}
+\section{Gronbech-Jensen}
+\chapter{VerletNVE}
+
+\chapter{Brownian Dynamics (BD)}
+
+\section{Euler Maruyama}
+
+\section{Adams Bashforth}
+
+\section{Midpoint}
+
+\section{Leimkuhler}
+
+\chapter{Brownian Dynamics with Hydrodynamic Interactions (BDHI)}
+
+\section{Open Boundaries}
+
+\subsection{Cholesky}
+
+\subsection{Lanczos}
+
+\section{Periodic Boundaries}
+
+\subsection{Positively Split Ewald (PSE)}
+
+\subsection{Force Coupling Method (FCM)}
+
+\subsection{Fluctuating Immersed Boundary (FIB)}
+
+\chapter{Fluctuating Hydrodynamics}
+
+Fluctuating
+
+\section{Inertial Coupling Method (ICM)}
+
+ICM
+
+\section{Dissipative Particle Dynamics (DPD)}
+
+DPD
+
+\section{Smoothed Particle Hydrodynamics (SPH)}
+
+
+SPH
+
+\section{Quasi2D}
+
+Already explained in other section
+
+\chapter{MCMC}
+
+\section{Hard spheres}
+
+\section{MALA}
+
 \newpage
 %\cleardoublepage
 \part{Implemented Interaction modules}\label{pt:interactors}
 \cleardoublepage
-\include{Chapters/Chapter10}
+\chapter{PairForces}
+
+sdas
+
+
+\chapter{ExternalForces}
+
+asd
+
+\chapter{BondedForces}
+
+asdas
+
+
+\chapter{Triply Periodic Electrostatics} \label{ch:tppoisson}
+
+Long range electrostatics in a triply periodic domain are available in \gls{UAMMD} as the \emph{SpectralEwaldPoisson} \hyperref[sec:interactor]{Interactor} module.  
+This is a fast spectral solver for the Poisson equation with periodic boundary conditions and Gaussian sources (of arbitrary widths) at the charges locations. This approach is similar to the ones presented at \cite{sepois1,sepois2, sepois3}.
+\section{Theory} \label{sec:tppoisson_theory}
+We want to solve the Poisson equation in a periodic domain in the presence of a charge density $f(\vec{x}=(x,y,z))$
+\begin{equation}
+  \label{eq:ttpoisson}
+ \epsilon\Delta\phi=-f
+\end{equation}
+Where $f$ accounts for $N$ Gaussian charges of strenght $q_i$ located at $\vec{z}_i$ 
+\begin{equation}
+  \label{eq:tppoisson_cdens}
+  f(\vec{x})= S(\vec{x})q = \sum_{i=1}^Nq_ig(||\vec{x}-\vec{z}_i||)
+\end{equation}
+Where $S$ represents the spreading operator which communicates quantities defined at the charges locations to the whole domain, somewhat transforming the problem from a Lagrangian description (point sources) to an Eulerian one (whole domain). Given that
+\begin{equation}
+  \label{eq:tpppoisson_gaussiansource}
+ g(r)=\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2g_w^2}\right)}
+\end{equation}
+Where $g_w$ represents the width of the Gaussian charges (notice that the case $g_w\rightarrow 0$ corresponds to point charges).
+The spreading is carried by a Gaussian.
+
+Once eq. \eqref{eq:ttpoisson} is solved we have the value of the potential in every point in space and the electrostatic energy can be computed as
+\begin{equation}
+  \label{tppoisson_avgpot}
+  U = \frac{1}{2}\int_{\vec{x}}{ \phi(\vec{x}) f(\vec{x}) d\vec{x}} = \frac{1}{2}\sum_i^N{q_i\int_{\vec{x}}\phi(\vec{x})g(||\vec{x}-\vec{z}_i||) d\vec{x}} = \frac{1}{2}\sum_i^N{q_iJ(\vec{z}_i})\phi}
+\end{equation}
+% Where $\bar{\phi}(\vec{z}_i)=\bar{\phi}_i$ is the convolution of the potential with a Gaussian centered at the charge's location and can also be interpreted as the average potential at that point.
+Where $J$ represents the interpolation operator that averages a quantity defined in space to a certain location transforming from an Eulerian description to a Lagrangian one. In this case $J$ is the convolution with a Gaussian centered at $\vec{z}_i$. Notice that interpolation is the adjoint operation to spreading so that $J^{*} \propto S$.
+
+In a similar way we compute the electrostatic force $\vec{F}_i = -\nabla_i{U}$ acting on each charge from the electric field
+\begin{equation}
+  \vec{E} = -\nabla{\phi} 
+\end{equation}
+By interpolating again
+\begin{equation}
+  \label{tppoisson_avgfield}
+\vec{E}(\vec{z}_i) = \int_{\vec{x}}{\vec{E}(\vec{x})g(||\vec{x}-\vec{z}||)d\vec{x}} = J(\vec{z}_i)\vec{E} %\bar{\vec{E}}_i
+\end{equation}
+So that
+\begin{equation}
+\vec{F}_i = q_iJ_i\vec{E}%\bar{\vec{E}}_i
+\end{equation}
+
+% Where the sum in eq. \ref{eq:tpppoisson_gaussiansource} goes through every point $\vec{z}_k$ in the domain.
+Given that eq. \eqref{eq:tpppoisson_gaussiansource} has in principle an infinite support evaluating eq. \eqref{eq:tppoisson_cdens} at every point in space, as well as computing the averages of the electric potential and field in eqs. \eqref{tppoisson_avgpot} and \eqref{tppoisson_avgfield} can be highly ineficient. In practice we overcome this limitation by truncating eq. \eqref{eq:tpppoisson_gaussiansource} at a certain distance according to a desired tolerance.
+\section{Basic Algorithm}
+Eq. \eqref{eq:ttpoisson} can be easily solved in Fourier space by convolution with the Poisson's Greens function 
+\begin{equation}
+  \label{tppoisson_phihat}
+ \hat\phi(\vec{k}) = \frac{\hat f(\vec{k})}{\epsilon k^2}
+\end{equation}   
+The electric field can be derived from the potential in fourier space via \emph{ik} differenciation \cite{ikdiff}.
+\begin{equation}
+  \hat{\vec{E}} = i\vec{k}\hat{\phi}
+\end{equation}
+
+Eq. \eqref{tppoisson_phihat} can be discretized using 3D \gls{FFT} in a grid with spacing fine enough to resolve the Gaussian charges in eq. \eqref{eq:tppoisson_cdens}.
+
+The whole algorithm, going from particle charges to forces, can be summarized as follows
+\begin{itemize}
+\item Spread charges to the grid: $f=Sq$
+\item Fourier transform $f\rightarrow \hat{f}$
+\item Multiply by the Poisson's Greens function to obtain the potential $\hat{\phi}=\frac{\hat{f}}{\epsilon k^2}$
+\item Compute field via \emph{ik} differentiation $\hat{\vec{E}} = i\vec{k}\hat{\phi}$
+\item Transform potential and field back to real space $\hat{\phi} \rightarrow \phi$; $\hat{\vec{E}} \rightarrow \vec{E}$
+\item Interpolate energy and/or force to charge locations $\vec{F}_i = q_iJ_i\vec{E}$; $U = q_iJ_i\phi$
+\end{itemize}
+Using operator notation
+\begin{equation}
+  \label{eq:tppoison_alg}
+  \vec{F}_i = q_iJ_iF^{-1} \frac{i\vec{K}}{\epsilon K^2} \cdot F Sq
+\end{equation}
+Where $F$ represents the Fourier transform and $\vec{K}$ is the tensor with of all wave vectors and $K$ their modulus.
+\begin{equation}
+  \label{eq:tppoison_alg_u}
+  U_i = q_iJ_iF^{-1} \frac{1}{\epsilon K^2}F Sq
+\end{equation}
+
+
+The main problem with this approach is that the grid size is related with the gaussian width (such that having a small width results in a high number of grid cells). This limits the ability to simulate large domains (in terms of $g_w$) or narrow (or point) sources. In order to overcome this limitation we use a spectral Ewald technique.
+
+We can write the potential as  
+\begin{equation}
+ \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{(near)} + \phi^{(far)}
+\end{equation}  
+Where  $\star$ represents convolution and
+ \begin{equation}
+ \epsilon\Delta\psi=-f\star\gamma^{1/2}
+\end{equation}   
+and  
+ \begin{equation}
+ \gamma^{1/2} = \frac{8\xi^3}{(2\pi)^{3/2}}\exp\left(-2r^2\xi^2\right)
+\end{equation}   
+Here the splitting parameter $\xi$ is an arbitrary number that is chosen to optimize performance. 
+Given that the Laplacian commutes with the convolution we can divide the problem in two separate parts, denoted as near and far field  
+ \begin{equation}
+ \epsilon\Delta\phi^{(far)}=-f\star\gamma
+\end{equation}   
+\begin{equation}
+ \label{tppoisson_ewald_near}
+ \epsilon\Delta\phi^{(near)}=-f\star(1-\gamma)
+\end{equation}   
+The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case by effectively modifying width of the Gaussian sources from $g_w$ to
+\begin{equation}
+  g_t = \sqrt{\frac{1}{4\xi^2} + g_w^2}
+\end{equation}
+Notice that this overcomes the difficulties for the case of point sources, since we can arbitrarily increase $\xi$ to work with an arbitrarily large Gaussian source.
+
+In contrast the near field effective charges are sharply peaked and narrower than the originals, rapidly decaying to zero. We can compute the Green's function for eq. \eqref{tppoisson_ewald_near} analytically by convolving the original Poisson Green's function with the effective charges in eq. \eqref{tppoisson_ewald_near} in Fourier space
+\begin{equation}
+  \hat{G}^{(near)}(k) = \frac{(1-\hat{\gamma})\hat{g}}{\epsilon k^2}
+\end{equation}
+The inverse transform of this kernel gives us the potential at any point of the grid 
+\begin{equation}
+  \phi^{(near)}(\vec{x}) = \sum_{i=0}^N{q_iG^{(near)}(||\vec{x}-\vec{z}_i||)}
+\end{equation}
+However, we are only interested in the potential averaged at the charges locations. Instead of storing and computing the potential in a grid and then interpolating as in the far field we can compute this analytically. Given that $J \phi^{(near)} = g\star \phi^{(near)}$ we can define a pre-interpolated interaction kernel as
+\begin{equation}
+  \hat{G}_J^{(near)}(k) = \hat{g}\hat{G}^{(near)} = \frac{(1-\hat{\gamma})\hat{g}^2}{\epsilon k^2}
+\end{equation}
+
+This expression is radially symmetric which allows to compute the inverse Fourier transform as
+\begin{eqnarray}
+  \label{tppoisson_gnear}
+  G_J^{(near)}(r) &=& \frac{1}{2\pi^2r}\int_0^\infty{\hat{G}^{(near)}_Jk \sin(kr)dk}\nonumber \\
+            &=& \frac{1}{4\pi\epsilon r}\left(\erf\left(\frac{r}{2g_w}\right) - \erf\left(\frac{r}{2g_t}\right)\right)
+\end{eqnarray}
+Which decays exponentially and thus can be truncated at a certain cut off radius $r_c$. Furthermore this expression requires special consideration at short distances where numerical issues could arise. In this cases the Taylor expansion of eq. \eqref{tppoisson_gnear} can be used instead.
+We can use this expression to compute the potential or energy at the charges locations
+\begin{equation}
+  U_i = q_i\phi^{(near)}_i = q_iJ_i\phi^{(near)}(\vec{x}) = q_i\sum_{j=0}^N{q_jG_j^{(near)}(||\vec{z}_i - \vec{z}_j||)}
+\end{equation}
+Similarly we compute the electric field or force acting on each charge 
+\begin{equation}
+  \vec{F}_i = q_i J \vec{E}^{(near)}_i = q_i\sum_{j=0}^N{q_j\frac{\partial G_J^{(near)}(r_{ij})}{\partial r}\vec{r}_{ij}/r_{ij}}
+\end{equation}
+Where $\vec{r}_{ij} = \vec{z}_i - \vec{z}_j$ and $r_{ij} = ||\vec{r}_{ij}||$.
+
+\section{Accuracy}
+There are several parameters than can be tweaked to control the overall accuracy of the algorithm:
+The grid cell size $h$ or the number of grid cells $n$ control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
+\begin{equation}
+$h = L/n = g_w/\alpha$
+\end{equation}
+Where $L$ is the domain size (a cubic box is considered, but the arguments can be extended easily to any domain dimensions) and $\alpha$ is a proportionality factor. Note that $n$ should be chosen to be an \gls{FFT}-friendly number.
+
+
+\section{How to use in UAMMD}
+
+This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
+
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Interactor/SpectralEwaldPoisson.cuh>
+using namespace uammd;
+...
+int main(int argc, char *argv[]){
+ ...
+  int N = 1<<14; //An arbitrary number of particles
+  auto sys = make_shared<System>(arc, argv);
+  auto pd = make_shared<ParticleData>(N, sys);
+  auto pg = make_shared<ParticleGroup>(pd, sys, "All"); //A group with all the particles
+  { //Initialize positions and charges
+    auto pos = pd->getPos(access::location::cpu, access::mode::write);
+    auto charge = pd->getCharge(access::location::cpu, access::mode::write);
+...
+  }
+  Poisson::Parameters par;
+  par.box = Box(make_real3(128,128,128));
+  par.epsilon = 1; //Permittivity
+  par.gw = 1.0; //Gaussian width
+  par.tolerance = 1e-4;
+  par.split = 1.0;
+  auto poisson = make_shared<Poisson>(pd, pg, sys, par);
+...
+  myintegrator->addInteractor(poisson);
+...
+return 0;
+}
+\end{minted}
+The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for L->inf is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance. See test/Potential/Poisson  
+\section{REFERENCES}
+[1] https://github.com/RaulPPelaez/UAMMD/wiki/Interactor   
+[2] https://github.com/RaulPPelaez/UAMMD/wiki/DPPoisson  
+[3] https://github.com/RaulPPelaez/UAMMD/wiki/IBM  
+[4] https://doi.org/10.1016/j.jcp.2011.08.022  
+[5] https://arxiv.org/pdf/1404.3534.pdf  
 \newpage
 \cleardoublepage
 \ctparttext{Collection of tools and algorithms useful in soft matter simulations.}
 \part{Tools of the trade}\label{pt:tools}
-\include{Chapters/Chapter11}
-\include{Chapters/Chapter12}
+\input{Chapters/Chapter11}
+\input{Chapters/Chapter12}
 \newpage
 \cleardoublepage
 \part{New physics and applications}\label{pt:applications}
-\include{Chapters/Chapter13}
+\input{Chapters/Chapter13}
 \newpage
 
 
-% ********************************************************************
-% Backmatter
-%*******************************************************
 \appendix
 %%\renewcommand{\thechapter}{\alph{chapter}}
 %\cleardoublepage
 %\part{Appendix}
-%\include{Chapters/Chapter0A}
-%********************************************************************
-% Other Stuff in the Back
-%*******************************************************
-\cleardoublepage\include{FrontBackmatter/Bibliography}
-\cleardoublepage\include{FrontBackmatter/Declaration}
-\cleardoublepage\include{FrontBackmatter/Colophon}
+%\input{Chapters/Chapter0A}
+
+\cleardoublepage\input{FrontBackmatter/Bibliography}
+\cleardoublepage\input{FrontBackmatter/Declaration}
+\cleardoublepage\input{FrontBackmatter/Colophon}
 \newpage
-% ********************************************************************
-% Game Over: Restore, Restart, or Quit?
-%*******************************************************
+
 \end{document}
-% ********************************************************************
+
