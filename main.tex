@@ -6,13 +6,14 @@
 headinclude,footinclude,cleardoublepage=empty,abstract=on,
 BCOR=5mm,paper=a4,fontsize=11pt
 ]{scrreprt}
-
+\usepackage{xspace}
 \usepackage{minted}
 \input{classicthesis-config}
 \usepackage{amsmath}
 \usepackage{bm}
 \usepackage{hyperref}
 \usepackage[acronym]{glossaries}
+\usepackage[utf8]{inputenc}
 \makeglossaries
 \newacronym{UAMMD}{UAMMD}{Universaly Adaptable Multiscale Molecular Dynamics}
 \newacronym{MD}{MD}{Molecular Dynamics}
@@ -29,11 +30,15 @@ BCOR=5mm,paper=a4,fontsize=11pt
 \newacronym{FFT}{FFT}{Fast Fourier Transform}
 \newacronym{iFFT}{iFFT}{Inverse Fast Fourier Transform}
 \newacronym{GPU}{GPU}{Graphical Processor Units}
+\newacronym{GPGPU}{GPGPU}{General Purpose Computing on GPU}
 \newacronym{RHS}{RHS}{Right Hand Side}
+\newacronym{API}{API}{Application Programming Interface}
 
 
 \renewcommand{\vec}[1]{\bm{#1}}
-\newcommand{\uammd}{\gls{UAMMD}}
+\newcommand{\uammd}{\gls{UAMMD}\xspace}
+\newcommand{\gpu}{\gls{GPU}\xspace}
+
 \DeclareMathOperator{\erf}{erf}
 
 \addbibresource{Bibliography.bib}
@@ -66,7 +71,46 @@ BCOR=5mm,paper=a4,fontsize=11pt
 % use \cleardoublepage here to avoid problems with pdfbookmark
 \cleardoublepage
 \part{Introduction}\label{pt:intro}
-\input{Chapters/Chapter01}
+\chapter{Introduction}\label{ch:introduction}
+%************************************************
+%\section{Molecular Dynamics Software}
+\section{The Graphical Processor Unit}
+\gpu are super cool and the future (present).
+
+The \gpu technology, interpreted as some kind of specialized graphic circuit or co-processor, can be tracked back to the 1970s. Once electronic devices started having screens attached to them, it made sense to have some kind of chip translating the CPU information into the analogic signal of the display. It was then only a matter of time before more functionality was put into them. It started as a way to accelerate the display process in early video game hardware, such as arcade systems.
+Storing the data that goes into the screen takes a lot of space and, at the time, RAM memory was expensive (still is, by the way!).
+
+In 1977, the Atari 2600 (one of the first home consoles) could simply not afford to store the contents of its 160x80 pixel display into its 128 bytes of RAM. Of course, these systems employed some truly creative software tricks to reduce memory usage. However, the numbers just do not add up. Even if we limit ourselves to a monochrome output (so one pixel takes one bit to store), the frame buffer for a 160x80 pixel display takes 1600 bytes\footnote{In contrast, the NVIDIA GTX 980 (the trusty, consumer-grade, GPU that has accompanied my thoughout most of my Ph.D.) has 4 GB of memory and will happily output to a several screens with 4k resolution (4096x2160 pixels).}.
+The solution was to not have a frame buffer at all, rather outsource the display operations to a specialized hardware. The Atari 2600's graphic chip had a 128 color palette and allowed developers to use close to 5 sprites to design their 2D games.
+
+These chips were little more than video display chips, but they were the predecesors to the \gpu.
+Throughout the next decade the hardware evolves to support faster and more complex operations, hold more memory, etc. In 1990 a graphic adaptor could draw 16 million different colors to a 1028x1024 pixel display and hold 1MB of data.
+
+Graphic adaptors were still centered around 2D graphic acceleration, such as graphical user interfaces and 2D games. However, the market was already pushing for real-time 3D graphics in games. Although one could hack the current 2D graphic pipeline to draw 3D environments, without specialized hardware acceleration (as was already common for 2D) the results were far from interactive. Surely it would be a task best suited for the graphic adaptor technology already established.
+
+Soon enough, during the early and mid 1990s, several companies were releasing their graphic adaptors with 3D acceleration capabilities. In 1994 the term \gpu is coined to designate this hardware, which had evolved beyond its original task of just sending pixels to a display.
+OpenGL\cite{opengl}, one of the first graphics \gls{API}\footnote{A software library.}, appears in the early 1990s attempting to standardize the programming of graphic hardware accelerators, specially for 3D.
+At the time OpenGL had quite limited capabilities, allowing a developer to do little more than to feed a fixed pipeline with triangles. OpenGL would then interface with the \gpu to turn this geometry into a 2D image that could be displayed.
+Naturally this translation involves a great deal of raw computation, further transforming the \gpu from a video display card to an independent co processor. Furthermore the usual operations required to do this happen to be inherently parallel. While the CPU evolved to be formed by a single, powerful, core the \gpu was born out of a parallel computing necessity. Thus a \gpu tends to have many, less powerful, processing cores.
+Jumping again to the year 2000 the quality and complexity of computer graphics has exploded. Card manufacturers have included all sorts of new 3D hardware accelerated operations beyond simple triangles. And OpenGL has evolved along them. As it usually happens people have started to hack around, using the graphics pipeline to perform computations not necessarily related to computer graphics. In particular, a new \gpu was presented by the NVIDIA Corporation in 2001 that allowed to modify the different stages of the graphic pipeline via something called programmable shaders. These shaders were short programs that could intercede between the different stages of drawing. A vertex shader could be written to process each triangle before sending it to a fragment shader, which could process each pixel on the screen before finally sending them to the display. This was the advent of the so-called \gls{GPGPU}.
+
+Shaders were enough for the community to realize that drawing polygons was far from the only thing they could do with a \gpu\cite{gpgpu2002}. Applications exploting shaders arise everywhere in a variety fields like scientific image processing \cite{gpuimage2003, gpuimage2006}, lineal algebra \cite{gpulinalg2001, gpulinalg2003a, gpulinalg2003b}, physics \cite{gpulbm2004} and even machine learning\cite{gpuml2005, gpuml1998}. One can even find a molecular dynamics code running on the \gpu of a Sony PlayStation 3 \cite{ps3md2009}.
+
+The next natural step took place in 2007, when the NVIDIA Corporation released CUDA\cite{cuda}.
+\section{Software for soft matter simulations}
+Problems with porting CPU centric \gls{MD} packages to \gpu. Scalability in software.
+
+Many \gls{MD} software projects started at a time when the \gpu was not a widespread tool for general computing (or did not even existed as hardware). Take for example GROMACS \cite{gromacs}, which was born in 1991
+
+The present and future of high performance computing.
+CUDA vs alternatives.
+
+Scientific computing in the GPU era.
+
+Developing algorithms for the ground up with the GPU architecture in mind is essential. Leverage ultra efficient \gpu \gls{FFT} by developing spectral algorithms. Many times simplicity beats complexity.
+
+State of the art in molecular simulations.
+
 \cleardoublepage
 \ctparttext{Description of the UAMMD infrastructure. Importance of fundamentally GPU-driven design.}
 \part{UAMMD: Design and components}\label{pt:uammd}
@@ -185,7 +229,7 @@ The spreading is carried by a Gaussian.
 Once eq. \eqref{eq:ttpoisson} is solved we have the value of the potential in every point in space and the electrostatic energy can be computed as
 \begin{equation}
   \label{tppoisson_avgpot}
-  U = \frac{1}{2}\int_{\vec{x}}{ \phi(\vec{x}) f(\vec{x}) d\vec{x}} = \frac{1}{2}\sum_i^N{q_i\int_{\vec{x}}\phi(\vec{x})g(||\vec{x}-\vec{z}_i||) d\vec{x}} = \frac{1}{2}\sum_i^N{q_iJ(\vec{z}_i})\phi}
+  U = \frac{1}{2}\int_{\vec{x}}{ \phi(\vec{x}) f(\vec{x}) d\vec{x}} = \frac{1}{2}\sum_i^N{q_i\int_{\vec{x}}\phi(\vec{x})g(||\vec{x}-\vec{z}_i||) d\vec{x}} = \frac{1}{2}\sum_i^N{q_iJ(\vec{z}_i)\phi}
 \end{equation}
 % Where $\bar{\phi}(\vec{z}_i)=\bar{\phi}_i$ is the convolution of the potential with a Gaussian centered at the charge's location and can also be interpreted as the average potential at that point.
 Where $J$ represents the interpolation operator that averages a quantity defined in space to a certain location transforming from an Eulerian description to a Lagrangian one. In this case $J$ is the convolution with a Gaussian centered at $\vec{z}_i$. Notice that interpolation is the adjoint operation to spreading so that $J^{*} \propto S$.
@@ -303,7 +347,7 @@ Where $\vec{r}_{ij} = \vec{z}_i - \vec{z}_j$ and $r_{ij} = ||\vec{r}_{ij}||$.
 There are several parameters than can be tweaked to control the overall accuracy of the algorithm:
 The grid cell size $h$ or the number of grid cells $n$ control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
 \begin{equation}
-$h = L/n = g_w/\alpha$
+h = L/n = g_w/\alpha
 \end{equation}
 Where $L$ is the domain size (a cubic box is considered, but the arguments can be extended easily to any domain dimensions) and $\alpha$ is a proportionality factor. Note that $n$ should be chosen to be an \gls{FFT}-friendly number.
 
@@ -316,17 +360,15 @@ This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
 #include<uammd.cuh>
 #include<Interactor/SpectralEwaldPoisson.cuh>
 using namespace uammd;
-...
 int main(int argc, char *argv[]){
- ...
   int N = 1<<14; //An arbitrary number of particles
+  //UAMMD initialization
   auto sys = make_shared<System>(arc, argv);
   auto pd = make_shared<ParticleData>(N, sys);
-  auto pg = make_shared<ParticleGroup>(pd, sys, "All"); //A group with all the particles
   { //Initialize positions and charges
-    auto pos = pd->getPos(access::location::cpu, access::mode::write);
-    auto charge = pd->getCharge(access::location::cpu, access::mode::write);
-...
+    auto pos = pd->getPos(access::cpu, access::write);
+    auto charge = pd->getCharge(access::cpu, access::write);
+    //...
   }
   Poisson::Parameters par;
   par.box = Box(make_real3(128,128,128));
@@ -334,7 +376,7 @@ int main(int argc, char *argv[]){
   par.gw = 1.0; //Gaussian width
   par.tolerance = 1e-4;
   par.split = 1.0;
-  auto poisson = make_shared<Poisson>(pd, pg, sys, par);
+  auto poisson = make_shared<Poisson>(pd, sys, par);
 ...
   myintegrator->addInteractor(poisson);
 ...
