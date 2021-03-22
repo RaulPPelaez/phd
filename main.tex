@@ -14,6 +14,22 @@ BCOR=5mm,paper=a4,fontsize=11pt
 \usepackage{hyperref}
 \usepackage[acronym]{glossaries}
 \usepackage[utf8]{inputenc}
+\graphicspath{{./gfx/}}
+
+\newcommand{\executeiffilenewer}[3]{
+  \ifnum
+  \pdfstrcmp{\pdffilemoddate{#1}}{\pdffilemoddate{#2}}>0
+  {\immediate\write18{#3}}
+  \fi
+}
+\newcommand{\includesvg}[2]{
+  \executeiffilenewer{#1.svg}{#1.pdf}
+  {inkscape -D #1.svg --export-type=pdf } %  --export-latex}
+  %\def\svgwidth{#2}
+  % \input{#1.pdf_tex}
+  \includegraphics[width=#2]{#1.pdf}
+}
+
 \makeglossaries
 \newacronym{UAMMD}{UAMMD}{Universaly Adaptable Multiscale Molecular Dynamics}
 \newacronym{MD}{MD}{Molecular Dynamics}
@@ -33,6 +49,8 @@ BCOR=5mm,paper=a4,fontsize=11pt
 \newacronym{GPGPU}{GPGPU}{General Purpose Computing on GPU}
 \newacronym{RHS}{RHS}{Right Hand Side}
 \newacronym{API}{API}{Application Programming Interface}
+\newacronym{BVP}{BVP}{Boundary Value Problem} \newcommand{\bvp}{\gls{BVP}\xspace}
+\newacronym{BC}{BC}{Boundary Condition} \newcommand{\bc}{\gls{BC}\xspace}\newcommand{\bcs}{\gls{BC}s\xspace}
 
 
 \renewcommand{\vec}[1]{\bm{#1}}
@@ -121,7 +139,127 @@ State of the art in molecular simulations.
 \cleardoublepage
 \part{Novel algorithms for complex fluids}\label{pt:algo}
 \input{Chapters/Chapter06}
-\newpage\input{Chapters/Chapter07}
+\newpage
+\chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
+This chapter presents a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and arbitrary surface charges at the domain walls (in the open direction).
+
+\begin{figure}
+  \centering
+  \includesvg{gfx/dppoisson_sketch}{\columnwidth}
+  \caption{Schematic representation of the doubly periodic domain described by eqs. \ref{eq:dppoisson} and \ref{eq:dppoissonbcs1}-\ref{eq:dppoissonbcs4}. Each domain wall is represented with a different color. Blue clouds represent Gaussian charge sources.}
+  \label{fig:dppoisson_sketch}
+\end{figure}
+
+%
+%Doubly periodic means periodic in XY and unbounded in Z, with the possibility of placing surface charges \sigma_(b/t) at the domain limits and having different permittivities below, inside and above the domain.  
+%A triply periodic solver is also available in UAMMD. See [3] for more info.
+%### Algorithm summary  
+A complete description of the algorithm can be found in \cite{dppoisson2021}.
+We model charges as Gaussian sources. It sounds unphysical, but things in complex fluids are not really point charges due to steric repulsions. Even so our algorithm provides spectral accuracy via Ewald splitting, which naturally decouples the width of the sources and the grid size. Using Ewald splitting we are able to choose an arbitrarily narrow Gaussian to simulate point charges if needed.
+Thus, we want to solve the following equation
+\begin{equation}
+ \varepsilon_0\Delta\phi=-f=-\sum_{k=1}^Mq_kg(r_k)\label{eq:dppoisson}
+\end{equation}
+In a doubly periodic domain of width $H$ and size $L_{xy}$ in the plane.
+Here $g(r)$ represents a Gaussian source inside the sum that goes over all markers, $M$.
+\begin{equation}
+  g(r_k)=\sum_x{\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-||{\vec{x}-\vec{z}_k}||^2}{2g_w^2}\right)}}
+  \label{eq:dppoisson_gaussian}
+\end{equation}
+Here $x$ represents the sum going, potentially, over all points in space.
+Finally, we solve \eqref{eq:dppoisson} with the following set of \bcs for the potential
+\begin{equation}\phi(x,y,z\rightarrow -H/2^+)=\phi(x,y,z\rightarrow -H/2^-)\label{eq:dppoissonbcs1}\end{equation}  
+\begin{equation}\phi(x,y,z\rightarrow H/2^-)=\phi(x,y,z\rightarrow H/2^+)\label{eq:dppoissonbcs2}\end{equation}
+And for the electric field 
+\begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H/2^+)-\varepsilon_b \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H/2^-)=-\sigma_b(x,y)\label{eq:dppoissonbcs3}\end{equation}  
+\begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H/2^-)-\varepsilon_t \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H/2^+)=\sigma_t(x,y)\label{eq:dppoissonbcs4}\end{equation} 
+We introduce, via these \bcs, the possibility of having arbitrary surface charges at the walls, $\sigma_b$ and $\sigma_t$ for the bottom and top respectively. Additionally, we can set different permittivities inside the slab ($\varepsilon_0$) above ($\varepsilon_t$) and below ($\varepsilon_b$) it.
+
+\section{Boundary Value Problem Solver}
+%The far field poses a much more challenging problem since, contrary to the triply periodic case, the problem cannot be solved in Fourier space by simple algebraic multiplication with a Greens function. In our approach the potential is split into two pieces; one with free space boundary conditions and uniform permittivity and another that satisfies the boundary conditions as a correction. Thus  
+\begin{equation}  \phi = \phi^* + \phi^{(c)}\end{equation}  
+%The free space solution is solved by Fourier transforming in the XY directions and interpreting each wave number as a Boundary Value Problem which can be then solved independently in the Chebyshev basis.  
+\begin{equation}
+  \varepsilon  \left( \frac{\partial ^2 \hat{\phi}^*(\mathbf{k}_{||},z)}{\partial z^2} -k_{||}^2 \hat{\phi}^*(\mathbf{k}_{||},z)  \right) = -\hat{f}(\mathbf{k}_{||},z)
+\end{equation}
+\begin{eqnarray}
+  \frac{\partial \hat{\phi}^*(\mathbf{k}_{||},-H/2)}{\partial z} -  k_{||} \hat{\phi}^*(\mathbf{k}_{||},-H/2)&=&0 \\
+  \frac{\partial \hat{\phi}^*(\mathbf{k}_{||},H/2)}{\partial z}  +  k_{||} \hat{\phi}^*(\mathbf{k}_{||},H/2) &=&0
+\label{eq:dppoisson_ewald}
+\end{eqnarray}
+
+%The transformation of the charge density in the grid to Chebyshev space is achieved using mirrored 3D FFTs (fast Chebyshev transform) [4].  
+%For the correction potential a Laplace equation for each wavenumber is solved analytically using the jump boundary conditions ensuring that the overall boundary conditions are satisfied in the final potential.   
+%
+%## Example
+%DPPoisson is created as the typical UAMMD module:
+%
+%```c++
+%#include<uammd.cuh>
+%#include<Interactor/DoublyPeriodic/DPPoissonSlab.cuh>
+%using namespace uammd;
+%...
+%int main(int argc, char *argv[]){
+%...
+%  int N = 1<<14;
+%  auto sys = make_shared<System>(arc, argv);
+%  auto pd = make_shared<ParticleData>(N, sys);          
+%  auto pg = make_shared<ParticleGroup>(pd, sys, "All"); //A group with all the particles
+%  {
+%    auto pos = pd->getPos(access::location::cpu, access::mode::write);
+%    auto charge = pd->getCharge(access::location::cpu, access::mode::write);
+%   ...
+%  }
+%  DPPoissonSlab::Parameters par;
+%  par.Lxy = {32,32};
+%  par.H = 32;
+%  DPPoissonSlab::Permitivity perm;
+%  perm.inside = 1;
+%  perm.top = 2;
+%  perm.bottom = 2;
+%  par.permitivity = perm;
+%  par.gw = 1;
+%  par.Nxy = 72; //Number of Fourier modes for the far field section of the algorithm
+%  // par.split=1; //Splitting parameter, controls the number of Fourier nodes, choose either this or Nxy directly.
+%  auto pg = std::make_shared<ParticleGroup>(pd, sys, "All");
+%  auto dppoisson= std::make_shared<DPPoissonSlab>(pd, pg, sys, par);
+%...
+%  myintegrator->addInteractor(dppoisson);
+%...
+%return 0;
+%}
+%```
+%As in [3] the splitting can be tuned via the parameters, in this case either using ```split``` or the number of Fourier nodes, ```Nxy```.  
+%The algorithm ensures electroneutrality by placing the opposite of the total system charge as a surface charge in the walls (the same charge to each wall).  
+%The default accuracy parameters, omited in the example (see below), give 3-4 digits of accuracy in the electric field. To ensure this tolerance it is important that charges are kept at least 4*gw away from the walls at all times. For example an steric wall could be placed using ExternalForces[5] to ensure this.  
+%
+%### Additional accuracy parameters
+%These are advanced parameters that control the accuracy of the algorithm. See [2] for additional tested sets of parameters for different accuracies. The default parameters give 3-4 digits of accuracy.   
+%```c++
+%  DPPoissonSlab::Parameters par;
+%  par.tolerance = 1e-4; //Controls the cut off distance of the near field interaction kernel
+%  //The far field cell size as: h=sqrt(gw*gw + 1.0/(4.0*split*split))/upsampling;
+%  //If split is provided upsampling controls the cell size, h. If Nxy is provided upsampling controls the split.
+%  par.upsampling=1.2; 
+%  par.support=10; //The number of support cells for the Gaussian charges.
+%  par.numberStandardDeviations = 4; //Image charges will be considered up to a distance of He=1.25*numberStandardDeviations*sqrt(gw*gw + 1.0/(4.0*split*split));  
+%```
+%Additional examples and test cases (including a python interface) reproducing the results presented in [2] can be found at [5].
+%***
+%[1] https://github.com/RaulPPelaez/UAMMD/wiki/Interactor   
+%[2] [Maxian et al. "A fast spectral method for electrostatics in doubly periodic slit channels"](https://arxiv.org/abs/2101.07088).  
+%[3] https://github.com/RaulPPelaez/UAMMD/wiki/SpectralEwaldPoisson   
+%[4] https://en.wikipedia.org/wiki/Discrete_Chebyshev_transform  
+%[5] https://github.com/stochasticHydroTools/DPPoissonTests  
+%[5] https://github.com/RaulPPelaez/UAMMD/wiki/ExternalForces   
+\section{Problem description}
+Introduction.
+\section{Algorithm}
+
+\section{Implementation}
+
+\section{How to use in UAMMD}
+
 \newpage\input{Chapters/Chapter08}
 \newpage
 \cleardoublepage
@@ -399,7 +537,12 @@ The tolerance parameter is the maximum relative error allowed in the potential f
 \newpage
 \cleardoublepage
 \part{New physics and applications}\label{pt:applications}
-\input{Chapters/Chapter13}
+\chapter{Measuring intracellular viscosity}
+\chapter{Star Polymer dynamics in shear flow}
+\chapter{Optofluidic Control of nanoscale dumbbells}
+\chapter{Collective colloid diffusion under soft two-dimensional confinement}
+
+asdasdasdas
 \newpage
 
 
