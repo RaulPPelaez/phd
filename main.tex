@@ -10,10 +10,14 @@ BCOR=5mm,paper=a4,fontsize=11pt
 \usepackage{minted}
 \input{classicthesis-config}
 \usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+
 \usepackage{bm}
 \usepackage{hyperref}
 \usepackage[acronym]{glossaries}
 \usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
 \graphicspath{{./gfx/}}
 
 \newcommand{\executeiffilenewer}[3]{
@@ -43,11 +47,13 @@ BCOR=5mm,paper=a4,fontsize=11pt
 \newacronym{DPD}{DPD}{Dissipative Particle Dynamics}
 \newacronym{SPH}{SPH}{Smoothed Particle Hydrodynamics}
 \newacronym{SE}{SE}{Spectral Ewald}
+\newacronym{LJ}{LJ}{Lennard-Jones}
+\newacronym{MIC}{MIC}{Minimum Image Convention}
 \newacronym{FFT}{FFT}{Fast Fourier Transform}
 \newacronym{iFFT}{iFFT}{Inverse Fast Fourier Transform}
 \newacronym{GPU}{GPU}{Graphical Processor Units}
 \newacronym{GPGPU}{GPGPU}{General Purpose Computing on GPU}
-\newacronym{RHS}{RHS}{Right Hand Side}
+\newacronym{RHS}{RHS}{Right Hand Side}\newcommand{\rhs}{\gls{RHS}\xspace}
 \newacronym{API}{API}{Application Programming Interface}
 \newacronym{BVP}{BVP}{Boundary Value Problem} \newcommand{\bvp}{\gls{BVP}\xspace}
 \newacronym{BC}{BC}{Boundary Condition} \newcommand{\bc}{\gls{BC}\xspace}\newcommand{\bcs}{\gls{BC}s\xspace}
@@ -56,7 +62,9 @@ BCOR=5mm,paper=a4,fontsize=11pt
 \renewcommand{\vec}[1]{\bm{#1}}
 \newcommand{\uammd}{\gls{UAMMD}\xspace}
 \newcommand{\gpu}{\gls{GPU}\xspace}
-
+\newcommand{\dt}{\delta t}
+\newcommand{\half}{\frac{1}{2}}
+\newcommand{\red}[1]{{\color{red}#1}}
 \DeclareMathOperator{\erf}{erf}
 
 \addbibresource{Bibliography.bib}
@@ -90,10 +98,46 @@ BCOR=5mm,paper=a4,fontsize=11pt
 \cleardoublepage
 \part{Introduction}\label{pt:intro}
 \chapter{Introduction}\label{ch:introduction}
-%************************************************
-%\section{Molecular Dynamics Software}
+
+
+The modeling and simulation of physical systems is always tied to a certain spatio-temporal scale. More often than not, studying a system through the lens of a certain scale prevents the exploration of the others.
+Choosing the right lens for a problem requires understanding of its characteristic times and lengths.
+Say, for instance, that you want to study the caudal of a waterfall throughout the next thousand years. It would be a bad decision to employ quantum mechanics for such a feat, a theoretical framework best suited for events that take femtoseconds and are measured in angstroms.
+A lot of mathematical frameworks and numerical techniques are known for the exploration of different spatio-temporal scales. However, some times the need arises to tackle a phenomenon that unravels between their scope.
+On the other hand, the advent of supercomputing in the last two decades has presented the field with new powerful tools to leverage. For the first time we have more computing power than what our techniques are capable of handling. 
+Developing new techniques (numerical and theoretical) directly aimed to these new techonologies will allow to explore regimes previously unreachable, opening the doors to a world of secrets waiting to be found.
+The fields that can take advantage of more computing power the most are those that mix several spatio-temporal regimes.
+For instance, when we need to simulate every molecule of a virus capsid submerged in water for a very long time\cite{virusfullatom2018}. In this article, the authors simulate the dynamics of $6$ million atoms (explicitly) in the span of $1\mu s$, requiring $5 10^8$ simulation steps.
+Of course, this kind of simulation would be impossible without the aid of a super computer and a family of software tools to take advantage of it.
+This thesis is devoted to the development of new algorithms and software tools for the study of complex fluids and biological systemsin high performance computing environments. It just so happens that the interesting physics of these processes often lie in this intermediate regime, called the \emph{mesoscale}.
+The definition of mesoscale is kind of fuzzy, but mesoscopic physics normally deal with entities ranging from $50-100nm$ (a typical virus) to $~10\mu m$ (the size of a HeLa cell), with characteristic times going from a few micro seconds to even minutes.
+The mesoscale poses a series of theoretical and numerical challenges, stemming from the wide range of spatio-temporal scales that influence them. A perfect fit for a super computer.
+Another example of this kind of simulations is the one described in \cite{fullatombacteria2016}. In this article the authors employ $100$ million particles to simulate a chunk of the interior environment of a bacteria for some tens of nanoseconds (around $10^7$ steps).
+
+Recently, a new paradigm of supercomputing has arisen. The \gpu, a massively parallel copocressor. So powerful that it requires to straight-up rethink our algorithms to take advantage of it.
+
+\begin{figure}
+  \label{fig:landscape}
+  \centering
+%  \begin{tikzpicture}
+%    \begin{loglogaxis}[
+%      width=\textwidth,
+%      height=\axisdefaultheight,
+%      xmin=1e-11,xmax=100,
+%      xtick={1e-10, 10e-9, 1e-6, 1e-3, 1, 100},
+%      xticklabels={0.1 nm, 10 nm, 1 $\mu$m, 1 mm, 1 m, 100 m},
+%      ymin=1e-15,ymax=86400,
+%      ytick={1e-15, 1e-12, 1e-9, 1e-6, 1e-3, 1, 3600, 86400},
+%      yticklabels={1 fs, 1 ps, 1 ns, 1 $\mu$s, 1 ms, 1 s, 1 h, 1 day}
+%      ]
+%      \addplot[color=red, domain=1e-11:100 ]{1000000*x^2.5};
+%    \end{loglogaxis}
+%  \end{tikzpicture}
+  \includegraphics[width=\textwidth]{landscape}
+  \caption{A landscape of numerical techniques}
+\end{figure}
+
 \section{The Graphical Processor Unit}
-\gpu are super cool and the future (present).
 
 The \gpu technology, interpreted as some kind of specialized graphic circuit or co-processor, can be tracked back to the 1970s. Once electronic devices started having screens attached to them, it made sense to have some kind of chip translating the CPU information into the analogic signal of the display. It was then only a matter of time before more functionality was put into them. It started as a way to accelerate the display process in early video game hardware, such as arcade systems.
 Storing the data that goes into the screen takes a lot of space and, at the time, RAM memory was expensive (still is, by the way!).
@@ -115,6 +159,12 @@ Jumping again to the year 2000 the quality and complexity of computer graphics h
 Shaders were enough for the community to realize that drawing polygons was far from the only thing they could do with a \gpu\cite{gpgpu2002}. Applications exploting shaders arise everywhere in a variety fields like scientific image processing \cite{gpuimage2003, gpuimage2006}, lineal algebra \cite{gpulinalg2001, gpulinalg2003a, gpulinalg2003b}, physics \cite{gpulbm2004} and even machine learning\cite{gpuml2005, gpuml1998}. One can even find a molecular dynamics code running on the \gpu of a Sony PlayStation 3 \cite{ps3md2009}.
 
 The next natural step took place in 2007, when the NVIDIA Corporation released CUDA\cite{cuda}.
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{gpu_and_me}
+  \caption{A picture of the author with a GPU ( a NVIDIA's RTX 2080Ti ).}
+  \label{fig:gpuandme}
+\end{figure}
 \section{Software for soft matter simulations}
 Problems with porting CPU centric \gls{MD} packages to \gpu. Scalability in software.
 
@@ -132,15 +182,290 @@ State of the art in molecular simulations.
 \cleardoublepage
 \ctparttext{Description of the UAMMD infrastructure. Importance of fundamentally GPU-driven design.}
 \part{UAMMD: Design and components}\label{pt:uammd}
-\input{Chapters/Chapter02}
-\newpage\input{Chapters/Chapter03}
-\newpage\input{Chapters/Chapter04}
-\newpage\input{Chapters/Chapter05}
+%*****************************************
+\chapter{Design principles}\label{ch:design}
+Open infrastructure instead of closed ecosystem. Open source. C++, header only.
+\section{Universality}
+Anything goes as long as it has interacting entities. One could technically implement Chess as a module.
+\section{Adaptability}
+Highly templated code and super generic interfaces. 
+\section{Mulstiscale}
+From atoms in vacuum to chunks of oceans and planetary dynamics.
+\section{Molecular Dynamics}
+Using molecular in the sense of an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...)
+
+\chapter{Core Components}\label{ch:core}
+How the design principles are exposed in code.
+\section{System}
+\section{ParticleData}
+\section{Integrator}\label{sec:Integrator}
+Integrator is a base module
+
+\section{Interactor} \label{sec:interactor}
+Interactor is a base module
+
+
+
+\chapter{Algorithms}\label{ch:algorithms}
+Algorithms in the basic \gls{UAMMD} infrastructure. 
+\section{Cell List}
+No need to really construct a neighbour list, reference  to Transverser
+\section{Verlet List}
+mostly obsolete thanks to cell list
+\section{Bonded Forces}
+Bonded Forces as a kind of neighbour list
+\section{IBM}\label{ch:ibm}
+Change to something more meaningful that conveys spreading+interpolation
+
+
+\chapter{Interfaces}\label{ch:interfaces}
+Generic interfaces desgined to communicate with the core \gls{UAMMD} componentes.
+\section{Transverser}
+The Transverser interface. Transform + traverse
+\section{Potential}
+To encapsulate Transversers
+\section{ParameterUpdatable}
+An interface to communicate changes in parameters
+
+
+\section{Usage examples throughout this document}\label{sec:uammd_struct}
+Every time an algorithm available in \uammd is presented it will be acompanied by a section describing how to use it in the codebase.
+Often this will consist of a function creating and returning an instance of the related module in the following form
+
+
+\begin{minted}{c++}
+#include<uammd.cuh>
+//Additional includes when necessary
+using namespace uammd;
+auto createModule(UAMMD sim){
+//Some preparation...
+return std::make_shared(Module(/*Whatever is needed*/));
+}
+\end{minted}
+
+These examples are meant to serve both as a tutorial and an easily copy-pastable example.
+The structure \emph{UAMMD} in these examples is not part of \uammd and is meant to group the core components of a typical \uammd code. It can be defined as follows
+
+
+\begin{minted}{c++}
+#include<uammd.cuh>
+//Additional includes when necessary
+using namespace uammd;
+//An aggregate of parameters required by the relevant modules in the code
+struct Parameters{
+  //real dt;
+  //...
+};
+struct UAMMD{
+  std::shared_ptr<System> sys;
+  std::shared_ptr<ParticleData> pd;
+  Parameters par;
+};
+
+//A function creating an instance of the UAMMD structure
+UAMMD initializeUAMMD(){
+  UAMMD sim;
+  Parameters par;
+  //Fill out parameters somehow
+  //par.dt = 0.1;
+  sim.par = par;
+  sim.sys = std::make_shared<System>();
+  //Set the number of particles some how.
+  int numberParticles = 1e6;
+  sim.pd  = std::make_shared<ParticleData>(sys, numberParticles);
+  return sim;
+}
+\end{minted}
+
+\section{Error handling in UAMMD}\label{sec:uammd_errors}
+Errors are communicated via C++ exceptions.
+
+
+
+
+\part{A voyage through numerical space-time}
+
+Let us go through the different numerical techniques that are used to simulate the different sections of the spatio-temporal landscape.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{landscape}
+  \caption{The spatio-temporal landscape and its numerical techniques.}
+  \label{fig:sptime-land}
+\end{figure}
+
+
+We can distinguish between two families of numerical techniques, particle and grid based methods. The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
+In some way or another, all algorithms must compute forces between particles.
+\chapter{Working with particles}
+
+\chapter{Computing forces}
+We can distinguish between several different types of particle interaction potentials, mainly:
+\begin{itemize}
+\item Long range interactions
+\item Short range interactions
+\item Bonded interactions
+\end{itemize}
+
+Let us go through each of them and describe the different algorithms used to solve each case and how \uammd exposes them.
+
+\section{Long range interactions}
+Say we are set to simulate a galaxy, so far away from others that it can be safely assumed their action is negligible. Say we want to simulate the dynamics of each of the $N$ stars in this galaxy. Gravity is the dominating interaction between each star, sadly it decays slowly enough to be considered an infinitely ranged one. The gravity potential can be written as follows
+\begin{equation}
+  \label{eq:gravity}
+  U(r) = G\frac{m_1m_2}{r}
+\end{equation}
+Where $G$ is the gravitational constant and $m_1$, $m_2$ are the masses of each particle.
+In this case, if we want to compute the force acting on a star due to the presence of all the others we must check each and everyone of them. This leads to a lot of interactions to check, more precisely $N^2$ of them. Of course, there are more sophisticated ways of performing such a computation, such as fast multipole methods \cit{fmm} or Ewald splitting (which will be discussed on section \ref{ewald}). But some times these techniques are not a possibility so it is valuable to see how to efficiently handle this computations.
+In particular this computation is a really good fit for a \gls{GPU} as we are going to see.
+\subsection{The NBody algorithm}
+This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA\cite{nbody1,nbody2}. It leverages the shared memory capabilities of the \gls{GPU} by assigning a thread to a particle and then collaboratively loading groups of particles into shared memory. Then each thread processes this group of particles loaded into shared memory. This is repeated until all particles have been processed.
+
+\begin{algorithm}
+  \caption{NBody algorithm GPU kernel}
+  \begin{algorithmic}[1]
+    \Function{Nbody}{list of positions, box}
+    \State \Requires A thread is launched per particle
+    \State tid \gets thread ID
+    \State \Return r - floor(r/L + 0.5)*L
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+
+\subsection{How to use in UAMMD}
+
+\section{Short range interactions}
+Particles interacting closely, a.i. there is less information to share between them, allow for specific optimizations abusing the locality of the required computation.
+In reality it can happen that the effect of one particle on another is short ranged in nature, as could be the case for interactions stemming directly from quantum effects such as Van-der-Walls forces. It can also happen that a combination of several long ranged interactions result in a short ranged one, such as a screened electrostatic interaction. Other times when the interaction cannot be made to decay rapidly using natural arguments we can still transform it into a short range one with techniques such as Ewald splitting, which would be discussed in section \ref{sec:ewald}.
+The reason for giving short range interactions so much credit is simple: Imagine a system with $N$ uniformly distributed particles inside a given domain. If we let each particle interact with every other we need to check $N^2$ pairs of particles. On the other hand restricting the interaction to a certain distance, such that each particle has a number of neighbours $k<<N$ reduces the number of checks to $kN$.
+
+\subsection{The Lennard-Jones potential}
+A standard potential employed to model the short range Van-der-Waals interactions is the Lennard-Jones potential \cite{lj}. A repulsive radial potential with an attractive tail.
+\begin{equation}
+  \label{eq:lj}
+  U_{LJ}(r) = 4 \epsilon_{lj} \left[ \left(\frac{\sigma_{lj}}{r}\right)^{12} - \left( \frac{\sigma_{lj}}{r}\right)^6 \right] 
+\end{equation}
+Which results in this expression for the force at a certain distance $\vec{r}$ between two points
+\begin{equation}
+  \label{eq:ljf}
+  \vec{F}_{LJ}(\vec{r}) = -\nabla_{\vec{r}} U_{LJ} = 24 \epsilon_{lj} \left[ \left(\frac{\sigma_{lj}}{||\vec{r}||}\right)^{7} - 2\left( \frac{\sigma_{lj}}{||\vec{r}||}\right)^{13} \right] \frac{\vec{r}}{\hat{r}}
+\end{equation}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{lj}
+  \caption{The Lennard-Jones potential described in eq. \ref{eq:lj}}
+  \label{fig:lj}
+\end{figure}
+
+Given the rapidly decaying nature of this otherwise infinite range potential it is standard to truncate it at a certain distance, usually $r_{cut} = 2.5\sigma_{lj}$. At this distance the potential has a value of $U_{LJ}(r = r_{cut}) = -0.0615\epsilon_{lj}$.
+Ignoring the long range effects of this potential changes the equation of state of a \gls{LJ} fluid in a way that is well understood and tabulated\cite{ljtrunc}. By doing this we can devise more efficient algorithms that only need to take into account short range interactions.
+Finally, in order to avoid jumps in the energy it is also standard to shift the potential in addition to this truncation. This is refered as the truncated and shifted Lennard-Jones potential
+\begin{equation}
+  \label{eq:lj}
+  U_{LJTS}(r) =
+  \begin{cases}
+      U_{LJ}(r) - U_{LJ}(r_{cut}) & r<r_{cut}\\
+      0 & r\ge r_{cut}\\                                    
+    \end{cases}
+\end{equation}
+The expression for the force remains as in eq. \eqref{eq:ljf}.
+
+Sometimes we are only interested in the repulsive part of the LJ potential. In order to do so we truncate eq. \eqref{eq:lj} at a distance $r_m = 2^{1/6}$, where $U_{LJ} = 0$. The resulting potential is called Weeks-Chandler-Andersen, or WCA, potential. We will refer to to it as $U_{WCA}$.
+Often during this manuscript the parameters in eq. \eqref{eq:lj} will be used as natural units of energy, $\epsilon_{lj}$ and length $\sigma_{lj}$.
+
+\section{Periodic Boundary Conditions}
+In order to conserve the total volume of the system we use the \gls{MIC}, where a particle that leaves the simulation domain though one side appears on the other.
+Numerically we can express this algorithm as follows:
+
+\begin{algorithm}
+  \caption{Minimum Image Convention, takes a position or distance and returns it inside the simulation domain}
+  \begin{algorithmic}[1]
+    \Function{MIC}{r, L}   
+    \State \Return r - floor(r/L + 0.5)*L
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+We can also use this algorithm to get the minimum distance between two points, so particles near opposite walls interact.
+
+
+
+\chapter{Molecular Dynamics}
+
+At the lowest level, without considering quantum effects, our simulation units are interacting atoms or molecules whose motion can be described using classical mechanics. We refer to the numerical techniques used in this regime as \gls{MD}.
+In \gls{MD} molecules are moving in a vacuum following the Newton's equation of motion. If we need to include some kind of solvent, i.e. water, in a \gls{MD} simulation we must do so by explicitly solving the motion of all the involved molecules of water (which might be coarse grained in some way or another).
+Even so \gls{MD} represents the basis for all particle based methods, where the term \emph{particle}, depending on the level of coarse graining, might refer to anything from an atom to a chunk of an ocean.
+Although not the most fundamental way of expressing the equations of motions, we will stick to this somewhat simplified one. For a system of $N$ molecules interacting via a certain potential, Newton's equation of motion state that the acceleration experienced by each one comes from the total force, $\vec{F}$, acting on it.
+\begin{equation}
+  \label{eq:md}
+  \vec{F}_i =  m_i\ddot{\vec{r}_i}
+\end{equation}
+Where $m_i$ is the mass of the molecule $i$ and $\vec{r}_i$ its position in cartesian coordinates.
+The force is defined as the gradient of an underlying potential energy landscape, $U$.
+\begin{equation}
+  \label{eq:mdfv}
+  \vec{F}_i = -\nabla_{\vec{r}_i} U(\{\vec{r}_1,...,\vec{r}_N\})
+\end{equation}
+Which in general is a function of the positions of the particles
+
+
+At its core eq. \eqref{eq:md} is an expression of the conservation of the total system's energy. As such, these equations of motion can be used to perform simulations in the so-called microcanonical ensemble (NVE), where the number of particles (N), the volume of the domain (V) and the total energy (E) are conserved.
+
+
+
+\section{The velocity Verlet algorithm}
+Our goal is to integrate numerically eq. \eqref{eq:md}. Meaning that starting with the state of the system at a certain time $t$ (where the system is conformed by the positions and velocities of the particles and the forces acting on them) we want to find the state of the system at time $t + \dt$. We refer to $\dt$ as the time step.
+Eq. \eqref{eq:md} may be integrated with a simplectic integration method to describe the evolution of the particle's positions, $\vec{r}_i$, and their velocities, $\dot{\vec{r}}_i$. There are several standard simplectic algorithms, such as predictor-corrector \cite{mdpredictorcorrector} and Runge-Kutta \cite{mdrk}, but the most used one is the Verlet algorithm \cite{mdvelocityverlet}.
+
+The Verlet algorithm checks all the ticks necessary ticks for a good numerical solution; it has a low memory footprint, its easy to code, fast (only requires O(N) operations) and provides a reasonably good conservation of energy.
+Furthermore the Verlet algorithm is time-reversible \red{WHICH IS GOOD WHY?}.
+Ideally we would like to set a time step as high as possible, which will result in less integration steps to arrive at a certain simulation time. In that regard we can find algorithms more numerically stable than Verlet. However there is always a trade off between computation and stability, while a multi-step algorithm might allow to push $\dt$ a little further than Verlet it essentially doubles the computation cost. As such Verlet provides a good trade-off between stability and computational complexity.
+
+
+The usual form of the Verlet algorithm is the so-called velocity Verlet, in which we track the evolution of the velocities and positions of the particles. We can write the time discretized equations of motion in such a way that we only need to evaluate the forces (which often is by far the more expensive part of the algorithm) once per time step
+\begin{eqnarray}
+  \label{eq:verletnve}
+  \dot{\vec{r}}_i(t+\half \dt) &=& \dot{\vec{r}}_i(t) + \half \frac{\vec{F}_i(t)}{m_i}\dt\nonumber\\
+  \vec{r}_i(t+ \dt) &=& \vec{r}_i(t) +  \dot{\vec{r}}_i(t+\half \dt)\dt\\
+  \dot{\vec{r}}_i(t+ \dt) &=& \dot{\vec{r}}_i(t+\half\dt) + \half\frac{\vec{F}_i(t+\dt)}{m_i}\dt\nonumber
+\end{eqnarray}
+
+\subsection{Testing the algorithm}
+One way to measure the effectiveness of the algorithm is to chack the energy conservation
+
+\subsection{Use in UAMMD}
+The velocity Verlet algorithm in the NVE ensemble is available in \uammd as an Integrator module called \emph{VerletNVE}.
+
+As an energy conserving algorithm, VerletNVE offers the possibility of setting a certain energy per particle at creation.
+The starting kinetic energy of the system will be set to match this energy. Note that this will result in particle velocities being overwritten.
+Alternatively you can instruct VerletNVE to leave particle velocities untouched, which will result in the initial total energy being uncontrolled by the module.
+The only tool used by this module to set the initial total energy is the kinetic energy, which is always positive. As such, an error will be thrown if the target energy is \emph{less} than the potential energy at creation. See sec. \ref{sec:uammd_errors} on how to deal with errors.
+
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Integrator/VerletNVE.cuh>
+using namespace uammd;
+//A function that creates and returns a VerletNVE integrator
+auto createIntegratorVerletNVE(UAMMD sim){
+  VerletNVE::Parameters par;
+  par.dt = sim.par.dt; //The time step
+  //Optionally a target energy can be passed
+  par.energy = 1; 
+  //If false, VerletNVE will not overwrite velocities at initialization
+  //par.initVelocities = false;
+  return std::make_shared<VerletNVE>(sim.pd, sim.sys, par);
+}
+
+\end{minted}
+
+
 \cleardoublepage
 \part{Novel algorithms for complex fluids}\label{pt:algo}
 \input{Chapters/Chapter06}
 \newpage
 \chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
+\section{Introduction}
 This chapter presents a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and arbitrary surface charges at the domain walls (in the open direction).
 
 \begin{figure}
@@ -156,17 +481,18 @@ This chapter presents a novel algorithm for computing the electrostatic energies
 %### Algorithm summary  
 A complete description of the algorithm can be found in \cite{dppoisson2021}.
 We model charges as Gaussian sources. It sounds unphysical, but things in complex fluids are not really point charges due to steric repulsions. Even so our algorithm provides spectral accuracy via Ewald splitting, which naturally decouples the width of the sources and the grid size. Using Ewald splitting we are able to choose an arbitrarily narrow Gaussian to simulate point charges if needed.
-Thus, we want to solve the following equation
+Thus, we want to solve the following Poisson equation
 \begin{equation}
- \varepsilon_0\Delta\phi=-f=-\sum_{k=1}^Mq_kg(r_k)\label{eq:dppoisson}
+ \varepsilon_0\Delta\phi(\vec{x} = (x,y,z))=-f(\vec{x})=-\sum_{k=1}^Nq_kg(||\vec{x}-\vec{z}_k||)\label{eq:dppoisson}
 \end{equation}
 In a doubly periodic domain of width $H$ and size $L_{xy}$ in the plane.
-Here $g(r)$ represents a Gaussian source inside the sum that goes over all markers, $M$.
+Here $g$ represents a Gaussian source, the sum goes over all markers, $N$.
 \begin{equation}
-  g(r_k)=\sum_x{\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-||{\vec{x}-\vec{z}_k}||^2}{2g_w^2}\right)}}
+  g(r)=\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2g_w^2}\right)}
   \label{eq:dppoisson_gaussian}
 \end{equation}
-Here $x$ represents the sum going, potentially, over all points in space.
+We impose that the sources do not overlap the boundaries so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma g_w \ge 4 g_w$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $q$.
+
 Finally, we solve \eqref{eq:dppoisson} with the following set of \bcs for the potential
 \begin{equation}\phi(x,y,z\rightarrow -H/2^+)=\phi(x,y,z\rightarrow -H/2^-)\label{eq:dppoissonbcs1}\end{equation}  
 \begin{equation}\phi(x,y,z\rightarrow H/2^-)=\phi(x,y,z\rightarrow H/2^+)\label{eq:dppoissonbcs2}\end{equation}
@@ -174,7 +500,45 @@ And for the electric field
 \begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H/2^+)-\varepsilon_b \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H/2^-)=-\sigma_b(x,y)\label{eq:dppoissonbcs3}\end{equation}  
 \begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H/2^-)-\varepsilon_t \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H/2^+)=\sigma_t(x,y)\label{eq:dppoissonbcs4}\end{equation} 
 We introduce, via these \bcs, the possibility of having arbitrary surface charges at the walls, $\sigma_b$ and $\sigma_t$ for the bottom and top respectively. Additionally, we can set different permittivities inside the slab ($\varepsilon_0$) above ($\varepsilon_t$) and below ($\varepsilon_b$) it.
+We assume that the domain is overall electroneutral,
+\begin{equation}
+  \label{eq:dppoisson_electroneutral}
+  \sum_{k=1}^N{q_k} + \int_0^{L_xy}{\int_0^{L_xy}{(\sigma_b(x,y) + \sigma_t(x,y))dxdy}} = 0
+\end{equation}
+Similarly as in the triply periodic algorithm described in chapter \ref{ch:tppoisson}, we are interested in computing the system energy and the particle forces.
+Once the potential is known the total electrostatic energy can be computed as
+\begin{equation}
+  \label{eq:dppu}
+  U = \frac{1}{2}\sum_i{q_i\bar\phi(\vec{z}_i)} + \frac{1}{2}\sum_{wall=b,t}{\int_{x,y}{\sigma_{wall}\phi(x,y,wall)dxdy}}
+\end{equation}
+Where $\bar\phi$ is the potential averaged (interpolated) at the charge's location, computed as the convolution between the pointwise potential and the Gaussian $g$
+\begin{equation}
+  \label{eq:dpphibar}
+  \bar\phi(\vec{z}) = (\phi\star g)(\vec{z})
+\end{equation}
+The force can be computed from the potential via the electric field
+\begin{equation}
+  \label{eq:dppE}
+  \vec{E}(\vec{x}) = -\nabla{\phi}  
+\end{equation}
+Similarly averaged at the charge's location
+\begin{equation}
+  \label{eq:dppf}
+  \vec{F}_i = -\frac{\partial U}{\partial\vec{z}_i} = q_i(\vec{E}\star g)(\vec{z}_i)
+\end{equation}
+\section{Solver description}
+We start by separating the problem into two sub-problems. First we solve \eqref{eq:dppoisson} in free space (no dielectric jumps or surface charges, see sec \ref{sec:dpsolver}) and then introduce an harmonic correction to account for the jump \bcs (section \ref{sec:dpcorr}).
+We use a grid-based solver to get an algorithm with linear complexity with the number of particles. First we evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (as described in chapter \ref{ch:ibm}), then solve the potential in that grid and finally interpolate the required quantities back to the particle positions (eqs. \eqref{eq:dppu} and \eqref{eq:dppf}).
+In order to accurately describe the charge density $f(\vec{x})$ in the grid we must choose a sufficiently small grid size, $h$. Since $h$ depends on the Gaussian width of the sources, $g_w$, this method will be inefficient for point-like charges ($g_w\rightarrow 0$). To overcome this limitation (similarly as with the triply periodic case described in chapter \ref{ch:tppoisson}) we make use of Ewald splitting.
 
+\subsection{Free space solver}\label{sec:dpsolver}
+
+
+\subsection{Correction}\label{sec:dpcorr}
+
+\subsection{Ewald splitting}\label{sec:dpewald}
+
+\section{Algorithm}
 \section{Boundary Value Problem Solver}
 %The far field poses a much more challenging problem since, contrary to the triply periodic case, the problem cannot be solved in Fourier space by simple algebraic multiplication with a Greens function. In our approach the potential is split into two pieces; one with free space boundary conditions and uniform permittivity and another that satisfies the boundary conditions as a correction. Thus  
 \begin{equation}  \phi = \phi^* + \phi^{(c)}\end{equation}  
