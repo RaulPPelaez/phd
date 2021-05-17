@@ -1,18 +1,21 @@
+
 \RequirePackage{silence} % :-\
 %    \WarningFilter{scrreprt}{Usage of package `titlesec'}
 %    \WarningFilter{scrreprt}{Activating an ugly workaround}
 %    \WarningFilter{titlesec}{Non standard sectioning command detected}
 \documentclass[ twoside,openright,titlepage,numbers=noenddot,%1headlines,
 headinclude,footinclude,cleardoublepage=empty,abstract=on,
-BCOR=5mm,paper=a4,fontsize=11pt
+BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 ]{scrreprt}
+\usepackage{todonotes}
 \usepackage{xspace}
 \usepackage{minted}
 \input{classicthesis-config}
 \usepackage{amsmath}
 \usepackage{algorithm}
-\usepackage[noend]{algpseudocode}
-
+\usepackage{algpseudocode}
+\algnewcommand{\LeftComment}[1]{\Statex \(\triangleright\) #1}
+\algnewcommand{\Input}[1]{\hspace*{\algorithmicindent} \textbf{Input:} #1}
 \usepackage{bm}
 \usepackage{hyperref}
 \usepackage[acronym]{glossaries}
@@ -66,6 +69,7 @@ BCOR=5mm,paper=a4,fontsize=11pt
 \newcommand{\half}{\frac{1}{2}}
 \newcommand{\red}[1]{{\color{red}#1}}
 \DeclareMathOperator{\erf}{erf}
+
 
 \addbibresource{Bibliography.bib}
 
@@ -165,6 +169,7 @@ The next natural step took place in 2007, when the NVIDIA Corporation released C
   \caption{A picture of the author with a GPU ( a NVIDIA's RTX 2080Ti ).}
   \label{fig:gpuandme}
 \end{figure}
+
 \section{Software for soft matter simulations}
 Problems with porting CPU centric \gls{MD} packages to \gpu. Scalability in software.
 
@@ -198,11 +203,9 @@ Using molecular in the sense of an arbitrarily coarsed-grained simulation unit (
 How the design principles are exposed in code.
 \section{System}
 \section{ParticleData}
-\section{Integrator}\label{sec:Integrator}
-Integrator is a base module
 
-\section{Interactor} \label{sec:interactor}
-Interactor is a base module
+\section{ParticleGroup} 
+
 
 
 
@@ -219,6 +222,7 @@ Change to something more meaningful that conveys spreading+interpolation
 
 
 \chapter{Interfaces}\label{ch:interfaces}
+This stuff should go organically in the text
 Generic interfaces desgined to communicate with the core \gls{UAMMD} componentes.
 \section{Transverser}
 The Transverser interface. Transform + traverse
@@ -259,6 +263,7 @@ struct Parameters{
 struct UAMMD{
   std::shared_ptr<System> sys;
   std::shared_ptr<ParticleData> pd;
+  std::shared_ptr<ParticleGroup> pg;
   Parameters par;
 };
 
@@ -273,6 +278,8 @@ UAMMD initializeUAMMD(){
   //Set the number of particles some how.
   int numberParticles = 1e6;
   sim.pd  = std::make_shared<ParticleData>(sys, numberParticles);
+  //A group with all the particles.
+  sim.pg = std::make_shared<ParticleGroup>(pg, sys, "All");
   return sim;
 }
 \end{minted}
@@ -281,7 +288,10 @@ UAMMD initializeUAMMD(){
 Errors are communicated via C++ exceptions.
 
 
+\section{Basic concepts of GPU programming}
+Things to explain here:
 
+Different memories; Separation between CPU and GPU RAM, global memory, register memory, shared memory, constant memory.
 
 \part{A voyage through numerical space-time}
 
@@ -296,11 +306,182 @@ Let us go through the different numerical techniques that are used to simulate t
 
 
 We can distinguish between two families of numerical techniques, particle and grid based methods. The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
-In some way or another, all algorithms must compute forces between particles.
-\chapter{Working with particles}
+In some way or another, all algorithms have to take into account interactions between particles.
 
-\chapter{Computing forces}
-We can distinguish between several different types of particle interaction potentials, mainly:
+\chapter{Working with particles}
+Let us interpret the word \emph{particle} as a relatively small discrete portion in a simulation. This is a vage definition on porpuse, since from an algorithmic point of view it does not really matter what a particle represents. Sometimes a particle will be an atom or molecule, other times it will make more sense that our simulation unit is a big colloid, a virus or a whole sun.
+The important thing about particles is that when several of them are present, they more than often have a certain effect on each other.
+Stars in a galaxy attract each other over an infinetely long range of space, while two argon atoms will repell each other at close range.
+Even if particles are somehow oblivious to each other, they might interact with some other thing, like fluid particles being repelled by a wall.
+Each kind of interaction requires a different approach, and figuring out how to efficiently compute it in a \gpu is a field on itself. 
+In this chapter we will see some of the strategies that can be employed and how they are implemented in \uammd.
+
+\chapter{Particle interactions}
+
+Let us see how \uammd deals with interactions by introducing the \emph{Interactor} module.
+
+\section{The Interactor interface} \label{sec:interactor}
+
+Interactor encapsulates the concept of a group of particles interacting, be it with each other or with some external influence.
+An Interactor can be issued to compute, for each particle, the forces, energies and/or virial due to a certain interaction.
+To do so it can access the current state of the particles (like positions, velocities, etc).
+A minimal example of an Interactor
+
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Interactor/Interactor.cuh>
+using namespace uammd;
+
+//A class that needs to behave as 
+//an UAMMD Interactor must inherit from it
+class MyInteractor: public Interactor{
+public:
+  MyInteractor(shared_ptr<ParticleData> pd,
+               shared_ptr<ParticleGroup> pg,
+               shared_ptr<System> sys):
+          Interactor(pd, pg, sys, "MyInteractor"){
+    //Any required initialization 
+  }
+
+  virtual void sum(Computables comp, cudaStream_t st){
+    if(comp.force){
+      //Sum forces to each particle
+    }
+    if(comp.energy){
+      //Sum energies to each particle
+    }
+    if(comp.virial){
+      //Sum virial to each particle
+    }
+  }
+};
+\end{minted}
+
+See chapter \ref{ch:core} for information about how to access particle properties and using particle groups.
+
+\uammd offers a series of \emph{Interactors} with the different kinds of interactions that we will discuss in the following sections. Sometimes exposing a general algorithm that can be specialized (like \emph{PairForces} for particle pair interactions, see sec. \ref{sec:pairforces}) and others exposing particular potentials (like \emph{SpectralEwaldPoisson} for electrostatics, see sec. \ref{sec:tppoisson}).
+
+It is also worth introducing here two other interfaces that \uammd uses to work with particles, \emph{Transverser} and \emph{Potential}.
+
+\section{The Transverser Interface} \label{sec:transverser}
+A Transverser is a concept that refers to the action of going through each element of something.  
+
+For example, for each particle, we want to perform some computation for particles that are closer than a certain distance in a custom way. Or more generally, we want to perform some kind of operation equivalent to a matrix-vector multiplication, for which in order to compute one element of the result, the vector needs to go through a row of the matrix.
+In these cases, a Transverser is used.
+
+A Transverser holds information about what to do with a pair of particles, what information is needed to compute this interaction, or what to do when a particle has interacted with all pairs it is involved in.  
+
+Being such a general concept, a \emph{Transverser} is used as a template argument, and therefore cannot be a base virtual class that can be inherited. This is why it is a "concept". No assumption can be made about the return types of each function, or the input parameters, the only things general are the function names.  
+
+For each particle to be processed the \emph{Transverser} will be called for:  
+\begin{itemize}
+\item Setting the initial value of the interaction result (function \emph{zero})
+\item Fetching the necesary data to process a pair of particles  (function \emph{getInfo})
+\item Compute the interaction between the particle  and each of its neighbours (function \emph{compute})
+\item Accumulate/reduce  the result for each neighbour (function \emph{accumulate})
+\item  Set/write/handle the accumulated result for all neighbours (function \emph{set})
+ \end{itemize}
+The same Transverser instance will be used to process every particle in an arbitrary order. Therefore, the Transverser must not assume it is bound to a specific particle.
+
+The \emph{Transverser} interface requires a given class/struct to provide the following public device (unless prepare that must be a host function) member functions:
+
+\begin{itemize}
+\item \mintinline[breaklines]{c++}{Compute compute(real4 position_i, real4 position_j,Info info_i, Info info_j);}
+
+  
+  For a pair of particles
+  characterized by position and info this function must return the
+  result of the interaction for that pair of particles. The last
+  two arguments must be present only when \emph{getInfo} is defined.The
+  returning type, \emph{Compute}, must be a POD type (just an aggregate of
+  plain types), for example a real when computing energy.
+
+\item \mintinline{c++}{void set(int particle_index, Compute &total);}
+
+  
+   After calling compute for all neighbours this function will be called with the contents of "total" after the last call to "accumulate".
+   Can be used to, for example, write the final result to main memory.
+
+ \item \mintinline{c++}{Compute zero();}
+
+   
+   This function returns the initial value of the computation, for example {0,0,0} when computing the force. 
+   The returning type, \emph{Compute}, must be a POD type (just an aggregate of plain types), for example a real when computing energy. Furthemore it must be the same type returned by the "compute" member.
+   This function is optional and defaults to zero initialization (it will return Compute() which works even for POD types).
+    
+ \item \mintinline{c++}{Info getInfo(int particle_index);}
+
+   
+   Will be called for each particle to be processed and returns the per-particle data necessary for the interaction with another particle (except the position which is always available). For example the mass in a gravitational interaction or the particle index for some custom interaction.
+   The returning type, Info, must be a POD type (just an aggregate of plain types), for example a real for gravitation.
+   This function is optional and if not present it is assumed the only per-particle data required is the position. 
+   In this case the function "compute" must only have the first two arguments.
+
+ \item \mintinline{c++}{void accumulate(Compute &total, const Compute &current);}
+
+   
+  This function will be called after "compute" for each neighbour with its result and the accumulated result.
+  It is expected that this function modifies "total" as necessary given the new data in "current".
+  The first time it is called "total" will be have the value as given by the "zero" function.
+  This function is optional and defaults to summation: total = total + current. Notice that this will fail for non trivial types.
+     
+\item \mintinline{c++}{void prepare(std::shared_ptr<ParticleData> pd);}
+
+  
+  This function will be called one time in the CPU side just before processing the particles.
+  This function is optional and defaults to simply nothing.
+ \end{itemize}
+
+Lets see a trivial example.
+This \emph{Transverser} can be used with a neighbour list to count the number of neighbours of each particle:
+\begin{minted}{c++}
+struct NeighbourCounter{
+  int *nneigh;
+  real rc;
+  Box box;
+  NeighbourCounter(Box i_box, real i_rc,int *nneigh):
+    rc(i_rc),box(i_box),
+    nneigh(nneigh){}
+
+  //There is no "zero" function so the total result starts being 0.
+  
+  //For each pair computes counts a neighbour 
+  //if the particle is closer than rcut
+  __device__ int compute(real4 pi, real4 pj){
+    const real3 rij = box.apply_pbc(make_real3(pj)-make_real3(pi));
+    const real r2 = dot(rij, rij);
+    if(r2>0 and r2< rc*rc){
+      return 1;
+    }
+    return 0;
+  }
+  //There is no "accumulate"
+  // the result of "compute" is added every time.
+  //The "set" function will be called with the accumulation
+  // of the result of "compute" for all neighbours. 
+  __device__ void set(int index, int total){
+    nneigh[index] = total;
+  }
+};
+\end{minted}
+
+In the following sections, we will see how to use \emph{Transversers} to compute forces, energies and more between particles.
+But in order to do that, we need yet another interface in order connecting the general concept of a \emph{Transverser} with something that computes forces, energies or virial of an interaction. In \uammd, we use the \emph{Potential} interface for that.
+
+\section{The Potential Interface} \label{sec:potential}
+
+This interface is just a connection between the \emph{Transverser} and \emph{Interactor} concepts. Additionally, \emph{Potential} aids with one limitation of the \gls{CUDA} programming language and \gpu programming in general. On one hand, register memory in a \gpu is quite limited, so it is not a good idea to use large objects in a kernel. On the other hand there are some technical details that prevents certain objects from existing in a \gpu kernel. For example, objects are passed by value to a kernel, which can incurr in undesired copies and/or destructors being called. Thus, its some times worth it to make a conceptual and programmatic separation between CPU and \gpu objects.
+In this regard, \emph{Transversers} are \gpu objects, while \emph{Interactors} or \emph{Potentials} are meant to be used in the CPU.
+Furthermore, while \emph{Transverser} describes a very general computation, \emph{Potential} only holds the logic on how to compute forces, energies and/or virials.
+\emph{Potential} serves as a way to serve \emph{Transversers} to \emph{Interactors}.
+
+\todo{DESCRIBE INTERFACE}
+
+
+
+
+
+We are now ready to start exploring the different types of particle interactions, mainly:
 \begin{itemize}
 \item Long range interactions
 \item Short range interactions
@@ -316,24 +497,74 @@ Say we are set to simulate a galaxy, so far away from others that it can be safe
   U(r) = G\frac{m_1m_2}{r}
 \end{equation}
 Where $G$ is the gravitational constant and $m_1$, $m_2$ are the masses of each particle.
-In this case, if we want to compute the force acting on a star due to the presence of all the others we must check each and everyone of them. This leads to a lot of interactions to check, more precisely $N^2$ of them. Of course, there are more sophisticated ways of performing such a computation, such as fast multipole methods \cit{fmm} or Ewald splitting (which will be discussed on section \ref{ewald}). But some times these techniques are not a possibility so it is valuable to see how to efficiently handle this computations.
+In this case, if we want to compute the force acting on a star due to the presence of all the others we must check each and everyone of them. This leads to a lot of interactions to check, more precisely $N^2$ of them. Of course, there are more sophisticated ways of performing such a computation, such as fast multipole methods \cite{fmm} or Ewald splitting (which will be discussed on section \ref{ewald}). But some times these techniques are not a possibility so it is valuable to see how to efficiently handle this computations.
 In particular this computation is a really good fit for a \gls{GPU} as we are going to see.
 \subsection{The NBody algorithm}
-This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA\cite{nbody1,nbody2}. It leverages the shared memory capabilities of the \gls{GPU} by assigning a thread to a particle and then collaboratively loading groups of particles into shared memory. Then each thread processes this group of particles loaded into shared memory. This is repeated until all particles have been processed.
-
+The naive parallel algorithm that checks, for each particle, every other would simply assign a particle (or a group of them) to a thread and then iterate over the rest is summarized in algorithm \ref{alg:nbodynaive}.
 \begin{algorithm}
-  \caption{NBody algorithm GPU kernel}
+  \caption{Naive NBody algorithm. Each particle, i, visits all the others.}\label{alg:nbodynaive}
+  \Input{A list of $N$ particles, box}
   \begin{algorithmic}[1]
-    \Function{Nbody}{list of positions, box}
-    \State \Requires A thread is launched per particle
-    \State tid \gets thread ID
-    \State \Return r - floor(r/L + 0.5)*L
-    \EndFunction
+    \Require A thread is launched per particle    
+    \State $i \gets$ thread ID \Comment{Particle index}
+    \For{ $j=0$ until $N$}
+    \LeftComment{Process $i$-$j$ pair}
+    \EndFor
   \end{algorithmic}
 \end{algorithm}
 
+This is an embarrasingly parallel operation in which, in principle, a thread can work without collaborating with the others. However the naive algorithm is missing an oportunity in doing so. We can leverage that all threads have to access the same segments of memory. Instead of letting each thread diverge we can enforce that all threads access the same particles at the same time. This can effectively reduce the number of global memory acceses to a certain particle from $N$ to, potentially, just one.
+This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA\cite{nbody1,gpugems3}. It leverages the shared memory capabilities of the \gls{GPU} by assigning a thread to a particle and then collaboratively loading groups of particles (called tiles) into shared memory. Then each thread processes this tile loaded into shared memory. This is repeated until all tiles have been loaded and processed.
+The optimal size of a tile will be an optimization parameter also depending on the required shared memory per particle, being the number of threads in a block (or a multiple of it) a good default.
+This results in an overall speedup of 30 compared with the naive algorithm \todo{Maybe a figure comparing here?}
+The algorithm is summarized in algorithm \ref{alg:nbody}-
+\begin{algorithm}
+  \caption{Shared memory NBody algorithm GPU kernel. Although the number of particles per tile is unconstrained, for simplicity this pseudocode assumes a tile has a size equal to the number of threads per block, with a number of tiles equal to the number of thread blocks.} \label{alg:nbody}
+  \Input{A list of $N$ particles, box}
+  \begin{algorithmic}[1]
+    \Require
+    \Statex A group of $N_b$ thread blocks with $N_{th}$ threads per block is launched.
+    \Statex At least a thread per particle.
+    \Statex Enough shared memory per block to to store $N_{th}$ particles.
+    \Ensure
+    \Statex Threads with index larger than $N$ do not participate.
+    \State i $\gets$ thread ID \Comment{The index of the particle asigned to this thread.}
+    \State tid $\gets$ mod($i$, $N_{th}$) \Comment{Index of thread in the block.}
+    \For{tile $=0$ until $N_b$}
+    \State iload $\gets \text{tile } N_{th}+$tid
+    \State Load particle \emph{iload} into shared memory at index \emph{tid}.
+    \State Synchronize threads in block. \Comment{Ensures the entire tile is loaded.}
+    \For{counter $ =0$ until $N_{th}$}
+    \State $j \gets \text{tile }N_{th} + \text{counter}$
+    \State Read particle $j$ from shared memory index \emph{counter}.
+    \State{Process $i$-$j$ pair}
+    \EndFor
+    \State Synchronize threads in block. \Comment{Ensures shared memory can be rewritten}
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
 
+Note that the computation as described here is not restricted to computing forces or energies between particles, it might be used for widely different thigns, like performing a matrix-vector multiplication.
+\uammd acknowledges this generality by exposing another interface, the \emph{Transverser}, that can be used to specialize these algorithms. 
+We will shortly describe what a \emph{Transverser} is and how to use it. But first, lets see how to access the \emph{NBody} module.
 \subsection{How to use in UAMMD}
+The \emph{NBody} algorithm requires a \emph{Transverser} encoding what to do with each pair of particles (described in sec. \ref{sec:transverser}).
+There are three ways to access this algorithm depending on the final usage. 
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Interactor/NBody.cuh>
+using namespace uammd;
+//For each particle, applies a Transverser with all other particles.
+template<class Transverser>
+void tranverseWithNBody(UAMMD sim, Transverser tr){
+  NBody nb(sim.pd, sim.pg, sim.sys);
+  //Optionally, the function can run on a cuda stream
+  cudaStream_t st = 0;
+  nb.transverse(tr, st);
+}
+\end{minted}
+
+
 
 \section{Short range interactions}
 Particles interacting closely, a.i. there is less information to share between them, allow for specific optimizations abusing the locality of the required computation.
