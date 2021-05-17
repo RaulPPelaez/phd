@@ -470,7 +470,7 @@ But in order to do that, we need yet another interface in order connecting the g
 
 \section{The Potential Interface} \label{sec:potential}
 
-This interface is just a connection between the \emph{Transverser} and \emph{Interactor} concepts. Additionally, \emph{Potential} aids with one limitation of the \gls{CUDA} programming language and \gpu programming in general. On one hand, register memory in a \gpu is quite limited, so it is not a good idea to use large objects in a kernel. On the other hand there are some technical details that prevents certain objects from existing in a \gpu kernel. For example, objects are passed by value to a kernel, which can incurr in undesired copies and/or destructors being called. Thus, its some times worth it to make a conceptual and programmatic separation between CPU and \gpu objects.
+This interface is just a connection between the \emph{Transverser} and \emph{Interactor} concepts. Additionally, \emph{Potential} aids with one limitation of the CUDA programming language and \gls{GPU} programming in general. On one hand, register memory in a \gpu is quite limited, so it is not a good idea to use large objects in a kernel. On the other hand there are some technical details that prevents certain objects from existing in a \gpu kernel. For example, objects are passed by value to a kernel, which can incurr in undesired copies and/or destructors being called. Thus, its some times worth it to make a conceptual and programmatic separation between CPU and \gpu objects.
 In this regard, \emph{Transversers} are \gpu objects, while \emph{Interactors} or \emph{Potentials} are meant to be used in the CPU.
 Furthermore, while \emph{Transverser} describes a very general computation, \emph{Potential} only holds the logic on how to compute forces, energies and/or virials.
 \emph{Potential} serves as a way to serve \emph{Transversers} to \emph{Interactors}.
@@ -514,7 +514,7 @@ The naive parallel algorithm that checks, for each particle, every other would s
 \end{algorithm}
 
 This is an embarrasingly parallel operation in which, in principle, a thread can work without collaborating with the others. However the naive algorithm is missing an oportunity in doing so. We can leverage that all threads have to access the same segments of memory. Instead of letting each thread diverge we can enforce that all threads access the same particles at the same time. This can effectively reduce the number of global memory acceses to a certain particle from $N$ to, potentially, just one.
-This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA\cite{nbody1,gpugems3}. It leverages the shared memory capabilities of the \gls{GPU} by assigning a thread to a particle and then collaboratively loading groups of particles (called tiles) into shared memory. Then each thread processes this tile loaded into shared memory. This is repeated until all tiles have been loaded and processed.
+This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA\cite{nbody1,gpugems3}. It leverages the shared memory capabilities of the \gpu by assigning a thread to a particle and then collaboratively loading groups of particles (called tiles) into shared memory. Then each thread processes this tile loaded into shared memory. This is repeated until all tiles have been loaded and processed.
 The optimal size of a tile will be an optimization parameter also depending on the required shared memory per particle, being the number of threads in a block (or a multiple of it) a good default.
 This results in an overall speedup of 30 compared with the naive algorithm \todo{Maybe a figure comparing here?}
 The algorithm is summarized in algorithm \ref{alg:nbody}-
@@ -545,11 +545,10 @@ The algorithm is summarized in algorithm \ref{alg:nbody}-
 \end{algorithm}
 
 Note that the computation as described here is not restricted to computing forces or energies between particles, it might be used for widely different thigns, like performing a matrix-vector multiplication.
-\uammd acknowledges this generality by exposing another interface, the \emph{Transverser}, that can be used to specialize these algorithms. 
-We will shortly describe what a \emph{Transverser} is and how to use it. But first, lets see how to access the \emph{NBody} module.
+\uammd acknowledges this generality via the \emph{Transverser} interface (see sec. \ref{sec:transverser}), that can be used to specialize these algorithms. 
 \subsection{How to use in UAMMD}
-The \emph{NBody} algorithm requires a \emph{Transverser} encoding what to do with each pair of particles (described in sec. \ref{sec:transverser}).
-There are three ways to access this algorithm depending on the final usage. 
+There are three ways to access this algorithm depending on the final usage.
+The first is to use it to process a \emph{Transverser} acting on a group of particles:
 \begin{minted}{c++}
 #include<uammd.cuh>
 #include<Interactor/NBody.cuh>
@@ -563,6 +562,33 @@ void tranverseWithNBody(UAMMD sim, Transverser tr){
   nb.transverse(tr, st);
 }
 \end{minted}
+The next one is to use it as an \emph{Interactor} to compute forces, energies and/or virials. This is done by providing the \emph{PairForces} module with a \emph{Potential} with an infinite cut off distance.
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Interactor/PairForces.cuh>
+using namespace uammd;
+template<class Potential>
+auto createLongRangedForcesWithPotential(UAMMD sim, Potential tr){
+  using PairForces = PairForces<Potential>;
+  return std::make_shared<PairForces> pf(sim.pd, sim.pg, sim.sys, potential);
+}
+\end{minted}
+We will come back to \emph{PairForces} in the following chapters, as it can also work with short ranged potentials.
+Finally, we access \emph{NBody} outside the \uammd ecosystem (without \emph{ParticleData}, \emph{System}, etc).
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Interactor/NBodyBase.cuh>
+using namespace uammd;
+template<class Transverser>
+void transverseWithoutUAMMD(real4* positions, int numberParticles,
+                            Transverser tr){
+  NBodyBase nb;
+  //Optionally, the function can run on a cuda stream
+  cudaStream_t st = 0;
+  nb.transverse(positions, tr, numberParticles, st);
+}
+\end{minted}
+
 
 
 
