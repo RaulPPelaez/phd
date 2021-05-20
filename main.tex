@@ -41,6 +41,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \makeglossaries
 \newacronym{UAMMD}{UAMMD}{Universaly Adaptable Multiscale Molecular Dynamics}
 \newacronym{MD}{MD}{Molecular Dynamics}
+\newacronym{LD}{LD}{Langevin Dynamics}
 \newacronym{BD}{BD}{Brownian Dynamics}
 \newacronym{BDHI}{BDHI}{Brownian Dynamics with Hydrodynamic Interactions}
 \newacronym{IBM}{IBM}{Immersed Boundary}
@@ -741,6 +742,17 @@ Explain LBVH list \cite{lbvh}, quantized list \cite{quantizedlbvh}. Great for la
 
 EXAMPLE CODE
 
+\section{Bonded Interactions}
+
+As bonds can be expected to present great disparity in the number of bonds per particle, instead of using the same strategy as with the neighbour list, for the bonded interactions \uammd generates a compacted list of bonds per particle. Similar to the cell list.
+For each particle, a list of all the bonds it is involved in is stored. Note that this means that the information for a given bond is stored several times (two times for pair bonds, three for angular bonds and so on).
+This improves the data locality when traversing the bond list.
+In contrast with the cell list algorithm the bond list creation algorithm does not have to be particularly efficient since it will be generated only once at initialization.
+Regarding traversal, as explained in sec. \ref{sec:nlist}, for a compacted list such as this we need to store the bond list itself (containing a list of bonds for each particle) and then two auxiliar arrays; One with offset information (the index in the bond list where the particular list for a given particle is located) and another with the number of bonds for each particle.
+Note that it is not necessary to store information about particles that are not involved in any bond. Another auxiliar array can be used storing the indexes of particles that have at least one bond.
+The special type of bond that involves a single particle is called a fixed point bond, usually attaching a particle to a certain point in space. This can be encoded by storing this position as part of the bond information.
+
+\subsection{How to use in UAMMD}
 
 
 \section{Periodic Boundary Conditions}
@@ -756,6 +768,25 @@ Numerically we can express this algorithm as follows:
   \end{algorithmic}
 \end{algorithm}
 We can also use this algorithm to get the minimum distance between two points, so particles near opposite walls interact.
+\subsection{How to use in UAMMD}
+In \uammd, \gls{MIC} can be accesed via the \emph{Box} class.
+\begin{listing}
+\begin{minted}{c++}
+#include<uammd.cuh>
+using namespace uammd;
+int main(){
+  real lx, ly, lz;
+  lx = ly = lz = 32.0;
+  Box box({lx, ly, lz});
+  real3 position_outside_box = {0.5*lx+1, 0, 0};
+  real3 position_in_box = box.apply_pbc(position_outside_box);
+  //position_in_box holds {-lx*0.5+1,0,0}
+  return 0; 
+}
+\end{minted}
+\caption{Using the Box class.}
+\label{code:box}
+\end{listing}
 
 
 \chapter{Particle-based methods for simulating complex fluids}
@@ -781,12 +812,11 @@ Which in general is a function of the positions of the particles
 At its core eq. \eqref{eq:md} is an expression of the conservation of the total system's energy. As such, these equations of motion can be used to perform simulations in the so-called microcanonical ensemble (NVE), where the number of particles (N), the volume of the domain (V) and the total energy (E) are conserved.
 
 
-
-\section{The velocity Verlet algorithm}
 Our goal is to integrate numerically eq. \eqref{eq:md}. Meaning that starting with the state of the system at a certain time $t$ (where the system is conformed by the positions and velocities of the particles and the forces acting on them) we want to find the state of the system at time $t + \dt$. We refer to $\dt$ as the time step.
 Eq. \eqref{eq:md} may be integrated with a simplectic integration method to describe the evolution of the particle's positions, $\vec{r}_i$, and their velocities, $\dot{\vec{r}}_i$. There are several standard simplectic algorithms, such as predictor-corrector \cite{mdpredictorcorrector} and Runge-Kutta \cite{mdrk}, but the most used one is the Verlet algorithm \cite{mdvelocityverlet}.
 
-The Verlet algorithm checks all the ticks necessary ticks for a good numerical solution; it has a low memory footprint, its easy to code, fast (only requires O(N) operations) and provides a reasonably good conservation of energy.
+\section{The velocity Verlet algorithm}
+The Verlet algorithm checks all the necessary ticks to be a good numerical solver; it has a low memory footprint, its easy to code, fast (only requires O(N) operations) and provides a reasonably good conservation of energy.
 Furthermore the Verlet algorithm is time-reversible \red{WHICH IS GOOD WHY?}.
 Ideally we would like to set a time step as high as possible, which will result in less integration steps to arrive at a certain simulation time. In that regard we can find algorithms more numerically stable than Verlet. However there is always a trade off between computation and stability, while a multi-step algorithm might allow to push $\dt$ a little further than Verlet it essentially doubles the computation cost. As such Verlet provides a good trade-off between stability and computational complexity.
 
@@ -800,7 +830,7 @@ The usual form of the Verlet algorithm is the so-called velocity Verlet, in whic
 \end{eqnarray}
 
 \subsection{Testing the algorithm}
-One way to measure the effectiveness of the algorithm is to chack the energy conservation
+One way to measure the effectiveness of the algorithm is to check the energy conservation
 
 \subsection{Use in UAMMD}
 The velocity Verlet algorithm in the NVE ensemble is available in \uammd as an Integrator module called \emph{VerletNVE}.
@@ -824,13 +854,82 @@ auto createIntegratorVerletNVE(UAMMD sim){
   //par.initVelocities = false;
   return std::make_shared<VerletNVE>(sim.pd, sim.sys, par);
 }
-
 \end{minted}
+
+With \gls{MD} we have to track the movement of each individual atom in the system, which is not practical for a mesoscale simulation of a complex fluid. Say we want to study the folding process of a single, average sized, protein (about $3$nm). A process that can take milliseconds to complete\cite{proteinfolding}. Lets put this protein inside a modest sized box with $10$nm per side. The only way to take into account the environment is to fill the box with water molecules, the 33 million that fit inside our box. And that is if we have somehow coarse grained a water molecule into a single unit, as including every invidual atom would take 100 million particles.
+And that is just water, without taking into account the protein that we are trying to simulate. There are some coarse grained models of water that can help reducing this number, like the MARTINI force field \cite{martini} and others\cite{cgwater}, but we are going to need millions of solvent particles in any case.
+Even if this kind of simulation is technically feasible\cite{antonprotein}, it requires absurd amounts of computing resources which do not really scale for something more complex, like the inside of a cell or a collection of viruses.
+
+Furthermore, including the small water molecules requires to solve their individual dynamics, which is orders of magnitude faster than our time scale of interest (milliseconds). We cannot simply ignore the effect of the solvents since we would be neglecting some of the most important phenomena in the system, such as hydrodynamics and thermal fluctuations.
+During the following sections, we will see different strategies to take into account the effects of the solvent in an implicit manner.
+The next natural after \gls{MD} equations is the so-called \gls{LD}.
+
+\section{Langevin Dynamics}
+
+The solvent particles are removed entirely, the idea is that the motion of the solvent particles (water) is much faster than that of the submerged objects. Instead of simulating a time scale fast enough to keep track of each individual collision between a slow object and a solvent particle we assume that between one instant and the next so many solvent particles have collided with the object that we can consider it an stochastic process.
+In \gls{LD} submerged particles experience a random force stemming from the collisions of all the surrounding solvent particles.
+
+\subsection{Gronbech-Jensen}
+
+\section{Dissipative Particle Dynamics}
+
+\section{Brownian Dynamics}
+
+\subsection{Euler Maruyama}
+
+\subsection{Adams Bashforth}
+
+\subsection{Midpoint}
+
+\subsection{Leimkuhler}
+
+
+
+
+\section{Smoothed Particle Hydrodynamics}
+
+
+\chapter{Brownian Dynamics with Hydrodynamic Interactions (BDHI)}
+
+\section{Open Boundaries}
+
+\subsection{Cholesky}
+
+\subsection{Lanczos}
+
+\section{Periodic Boundaries}
+
+\subsection{Positively Split Ewald (PSE)}
+
+\subsection{Force Coupling Method (FCM)}
+
+\subsection{Fluctuating Immersed Boundary (FIB)}
+
+\chapter{Fluctuating Hydrodynamics}
+
+Fluctuating
+
+\section{Inertial Coupling Method (ICM)}
+
+ICM
+
+
+\chapter{MCMC}
+
+\section{Hard spheres}
+
+\section{MALA}
+
 
 
 \cleardoublepage
 \part{Novel algorithms for complex fluids}\label{pt:algo}
-\input{Chapters/Chapter06}
+
+\section{Quasi2D}
+
+
+
+
 \newpage
 \chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
 \section{Introduction}
@@ -996,82 +1095,11 @@ Introduction.
 \newpage
 \cleardoublepage
 % \part{Implemented functionality}\label{pt:implemented}
-\part{Implemented Integration schemes}\label{pt:integrators}
-
-\chapter{VerletNVT}
-\section{Gronbech-Jensen}
-\chapter{VerletNVE}
-
-\chapter{Brownian Dynamics (BD)}
-
-\section{Euler Maruyama}
-
-\section{Adams Bashforth}
-
-\section{Midpoint}
-
-\section{Leimkuhler}
-
-\chapter{Brownian Dynamics with Hydrodynamic Interactions (BDHI)}
-
-\section{Open Boundaries}
-
-\subsection{Cholesky}
-
-\subsection{Lanczos}
-
-\section{Periodic Boundaries}
-
-\subsection{Positively Split Ewald (PSE)}
-
-\subsection{Force Coupling Method (FCM)}
-
-\subsection{Fluctuating Immersed Boundary (FIB)}
-
-\chapter{Fluctuating Hydrodynamics}
-
-Fluctuating
-
-\section{Inertial Coupling Method (ICM)}
-
-ICM
-
-\section{Dissipative Particle Dynamics (DPD)}
-
-DPD
-
-\section{Smoothed Particle Hydrodynamics (SPH)}
 
 
-SPH
-
-\section{Quasi2D}
-
-Already explained in other section
-
-\chapter{MCMC}
-
-\section{Hard spheres}
-
-\section{MALA}
 
 \newpage
 %\cleardoublepage
-\part{Implemented Interaction modules}\label{pt:interactors}
-\cleardoublepage
-\chapter{PairForces}
-
-sdas
-
-
-\chapter{ExternalForces}
-
-asd
-
-\chapter{BondedForces}
-
-asdas
-
 
 \chapter{Triply Periodic Electrostatics} \label{ch:tppoisson}
 
