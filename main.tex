@@ -121,27 +121,27 @@ The mesoscale poses a series of theoretical and numerical challenges, stemming f
 Another example of this kind of simulations is the one described in \cite{fullatombacteria2016}. In this article the authors employ $100$ million particles to simulate a chunk of the interior environment of a bacteria for some tens of nanoseconds (around $10^7$ steps).
 
 Recently, a new paradigm of supercomputing has arisen. The \gpu, a massively parallel copocressor. So powerful that it requires to straight-up rethink our algorithms to take advantage of it.
-
-\begin{figure}
-  \label{fig:landscape}
-  \centering
-%  \begin{tikzpicture}
-%    \begin{loglogaxis}[
-%      width=\textwidth,
-%      height=\axisdefaultheight,
-%      xmin=1e-11,xmax=100,
-%      xtick={1e-10, 10e-9, 1e-6, 1e-3, 1, 100},
-%      xticklabels={0.1 nm, 10 nm, 1 $\mu$m, 1 mm, 1 m, 100 m},
-%      ymin=1e-15,ymax=86400,
-%      ytick={1e-15, 1e-12, 1e-9, 1e-6, 1e-3, 1, 3600, 86400},
-%      yticklabels={1 fs, 1 ps, 1 ns, 1 $\mu$s, 1 ms, 1 s, 1 h, 1 day}
-%      ]
-%      \addplot[color=red, domain=1e-11:100 ]{1000000*x^2.5};
-%    \end{loglogaxis}
-%  \end{tikzpicture}
-  \includegraphics[width=\textwidth]{landscape}
-  \caption{A landscape of numerical techniques}
-\end{figure}
+\todo{continue}
+%\begin{figure}
+%  \label{fig:landscape}
+%  \centering
+%%  \begin{tikzpicture}
+%%    \begin{loglogaxis}[
+%%      width=\textwidth,
+%%      height=\axisdefaultheight,
+%%      xmin=1e-11,xmax=100,
+%%      xtick={1e-10, 10e-9, 1e-6, 1e-3, 1, 100},
+%%      xticklabels={0.1 nm, 10 nm, 1 $\mu$m, 1 mm, 1 m, 100 m},
+%%      ymin=1e-15,ymax=86400,
+%%      ytick={1e-15, 1e-12, 1e-9, 1e-6, 1e-3, 1, 3600, 86400},
+%%      yticklabels={1 fs, 1 ps, 1 ns, 1 $\mu$s, 1 ms, 1 s, 1 h, 1 day}
+%%      ]
+%%      \addplot[color=red, domain=1e-11:100 ]{1000000*x^2.5};
+%%    \end{loglogaxis}
+%%  \end{tikzpicture}
+%  \includegraphics[width=\textwidth]{landscape}
+%  \caption{A landscape of numerical techniques}
+%\end{figure}
 
 \section{The Graphical Processor Unit}
 
@@ -171,7 +171,7 @@ The next natural step took place in 2007, when the NVIDIA Corporation released C
   \caption{A picture of the author with a GPU ( a NVIDIA's RTX 2080Ti ).}
   \label{fig:gpuandme}
 \end{figure}
-
+\todo{continue}
 \section{Software for soft matter simulations}
 Problems with porting CPU centric \gls{MD} packages to \gpu. Scalability in software.
 
@@ -185,12 +185,14 @@ Scientific computing in the GPU era.
 Developing algorithms for the ground up with the GPU architecture in mind is essential. Leverage ultra efficient \gpu \gls{FFT} by developing spectral algorithms. Many times simplicity beats complexity.
 
 State of the art in molecular simulations.
+\todo{continue}
 
 \cleardoublepage
 \ctparttext{Description of the UAMMD infrastructure. Importance of fundamentally GPU-driven design.}
 \part{UAMMD: Design and components}\label{pt:uammd}
 %*****************************************
 \chapter{Design principles}\label{ch:design}
+\todo{FILL}
 Open infrastructure instead of closed ecosystem. Open source. C++, header only.
 \section{Universality}
 Anything goes as long as it has interacting entities. One could technically implement Chess as a module.
@@ -202,13 +204,14 @@ From atoms in vacuum to chunks of oceans and planetary dynamics.
 Using molecular in the sense of an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...)
 
 \chapter{Core Components}\label{ch:core}
-How the design principles are exposed in code.
+How the design principles are exposed in code. \todo{FILL}
 \section{System}
+\todo{FILL}
 \section{ParticleData}
-
+\todo{FILL}
 \section{ParticleGroup} 
 
-
+\todo{FILL}
 
 
 %\chapter{Algorithms}\label{ch:algorithms}
@@ -289,8 +292,12 @@ UAMMD initializeUAMMD(){
 \section{Error handling in UAMMD}\label{sec:uammd_errors}
 Errors are communicated via C++ exceptions.
 
+Examples
+
+\todo{FILL}
 
 \section{Basic concepts of GPU programming}
+\todo{FILL}
 Things to explain here:
 
 Different memories; Separation between CPU and GPU RAM, global memory, register memory, shared memory, constant memory.
@@ -305,7 +312,7 @@ Let us go through the different numerical techniques that are used to simulate t
   \caption{The spatio-temporal landscape and its numerical techniques.}
   \label{fig:sptime-land}
 \end{figure}
-
+\todo{RAFA, te he fusilado esta img que me gusta mucho. Me gustaria rehacerla solo con lo que me interesa, pero me esta costando encontrar referencias}
 
 We can distinguish between two families of numerical techniques, particle and grid based methods. The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
 In some way or another, all algorithms have to take into account interactions between particles.
@@ -770,7 +777,7 @@ Numerically we can express this algorithm as follows:
 We can also use this algorithm to get the minimum distance between two points, so particles near opposite walls interact.
 \subsection{How to use in UAMMD}
 In \uammd, \gls{MIC} can be accesed via the \emph{Box} class.
-\begin{listing}
+\begin{listing}[H]
 \begin{minted}{c++}
 #include<uammd.cuh>
 using namespace uammd;
@@ -817,7 +824,7 @@ Eq. \eqref{eq:md} may be integrated with a simplectic integration method to desc
 
 \section{The velocity Verlet algorithm}
 The Verlet algorithm checks all the necessary ticks to be a good numerical solver; it has a low memory footprint, its easy to code, fast (only requires O(N) operations) and provides a reasonably good conservation of energy.
-Furthermore the Verlet algorithm is time-reversible \red{WHICH IS GOOD WHY?}.
+Furthermore the Verlet algorithm is time-reversible \red{WHICH IS GOOD WHY? related to detailed balance?}.
 Ideally we would like to set a time step as high as possible, which will result in less integration steps to arrive at a certain simulation time. In that regard we can find algorithms more numerically stable than Verlet. However there is always a trade off between computation and stability, while a multi-step algorithm might allow to push $\dt$ a little further than Verlet it essentially doubles the computation cost. As such Verlet provides a good trade-off between stability and computational complexity.
 
 
@@ -831,7 +838,7 @@ The usual form of the Verlet algorithm is the so-called velocity Verlet, in whic
 
 \subsection{Testing the algorithm}
 One way to measure the effectiveness of the algorithm is to check the energy conservation
-
+\todo{Is this worth doing?}
 \subsection{Use in UAMMD}
 The velocity Verlet algorithm in the NVE ensemble is available in \uammd as an Integrator module called \emph{VerletNVE}.
 
@@ -867,7 +874,92 @@ The next natural after \gls{MD} equations is the so-called \gls{LD}.
 \section{Langevin Dynamics}
 
 The solvent particles are removed entirely, the idea is that the motion of the solvent particles (water) is much faster than that of the submerged objects. Instead of simulating a time scale fast enough to keep track of each individual collision between a slow object and a solvent particle we assume that between one instant and the next so many solvent particles have collided with the object that we can consider it an stochastic process.
-In \gls{LD} submerged particles experience a random force stemming from the collisions of all the surrounding solvent particles.
+In \gls{LD} submerged particles experience a random force stemming from the collisions of all the surrounding solvent particles. Additionally, the solvent particles produce a friction that goes against the movement of the submerged particles.
+In this sense \gls{LD} only models the viscous behavior of the solvent, disregarding any electrostatic or hydrodynamic phenomena.
+We reintroduce the ommited degrees of freedom as external forces acting on the particles in a \gls{MD} simulation. We can write the Langevin equation as
+\begin{equation}
+  \label{eq:langevin}
+  m\ddot{\vec{r}}_i = \vec{F^c_i} + \vec{F^d_i} + \vec{F^r_i}
+\end{equation}
+Where we have simply added more forces to eq. \eqref{eq:md}. The first term in eq. \eqref{eq:langevin} is the sum of the conservative forces acting on particle $i$ (the ones comming from the underlying potential energy landscape), these can be steric interactions, electrostatic, bonded, etc. The second term represents the drag exterted by the solvend particles in the form of a dissipative force. Finally, the third term comes from the noise produced by the fast and constant collisions of the solvent particles in the form of a random force.
+
+This random term transforms eq. \eqref{eq:langevin} into an stochastic differential equation, in which special care must be taken when integrating.
+
+The dissipative or drag term opposes the movement of the particles and is often written as $\vec{F^d} = -\xi \vec{v}$. The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$.
+When a system in thermodynamical equilibrium dissipates energy in the form of heat, like the drag force is doing in eq. \eqref{eq:langevin}, the fluctuation-dissipation theorem states that there must be an opposite process that reintroduces this energy via thermal fluctuations. Otherwise the system would spontaneously freeze or heat.
+The fluctuation-dissipation balance can be interpreted a consequence of the equipartition theorem in the long time limit. In this case stemming from the conversion of a system of colliding particles merely following Newton's equations to a heat bath. We can use the equipartition theorem for a single particle in the absence of any conservative forces to relate $\vec{F^d}$ with $\vec{F^r}$.
+The Hamiltonian for this system is simply $H = \frac{p^2}{2m}$, where $p = m\dot{r}$ is the momentum.
+The equipartition theorem states that for every degree of freedom in the system the following equation must hold, for every direction $\alpha$ and $\beta$.
+\begin{equation}
+  \left\langle p_\alpha \frac{\partial H}{\partial p_{\beta}}\right\rangle = \left\langle p_\alpha \frac{p_{\beta}}{m}\right\rangle = k_BT\delta_{\alpha\beta}
+\end{equation}
+Where $k_B$ is the Boltzmann constant and $T$ the temperature. Brackets represent ensemble average.
+
+The previous equation leads to the relation
+\begin{equation}
+  \label{eq:velautocorr}
+  \left\langle p_{\alpha}^2\right\rangle = m k_BT
+\end{equation}
+Which represents the velocity auto correlation at one given instant in time.
+On the other hand, since there are no privileged directions, we can assume that
+\begin{equation}
+  \left\langle F^r_{\alpha}\right\rangle = 0
+\end{equation}
+And the fluctuation-dissipation balance also requires that the noise has no memory
+\begin{equation}
+  \label{eq:noiseautocorr}
+  \left\langle F^r_{\alpha}(t)F^r_{\alpha}(t')\right\rangle = B \delta_{t,t'}
+\end{equation}
+Where $B$ is just some constant. There are several arguments that can be used here to get the value of $B$ \cite{allen}\cite{fokker}\cite{langevilsolve}. The simplest one is to take eq. \eqref{eq:langevin} for a single particle in the absence of external forces in one dimension in a time dicretized form
+\begin{equation}
+  p_{n+1} = p_n-\gamma\delta t p_n + \delta t F^r_n
+\end{equation}
+Where $n$ represents an instant in time separated $\delta t$ from the next. Lets compute the variance of the momentum
+\begin{equation}
+  \left\langle p_{n+1}^2\right\rangle = \left\langle (1-\gamma \delta t)^2p_n^2\right\rangle + \delta t \left\langle (F^r_n)^2\right\rangle
+\end{equation}
+In equilibrium the variance of the momemtum must remain constant, so $\left\langle p_{n+1}^2\right\rangle = \left\langle p_{n}^2\right\rangle$, leaving
+\begin{equation}
+  \left[ (1-\gamma \delta t)^2 -1 \right]\left\langle p_{n}^2\right\rangle = \delta t \left\langle (F^r_n)^2\right\rangle
+\end{equation}
+In the limit of $\delta t \rightarrow 0$ and taking into account the relation in eq. \eqref{eq:velautocorr}
+\begin{equation}
+  \left\langle p_{n}^2\right\rangle = \frac{\left\langle (F^r_n)^2\right\rangle}{2\gamma} = mk_BT
+\end{equation}
+Which is another expression of the fluctuation-dissipation balance, related with the Einstein relation \cite{einsteinrelation}. Whe have then arrived at the value of $B$ in eq. \eqref{eq:noiseautocorr}
+\begin{equation}
+  \left\langle F^r_{\alpha}(t)F^r_{\alpha}(t')\right\rangle = B \delta_{t,t'} = 2m\gamma k_BT \delta_{t,t'}
+\end{equation}
+The properties we have devised for the random force, $\vec{F}^r$, coupled with the central limit theorem \cite{centrallimittheorem}, describe it as Wiener process, otherwise known as Gaussian white noise.
+Finally, we can rewrite eq. \eqref{eq:langevin} as
+%Multiply it by the position, $r$, and average
+%\begin{equation}
+%  \left\langle r \dot{p}\right\rangle + \xi \left\langle rp\right\rangle = 0
+%\end{equation}
+%Note that the fluctuations have vanished since they are not correlated with the position.
+%We can use a couple of mathematical identities to transform this equation into
+%\begin{equation}
+%  \ddot{\langle r^2\rangle} + \xi \dot{\langle r^2\rangle} = 2\langle p^2 \rangle = 2mk_BT
+%\end{equation}
+%
+%The solution to this differential equation is
+%\begin{equation}
+%  \langle r^2\rangle = 2mk_BT\xi^2\left( \exp{-t/\tau} -1 + t/\tau\right)  
+%\end{equation}
+%And in the long time limit where $t >> \tau$
+%\begin{equation}
+%  \langle r^2\rangle = 2mk_BT\xi t
+%\end{equation}
+%On the other hand,
+%\begin{equation}
+%  \langle r^2\rangle = \int_0^{t_0}dt\int_0^{t_0}dt'\langle F^r(t) F^r(t')\rangle = Bt_0 = 2mk_BT
+%\end{equation}
+%
+\begin{equation}
+  \label{eq:langevinfull}
+  m\ddot{\vec{r}}_i = \vec{F^c_i} - \xi \dot{\vec{r}_i} + \sqrt{2\xi k_BT}\vec{\widetilde{W}_i}
+\end{equation}
+Where $\vec{\widetilde{W}}$ is a collection of independent Wiener processes.
 
 \subsection{Gronbech-Jensen}
 
@@ -884,34 +976,45 @@ In \gls{LD} submerged particles experience a random force stemming from the coll
 \subsection{Leimkuhler}
 
 
-
-
 \section{Smoothed Particle Hydrodynamics}
 
 
-\chapter{Brownian Dynamics with Hydrodynamic Interactions (BDHI)}
+\section{Brownian Dynamics with Hydrodynamic Interactions (BDHI)}
 
-\section{Open Boundaries}
+Hydrodynamics with Greens formalism
+
+Separation between open and periodic boundaries
+
+Particle only methods
 
 \subsection{Cholesky}
 
 \subsection{Lanczos}
 
-\section{Periodic Boundaries}
+\chapter{Eulerian-Lagrangian methods for Fluctuating Hydrodynamics}
+Using a grid
 
-\subsection{Positively Split Ewald (PSE)}
+\section{The Immersed Boundary method}
 
 \subsection{Force Coupling Method (FCM)}
 
-\subsection{Fluctuating Immersed Boundary (FIB)}
+Introduction to spectral methods
 
-\chapter{Fluctuating Hydrodynamics}
 
-Fluctuating
+\section{Fluctuating Immersed Boundary (FIB)}
+
 
 \section{Inertial Coupling Method (ICM)}
 
-ICM
+Putting inertia into the mix
+Using the tools from the previous chapters (spectral method + immersed boundary)
+
+%\section{Periodic Boundaries}
+
+\section{Ewald splitting}
+
+
+\subsection{Positively Split Ewald (PSE)}
 
 
 \chapter{MCMC}
@@ -925,183 +1028,14 @@ ICM
 \cleardoublepage
 \part{Novel algorithms for complex fluids}\label{pt:algo}
 
-\section{Quasi2D}
 
+\chapter{Quasi2D}
 
+Describe quasi2D paper.
 
-
-\newpage
-\chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
-\section{Introduction}
-This chapter presents a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and arbitrary surface charges at the domain walls (in the open direction).
-
-\begin{figure}
-  \centering
-  \includesvg{gfx/dppoisson_sketch}{\columnwidth}
-  \caption{Schematic representation of the doubly periodic domain described by eqs. \ref{eq:dppoisson} and \ref{eq:dppoissonbcs1}-\ref{eq:dppoissonbcs4}. Each domain wall is represented with a different color. Blue clouds represent Gaussian charge sources.}
-  \label{fig:dppoisson_sketch}
-\end{figure}
-
-%
-%Doubly periodic means periodic in XY and unbounded in Z, with the possibility of placing surface charges \sigma_(b/t) at the domain limits and having different permittivities below, inside and above the domain.  
-%A triply periodic solver is also available in UAMMD. See [3] for more info.
-%### Algorithm summary  
-A complete description of the algorithm can be found in \cite{dppoisson2021}.
-We model charges as Gaussian sources. It sounds unphysical, but things in complex fluids are not really point charges due to steric repulsions. Even so our algorithm provides spectral accuracy via Ewald splitting, which naturally decouples the width of the sources and the grid size. Using Ewald splitting we are able to choose an arbitrarily narrow Gaussian to simulate point charges if needed.
-Thus, we want to solve the following Poisson equation
-\begin{equation}
- \varepsilon_0\Delta\phi(\vec{x} = (x,y,z))=-f(\vec{x})=-\sum_{k=1}^Nq_kg(||\vec{x}-\vec{z}_k||)\label{eq:dppoisson}
-\end{equation}
-In a doubly periodic domain of width $H$ and size $L_{xy}$ in the plane.
-Here $g$ represents a Gaussian source, the sum goes over all markers, $N$.
-\begin{equation}
-  g(r)=\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2g_w^2}\right)}
-  \label{eq:dppoisson_gaussian}
-\end{equation}
-We impose that the sources do not overlap the boundaries so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma g_w \ge 4 g_w$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $q$.
-
-Finally, we solve \eqref{eq:dppoisson} with the following set of \bcs for the potential
-\begin{equation}\phi(x,y,z\rightarrow -H/2^+)=\phi(x,y,z\rightarrow -H/2^-)\label{eq:dppoissonbcs1}\end{equation}  
-\begin{equation}\phi(x,y,z\rightarrow H/2^-)=\phi(x,y,z\rightarrow H/2^+)\label{eq:dppoissonbcs2}\end{equation}
-And for the electric field 
-\begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H/2^+)-\varepsilon_b \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H/2^-)=-\sigma_b(x,y)\label{eq:dppoissonbcs3}\end{equation}  
-\begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H/2^-)-\varepsilon_t \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H/2^+)=\sigma_t(x,y)\label{eq:dppoissonbcs4}\end{equation} 
-We introduce, via these \bcs, the possibility of having arbitrary surface charges at the walls, $\sigma_b$ and $\sigma_t$ for the bottom and top respectively. Additionally, we can set different permittivities inside the slab ($\varepsilon_0$) above ($\varepsilon_t$) and below ($\varepsilon_b$) it.
-We assume that the domain is overall electroneutral,
-\begin{equation}
-  \label{eq:dppoisson_electroneutral}
-  \sum_{k=1}^N{q_k} + \int_0^{L_xy}{\int_0^{L_xy}{(\sigma_b(x,y) + \sigma_t(x,y))dxdy}} = 0
-\end{equation}
-Similarly as in the triply periodic algorithm described in chapter \ref{ch:tppoisson}, we are interested in computing the system energy and the particle forces.
-Once the potential is known the total electrostatic energy can be computed as
-\begin{equation}
-  \label{eq:dppu}
-  U = \frac{1}{2}\sum_i{q_i\bar\phi(\vec{z}_i)} + \frac{1}{2}\sum_{wall=b,t}{\int_{x,y}{\sigma_{wall}\phi(x,y,wall)dxdy}}
-\end{equation}
-Where $\bar\phi$ is the potential averaged (interpolated) at the charge's location, computed as the convolution between the pointwise potential and the Gaussian $g$
-\begin{equation}
-  \label{eq:dpphibar}
-  \bar\phi(\vec{z}) = (\phi\star g)(\vec{z})
-\end{equation}
-The force can be computed from the potential via the electric field
-\begin{equation}
-  \label{eq:dppE}
-  \vec{E}(\vec{x}) = -\nabla{\phi}  
-\end{equation}
-Similarly averaged at the charge's location
-\begin{equation}
-  \label{eq:dppf}
-  \vec{F}_i = -\frac{\partial U}{\partial\vec{z}_i} = q_i(\vec{E}\star g)(\vec{z}_i)
-\end{equation}
-\section{Solver description}
-We start by separating the problem into two sub-problems. First we solve \eqref{eq:dppoisson} in free space (no dielectric jumps or surface charges, see sec \ref{sec:dpsolver}) and then introduce an harmonic correction to account for the jump \bcs (section \ref{sec:dpcorr}).
-We use a grid-based solver to get an algorithm with linear complexity with the number of particles. First we evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (as described in chapter \ref{ch:ibm}), then solve the potential in that grid and finally interpolate the required quantities back to the particle positions (eqs. \eqref{eq:dppu} and \eqref{eq:dppf}).
-In order to accurately describe the charge density $f(\vec{x})$ in the grid we must choose a sufficiently small grid size, $h$. Since $h$ depends on the Gaussian width of the sources, $g_w$, this method will be inefficient for point-like charges ($g_w\rightarrow 0$). To overcome this limitation (similarly as with the triply periodic case described in chapter \ref{ch:tppoisson}) we make use of Ewald splitting.
-
-\subsection{Free space solver}\label{sec:dpsolver}
-
-
-\subsection{Correction}\label{sec:dpcorr}
-
-\subsection{Ewald splitting}\label{sec:dpewald}
-
-\section{Algorithm}
-\section{Boundary Value Problem Solver}
-%The far field poses a much more challenging problem since, contrary to the triply periodic case, the problem cannot be solved in Fourier space by simple algebraic multiplication with a Greens function. In our approach the potential is split into two pieces; one with free space boundary conditions and uniform permittivity and another that satisfies the boundary conditions as a correction. Thus  
-\begin{equation}  \phi = \phi^* + \phi^{(c)}\end{equation}  
-%The free space solution is solved by Fourier transforming in the XY directions and interpreting each wave number as a Boundary Value Problem which can be then solved independently in the Chebyshev basis.  
-\begin{equation}
-  \varepsilon  \left( \frac{\partial ^2 \hat{\phi}^*(\mathbf{k}_{||},z)}{\partial z^2} -k_{||}^2 \hat{\phi}^*(\mathbf{k}_{||},z)  \right) = -\hat{f}(\mathbf{k}_{||},z)
-\end{equation}
-\begin{eqnarray}
-  \frac{\partial \hat{\phi}^*(\mathbf{k}_{||},-H/2)}{\partial z} -  k_{||} \hat{\phi}^*(\mathbf{k}_{||},-H/2)&=&0 \\
-  \frac{\partial \hat{\phi}^*(\mathbf{k}_{||},H/2)}{\partial z}  +  k_{||} \hat{\phi}^*(\mathbf{k}_{||},H/2) &=&0
-\label{eq:dppoisson_ewald}
-\end{eqnarray}
-
-%The transformation of the charge density in the grid to Chebyshev space is achieved using mirrored 3D FFTs (fast Chebyshev transform) [4].  
-%For the correction potential a Laplace equation for each wavenumber is solved analytically using the jump boundary conditions ensuring that the overall boundary conditions are satisfied in the final potential.   
-%
-%## Example
-%DPPoisson is created as the typical UAMMD module:
-%
-%```c++
-%#include<uammd.cuh>
-%#include<Interactor/DoublyPeriodic/DPPoissonSlab.cuh>
-%using namespace uammd;
-%...
-%int main(int argc, char *argv[]){
-%...
-%  int N = 1<<14;
-%  auto sys = make_shared<System>(arc, argv);
-%  auto pd = make_shared<ParticleData>(N, sys);          
-%  auto pg = make_shared<ParticleGroup>(pd, sys, "All"); //A group with all the particles
-%  {
-%    auto pos = pd->getPos(access::location::cpu, access::mode::write);
-%    auto charge = pd->getCharge(access::location::cpu, access::mode::write);
-%   ...
-%  }
-%  DPPoissonSlab::Parameters par;
-%  par.Lxy = {32,32};
-%  par.H = 32;
-%  DPPoissonSlab::Permitivity perm;
-%  perm.inside = 1;
-%  perm.top = 2;
-%  perm.bottom = 2;
-%  par.permitivity = perm;
-%  par.gw = 1;
-%  par.Nxy = 72; //Number of Fourier modes for the far field section of the algorithm
-%  // par.split=1; //Splitting parameter, controls the number of Fourier nodes, choose either this or Nxy directly.
-%  auto pg = std::make_shared<ParticleGroup>(pd, sys, "All");
-%  auto dppoisson= std::make_shared<DPPoissonSlab>(pd, pg, sys, par);
-%...
-%  myintegrator->addInteractor(dppoisson);
-%...
-%return 0;
-%}
-%```
-%As in [3] the splitting can be tuned via the parameters, in this case either using ```split``` or the number of Fourier nodes, ```Nxy```.  
-%The algorithm ensures electroneutrality by placing the opposite of the total system charge as a surface charge in the walls (the same charge to each wall).  
-%The default accuracy parameters, omited in the example (see below), give 3-4 digits of accuracy in the electric field. To ensure this tolerance it is important that charges are kept at least 4*gw away from the walls at all times. For example an steric wall could be placed using ExternalForces[5] to ensure this.  
-%
-%### Additional accuracy parameters
-%These are advanced parameters that control the accuracy of the algorithm. See [2] for additional tested sets of parameters for different accuracies. The default parameters give 3-4 digits of accuracy.   
-%```c++
-%  DPPoissonSlab::Parameters par;
-%  par.tolerance = 1e-4; //Controls the cut off distance of the near field interaction kernel
-%  //The far field cell size as: h=sqrt(gw*gw + 1.0/(4.0*split*split))/upsampling;
-%  //If split is provided upsampling controls the cell size, h. If Nxy is provided upsampling controls the split.
-%  par.upsampling=1.2; 
-%  par.support=10; //The number of support cells for the Gaussian charges.
-%  par.numberStandardDeviations = 4; //Image charges will be considered up to a distance of He=1.25*numberStandardDeviations*sqrt(gw*gw + 1.0/(4.0*split*split));  
-%```
-%Additional examples and test cases (including a python interface) reproducing the results presented in [2] can be found at [5].
-%***
-%[1] https://github.com/RaulPPelaez/UAMMD/wiki/Interactor   
-%[2] [Maxian et al. "A fast spectral method for electrostatics in doubly periodic slit channels"](https://arxiv.org/abs/2101.07088).  
-%[3] https://github.com/RaulPPelaez/UAMMD/wiki/SpectralEwaldPoisson   
-%[4] https://en.wikipedia.org/wiki/Discrete_Chebyshev_transform  
-%[5] https://github.com/stochasticHydroTools/DPPoissonTests  
-%[5] https://github.com/RaulPPelaez/UAMMD/wiki/ExternalForces   
-\section{Problem description}
-Introduction.
-\section{Algorithm}
-
-\section{Implementation}
-
-\section{How to use in UAMMD}
-
-\newpage\input{Chapters/Chapter08}
-\newpage
-\cleardoublepage
-% \part{Implemented functionality}\label{pt:implemented}
-
-
-
-\newpage
-%\cleardoublepage
 
 \chapter{Triply Periodic Electrostatics} \label{ch:tppoisson}
+\red{Not really new, but must be explained after ewald splitting!}
 
 Long range electrostatics in a triply periodic domain are available in \gls{UAMMD} as the \emph{SpectralEwaldPoisson} \hyperref[sec:interactor]{Interactor} module.  
 This is a fast spectral solver for the Poisson equation with periodic boundary conditions and Gaussian sources (of arbitrary widths) at the charges locations. This approach is similar to the ones presented at \cite{sepois1,sepois2, sepois3}.
@@ -1282,16 +1216,192 @@ return 0;
 }
 \end{minted}
 The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for L->inf is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance. See test/Potential/Poisson  
-\section{REFERENCES}
-[1] https://github.com/RaulPPelaez/UAMMD/wiki/Interactor   
-[2] https://github.com/RaulPPelaez/UAMMD/wiki/DPPoisson  
-[3] https://github.com/RaulPPelaez/UAMMD/wiki/IBM  
-[4] https://doi.org/10.1016/j.jcp.2011.08.022  
-[5] https://arxiv.org/pdf/1404.3534.pdf  
+%\section{REFERENCES}
+%[1] https://github.com/RaulPPelaez/UAMMD/wiki/Interactor   
+%[2] https://github.com/RaulPPelaez/UAMMD/wiki/DPPoisson  
+%[3] https://github.com/RaulPPelaez/UAMMD/wiki/IBM  
+%[4] https://doi.org/10.1016/j.jcp.2011.08.022  
+%[5] https://arxiv.org/pdf/1404.3534.pdf  
+%
+
+Not really new...
+
+\chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
+\section{Introduction}
+This chapter presents a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and arbitrary surface charges at the domain walls (in the open direction).
+
+\begin{figure}
+  \centering
+  \includesvg{gfx/dppoisson_sketch}{\columnwidth}
+  \caption{Schematic representation of the doubly periodic domain described by eqs. \ref{eq:dppoisson} and \ref{eq:dppoissonbcs1}-\ref{eq:dppoissonbcs4}. Each domain wall is represented with a different color. Blue clouds represent Gaussian charge sources.}
+  \label{fig:dppoisson_sketch}
+\end{figure}
+
+%
+%Doubly periodic means periodic in XY and unbounded in Z, with the possibility of placing surface charges \sigma_(b/t) at the domain limits and having different permittivities below, inside and above the domain.  
+%A triply periodic solver is also available in UAMMD. See [3] for more info.
+%### Algorithm summary  
+A complete description of the algorithm can be found in \cite{dppoisson2021}.
+We model charges as Gaussian sources. It sounds unphysical, but things in complex fluids are not really point charges due to steric repulsions. Even so our algorithm provides spectral accuracy via Ewald splitting, which naturally decouples the width of the sources and the grid size. Using Ewald splitting we are able to choose an arbitrarily narrow Gaussian to simulate point charges if needed.
+Thus, we want to solve the following Poisson equation
+\begin{equation}
+ \varepsilon_0\Delta\phi(\vec{x} = (x,y,z))=-f(\vec{x})=-\sum_{k=1}^Nq_kg(||\vec{x}-\vec{z}_k||)\label{eq:dppoisson}
+\end{equation}
+In a doubly periodic domain of width $H$ and size $L_{xy}$ in the plane.
+Here $g$ represents a Gaussian source, the sum goes over all markers, $N$.
+\begin{equation}
+  g(r)=\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2g_w^2}\right)}
+  \label{eq:dppoisson_gaussian}
+\end{equation}
+We impose that the sources do not overlap the boundaries so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma g_w \ge 4 g_w$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $q$.
+
+Finally, we solve \eqref{eq:dppoisson} with the following set of \bcs for the potential
+\begin{equation}\phi(x,y,z\rightarrow -H/2^+)=\phi(x,y,z\rightarrow -H/2^-)\label{eq:dppoissonbcs1}\end{equation}  
+\begin{equation}\phi(x,y,z\rightarrow H/2^-)=\phi(x,y,z\rightarrow H/2^+)\label{eq:dppoissonbcs2}\end{equation}
+And for the electric field 
+\begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H/2^+)-\varepsilon_b \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H/2^-)=-\sigma_b(x,y)\label{eq:dppoissonbcs3}\end{equation}  
+\begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H/2^-)-\varepsilon_t \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H/2^+)=\sigma_t(x,y)\label{eq:dppoissonbcs4}\end{equation} 
+We introduce, via these \bcs, the possibility of having arbitrary surface charges at the walls, $\sigma_b$ and $\sigma_t$ for the bottom and top respectively. Additionally, we can set different permittivities inside the slab ($\varepsilon_0$) above ($\varepsilon_t$) and below ($\varepsilon_b$) it.
+We assume that the domain is overall electroneutral,
+\begin{equation}
+  \label{eq:dppoisson_electroneutral}
+  \sum_{k=1}^N{q_k} + \int_0^{L_xy}{\int_0^{L_xy}{(\sigma_b(x,y) + \sigma_t(x,y))dxdy}} = 0
+\end{equation}
+Similarly as in the triply periodic algorithm described in chapter \ref{ch:tppoisson}, we are interested in computing the system energy and the particle forces.
+Once the potential is known the total electrostatic energy can be computed as
+\begin{equation}
+  \label{eq:dppu}
+  U = \frac{1}{2}\sum_i{q_i\bar\phi(\vec{z}_i)} + \frac{1}{2}\sum_{wall=b,t}{\int_{x,y}{\sigma_{wall}\phi(x,y,wall)dxdy}}
+\end{equation}
+Where $\bar\phi$ is the potential averaged (interpolated) at the charge's location, computed as the convolution between the pointwise potential and the Gaussian $g$
+\begin{equation}
+  \label{eq:dpphibar}
+  \bar\phi(\vec{z}) = (\phi\star g)(\vec{z})
+\end{equation}
+The force can be computed from the potential via the electric field
+\begin{equation}
+  \label{eq:dppE}
+  \vec{E}(\vec{x}) = -\nabla{\phi}  
+\end{equation}
+Similarly averaged at the charge's location
+\begin{equation}
+  \label{eq:dppf}
+  \vec{F}_i = -\frac{\partial U}{\partial\vec{z}_i} = q_i(\vec{E}\star g)(\vec{z}_i)
+\end{equation}
+\section{Solver description}
+We start by separating the problem into two sub-problems. First we solve \eqref{eq:dppoisson} in free space (no dielectric jumps or surface charges, see sec \ref{sec:dpsolver}) and then introduce an harmonic correction to account for the jump \bcs (section \ref{sec:dpcorr}).
+We use a grid-based solver to get an algorithm with linear complexity with the number of particles. First we evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (as described in chapter \ref{ch:ibm}), then solve the potential in that grid and finally interpolate the required quantities back to the particle positions (eqs. \eqref{eq:dppu} and \eqref{eq:dppf}).
+In order to accurately describe the charge density $f(\vec{x})$ in the grid we must choose a sufficiently small grid size, $h$. Since $h$ depends on the Gaussian width of the sources, $g_w$, this method will be inefficient for point-like charges ($g_w\rightarrow 0$). To overcome this limitation (similarly as with the triply periodic case described in chapter \ref{ch:tppoisson}) we make use of Ewald splitting.
+
+\subsection{Free space solver}\label{sec:dpsolver}
+
+
+\subsection{Correction}\label{sec:dpcorr}
+
+\subsection{Ewald splitting}\label{sec:dpewald}
+
+\section{Algorithm}
+\section{Boundary Value Problem Solver}
+%The far field poses a much more challenging problem since, contrary to the triply periodic case, the problem cannot be solved in Fourier space by simple algebraic multiplication with a Greens function. In our approach the potential is split into two pieces; one with free space boundary conditions and uniform permittivity and another that satisfies the boundary conditions as a correction. Thus  
+\begin{equation}  \phi = \phi^* + \phi^{(c)}\end{equation}  
+%The free space solution is solved by Fourier transforming in the XY directions and interpreting each wave number as a Boundary Value Problem which can be then solved independently in the Chebyshev basis.  
+\begin{equation}
+  \varepsilon  \left( \frac{\partial ^2 \hat{\phi}^*(\mathbf{k}_{||},z)}{\partial z^2} -k_{||}^2 \hat{\phi}^*(\mathbf{k}_{||},z)  \right) = -\hat{f}(\mathbf{k}_{||},z)
+\end{equation}
+\begin{eqnarray}
+  \frac{\partial \hat{\phi}^*(\mathbf{k}_{||},-H/2)}{\partial z} -  k_{||} \hat{\phi}^*(\mathbf{k}_{||},-H/2)&=&0 \\
+  \frac{\partial \hat{\phi}^*(\mathbf{k}_{||},H/2)}{\partial z}  +  k_{||} \hat{\phi}^*(\mathbf{k}_{||},H/2) &=&0
+\label{eq:dppoisson_ewald}
+\end{eqnarray}
+
+%The transformation of the charge density in the grid to Chebyshev space is achieved using mirrored 3D FFTs (fast Chebyshev transform) [4].  
+%For the correction potential a Laplace equation for each wavenumber is solved analytically using the jump boundary conditions ensuring that the overall boundary conditions are satisfied in the final potential.   
+%
+%## Example
+%DPPoisson is created as the typical UAMMD module:
+%
+%```c++
+%#include<uammd.cuh>
+%#include<Interactor/DoublyPeriodic/DPPoissonSlab.cuh>
+%using namespace uammd;
+%...
+%int main(int argc, char *argv[]){
+%...
+%  int N = 1<<14;
+%  auto sys = make_shared<System>(arc, argv);
+%  auto pd = make_shared<ParticleData>(N, sys);          
+%  auto pg = make_shared<ParticleGroup>(pd, sys, "All"); //A group with all the particles
+%  {
+%    auto pos = pd->getPos(access::location::cpu, access::mode::write);
+%    auto charge = pd->getCharge(access::location::cpu, access::mode::write);
+%   ...
+%  }
+%  DPPoissonSlab::Parameters par;
+%  par.Lxy = {32,32};
+%  par.H = 32;
+%  DPPoissonSlab::Permitivity perm;
+%  perm.inside = 1;
+%  perm.top = 2;
+%  perm.bottom = 2;
+%  par.permitivity = perm;
+%  par.gw = 1;
+%  par.Nxy = 72; //Number of Fourier modes for the far field section of the algorithm
+%  // par.split=1; //Splitting parameter, controls the number of Fourier nodes, choose either this or Nxy directly.
+%  auto pg = std::make_shared<ParticleGroup>(pd, sys, "All");
+%  auto dppoisson= std::make_shared<DPPoissonSlab>(pd, pg, sys, par);
+%...
+%  myintegrator->addInteractor(dppoisson);
+%...
+%return 0;
+%}
+%```
+%As in [3] the splitting can be tuned via the parameters, in this case either using ```split``` or the number of Fourier nodes, ```Nxy```.  
+%The algorithm ensures electroneutrality by placing the opposite of the total system charge as a surface charge in the walls (the same charge to each wall).  
+%The default accuracy parameters, omited in the example (see below), give 3-4 digits of accuracy in the electric field. To ensure this tolerance it is important that charges are kept at least 4*gw away from the walls at all times. For example an steric wall could be placed using ExternalForces[5] to ensure this.  
+%
+%### Additional accuracy parameters
+%These are advanced parameters that control the accuracy of the algorithm. See [2] for additional tested sets of parameters for different accuracies. The default parameters give 3-4 digits of accuracy.   
+%```c++
+%  DPPoissonSlab::Parameters par;
+%  par.tolerance = 1e-4; //Controls the cut off distance of the near field interaction kernel
+%  //The far field cell size as: h=sqrt(gw*gw + 1.0/(4.0*split*split))/upsampling;
+%  //If split is provided upsampling controls the cell size, h. If Nxy is provided upsampling controls the split.
+%  par.upsampling=1.2; 
+%  par.support=10; //The number of support cells for the Gaussian charges.
+%  par.numberStandardDeviations = 4; //Image charges will be considered up to a distance of He=1.25*numberStandardDeviations*sqrt(gw*gw + 1.0/(4.0*split*split));  
+%```
+%Additional examples and test cases (including a python interface) reproducing the results presented in [2] can be found at [5].
+%***
+%[1] https://github.com/RaulPPelaez/UAMMD/wiki/Interactor   
+%[2] [Maxian et al. "A fast spectral method for electrostatics in doubly periodic slit channels"](https://arxiv.org/abs/2101.07088).  
+%[3] https://github.com/RaulPPelaez/UAMMD/wiki/SpectralEwaldPoisson   
+%[4] https://en.wikipedia.org/wiki/Discrete_Chebyshev_transform  
+%[5] https://github.com/stochasticHydroTools/DPPoissonTests  
+%[5] https://github.com/RaulPPelaez/UAMMD/wiki/ExternalForces   
+\section{Problem description}
+Introduction.
+\section{Algorithm}
+
+\section{Implementation}
+
+\section{How to use in UAMMD}
+
+
+\chapter{Doubly Periodic Stokes}\label{ch:dpstokes}
+Doubly Periodic Stokes
+\section{Problem description}
+Introduction.
+\section{Algorithm}
+
+\section{Implementation}
+
+\section{How to use in UAMMD}
+
+
 \newpage
 \cleardoublepage
 \ctparttext{Collection of tools and algorithms useful in soft matter simulations.}
-\part{Tools of the trade}\label{pt:tools}
+\part{GPU enabled post processing}\label{pt:tools}
 \input{Chapters/Chapter11}
 \input{Chapters/Chapter12}
 \newpage
