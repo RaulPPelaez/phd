@@ -62,7 +62,9 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newacronym{API}{API}{Application Programming Interface}
 \newacronym{BVP}{BVP}{Boundary Value Problem} \newcommand{\bvp}{\gls{BVP}\xspace}
 \newacronym{BC}{BC}{Boundary Condition} \newcommand{\bc}{\gls{BC}\xspace}\newcommand{\bcs}{\gls{BC}s\xspace}
-
+\newacronym{ODE}{ODE}{Ordinary Differential Equation}
+\newacronym{PDE}{PDE}{Partial Differential Equation}
+\newacronym{SDE}{SDE}{Stochastic Differential Equation}
 
 \renewcommand{\vec}[1]{\bm{#1}}
 \newcommand{\uammd}{\gls{UAMMD}\xspace}
@@ -805,13 +807,13 @@ Even so \gls{MD} represents the basis for all particle based methods, where the 
 Although not the most fundamental way of expressing the equations of motions, we will stick to this somewhat simplified one. For a system of $N$ molecules interacting via a certain potential, Newton's equation of motion state that the acceleration experienced by each one comes from the total force, $\vec{F}$, acting on it.
 \begin{equation}
   \label{eq:md}
-  \vec{F}_i =  m_i\ddot{\vec{r}_i}
+  \vec{F} =  m\ddot{\vec{r}} = m\vec{a}
 \end{equation}
-Where $m_i$ is the mass of the molecule $i$ and $\vec{r}_i$ its position in cartesian coordinates.
+Where $m$ is the mass of the molecule, $\vec{r}$ its position in cartesian coordinates and $\vec{a}$ its acceleration.
 The force is defined as the gradient of an underlying potential energy landscape, $U$.
 \begin{equation}
   \label{eq:mdfv}
-  \vec{F}_i = -\nabla_{\vec{r}_i} U(\{\vec{r}_1,...,\vec{r}_N\})
+  \vec{F} = -\nabla_{\vec{r}} U(\{\vec{r}_1,...,\vec{r}_N\})
 \end{equation}
 Which in general is a function of the positions of the particles
 
@@ -820,25 +822,127 @@ At its core eq. \eqref{eq:md} is an expression of the conservation of the total 
 
 
 Our goal is to integrate numerically eq. \eqref{eq:md}. Meaning that starting with the state of the system at a certain time $t$ (where the system is conformed by the positions and velocities of the particles and the forces acting on them) we want to find the state of the system at time $t + \dt$. We refer to $\dt$ as the time step.
-Eq. \eqref{eq:md} may be integrated with a simplectic integration method to describe the evolution of the particle's positions, $\vec{r}_i$, and their velocities, $\dot{\vec{r}}_i$. There are several standard simplectic algorithms, such as predictor-corrector \cite{mdpredictorcorrector} and Runge-Kutta \cite{mdrk}, but the most used one is the Verlet algorithm \cite{mdvelocityverlet}.
 
-\section{The velocity Verlet algorithm}
-The Verlet algorithm checks all the necessary ticks to be a good numerical solver; it has a low memory footprint, its easy to code, fast (only requires O(N) operations) and provides a reasonably good conservation of energy.
-Furthermore the Verlet algorithm is time-reversible \red{WHICH IS GOOD WHY? related to detailed balance?}.
-Ideally we would like to set a time step as high as possible, which will result in less integration steps to arrive at a certain simulation time. In that regard we can find algorithms more numerically stable than Verlet. However there is always a trade off between computation and stability, while a multi-step algorithm might allow to push $\dt$ a little further than Verlet it essentially doubles the computation cost. As such Verlet provides a good trade-off between stability and computational complexity.
+The so-called finite-difference methods are the most commonly employed techniques to achieve this.
+\section{Finite-difference methods}
+Finite-difference methods\cite{fdm} solve \gls{ODE} or \gls{PDE} by approximating the derivative operators with finite differences.
+We can employ this idea to solve both spatial and temporal discretized differentiation operators. Thus far we are only interested in solving temporal derivatives, such as the one in eq. \eqref{eq:md}.
+The derivative of a function, $f$, is defined as
+\begin{equation}
+  \dot{f}(t) = \lim_{\dt\rightarrow 0} \frac{f(t+\dt) - f(t)}{dt}
+\end{equation}
 
+If the function is smooth and analytic (well behaved), we can write its Taylor expansion to approximate $f(t+\dt)$
+\begin{equation}
+  \label{eq:fdmtaylor}
+  f(t+\dt) = f(t)+\dot{f}(t)\dt + \half\ddot{f}(t)\dt^2 + O(\dt^3)
+\end{equation}
+For convenience, we will refer to the function evaluated at time $t$ as $f^n := f(t)$ and as $f^{n\pm 1} := f(t\pm \dt)$ when evaluated at $t\pm \dt$. This notation can be extended to refer to points more separated in time, in general defining $f^{n\pm j} := f(t+j\dt)$.
+Solving eq. \eqref{eq:fdmtaylor} for the first derivative
+\begin{equation}
+ \dot{f}^n  =  \frac{f^{n+1} - f^n}{\dt} + \half\ddot{f}^n\dt + O(\dt^2)
+\end{equation}
+Which approximates the definition of derivative for sufficiently small $\dt$, when only the first term remains.
+Most of the integration techniques we will use make use of this trick.
+Lets see how we can leverage this technique to solve eq. \eqref{eq:md}.
+\subsection{Euler Methods}\label{sec:euler}
 
-The usual form of the Verlet algorithm is the so-called velocity Verlet, in which we track the evolution of the velocities and positions of the particles. We can write the time discretized equations of motion in such a way that we only need to evaluate the forces (which often is by far the more expensive part of the algorithm) once per time step
+If we truncate eq. \eqref{eq:fdmtaylor} at order $\dt$ we get the so called Euler method\cite{euler}, which approximates the integral as
+\begin{equation}
+  \label{eq:basiceuler}
+  f^{n+1} = f^n + \dot{f}^n\dt
+\end{equation}
+Which yields a solver with $O(\dt)$ accuracy\cite{euleraccuracy}.
+It is worth exploring here a different derivation of the Euler method using the definition of integral instead of derivative. We can apply the fundamental theorem of calculus to get
+\begin{equation}
+  \label{eq:eulerftc}
+  f^{n+1} - f^n = \int_t^{t+\dt}\dot{f}(t')dt'
+\end{equation}
+On the other hand, we can approximate the integral using the left Riemann sum with only one interval (which is a good approximation as $\dt\rightarrow 0$)
+\begin{equation}
+  \label{eq:eulerriemman}
+  \int_t^{t+\dt}\dot{f}(t')dt' \approx \dt \dot{f}^n
+\end{equation}
+By combining eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} we arrive to \eqref{eq:basiceuler} again.
+This derivation will come in handy later when describing integration schemes for equations with terms that cannot be approximated by eq. \eqref{eq:fdmtaylor}.
+Furthermore, eq. \eqref{eq:eulerriemman} opens the door to a family of numerical integrators based on improving this approximation by using more intervals between $t$ and $t+\dt$. Some examples are the Runge-Kutta methods\cite{rk4} or the so-called linear multistep methods, such as the Adams Bashforth\cite{adamsbashforth} family of algorithms.
+Often these methods improve numerical stability at the cost of evaluating the function (in our case meaning the force) several times per time step. Given that in a \gls{MD} simulation this is, often by orders of magnitude, the most expensive part of the computation we wont be making use of them for the time being.
+Finally, there are several modifications to the Euler algorithm that can improve its stability, such as the backward Euler\cite{backwardeuler}, the exponential Euler\cite{exponentialEuler}.
+We will expand into Euler methods in section \ref{sec:bd}.
+For now, we can use it to integrate eq. \eqref{eq:md} to get the velocity and the positions
+\begin{equation}
+  \label{eq:basiceulermd}
+  \begin{aligned}
+  \vec{v}^{n+1} &\approx& \vec{v}^n + \vec{a}^n\dt\\
+  \vec{r}^{n+1} &\approx& \vec{r}^n + \vec{v}^n\dt
+\end{aligned}
+\end{equation}
+Where $\vec{v} := \dot{\vec{r}}$ represents the velocity of the molecule.
+The Euler integrator as defined above is not symplectic\cite{symplectic} and as such presents several stability issues that make it non practical as compared with other strategies that will be discussed shortly. In particular, not being symplectic makes it unsuitable for our main goal, energy conservation\cite{eulerdrift}. On the other hand it is a first order method and lowering the time step too much to improve accuracy leads to numerical rounding errors (due to floating point accuracy).
+However, we can make a small modification to the Euler method to make it symplectic\cite{HairerNumericalIntegration}
+\begin{equation}
+  \label{eq:semiimpliciteuler}
+  \begin{aligned}
+    \vec{v}^{n+\half} &\approx& \vec{v}^n + \half\vec{a}^n\dt\\
+    \vec{r}^{n+\half} &\approx& \vec{r}^n + \half\vec{v}^{n+\half}\dt
+  \end{aligned}
+\end{equation}
+This is called the semi implicit Euler scheme\cite{semiimplicitEuler}. While symplectic, this algorithm effectively requires two force evaluations per step (interpreting step as going from $t$ to $t+\dt$) and it is still a first order method.
+In order to efficiently solve eq. \eqref{eq:md} we need a symplectic (memory conserving) algorithm that offers good numerical stability while requiring to evaluate the forces only once per step.
+The most widespread algorithm for \gls{MD} is the so-called velocity Verlet method\cite{mdvelocityverlet}, a second order algorithm that needs the forces only once per step.
+\section{The velocity Verlet algorithm}\label{sec:velocityverlet}
+Instead of truncating eq. \eqref{eq:fdmtaylor} at $O(\dt)$ as we did with Euler lets now truncate it at $O(\dt^3)$ and write the expressions for the positions at $t+\dt$ and $t-\dt$
 \begin{eqnarray}
-  \label{eq:verletnve}
-  \dot{\vec{r}}_i(t+\half \dt) &=& \dot{\vec{r}}_i(t) + \half \frac{\vec{F}_i(t)}{m_i}\dt\nonumber\\
-  \vec{r}_i(t+ \dt) &=& \vec{r}_i(t) +  \dot{\vec{r}}_i(t+\half \dt)\dt\\
-  \dot{\vec{r}}_i(t+ \dt) &=& \dot{\vec{r}}_i(t+\half\dt) + \half\frac{\vec{F}_i(t+\dt)}{m_i}\dt\nonumber
+  \label{eq:verletrp1}
+  \vec{r}^{n+1} &=& \vec{r}^n + \vec{v}^n\dt + \half\vec{a}^n\dt^2 + \vec{b}^n\dt^3 + O(\dt^4)\\
+  \vec{r}^{n-1} &=& \vec{r}^n - \vec{v}^n\dt + \half\vec{a}^n\dt^2 - \vec{b}^n\dt^3 + O(\dt^4)
 \end{eqnarray}
+Where $\vec{b}$ is just the term accompanying the $O(\dt^3)$ term.
+By adding both equations together and solving for $\vec{r}^{n+1}$ we get
+\begin{equation}
+  \label{eq:stormerverlet}
+  \vec{r}^{n+1} = 2\vec{r}^n - \vec{r}^{n-1} + \half\vec{a}^n\dt^2 + O(\dt^4)
+\end{equation}
+When written like this, this equation can be used to integrate eq. \eqref{eq:md} and is known as the Störmer integration method. It can also be seen as an application of the central differencing method to the position and as such, eq. \eqref{eq:stormerverlet} is also know as the explicit central difference method.
+Although eq. \eqref{eq:stormerverlet} presents really good numericall stability ($O(\dt^4)$) at a small cost, it presents some issues that hinder its applicability.
+It requires storing the position at two points in time, which is inconvenient and poses the challenge of starting the simulation.
+Furthermore it eliminates the velocity from the integration, which can be computed from the positions using the central difference method
+\begin{equation}
+  \label{eq:stormervel}
+  \vec{v}^n = \frac{\vec{r} ^{n+1} - \vec{r}^{n-1}}{2\dt} + O(\dt^2)
+\end{equation}
+Mathematically this is a second order approximation to the velocity. However, computing the velocity in this way can result in large roundoff errors stemming from the substraction of two similar quantities.
+We can manipulate eqs. \eqref{eq:verletrp1} and \eqref{eq:stormervel} to arrive at the more commonly used version of the Verlet method, the so-called velocity Verlet algorithm.
+We can use the central difference method to evaluate the velocity at half step as $\vec{v}^{n+\half} = \frac{\vec{x}^{n+1} - \vec{x}^n}{\dt}$. By replacing $\vec{r}^{n+1}$ with eq. \eqref{eq:verletrp1} and truncating at $O(\dt^2)$ we get
+\begin{equation}
+  \label{eq:verletvelhalf}
+  \vec{v}^{n+\half} = \vec{v}^n + \half\vec{a}^n\dt + O(\dt^2)
+\end{equation}
+Which allows to get a second order approximation of the position by replacing  $\vec{v}^{n+\half}$ into \eqref{eq:verletrp1}
+\begin{equation}
+  \vec{r}^{n+1} = \vec{r}^n +  \vec{v}^{n+\half}\dt + O(\dt^3)
+\end{equation}
+We can then use eq. \eqref{eq:verletvelhalf} to compute the velocity at $t+\dt$
+\begin{equation}
+  \vec{v}^{n+1} = \vec{v}^{n+\half} + \half\vec{a}^{n+1}\dt
+\end{equation}
+Note that these equations are just a rewrite of the Störmer Verlet method above and thus present the same stability and accuracy while eliminating the aforementioned incoveniences presented by the former.\todo{Como se demuestra que la posicion es $O(\dt^4)$?}
+Thus the overall algorithm is second order accurate in the velocity and fourth order accurate in the positions.
+Finally, the velocity Verlet algorithm can be summarized in the following steps
+\begin{equation}
+  \label{eq:verletnve}
+  \begin{aligned}
+    \vec{v}^{n+\half} &=& \vec{v}^n + \half \vec{a}^n\dt\\
+  \vec{r}^{n+1} &=& \vec{r}^n +  \vec{v}^{n+\half}\dt\\
+  \vec{v}^{n+1} &=& \vec{v}^{n+\half} + \half\vec{a}^{n+1}\dt
+\end{aligned}
+\end{equation}
+Note that, with the exception of the first step, there is no need to compute the accelerations twice, since the forces at time $t$ are known from the previous step. Forces at $t+\dt$ should be evaluated after computing $\vec{r}^{n+1}$, typically overwritting the current forces. The only storage needed are the velocities, positions and accelerations per particle.
+Thus, the velocity Verlet algorithm presents all the necessary properties for being a popular integrator. It has good numerical stability, a small memory footprint, good energy conservation, guaranteed momentum conservation,...
 
-\subsection{Testing the algorithm}
-One way to measure the effectiveness of the algorithm is to check the energy conservation
-\todo{Is this worth doing?}
+%\subsection{Testing the algorithm}
+%
+%One way to measure the effectiveness of the algorithm is to check the energy conservation\todo{Is this worth doing?}
 \subsection{Use in UAMMD}
 The velocity Verlet algorithm in the NVE ensemble is available in \uammd as an Integrator module called \emph{VerletNVE}.
 
@@ -857,7 +961,7 @@ auto createIntegratorVerletNVE(UAMMD sim){
   par.dt = sim.par.dt; //The time step
   //Optionally a target energy can be passed
   par.energy = 1; 
-  //If false, VerletNVE will not overwrite velocities at initialization
+  //If false, VerletNVE will not initialize velocities
   //par.initVelocities = false;
   return std::make_shared<VerletNVE>(sim.pd, sim.sys, par);
 }
@@ -873,19 +977,19 @@ The next natural after \gls{MD} equations is the so-called \gls{LD}.
 
 \section{Langevin Dynamics}
 
-The solvent particles are removed entirely, the idea is that the motion of the solvent particles (water) is much faster than that of the submerged objects. Instead of simulating a time scale fast enough to keep track of each individual collision between a slow object and a solvent particle we assume that between one instant and the next so many solvent particles have collided with the object that we can consider it an stochastic process.
+The solvent particles are removed entirely, the idea is that the motion of the solvent particles (water) is much faster than that of the submerged objects. Furthermore, the size of the simulation units is much larger than the size of the solvent particles. Instead of simulating a time scale fast enough to keep track of each individual collision between a slow object and a solvent particle we assume that between one instant and the next so many solvent particles have collided with the object that we can consider it an stochastic process.
 In \gls{LD} submerged particles experience a random force stemming from the collisions of all the surrounding solvent particles. Additionally, the solvent particles produce a friction that goes against the movement of the submerged particles.
 In this sense \gls{LD} only models the viscous behavior of the solvent, disregarding any electrostatic or hydrodynamic phenomena.
 We reintroduce the ommited degrees of freedom as external forces acting on the particles in a \gls{MD} simulation. We can write the Langevin equation as
 \begin{equation}
   \label{eq:langevin}
-  m\ddot{\vec{r}}_i = \vec{F^c_i} + \vec{F^d_i} + \vec{F^r_i}
+  m\vec{a} = \vec{F^c} + \vec{F^d} + \vec{F^r}
 \end{equation}
 Where we have simply added more forces to eq. \eqref{eq:md}. The first term in eq. \eqref{eq:langevin} is the sum of the conservative forces acting on particle $i$ (the ones comming from the underlying potential energy landscape), these can be steric interactions, electrostatic, bonded, etc. The second term represents the drag exterted by the solvend particles in the form of a dissipative force. Finally, the third term comes from the noise produced by the fast and constant collisions of the solvent particles in the form of a random force.
 
 This random term transforms eq. \eqref{eq:langevin} into an stochastic differential equation, in which special care must be taken when integrating.
 
-The dissipative or drag term opposes the movement of the particles and is often written as $\vec{F^d} = -\xi \vec{v}$. The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$.
+The dissipative or drag term opposes the movement of the particles and is often written as $\vec{F^d} = -\xi \vec{v}$. The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$. Additionally, $\xi$ will depend on the properties of the solvent, i.e. viscosity, and the submerged particle, i.e. radius.
 When a system in thermodynamical equilibrium dissipates energy in the form of heat, like the drag force is doing in eq. \eqref{eq:langevin}, the fluctuation-dissipation theorem states that there must be an opposite process that reintroduces this energy via thermal fluctuations. Otherwise the system would spontaneously freeze or heat.
 The fluctuation-dissipation balance can be interpreted a consequence of the equipartition theorem in the long time limit. In this case stemming from the conversion of a system of colliding particles merely following Newton's equations to a heat bath. We can use the equipartition theorem for a single particle in the absence of any conservative forces to relate $\vec{F^d}$ with $\vec{F^r}$.
 The Hamiltonian for this system is simply $H = \frac{p^2}{2m}$, where $p = m\dot{r}$ is the momentum.
@@ -903,6 +1007,7 @@ The previous equation leads to the relation
 Which represents the velocity auto correlation at one given instant in time.
 On the other hand, since there are no privileged directions, we can assume that
 \begin{equation}
+  \label{eq:noisemean}
   \left\langle F^r_{\alpha}\right\rangle = 0
 \end{equation}
 And the fluctuation-dissipation balance also requires that the noise has no memory
@@ -930,7 +1035,8 @@ Which is another expression of the fluctuation-dissipation balance, related with
 \begin{equation}
   \left\langle F^r_{\alpha}(t)F^r_{\alpha}(t')\right\rangle = B \delta_{t,t'} = 2m\gamma k_BT \delta_{t,t'}
 \end{equation}
-The properties we have devised for the random force, $\vec{F}^r$, coupled with the central limit theorem \cite{centrallimittheorem}, describe it as Wiener process, otherwise known as Gaussian white noise.
+Technically, eqs. \eqref{eq:noisemean} and \eqref{eq:noiseautocorr} would be compatible with any random distribution with zero mean and variance $B$. However, as the noise term comes from the action of countless independent random variables (collisions with the solvent particles) the central limit theorem\cite{centrallimittheorem} applies. Thus, the properties we have devised for the random force, $\vec{F}^r$, describe it as Wiener process, otherwise known as Gaussian white noise.
+
 Finally, we can rewrite eq. \eqref{eq:langevin} as
 %Multiply it by the position, $r$, and average
 %\begin{equation}
@@ -957,15 +1063,24 @@ Finally, we can rewrite eq. \eqref{eq:langevin} as
 %
 \begin{equation}
   \label{eq:langevinfull}
-  m\ddot{\vec{r}}_i = \vec{F^c_i} - \xi \dot{\vec{r}_i} + \sqrt{2\xi k_BT}\vec{\widetilde{W}_i}
+  m\vec{a} = \vec{F^c} - \xi \vec{v} + \sqrt{2\xi k_BT}\vec{\widetilde{W}}
 \end{equation}
 Where $\vec{\widetilde{W}}$ is a collection of independent Wiener processes.
+We have made a lot of assumptions to arrive at eq. \eqref{eq:langevinfull}, mainly disregarding hydrodynamic effects of the solvent which ultimately translates in the friction coefficient being a constant (as in independent of the position and system configuration). We will see in following chapters how to improve these appoximations. In any case, \gls{LD} allows to introduce the fluctuation dissipation balance which holds even when lifting most of our current approximations.
+The presence of $\vec{\widetilde{W}}$ makes eq. \eqref{eq:langevinfull} an \gls{SDE}. Since eq. \eqref{eq:langevinfull} is not analitic the assumptions in eq. \eqref{eq:fdmtaylor} do not hold. In other words, we do not know how to differentiate a random variable. Luckily we can make assumptions about the integral of a random variable, this allows us to devise a solver for eq. \eqref{eq:langevinfull} following a similar strategy as we did in eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} in sec. \ref{sec:euler}.
 
+\todo{
+  Riemman integral of W can be approximated.
+  Gronbech Jensen description from paper.
+  No stochastic calculus yet, wait for BD.
+}
 \subsection{Gronbech-Jensen}
 
 \section{Dissipative Particle Dynamics}
 
 \section{Brownian Dynamics}
+
+\todo{Stochastic calculus, Riemman approx to integral of brownian, ito integral.}
 
 \subsection{Euler Maruyama}
 
