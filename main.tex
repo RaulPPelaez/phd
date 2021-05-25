@@ -70,6 +70,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newcommand{\uammd}{\gls{UAMMD}\xspace}
 \newcommand{\gpu}{\gls{GPU}\xspace}
 \newcommand{\dt}{\delta t}
+\newcommand{\kT}{k_B T}
 \newcommand{\half}{\frac{1}{2}}
 \newcommand{\red}[1]{{\color{red}#1}}
 \DeclareMathOperator{\erf}{erf}
@@ -614,14 +615,14 @@ The reason for giving short range interactions so much credit is simple: Imagine
 A standard potential employed to model the short range Van-der-Waals interactions is the Lennard-Jones potential \cite{lj} (\gls{LJ} for short). A rapidly decaying repulsive radial potential with an attractive tail.
 \begin{equation}
   \label{eq:lj}
-  U_{LJ}(r) = 4 \epsilon_{lj} \left[ \left(\frac{\sigma_{lj}}{r}\right)^{12} - \left( \frac{\sigma_{lj}}{r}\right)^6 \right] 
+  U_{LJ}(r) = 4 \epsilon \left[ \left(\frac{\sigma}{r}\right)^{12} - \left( \frac{\sigma}{r}\right)^6 \right] 
 \end{equation}
 Which results in this expression for the force at a certain distance $\vec{r}$ between two points
 \begin{equation}
   \label{eq:ljf}
-  \vec{F}_{LJ}(\vec{r}) = -\nabla_{\vec{r}} U_{LJ} = 24 \epsilon_{lj} \left[ \left(\frac{\sigma_{lj}}{||\vec{r}||}\right)^{7} - 2\left( \frac{\sigma_{lj}}{||\vec{r}||}\right)^{13} \right] \frac{\vec{r}}{r}
+  \vec{F}_{LJ}(\vec{r}) = -\nabla_{\vec{r}} U_{LJ} = 24 \epsilon \left[ \left(\frac{\sigma}{r}\right)^{7} - 2\left( \frac{\sigma}{r}\right)^{13} \right] \hat{\vec{r}}
 \end{equation}
-
+Where $r = ||\vec{r}||$ is the modulus of the distance vector and $\hat{\vec{r}}$ is an unit vector in the direcion of $\vec{r}$.
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{lj}
@@ -629,7 +630,7 @@ Which results in this expression for the force at a certain distance $\vec{r}$ b
   \label{fig:lj}
 \end{figure}
 
-Given the rapidly decaying nature of this otherwise infinite range potential it is standard to truncate it at a certain distance, usually $r_{cut} = 2.5\sigma_{lj}$. At this distance the potential has a value of $U_{LJ}(r = r_{cut}) = -0.0615\epsilon_{lj}$.
+Given the rapidly decaying nature of this otherwise infinite range potential it is standard to truncate it at a certain distance, usually $r_{cut} = 2.5\sigma$. At this distance the potential has a value of $U_{LJ}(r = r_{cut}) = -0.0615\epsilon$.
 Ignoring the long range effects of this potential changes the equation of state of a \gls{LJ} fluid in a way that is well understood and tabulated\cite{ljtrunc}. By doing this we can devise more efficient algorithms that only need to take into account short range interactions.
 Finally, in order to avoid jumps in the energy it is also standard to shift the potential in addition to this truncation. This is refered as the truncated and shifted Lennard-Jones potential
 \begin{equation}
@@ -642,8 +643,8 @@ Finally, in order to avoid jumps in the energy it is also standard to shift the 
 \end{equation}
 The expression for the force remains as in eq. \eqref{eq:ljf}, simply truncated at $r=r_{cut}$.
 
-Sometimes we are only interested in the repulsive part of the LJ potential, as a way of modelling hard spheres. In order to do so we truncate eq. \eqref{eq:lj} at its minimum, located at a distance $r_m = 2^{1/6}\sigma_{lj}$, where $U_{LJ} = 0$. The resulting potential is called Weeks-Chandler-Andersen, or WCA, potential. We will refer to to it as $U_{WCA}$.
-Often the parameters in eq. \eqref{eq:lj} will be used as natural units of energy, $\epsilon_{lj}$ and length $\sigma_{lj}$.
+Sometimes we are only interested in the repulsive part of the LJ potential, as a way of modelling hard spheres. In order to do so we truncate eq. \eqref{eq:lj} at its minimum, located at a distance $r_m = 2^{1/6}\sigma$, where $U_{LJ} = 0$. The resulting potential is called Weeks-Chandler-Andersen, or WCA, potential. We will refer to to it as $U_{WCA}$.
+Often the parameters in eq. \eqref{eq:lj} will be used as natural units of energy, $\epsilon$ and length $\sigma$.
 \subsection{Neighbour Lists}\ref{sec:nlist}
 Imagine a system composed of an uniform distribution of argon atoms, whose interaction can be qualitatively modeled via the \gls{LJ} potential. When we talked about computing the gravitational interaction between stars, it made sense to devise an efficient algorithm that checks all star pairs in the system. However, in this new system governed by eq. \eqref{eq:ljts}, checking all pairs becomes pointless given that the vast mayority of them will contribute zero to the final result. We would like to skip all these pairs that lie beyond a certain cut off distance, $r_{cut}$, beforehand. A neighbour list contains, for each particle, a list of other particles that are closer than $r_{cut}$ to it. There are many approaches, wildly different between them, to constructing neighbour list, and \uammd implements several of them as we will shortly see.
 Once a list is constructed, the traversal algorithm depends on the type of neighbour list. However, the logic behind traversal will always be the same (see algorithm \ref{alg:nlist}) and compatible with the \emph{Transverser} interface (which is actually the main reason for its existence). In \uammd neighbour lists can always be used by providing them with a \emph{Transverser}.
@@ -799,7 +800,7 @@ int main(){
 
 
 \chapter{Particle-based methods for simulating complex fluids}
-\section{Molecular Dynamics}
+\section{Molecular Dynamics}\label{sec:md}
 
 At the lowest level, without considering quantum effects, our simulation units are interacting atoms or molecules whose motion can be described using classical mechanics. We refer to the numerical techniques used in this regime as \gls{MD}.
 In \gls{MD} molecules are moving in a vacuum following the Newton's equation of motion. If we need to include some kind of solvent, i.e. water, in a \gls{MD} simulation we must do so by explicitly solving the motion of all the involved molecules of water (which might be coarse grained in some way or another).
@@ -897,7 +898,7 @@ Instead of truncating eq. \eqref{eq:fdmtaylor} at $O(\dt)$ as we did with Euler 
   \vec{r}^{n+1} &=& \vec{r}^n + \vec{v}^n\dt + \half\vec{a}^n\dt^2 + \vec{b}^n\dt^3 + O(\dt^4)\\
   \vec{r}^{n-1} &=& \vec{r}^n - \vec{v}^n\dt + \half\vec{a}^n\dt^2 - \vec{b}^n\dt^3 + O(\dt^4)
 \end{eqnarray}
-Where $\vec{b}$ is just the term accompanying the $O(\dt^3)$ term.
+Where $\vec{b}$ is just the term accompanying the $O(\dt^3)$ term, typically refered to as \emph{jerk}.
 By adding both equations together and solving for $\vec{r}^{n+1}$ we get
 \begin{equation}
   \label{eq:stormerverlet}
@@ -975,7 +976,7 @@ Furthermore, including the small water molecules requires to solve their individ
 During the following sections, we will see different strategies to take into account the effects of the solvent in an implicit manner.
 The next natural after \gls{MD} equations is the so-called \gls{LD}.
 
-\section{Langevin Dynamics}
+\section{Langevin Dynamics}\label{sec:langevin}
 
 The solvent particles are removed entirely, the idea is that the motion of the solvent particles (water) is much faster than that of the submerged objects. Furthermore, the size of the simulation units is much larger than the size of the solvent particles. Instead of simulating a time scale fast enough to keep track of each individual collision between a slow object and a solvent particle we assume that between one instant and the next so many solvent particles have collided with the object that we can consider it an stochastic process.
 In \gls{LD} submerged particles experience a random force stemming from the collisions of all the surrounding solvent particles. Additionally, the solvent particles produce a friction that goes against the movement of the submerged particles.
@@ -983,59 +984,60 @@ In this sense \gls{LD} only models the viscous behavior of the solvent, disregar
 We reintroduce the ommited degrees of freedom as external forces acting on the particles in a \gls{MD} simulation. We can write the Langevin equation as
 \begin{equation}
   \label{eq:langevin}
-  m\vec{a} = \vec{F^c} + \vec{F^d} + \vec{F^r}
+  m\vec{a} = \vec{F_c} + \vec{F_d} + \vec{F_r}
 \end{equation}
-Where we have simply added more forces to eq. \eqref{eq:md}. The first term in eq. \eqref{eq:langevin} is the sum of the conservative forces acting on particle $i$ (the ones comming from the underlying potential energy landscape), these can be steric interactions, electrostatic, bonded, etc. The second term represents the drag exterted by the solvend particles in the form of a dissipative force. Finally, the third term comes from the noise produced by the fast and constant collisions of the solvent particles in the form of a random force.
+Where we have simply added more forces to eq. \eqref{eq:md}. The first term in eq. \eqref{eq:langevin} is the sum of the conservative forces acting on particle $i$ (the ones comming from the underlying potential energy landscape), these can be steric interactions, electrostatic, bonded, etc. The second term represents the drag exterted by the solvend particles in the form of a dissipative force. Finally, the third term comes from the noise produced by the fast and constant collisions of the solvent particles in the form of a random force. The noise term can be interpreted as a thermostat and thus eq. \eqref{eq:langevin} can be used to model a system of particles in the \emph{NVT} ensemble.
 
 This random term transforms eq. \eqref{eq:langevin} into an stochastic differential equation, in which special care must be taken when integrating.
 
-The dissipative or drag term opposes the movement of the particles and is often written as $\vec{F^d} = -\xi \vec{v}$. The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$. Additionally, $\xi$ will depend on the properties of the solvent, i.e. viscosity, and the submerged particle, i.e. radius.
+The dissipative or drag term opposes the movement of the particles and is often written as $\vec{F_d} = -\xi \vec{v}$. The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$. Additionally, $\xi$ will depend on the properties of the solvent, i.e. viscosity, and the submerged particle, i.e. radius.
 When a system in thermodynamical equilibrium dissipates energy in the form of heat, like the drag force is doing in eq. \eqref{eq:langevin}, the fluctuation-dissipation theorem states that there must be an opposite process that reintroduces this energy via thermal fluctuations. Otherwise the system would spontaneously freeze or heat.
-The fluctuation-dissipation balance can be interpreted a consequence of the equipartition theorem in the long time limit. In this case stemming from the conversion of a system of colliding particles merely following Newton's equations to a heat bath. We can use the equipartition theorem for a single particle in the absence of any conservative forces to relate $\vec{F^d}$ with $\vec{F^r}$.
+The fluctuation-dissipation balance can be interpreted a consequence of the equipartition theorem in the long time limit. In this case stemming from the conversion of a system of colliding particles merely following Newton's equations to a heat bath. We can use the equipartition theorem for a single particle in the absence of any conservative forces to relate $\vec{F_d}$ with $\vec{F_r}$.
 The Hamiltonian for this system is simply $H = \frac{p^2}{2m}$, where $p = m\dot{r}$ is the momentum.
-The equipartition theorem states that for every degree of freedom in the system the following equation must hold, for every direction $\alpha$ and $\beta$.
+Lets apply these arguments to a one dimensional system for simplicity, understanding they also hold for the three dimensional case. The equipartition theorem states that for every degree of freedom in the system the following equation must hold.
 \begin{equation}
-  \left\langle p_\alpha \frac{\partial H}{\partial p_{\beta}}\right\rangle = \left\langle p_\alpha \frac{p_{\beta}}{m}\right\rangle = k_BT\delta_{\alpha\beta}
+  \left\langle p \frac{\partial H}{\partial p}\right\rangle = \left\langle p \frac{p}{m}\right\rangle = k_BT
 \end{equation}
 Where $k_B$ is the Boltzmann constant and $T$ the temperature. Brackets represent ensemble average.
 
 The previous equation leads to the relation
 \begin{equation}
   \label{eq:velautocorr}
-  \left\langle p_{\alpha}^2\right\rangle = m k_BT
+  \left\langle p^2\right\rangle = m k_BT
 \end{equation}
-Which represents the velocity auto correlation at one given instant in time.
-On the other hand, since there are no privileged directions, we can assume that
+Which represents the velocity auto correlation at any given instant in time in equilibrium.
+On the other hand, since there are no privileged directions and its require that eq. \eqref{eq:velautocorr} holds, we can assume that
 \begin{equation}
   \label{eq:noisemean}
-  \left\langle F^r_{\alpha}\right\rangle = 0
+  \left\langle F_r\right\rangle = 0
 \end{equation}
-And the fluctuation-dissipation balance also requires that the noise has no memory
+The fluctuation-dissipation balance also requires that the noise has no memory
 \begin{equation}
   \label{eq:noiseautocorr}
-  \left\langle F^r_{\alpha}(t)F^r_{\alpha}(t')\right\rangle = B \delta_{t,t'}
+  \left\langle F_r(t)F_r(t')\right\rangle = B \delta_{t,t'}
 \end{equation}
+This is also a consequence of our current separation of timescales. We are assuming that the collisions with the different molecules of the fuild with our particles are independent, so over a timespan much larger than the typical time of a collision (for which we are taking the limit where it is zero) fluctuations should not be correlated.
 Where $B$ is just some constant. There are several arguments that can be used here to get the value of $B$ \cite{allen}\cite{fokker}\cite{langevilsolve}. The simplest one is to take eq. \eqref{eq:langevin} for a single particle in the absence of external forces in one dimension in a time dicretized form
 \begin{equation}
-  p_{n+1} = p_n-\gamma\delta t p_n + \delta t F^r_n
+  p^{n+1} = p^n-\gamma\delta t p^n + \delta t F_r^n
 \end{equation}
 Where $n$ represents an instant in time separated $\delta t$ from the next. Lets compute the variance of the momentum
 \begin{equation}
-  \left\langle p_{n+1}^2\right\rangle = \left\langle (1-\gamma \delta t)^2p_n^2\right\rangle + \delta t \left\langle (F^r_n)^2\right\rangle
+  \left\langle (p^{n+1})^2\right\rangle = \left\langle (1-\gamma \delta t)^2(p^n)^2\right\rangle + \delta t \left\langle (F_r^n)^2\right\rangle
 \end{equation}
-In equilibrium the variance of the momemtum must remain constant, so $\left\langle p_{n+1}^2\right\rangle = \left\langle p_{n}^2\right\rangle$, leaving
+In equilibrium the variance of the momemtum must remain constant, so $\left\langle (p^{n+1})^2\right\rangle = \left\langle (p^{n})^2\right\rangle$, leaving
 \begin{equation}
-  \left[ (1-\gamma \delta t)^2 -1 \right]\left\langle p_{n}^2\right\rangle = \delta t \left\langle (F^r_n)^2\right\rangle
+  \left[ (1-\gamma \delta t)^2 -1 \right]\left\langle (p^{n})^2\right\rangle = \delta t \left\langle (F_r^n)^2\right\rangle
 \end{equation}
 In the limit of $\delta t \rightarrow 0$ and taking into account the relation in eq. \eqref{eq:velautocorr}
 \begin{equation}
-  \left\langle p_{n}^2\right\rangle = \frac{\left\langle (F^r_n)^2\right\rangle}{2\gamma} = mk_BT
+  \left\langle (p^{n})^2\right\rangle = \frac{\left\langle (F_r^n)^2\right\rangle}{2\gamma} = mk_BT
 \end{equation}
 Which is another expression of the fluctuation-dissipation balance, related with the Einstein relation \cite{einsteinrelation}. Whe have then arrived at the value of $B$ in eq. \eqref{eq:noiseautocorr}
 \begin{equation}
-  \left\langle F^r_{\alpha}(t)F^r_{\alpha}(t')\right\rangle = B \delta_{t,t'} = 2m\gamma k_BT \delta_{t,t'}
+  \left\langle F_r(t)F_r(t')\right\rangle = B \delta_{t,t'} = 2m\gamma k_BT \delta_{t,t'}
 \end{equation}
-Technically, eqs. \eqref{eq:noisemean} and \eqref{eq:noiseautocorr} would be compatible with any random distribution with zero mean and variance $B$. However, as the noise term comes from the action of countless independent random variables (collisions with the solvent particles) the central limit theorem\cite{centrallimittheorem} applies. Thus, the properties we have devised for the random force, $\vec{F}^r$, describe it as Wiener process, otherwise known as Gaussian white noise.
+Technically, eqs. \eqref{eq:noisemean} and \eqref{eq:noiseautocorr} would be compatible with any random distribution with zero mean and variance $B$. However, as the noise term comes from the action of countless independent random variables (collisions with the solvent particles) the central limit theorem\cite{centrallimittheorem} applies. Thus, the properties we have devised for the random force, $\vec{F_r}$, describe it as Wiener process, otherwise known as Gaussian white noise.
 
 Finally, we can rewrite eq. \eqref{eq:langevin} as
 %Multiply it by the position, $r$, and average
@@ -1052,36 +1054,235 @@ Finally, we can rewrite eq. \eqref{eq:langevin} as
 %\begin{equation}
 %  \langle r^2\rangle = 2mk_BT\xi^2\left( \exp{-t/\tau} -1 + t/\tau\right)  
 %\end{equation}
-%And in the long time limit where $t >> \tau$
+%And in the long time limit where $t \gg \tau$
 %\begin{equation}
 %  \langle r^2\rangle = 2mk_BT\xi t
 %\end{equation}
 %On the other hand,
 %\begin{equation}
-%  \langle r^2\rangle = \int_0^{t_0}dt\int_0^{t_0}dt'\langle F^r(t) F^r(t')\rangle = Bt_0 = 2mk_BT
+%  \langle r^2\rangle = \int_0^{t_0}dt\int_0^{t_0}dt'\langle F_r(t) F_r(t')\rangle = Bt_0 = 2mk_BT
 %\end{equation}
 %
 \begin{equation}
   \label{eq:langevinfull}
-  m\vec{a} = \vec{F^c} - \xi \vec{v} + \sqrt{2\xi k_BT}\vec{\widetilde{W}}
+  m\vec{a} = \vec{F_c} - \xi \vec{v} + \sqrt{2\xi k_BT}\vec{\widetilde{W}}
 \end{equation}
 Where $\vec{\widetilde{W}}$ is a collection of independent Wiener processes.
 We have made a lot of assumptions to arrive at eq. \eqref{eq:langevinfull}, mainly disregarding hydrodynamic effects of the solvent which ultimately translates in the friction coefficient being a constant (as in independent of the position and system configuration). We will see in following chapters how to improve these appoximations. In any case, \gls{LD} allows to introduce the fluctuation dissipation balance which holds even when lifting most of our current approximations.
 The presence of $\vec{\widetilde{W}}$ makes eq. \eqref{eq:langevinfull} an \gls{SDE}. Since eq. \eqref{eq:langevinfull} is not analitic the assumptions in eq. \eqref{eq:fdmtaylor} do not hold. In other words, we do not know how to differentiate a random variable. Luckily we can make assumptions about the integral of a random variable, this allows us to devise a solver for eq. \eqref{eq:langevinfull} following a similar strategy as we did in eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} in sec. \ref{sec:euler}.
 
-\todo{
-  Riemman integral of W can be approximated.
-  Gronbech Jensen description from paper.
-  No stochastic calculus yet, wait for BD.
-}
-\subsection{Gronbech-Jensen}
+The challenge in the numerical integration of eq. \eqref{eq:langevinfull} comes from the discretization of the noise term.
+A bad discretization of this term can lead to convergence issues, such is the case for the commonly used BBK (for Brooks-Brünger-Karplus) scheme\cite{Brunger1984}, which is known to provide the correct temperature with an error in the order of $O(\dt)$\cite{Wang2003}.
+Without entering yet into the world of Stochastic calculus, we can overcome this issue by solving eq. \eqref{eq:langevinfull} in integral form. Lets start by studying the one dimensional case of a single particle, since the three directions are uncoupled and particles are independent (beyond the conservative forces) making the jump to 3D and many particles will be trivial. For simplicity, lets define $\beta := \sqrt{2\xi k_BT}\widetilde{W}$. Now we integrate eq. \eqref{eq:langevinfull} between the interval $t$ and $t+\dt$
+\begin{equation}
+  \label{eq:langevinriemann}
+  \int_t^{t+\dt} m\dot{v}dt' = \int_t^{t+\dt}F_c dt' - \int_t^{t+\dt}\xi\dot{r}dt' + \int_t^{t+\dt}\beta(t')dt'
+\end{equation}
+The key now is to realize that we can compute the last term numerically by using the Riemann sum definition of the integral. Lets refer to the last term as
+\begin{equation}
+  \label{eq:langenoisint}
+  \beta^{n+1} := \int_t^{t+\dt}\beta(t')dt'
+\end{equation}
+We can use the Riemann sum to transform this into a sum with an arbitrarily large number of terms. Since $\beta$ is a Gaussian and $\left\langle\beta(t)\beta(t')\right\rangle \propto \delta_{t,t'}$ all terms are identical, and since the sum of two Gaussians is also a Gaussian we can simply compute $\beta^{n+1}$ as a Gaussian random number with zero mean and standard deviation $\left\langle\beta^n\beta^m\right\rangle = 2\xi\kT\dt\delta_{n,m}$.
+This realization now opens the door for a family of Verlet like integration schemes, in particular we are going to describe the algorithm developed by Grønbech-Jensen and Farago \cite{Gronbech2013}.
 
+\subsection{Grønbech-Jensen}\label{sec:gronbechjensen}
+Without approximations, we can write eq. \eqref{eq:langevinriemann} as
+\begin{equation}
+  \label{eq:gslangevin}
+  m\left(v^{n+1}-v^n\right) = \int_t^{t+\dt}F_c dt' - \xi\left(r^{n+1}-r^n\right) + \beta^{n+1}
+\end{equation}
+On the other hand, making use of the definition of velocity
+\begin{equation}
+  \int_t^{t+\dt}\dot{r}dt' = r^{n+1} - r^n = \int_t^{t+\dt}vdt'
+\end{equation}
+Which can be approximated to second order using the Riemann sum with two intervals (similarly as we did for Euler methods in sec. \ref{sec:euler}) as
+\begin{equation}
+  \label{eq:gsvel}
+  r^{n+1} - r^n \approx \frac{\dt}{2}\left(v^{n+1}+v^n\right)
+\end{equation}
+Replacing $v^{n+1}$ from eq. \eqref{eq:gslangevin} into \eqref{eq:gsvel} gets us
+
+\begin{equation}
+  \label{eq:gspos}
+  r^{n+1} - r^n =  b \dt v^n + \frac{b\dt}{2m}\left(\int_t^{t+\dt}F_cdt' + \beta^{n+1}\right)
+\end{equation}
+Where
+\begin{equation}
+b := \frac{1}{1+\frac{\xi\dt}{2}}
+\end{equation}
+The deterministic force term can be approximated to second order using the same strategy as in eq. \eqref{eq:gsvel}. However, for eq. \eqref{eq:gspos} only one term of the Riemann sum is needed to make it second order accurate (as it gets multiplied by $\dt^2$). We can then write the final equations for the velocity and position in three dimensions as
+\begin{eqnarray}
+  \label{eq:gsfinal}
+  \vec{r}^{n+1}  &=&  \vec{r}^n + b \dt \vec{v}^n + \frac{b\dt^2}{2m}\vec{F_c}^n + \frac{b\dt}{2m}\vec{\beta}^{n+1}\\
+  \vec{v}^{n+1} &=& a\vec{v}^n + \frac{\dt}{2m}\left(a\vec{F_c}^n + \vec{F_c} ^{n+1}\right) +  \frac{b}{m}\vec{\beta}^{n+1}
+\end{eqnarray}
+Where
+\begin{equation}
+  a:=b \left(1-\frac{\xi\dt}{2}\right)
+\end{equation}
+Note that, since the we need the force at $t+\dt$ to compute the velocities at $t+\dt$ the forces have to be a function of the positions only (and not velocities).
+
+\subsection{Use in UAMMD}
+The Grønbech-Jensen algorithm described above is available in \uammd as an Integrator module called \emph{GronbechJensen}, under the namespace \emph{VerletNVT}.
+
+This module will initialize the particle's velocities near the equilibrium Boltzmann distribution.
+Alternatively you can instruct it to leave particle velocities untouched. The system's temperature will then tend to the equilirbrium one according to the friction coefficient and each particle's mass.
+
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Integrator/VerletNVT.cuh>
+using namespace uammd;
+//A function that creates and returns a VerletNVT integrator
+auto createIntegratorVerletNVT(UAMMD sim){
+  using Verlet = VerletNVT::GronbechJensen;
+  Verlet::Parameters par;
+  par.dt = sim.par.dt; //The time step
+  par.friction = sim.par.friction;
+  par.temperature = sim.par.temperature; 
+  //Optionally, you can force that all particles have
+  // the same mass, overriding the one in sim.pd
+  // even if it was set.
+  //par.mass = sim.par.mass;
+  //If set to true, particle velocities will be left
+  // untouched at initialziation.
+  //par.initVelocities = false;
+  //If 2D is se to true here the integrator will leave
+  // the third coordinate of the particles untouched.
+  //par.is2D = true;
+  return std::make_shared<VerletNVT>(sim.pd, sim.sys, par);
+}
+\end{minted}
 \section{Dissipative Particle Dynamics}
+One of the most popular techniques used to reintroduce some of the degrees of freedom lost with \gls{LD} is \gls{DPD}. This coarse graining technique can be used to go further in the spatio-temporal scale by choosing groups of fluid particles as the simulation unit, sitting in between microscopic (as in \gls{MD}) and macroscopic (Navier-Stokes) descriptions.
+In \gls{DPD} particles interact via a soft potential, modeling the interaction between two large groups of fluid particles.
+While in \gls{LD} the total momentum of the system is conserved, \gls{DPD} aims to also conserve the local momentum via a special thermostart, introducing pairwise dissipative and random forces. This results in the emergence of macroscopic hydrodynamic effects, related with the  the local momentum conservation in the Navier-Stokes equation. These momentum conserving forces can then be tuned to reproduce the thermodynamic, dynamical and rheological properties of diverse complex fluids.
+The equations of motion in \gls{DPD} have the same functional form as \gls{LD}
+\begin{equation}
+  \label{eq:dpddyn}
+  m\vec{a} = \vec{F^c} + \vec{F^d} + \vec{F^r}
+\end{equation}
+But with different definitions for the three forces, in particular
+\begin{equation}
+  \label{eq:dpdforces}
+  \begin{aligned}
+    \vec{F^c}_{ij} &=&\omega(r_{ij})\hat{\vec{r}}_{ij}\\
+    \vec{F^d}_{ij} &=&-\xi\omega^2(r_{ij})(\vec{v}_{ij}\cdot\vec{r}_{ij})\hat{\vec{r}}_{ij}\\
+    \vec{F^r}_{ij} &=&\sqrt{2\xi\kT}\omega(r_{ij})\widetilde{W}_{ij}\hat{\vec{r}}_{ij}    
+  \end{aligned}
+\end{equation}
+Where $\vec{v}_{ij} = \vec{v}_j - \vec{v}_i$ is the relative velocity between particles $i$ and $j$. Here $\xi$ represents a friction coefficient (similar as in sec. \ref{sec:langevin}) and is related to the random force strength via fluctuation-dissipation balance in a familiar way\cite{Espanol1995}. The factor $\widetilde{W}_{ij}$ is different from the one in sec. \ref{sec:langevin} in that it affects pairs of particles (instead of each individual one), it also represents a Gaussian random number with zero mean and unit standard deviation, but must be chosen independently for each pair while ensuring symmetry so that $\widetilde{W}_{ij} = \widetilde{W}_{ji}$.
+The weight function $\omega(r)$ is a soft repulsive force usually defined as
+\begin{equation}
+  \label{eq:dpdw}
+  \omega(r) =
+  \begin{cases}
+    \alpha\left(1-\frac{r}{r_{cut}}\right) & r<r_{cut}\\
+    0 & r\ge r_{cut}\\                                    
+  \end{cases}
+\end{equation}
+Where $r_{cut}$ is a cut off distance. The strength parameter, $\alpha$, can in principle be different for each pair of particles ,$i$-$j$, but for simplicity we will assume it is the same for every pair. Both parameters can be used to tune the properties of the complex fluid along with the friction, $\xi$.
+
+Numerical integration of the \gls{SDE} \eqref{eq:dpddyn} is tricky for the same reasons as with eq. \eqref{eq:langevin}. We have already described some methods of solving such an equation in sec. \ref{sec:gronbechjensen}. However, the Gronbech-Jensen method is not valid for \gls{DPD} since in this case the forces depend on the velocities of the particles. A simple modification can be made, sacrificing stability, by approximating the velocity to just first order in eq. \eqref{eq:gsfinal}, so that the velocity depends only on the force for the current step. Unfortunately, this leads to artifacts in the transport properties and unnacceptable temperature drifts. There are several strategies in the literature trying to overcome this, usually presented as modifications of the velocity Verlet algorithm. A good summary can be found at\cite{Leimhuler2015}. These methods include empirical tweaks to velocity Verlet via a free parameter\cite{Groot1997}, a self consistent correction to the velocity to avoid the temperature drift\cite{Pagonabarraga1998} or a recomputation of the dissipative forces after the velocity update\cite{Besold2000}.
+All of these methods improve the accuracy of the predicted transport properties and response functions in exchange for increase computational cost. 
+One popular approach is to simply use velocity Verlet as described in sec. \ref{sec:velocityverlet} with the forces in eq. \eqref{eq:dpdforces}. This yields ``poor'' stability and presents certain artifacts\cite{Besold2000} due to the mistreatment of the derivative of the noise term incurred by treating eq. \eqref{eq:dpddyn} as an \gls{ODE} instead of a proper \gls{SDE}. However, it is often good enough and while it might require a smaller time step to recover measurables to an acceptable tolerance it is the fastest approach and trivial to implement in a code already providing the velocity Verlet algorithm.
+\todo{Preguntar a Rafa sobre integradores DPD. Por que nadie lo trata como una SDE y evalua v en $t+1/2$?}
+\subsection{Use in UAMMD}
+In \uammd \gls{DPD} is interpreted as a \emph{Potential} that can be added to a \emph{VerletNVE} \emph{Integrator}.
+
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Integrator/VerletNVE.cuh>
+#include<Interactor/PairForces.cuh>
+#include<Interactor/Potential/DPD.cuh>
+using namespace uammd;
+//A function that creates and returns a DPD integrator
+auto createIntegratorDPD(UAMMD sim){   
+  Potential::DPD::Parameters par;
+  par.temperature = sim.par.temperature;
+  //The cut off for the weight function
+  par.cutOff = sim.par.cutOff;
+  //The friction coefficient
+  par.gamma = sim.par.friction; 
+  //The strength of the weight function
+  par.A = sim.par.strength; 
+  par.dt = sim.par.dt;  
+  auto dpd = make_shared<Potential::DPD>(sim.sys, dpd_params);
+  //From the example in PairForces
+  auto interactor = createShortRangedForceWithPotential(sim, dpd);
+  //From the example in the MD section
+  // particle velocities should not be initialized
+  // by VerletNVE (initVelocities=false)
+  auto verlet = createVerletNVE(sim);
+  verlet->addInteractor(interactor);
+  return verlet;
+}
+\end{minted}
 
 \section{Brownian Dynamics}
-
-\todo{Stochastic calculus, Riemman approx to integral of brownian, ito integral.}
-
+\todo{Introduccion al origen de BD y que problemas resuelve que LD no}
+When the viscous forces are much larger than the inertial forces, i.e. $ |\xi\vec{v}| \gg |m\vec{a}|$, the inertial term in eq. \eqref{eq:langevinfull} vanishes.
+\gls{BD} can thus be interpreted as the overdamped, or non-intertial, limit of \gls{LD}. In this regime the decorrelation time of the velocity, defined as $\tau_l = m/\xi$ tends to zero.
+Another way to interpret \gls{BD}, that makes more justice to its unique capability to account for timescale separation, is to understand it as the long time limit of the Langevin equation. This is a powerful property of \gls{BD}, since sampling the probability distributions of the underlying stochastic processes (stemming from the rapid movement of the solvent particles) does not require to sample their detailed microscopic dynamics.
+One way or the other, given that by construction the decorrelation rate of the velocity is instantaneous it is not as natural to talk about the friction $\xi$ coefficient in terms of it. Alternatively, the inverse of the friction, refered to as the mobility $M:=1/\xi$, becomes the natural parameter. The eq. \eqref{eq:langevinfull} in the non inertial regime can thus be written as
+\begin{equation}
+  \label{eq:bdlange}
+  \dot{\vec{r}} = M\vec{F} + \sqrt{2D}\Delta\vec{\widetilde{W}}
+\end{equation}
+Where the expression for the diffusion coefficient, $D := Mk_BT$, comes from the famous Einstein relation\cite{einstein}, related with the fluctuation-dissipation balance as discussed in sec. \ref{sec:langevin}. Here $\vec{F}$ is some force acting on the particle.
+It is important to notice that the noise, $\Delta\vec{\widetilde{W}}$, is no longer just a random force coming from an additive action of many collisions with solvent particles, but the average of an stochastic forcing over a long period of time $\dt \gg \tau_l$.
+In \gls{BD} displacements are proportional to the forces via the mobility, i.e the limit velocity is reached instantenously.
+Coupled with the thermal fluctuations, the velocity is basically transformed into a random variable. This makes expressing eq. \eqref{eq:bdlange} in terms of the velocity awkward. The relevant variable is now the position and it is therefore usual to write eq. \eqref{eq:bdlange} in terms of displacements. Since $\dot{r}:=d\vec{r}/dt$ we can write
+\begin{equation}
+  \label{eq:bdlange2}
+  \frac{d\vec{r}}{dt} = M\vec{F} + \sqrt{2D}\Delta\vec{\widetilde{W}}
+\end{equation}
+There are several strategies that can be employed here to compute the properties of the stochastic term. One way is to integrate the stochastic term over a period of time $\dt\gg\tau_l$ in the Langevin equation. We already made this integral while developing the numerical integration scheme for the Langevin equation in eq. \eqref{eq:langenoisint}, the same can be applied here to arrive at $\left\langle\Delta\vec{\widetilde{W}}(t)\Delta\vec{\widetilde{W}}(t')\right\rangle = \sqrt{dt}\delta(t-t')$.
+A more formal way involves studying the long time correlation of the position (the relevant variable in \gls{BD}) in eq. \eqref{eq:langevinfull}. Lets start by computing the long time correlation of the velocity in the one dimensional case for one particle in the absence of external forces.
+The solution for eq. \eqref{eq:langevinfull} can be written as
+\todo{Write this in shorter way, by neglecting the time derivative in eq langevin}
+\begin{equation}
+  v(t) = v_0\exp(-\gamma t) + \int_0^t\exp(-\gamma(t-t'))\widetilde{W}(t')dt'
+\end{equation}
+We can use the known correlation of the noise to compute the velocity correlation as
+\begin{equation}
+  \begin{aligned}
+&  \left\langle v(t_1)v(t_2)\right\rangle = v_0^2\exp(-\gamma(t_1+t_2)) \\
+  &+\int_0^{t_1}{\int_0^{t_2}{\exp(-\gamma(t_1+t_2+t_1'-t_2'))B\delta(t_1'-t_2')dt_1'dt_2'}}
+\end{aligned}
+\end{equation}
+Where $B :=\frac{2m\kT}{\gamma}$.
+The first term vanishes when $t_1 +t_2 \gg \tau_l$.
+Solving the double integral yields
+\begin{equation}
+  \left\langle v(t_1)v(t_2)\right\rangle = \frac{B}{2\gamma}\left[\exp(-\gamma|t_1-t_2|)-\exp(-\gamma(t_1+t_2))\right]
+\end{equation}
+Where the second exponential vanishes for $t_1 +t_2 \gg \tau_l$, leaving
+\begin{equation}
+  \left\langle v(t_1)v(t_2)\right\rangle = \frac{B}{2\gamma}\exp(-\gamma|t_1-t_2|)
+\end{equation}
+Lets now compute the mean squared displacement of the position
+\begin{equation}
+  \left\langle(r(t) - r_0)^2 \right\rangle = \left\langle\left[ \int_0^{t}v(t_1)dt_1 \right]^2 \right\rangle = \int_0^{t_1}{\int_0^{t_2}{\left\langle v(t_1)v(t_2)\right\rangle}}
+\end{equation}
+Solving the double integral yields
+\begin{equation}
+  \left\langle(r(t) - r_0)^2 \right\rangle =  \frac{B}{\gamma^2}t - \frac{B}{\gamma^3}\left(1-\exp(-\gamma t)\right)
+\end{equation}
+At long times, $t \gg\tau_l$, only the first term survives, finally arriving at the expression for the long time mean square displacement of the displacement
+\begin{equation}
+  \label{eq:langeposmsd}
+  \left\langle(r(t\gg\tau_l) - r_0)^2 \right\rangle = \frac{B}{2\gamma}t = 2Dt
+\end{equation}
+We can now compute the variance of the position in eq. \eqref{eq:bdlange2} given only by fluctuations, which must be equal to eq. \eqref{eq:langeposmsd} for a time $t = \dt \gg \tau_l$.
+\begin{equation}
+  \left\langle r^2 \right\rangle = \left\langle\Delta\vec{\widetilde{W}}^2\right\rangle = 2D\dt
+\end{equation}
+Finally, we arrive at the usual form of the equation of \gls{BD}
+\begin{equation}
+  \frac{d\vec{r}}{dt} = MF + \sqrt{2D}d\vec{\widetilde{W}}
+\end{equation}
+Where $d\vec{\widetilde{W}}$ is a collection of independent Wiener processes, i.e. Gaussian distributed random numbers with zero mean and standard deviation $dt$.
 \subsection{Euler Maruyama}
 
 \subsection{Adams Bashforth}
