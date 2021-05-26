@@ -65,6 +65,9 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newacronym{ODE}{ODE}{Ordinary Differential Equation}
 \newacronym{PDE}{PDE}{Partial Differential Equation}
 \newacronym{SDE}{SDE}{Stochastic Differential Equation}
+\newacronym{EM}{EM}{Euler-Maruyama}
+\newacronym{AB}{AB}{Adams-Bashforth}
+\newacronym{LK}{LK}{Leimkuhler}
 
 \renewcommand{\vec}[1]{\bm{#1}}
 \newcommand{\uammd}{\gls{UAMMD}\xspace}
@@ -73,6 +76,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newcommand{\kT}{k_B T}
 \newcommand{\half}{\frac{1}{2}}
 \newcommand{\red}[1]{{\color{red}#1}}
+\newcommand{\noise}{\widetilde{W}}
 \DeclareMathOperator{\erf}{erf}
 
 
@@ -724,14 +728,88 @@ Still, it is worth to go through the data format of this list since we can make 
 
 Lets now see the different \gpu algorithms implemented in \uammd.
 
-\subsubsection{Cell list}
+\subsubsection{Cell list}\label{sec:celllist}
 
 This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA \cite{gpugems3}.
 The main idea behind the cell list is to perform a spatial binning and asign a hash to each particle according to the bin it is in. If we then sort these hashes we get a list in which all the particles in a given cell are contiguous. By accessing, for a certain particle, the particles in the surrounding cells we can find its neighbours without checking too many false positives ($r_{cut}^3\sqrt{2}$ \todo{check}).
 
-\subsubsection{How to use in UAMMD}
+Inefficient for large size disparities.
+\subsubsection{Use in UAMMD}
+There are two main ways to construct a Cell List in \uammd (and the other neighbour lists behave in a similar way):
+\begin{itemize}
+\item Through the \uammd ecosystem.
+  We can provide a \emph{CellList} with a \emph{ParticleData} and a \emph{ParticleGroup} and let it take care of when rebuilding is needed and deal with details like the indexes of the particle sin the group.
+\item Outside the ecosystem.
+  Some use cases might benefit from a way to access the algorithm as less intrusively as possible. In particular a user might be interested in constructing the cell list while being in control of the list of position required to do so (without \emph{ParticleData}).
+\end{itemize}
+The following example shows how to construct and traverse a cell list using both methods
 
-EXAMPLE code
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Interactor/NeighbourList/CellList.cuh>
+using namespace uammd;
+
+//Construct a CellList using the UAMMD ecosystem
+void constructListWithUAMMD(UAMMD sim){
+  //Create the list object
+  //It is wise to create once and store it
+  CellList cl(sim.pd, sim.pg, sim.sys);
+  //Optionally, a CUDA stream can be used
+  cudaStream_t stream = 0;
+  //Update the list using the current positions in sim.pd
+  cl.update(sim.par.box, sim.par.rcut, stream);
+  //Now the list can be used via the
+  //  various common interfaces
+  //-With a Transverser:
+  //cl.transverseList(some_transverser, stream);
+  //-Requesting a NeighbourContainer
+  auto nc = cl.getNeighbourContainer();
+  //Or by getting the internal structure of the Cell List
+  auto cldata = cl.getCellList();
+}
+//Construct a CellList without UAMMD
+template<class Iterator>
+void constructListWithPositions(Iterator positions, 
+                                int numberParticles,
+                                real3 boxSize, 
+                                int3 numberCells){
+  //Create the list object
+  //It is wise to create once and store it
+  CellListBase cl;
+  //A CUDA stream can be optionally used
+  cudaStream_t stream = 0;
+  //CellListBase requires specific cell 
+  // dimensions for its construction
+  Grid grid(Box(boxSize), numberCells);
+  //Update the list using the positions
+  cl.update(positions, numberParticles, grid, stream);
+  //Now the internal structure of the Cell List can be requested
+  auto cldata = cl.getCellList();
+  //And a NeighbourContainer can be constructed from it
+  auto nc = CellList_ns::NeighbourContainer(cldata);
+}
+\end{minted}
+
+In both cases the internal structure of the cell list can be requested to facilitate any usage outside the proposed interfaces for neighbour traversing. In the case of the cell list, this means having access to an ordered list containing the indices of the particle s in each cell. Remembering that the cell list works by binning the domain, assigning a hash to each position according to the bin they are in and then sorting this hash list.
+As explained in sec. \ref{sec:celllist}, the cell list algorithm mainly stores two arrays containing the indices of the particles for each cell.
+However, there are some technical implementation details that we will discuss now.
+As part of the construction algorithm we need to sort the hashed positions into a, potentially, different order than the input positions. This allows us to easily identify the particles in each cell. However, this has the side fortunate side effect of providing us with a sorted positions array with the interesting property that particles that are close in space happen to be close (in average) in memory. In order to take advantage of this \emph{CellList} constructs the list based on the indices in this auxiliar array and provides it along the rest of the arrays.
+Additionally, if the total number of cells is too large in particle configurations that result in a lot of empty cells, cleaning up the \emph{cellStart} array can become a large part of the total runtime. In order to overcome this, instead of cleaning the array which incurs visiting each element in the array and setting it to a certain value), \emph{CellList} simply invalidates all the list in $O(1)$ time by interpreting any value lower than a certain threshold (called \emph{VALID\_CELL}) as the cell being empty.
+This value starts being $0$ in the first update and is increased by the number of particle in each following update. When \emph{VALID\_CELL} is close to overload the maximum value representable by a C++ unsigned integer \emph{cellStart} is then cleaned and \emph{VALID\_CELL} goes back to $0$.
+Lets describe the full contents of the \emph{struct} returned by the \emph{CellList} method \mintinline{c++}{CellList::getCellListData()}.
+\begin{itemize}
+\item\mintinline{c++}{Grid grid}:
+  The grid data for which the list was constructed, holds the number of cells $(n_x, n_y, n_z)$ and a \emph{Box} object.\todo{improve}
+\item\mintinline{c++}{uint VALID_CELL}:
+  The threshold value in the cell list, any value in \emph{cellStart} lower than this encodes the cell being empty.
+\item\mintinline{c++}{real4 *sortPos}:
+  
+\item\mintinline{c++}{uint * cellStart}:
+  For a given cell with index $(i,j,k)$ The element $icell = i + (j + kn_y)n_x$ Stores the index of the first particle in sortPos 
+\item\mintinline{c++}{int  * cellEnd}:
+\item\mintinline{c++}{int* groupIndex}
+\end{itemize}
+
 
 
 \subsubsection{Verlet list}
@@ -1078,12 +1156,12 @@ Without entering yet into the world of Stochastic calculus, we can overcome this
   \label{eq:langevinriemann}
   \int_t^{t+\dt} m\dot{v}dt' = \int_t^{t+\dt}F_c dt' - \int_t^{t+\dt}\xi\dot{r}dt' + \int_t^{t+\dt}\beta(t')dt'
 \end{equation}
-The key now is to realize that we can compute the last term numerically by using the Riemann sum definition of the integral. Lets refer to the last term as
+The key now is to realize that we can compute the last term numerically by using the Riemann sum definition of the integral in the Itô sense. Lets refer to the last term as
 \begin{equation}
   \label{eq:langenoisint}
   \beta^{n+1} := \int_t^{t+\dt}\beta(t')dt'
 \end{equation}
-We can use the Riemann sum to transform this into a sum with an arbitrarily large number of terms. Since $\beta$ is a Gaussian and $\left\langle\beta(t)\beta(t')\right\rangle \propto \delta_{t,t'}$ all terms are identical, and since the sum of two Gaussians is also a Gaussian we can simply compute $\beta^{n+1}$ as a Gaussian random number with zero mean and standard deviation $\left\langle\beta^n\beta^m\right\rangle = 2\xi\kT\dt\delta_{n,m}$.
+We can use the Riemann sum to transform this into a sum with an arbitrarily large number of terms. This stochastic integral is tricky to compute and more details will be given in sec. \ref{sec:bd}. For the moment we can compute $\beta^{n+1}$ as a Gaussian random number with zero mean and standard deviation $\left\langle\beta^n\beta^m\right\rangle = 2\xi\kT\dt\delta_{n,m}$.
 This realization now opens the door for a family of Verlet like integration schemes, in particular we are going to describe the algorithm developed by Grønbech-Jensen and Farago \cite{Gronbech2013}.
 
 \subsection{Grønbech-Jensen}\label{sec:gronbechjensen}
@@ -1219,84 +1297,166 @@ auto createIntegratorDPD(UAMMD sim){
 }
 \end{minted}
 
-\section{Brownian Dynamics}
+\section{Brownian Dynamics}\label{sec:bd}
 \todo{Introduccion al origen de BD y que problemas resuelve que LD no}
 When the viscous forces are much larger than the inertial forces, i.e. $ |\xi\vec{v}| \gg |m\vec{a}|$, the inertial term in eq. \eqref{eq:langevinfull} vanishes.
 \gls{BD} can thus be interpreted as the overdamped, or non-intertial, limit of \gls{LD}. In this regime the decorrelation time of the velocity, defined as $\tau_l = m/\xi$ tends to zero.
 Another way to interpret \gls{BD}, that makes more justice to its unique capability to account for timescale separation, is to understand it as the long time limit of the Langevin equation. This is a powerful property of \gls{BD}, since sampling the probability distributions of the underlying stochastic processes (stemming from the rapid movement of the solvent particles) does not require to sample their detailed microscopic dynamics.
+Note, however, that we are still disregarding hydrodynamic interactions by assuming the density of particles is low enough for them to be neglegible. This translates into the friction coefficient being independent on the particle positions. We will see in section \ref{sec:bdhi} how to introduce this dependence.
 One way or the other, given that by construction the decorrelation rate of the velocity is instantaneous it is not as natural to talk about the friction $\xi$ coefficient in terms of it. Alternatively, the inverse of the friction, refered to as the mobility $M:=1/\xi$, becomes the natural parameter. The eq. \eqref{eq:langevinfull} in the non inertial regime can thus be written as
 \begin{equation}
   \label{eq:bdlange}
-  \dot{\vec{r}} = M\vec{F} + \sqrt{2D}\Delta\vec{\widetilde{W}}
+  \dot{\vec{r}} = M\vec{F} + \sqrt{2D}\vec{\mathcal{\noise}}
 \end{equation}
-Where the expression for the diffusion coefficient, $D := Mk_BT$, comes from the famous Einstein relation\cite{einstein}, related with the fluctuation-dissipation balance as discussed in sec. \ref{sec:langevin}. Here $\vec{F}$ is some force acting on the particle.
-It is important to notice that the noise, $\Delta\vec{\widetilde{W}}$, is no longer just a random force coming from an additive action of many collisions with solvent particles, but the average of an stochastic forcing over a long period of time $\dt \gg \tau_l$.
-In \gls{BD} displacements are proportional to the forces via the mobility, i.e the limit velocity is reached instantenously.
-Coupled with the thermal fluctuations, the velocity is basically transformed into a random variable. This makes expressing eq. \eqref{eq:bdlange} in terms of the velocity awkward. The relevant variable is now the position and it is therefore usual to write eq. \eqref{eq:bdlange} in terms of displacements. Since $\dot{r}:=d\vec{r}/dt$ we can write
+Where the expression for the diffusion coefficient, $D := Mk_BT$, is the famous Einstein relation\cite{einstein}, comming from the fluctuation-dissipation balance as discussed in sec. \ref{sec:langevin}. Here $\vec{F}$ is some force acting on the particle.
+It is important to notice that the noise, $\vec{\mathcal{\noise}}$, is no longer just a random force coming from an additive action of many collisions with solvent particles, but the average of an stochastic forcing over a long period of time $\dt \gg \tau_l$.
+There are several strategies that can be employed here to compute the properties of the stochastic term.
+%One way is to integrate the stochastic term over a period of time $\dt\gg\tau_l$ in the Langevin equation. We already made this integral while developing the numerical integration scheme for the Langevin equation in eq. \eqref{eq:langenoisint}, the same can be applied here to arrive at $\left\langle\Delta\vec{\noise}(t)\Delta\vec{\noise}(0)\right\rangle = t\delta(t)$.
+We are going to do it by studying the long time correlation of the position (the relevant variable in \gls{BD}) in eq. \eqref{eq:langevinfull}. Lets start by computing the long time correlation of the velocity in the one dimensional case for one particle in the absence of external forces.
+We can neglect the time derivative in eq. \eqref{eq:langevinfull} in the long time limit so that
 \begin{equation}
-  \label{eq:bdlange2}
-  \frac{d\vec{r}}{dt} = M\vec{F} + \sqrt{2D}\Delta\vec{\widetilde{W}}
+  \label{eq:bdvelcorr}
+  \langle v(t) v(t') \rangle \underset{t-t'\gg\tau_l}{\approx} 2D\langle \noise(t)\noise(t')\rangle = 2D\delta(t-t')
 \end{equation}
-There are several strategies that can be employed here to compute the properties of the stochastic term. One way is to integrate the stochastic term over a period of time $\dt\gg\tau_l$ in the Langevin equation. We already made this integral while developing the numerical integration scheme for the Langevin equation in eq. \eqref{eq:langenoisint}, the same can be applied here to arrive at $\left\langle\Delta\vec{\widetilde{W}}(t)\Delta\vec{\widetilde{W}}(t')\right\rangle = \sqrt{dt}\delta(t-t')$.
-A more formal way involves studying the long time correlation of the position (the relevant variable in \gls{BD}) in eq. \eqref{eq:langevinfull}. Lets start by computing the long time correlation of the velocity in the one dimensional case for one particle in the absence of external forces.
-The solution for eq. \eqref{eq:langevinfull} can be written as
-\todo{Write this in shorter way, by neglecting the time derivative in eq langevin}
-\begin{equation}
-  v(t) = v_0\exp(-\gamma t) + \int_0^t\exp(-\gamma(t-t'))\widetilde{W}(t')dt'
-\end{equation}
-We can use the known correlation of the noise to compute the velocity correlation as
-\begin{equation}
-  \begin{aligned}
-&  \left\langle v(t_1)v(t_2)\right\rangle = v_0^2\exp(-\gamma(t_1+t_2)) \\
-  &+\int_0^{t_1}{\int_0^{t_2}{\exp(-\gamma(t_1+t_2+t_1'-t_2'))B\delta(t_1'-t_2')dt_1'dt_2'}}
-\end{aligned}
-\end{equation}
-Where $B :=\frac{2m\kT}{\gamma}$.
-The first term vanishes when $t_1 +t_2 \gg \tau_l$.
-Solving the double integral yields
-\begin{equation}
-  \left\langle v(t_1)v(t_2)\right\rangle = \frac{B}{2\gamma}\left[\exp(-\gamma|t_1-t_2|)-\exp(-\gamma(t_1+t_2))\right]
-\end{equation}
-Where the second exponential vanishes for $t_1 +t_2 \gg \tau_l$, leaving
-\begin{equation}
-  \left\langle v(t_1)v(t_2)\right\rangle = \frac{B}{2\gamma}\exp(-\gamma|t_1-t_2|)
-\end{equation}
+Where we have used the already known correlation for the noise in eq. \eqref{eq:noiseautocorr}.
+%The solution for eq. \eqref{eq:langevinfull} can be written as
+%\begin{equation}
+%  v(t) = v_0\exp(-\gamma t) + \int_0^t\exp(-\gamma(t-t'))\noise(t')dt'
+%\end{equation}
+%We can use the known correlation of the noise to compute the velocity correlation as
+%\begin{equation}
+%  \begin{aligned}
+%&  \left\langle v(t_1)v(t_2)\right\rangle = v_0^2\exp(-\gamma(t_1+t_2)) \\
+%  &+\int_0^{t_1}{\int_0^{t_2}{\exp(-\gamma(t_1+t_2+t_1'-t_2'))B\delta(t_1'-t_2')dt_1'dt_2'}}
+%\end{aligned}
+%\end{equation}
+%Where $B :=\frac{2m\kT}{\gamma}$.
+%The first term vanishes when $t_1 +t_2 \gg \tau_l$.
+%Solving the double integral yields
+%\begin{equation}
+%  \left\langle v(t_1)v(t_2)\right\rangle = \frac{B}{2\gamma}\left[\exp(-\gamma|t_1-t_2|)-\exp(-\gamma(t_1+t_2))\right]
+%\end{equation}
+%Where the second exponential vanishes for $t_1 +t_2 \gg \tau_l$, leaving
+%\begin{equation}
+%  \left\langle v(t_1)v(t_2)\right\rangle = \frac{B}{2\gamma}\exp(-\gamma|t_1-t_2|)
+%\end{equation}
 Lets now compute the mean squared displacement of the position
 \begin{equation}
   \left\langle(r(t) - r_0)^2 \right\rangle = \left\langle\left[ \int_0^{t}v(t_1)dt_1 \right]^2 \right\rangle = \int_0^{t_1}{\int_0^{t_2}{\left\langle v(t_1)v(t_2)\right\rangle}}
 \end{equation}
-Solving the double integral yields
+Replacing eq. \eqref{eq:bdvelcorr} and solving the double integral yields
 \begin{equation}
-  \left\langle(r(t) - r_0)^2 \right\rangle =  \frac{B}{\gamma^2}t - \frac{B}{\gamma^3}\left(1-\exp(-\gamma t)\right)
+  \left\langle(r(t) - r_0)^2 \right\rangle \underset{t\gg\tau_l}{\approx}  2Dt % - \frac{B}{\gamma^3}\left(1-\exp(-\gamma t)\right)
 \end{equation}
-At long times, $t \gg\tau_l$, only the first term survives, finally arriving at the expression for the long time mean square displacement of the displacement
-\begin{equation}
-  \label{eq:langeposmsd}
-  \left\langle(r(t\gg\tau_l) - r_0)^2 \right\rangle = \frac{B}{2\gamma}t = 2Dt
-\end{equation}
-We can now compute the variance of the position in eq. \eqref{eq:bdlange2} given only by fluctuations, which must be equal to eq. \eqref{eq:langeposmsd} for a time $t = \dt \gg \tau_l$.
-\begin{equation}
-  \left\langle r^2 \right\rangle = \left\langle\Delta\vec{\widetilde{W}}^2\right\rangle = 2D\dt
-\end{equation}
-Finally, we arrive at the usual form of the equation of \gls{BD}
-\begin{equation}
-  \frac{d\vec{r}}{dt} = MF + \sqrt{2D}d\vec{\widetilde{W}}
-\end{equation}
-Where $d\vec{\widetilde{W}}$ is a collection of independent Wiener processes, i.e. Gaussian distributed random numbers with zero mean and standard deviation $dt$.
-\subsection{Euler Maruyama}
+Which is the mean square displacement of a Langevin particle at long times.
+%At long times, $t \gg\tau_l$, only the first term survives, finally arriving at the expression for the long time mean square displacement of the displacement
+%\begin{equation}
+%  \label{eq:langeposmsd}
+%  \left\langle(r(t\gg\tau_l) - r_0)^2 \right\rangle = \frac{B}{2\gamma}t = 2Dt
+%\end{equation}
+We can now compute the same for eq. \eqref{eq:bdlange} with only fluctuations, which must be equal to eq. \eqref{eq:bdvelcorr} for a time $t \gg \tau_l$.
 
-\subsection{Adams Bashforth}
+\begin{equation}
+  \label{eq:bdmsd}
+  \left\langle (r(t)-r_0)^2 \right\rangle = 2D\int_0^{t}{\int_0^{t}{\left\langle\mathcal{\noise}(t_1)\mathcal{\noise}(t_2)\right\rangle dt_1dt_2}} = 2Dt
+\end{equation}
+This allows us to devise the properties of the noise in eq. \eqref{eq:bdlange}, $\mathcal{\noise}$ is a Gaussian random number with zero mean and standard deviation $\langle\mathcal{\noise}(t)\mathcal{\noise}(t')\rangle = \delta(t-t')$.
+In \gls{BD} displacements are proportional to the forces via the mobility, i.e terminal velocity is reached instantenously.
+Coupled with the thermal fluctuations, the velocity is basically transformed into a random variable. This makes expressing eq. \eqref{eq:bdlange} in terms of the velocity awkward. The relevant variable is now the position and it is therefore usual to write eq. \eqref{eq:bdlange} in terms of displacements via the so-called Itô formula
+\begin{equation}
+  \label{eq:bd}
+  d\vec{r} = M\vec{F}dt + \sqrt{2D}d\vec{\noise}
+\end{equation}
+Where the stochastic term $d\vec{\noise}$ is usually refered to as the Brownian motion or a Wiener process.
+A solution to eq. \eqref{eq:bd} is one that satisfies
+\begin{equation}
+  \label{eq:bddis}
+  \vec{r}(t) = \vec{r}_0 + \int_0^tM\vec{F}dt + \int_0^t\sqrt{2D}d\vec{\noise}
+\end{equation}
+It is important to understand here that the integral of the Brownian motion is interpreted in the Itô sense.
+In the Itô interpretation, this integral is defined as the limit in probability of a Riemann sum, where the Brownian integral of a certain function $f$ between a certain time interval $[0, t]$ is
+\begin{equation}
+  \label{eq:itonoise}
+  \int_0^tf(t')d\noise(t') = \lim_{n\rightarrow\infty}\sum_{i=0}^nf(t^{i-1}) (\noise(t^i) - \noise({t^{i-1}}))
+\end{equation}
+Where $t_i\in [0, t]$.
+It can be shown that this limit converges in probability\cite{itoconvergence}.
+\subsection{The diffusion of a sphere}
+\todo{Explain the mobility and diffusion of a sphere}
+\begin{equation}
+  D = \frac{\kT}{6\pi\eta R_h}
+\end{equation}
+\subsection{Numerical integration}
+In order to numerically integrate eq. \eqref{eq:bd} we must discretize the Brownian motion in \eqref{eq:itonoise}. We can do so by integrating the Brownian during a small time interval,$[t_n, t_{n+1}]$, where $t_{n+1}-t_{n} = \dt$. Using the discrete time notation we can write
+\begin{equation}
+  \label{eq:itonoise2}
+  \int_{t_n}^{t_{n+1}}f(t')d\noise(t') \approx f^n \mathcal{\noise}^n = f^n \left(\noise^{n+1} - \noise^n\right)
+\end{equation}
+Where $\mathcal{\noise}^n$ are independent Gaussian random variables with zero mean and standard deviation $\dt$ in order to satisfy eq. \eqref{eq:bdmsd}. This approximation is better as $\dt \rightarrow 0$.
+With this discretization of the noise we can devise several strategies to numerically integrate eq. \eqref{eq:bd}. The simplest one is the so-called \gls{EM} scheme\cite{Desmond2001}.
 
-\subsection{Midpoint}
+%\subsection{Euler Maruyama}
+Using eq. \eqref{eq:bddis} and \eqref{eq:itonoise2} we can write
+\begin{equation}
+  \vec{r}^{n+1} = \vec{r}^n + M\vec{F}^n\dt + \sqrt{2D\dt}\vec{\mathcal{\noise}}^n
+\end{equation}
+It can be proved that this algorithm is weakly convergent with order $1$ and strongly convergent with order $1/2$\cite{Kloeden2011}. Thus the \gls{EM} scheme is not particularly accurate, even in the absence of fluctuations.
+There are, however, other solvers that yield better accuracy at the same, or similar, computational cost. Lets see some of them
+%\subsection{Adams Bashforth}
+The \gls{AB} scheme uses the forces from the previous step to improve the prediction for the next. This incurs the overhead of storing the previous forces but its computational cost is marginally larger than \gls{EM}. This algorithm mixes a first order method for the noise with a second order method for the force. It yields better accuracy than EulerMaruyama, although this comes from experience since as of the time of writing no formal work has been done on its weak accuracy. An empirical demonstration of its better accuracy can be found in\cite{Balboa2017}.
+\begin{equation}
+  \vec{r}^{n+1} = \vec{r}^n + M\left[\frac{3}{2}\vec{F}^n - \half \vec{F}^{n-1}\right]\dt + \sqrt{2D\dt}\vec{\mathcal{\noise}}^n
+\end{equation}
 
-\subsection{Leimkuhler}
+%\subsection{Leimkuhler}
+Another integrator recently developed by Leimkuhler in\cite{Leimkuhler2015}
+ While also a first order method it seems to yield better accuracy than \gls{AB} and \gls{EM}. I am not aware of any formal studies of its accuracy.
+ The update rule is very similar to \gls{EM} but uses noise from two steps (which are generated each time instead of stored)
+ \begin{equation}
+  \vec{r}^{n+1} = \vec{r}^n + M\vec{F}^n\dt + \sqrt{\frac{D\dt}{2}}\left[\vec{\mathcal{\noise}}^n + \vec{\mathcal{\noise}}^{n-1}\right]
+\end{equation}
+Note that, as stated in\cite{Leimkuhler2015}, while this solver seems to be better than the rest at sampling equilibrium configurations, it does not correctly solves the dynamics of the problem.
+
+%\subsection{Midpoint}
+Finally, a more sophisticated integrator which we are going to refer to as Mid Point is described in\cite{Delong2013}. 
+It is a two step explicit midpoint predictor-corrector scheme. It has a fourth order convergence scaling at the expense of having twice the cost of a single step method, as it requires to evaluate forces twice per update. Noise has to be remembered as well but in practice it is just regenerated instead of stored.
+Mid Point updates the simulation with the following rule
+\begin{equation}
+  \begin{aligned}
+    &\vec{r}^{n+1/2} = \vec{r}^n + \half M\vec{F}^n\dt + \sqrt{D\dt}\vec{\mathcal{\noise}}^{n_1}\\
+    &\vec{r}^{n+1} = \vec{r}^n + M\vec{F}^{n+1/2}\dt + \sqrt{D\dt}\left[\vec{\mathcal{\noise}}^{n_1}  + \vec{\mathcal{\noise}}^{n_2}\right]
+  \end{aligned}
+\end{equation}
+\todo{Compare all algorithms by showing a g(r) with different time steps}
+\subsection{Use in UAMMD}
+
+\begin{minted}{c++}
+#include<uammd.cuh>
+#include<Integrator/BrownianDynamics.cuh>
+using namespace uammd;
+//A function that creates and returns a BD integrator
+auto createIntegratorBD(UAMMD sim){   
+  //Choose the method
+  using BD = BD::EulerMaruyama;
+  //using BD = BD::MidPoint;
+  //using BD = BD::AdamsBashforth;
+  //using BD = BD::Leimkuhler;
+  BD::Parameters par;
+  par.temperature=sim.par.temperature;
+  par.viscosity=sim.par.viscosity;
+  par.hydrodynamicRadius=sim.par.hydrodynamicRadius;
+  par.dt=sim.par.dt;
+  return bd;
+}
+\end{minted}
+
 
 
 \section{Smoothed Particle Hydrodynamics}
-
+\todo{Describe SPH}
 
 \section{Brownian Dynamics with Hydrodynamic Interactions (BDHI)}
-
+Generalization of BD when M is different for each particle
 Hydrodynamics with Greens formalism
 
 Separation between open and periodic boundaries
