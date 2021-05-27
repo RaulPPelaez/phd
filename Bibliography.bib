@@ -447,3 +447,189 @@ eprint = {
   doi = {10.1103/PhysRevE.87.033302},
   url = {https://link.aps.org/doi/10.1103/PhysRevE.87.033302}
 }
+
+@article{Anderson2008,
+title = {General purpose molecular dynamics simulations fully implemented on graphics processing units},
+journal = {Journal of Computational Physics},
+volume = {227},
+number = {10},
+pages = {5342-5359},
+year = {2008},
+issn = {0021-9991},
+doi = {https://doi.org/10.1016/j.jcp.2008.01.047},
+url = {https://www.sciencedirect.com/science/article/pii/S0021999108000818},
+author = {Joshua A. Anderson and Chris D. Lorenz and A. Travesset},
+keywords = {Graphics processing unit, GPU, NVIDIA, CUDA, Molecular dynamics, Polymer systems},
+abstract = {Graphics processing units (GPUs), originally developed for rendering real-time effects in computer games, now provide unprecedented computational power for scientific applications. In this paper, we develop a general purpose molecular dynamics code that runs entirely on a single GPU. It is shown that our GPU implementation provides a performance equivalent to that of fast 30 processor core distributed memory cluster. Our results show that GPUs already provide an inexpensive alternative to such clusters and discuss implications for the future.}
+}
+@article{Dominguez2011,
+author = {Domínguez, J. M. and Crespo, A. J. C. and Gómez-Gesteira, M. and Marongiu, J. C.},
+title = {Neighbour lists in smoothed particle hydrodynamics},
+journal = {International Journal for Numerical Methods in Fluids},
+volume = {67},
+number = {12},
+pages = {2026-2042},
+keywords = {SPH, meshless methods, neighbour list, Verlet list},
+doi = {https://doi.org/10.1002/fld.2481},
+url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/fld.2481},
+eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/fld.2481},
+abstract = {Abstract Since smoothed particle hydrodynamics (SPH) is based on interactions with the closer neighbouring particles, implementing the neighbour list is a key point in terms of the high performance of the code. The efficiency of the method depends directly on how to build and use the neighbour list. In the present work, the available searching algorithms for SPH codes are analyzed. Different gridding algorithms are evaluated, the gains in efficiency obtained from reordering of particles is investigated and the cell-linked list and Verlet list methods are studied to create the neighbour list. Furthermore, an innovative searching procedure based on a dynamic updating of the Verlet list is proposed. The efficiency of the algorithms is analyzed in terms of computational time and memory requirements. Copyright © 2010 John Wiley \& Sons, Ltd.},
+year = {2011}
+}
+@article{Howard2016,
+title = {Efficient neighbor list calculation for molecular simulation of colloidal systems using graphics processing units},
+journal = {Computer Physics Communications},
+volume = {203},
+pages = {45-52},
+year = {2016},
+issn = {0010-4655},
+doi = {https://doi.org/10.1016/j.cpc.2016.02.003},
+url = {https://www.sciencedirect.com/science/article/pii/S0010465516300182},
+author = {Michael P. Howard and Joshua A. Anderson and Arash Nikoubashman and Sharon C. Glotzer and Athanassios Z. Panagiotopoulos},
+keywords = {Molecular simulation, Colloid, Size disparity, Non-uniform, Neighbor list, Bounding volume hierarchy, GPU},
+abstract = {We present an algorithm based on linear bounding volume hierarchies (LBVHs) for computing neighbor (Verlet) lists using graphics processing units (GPUs) for colloidal systems characterized by large size disparities. We compare this to a GPU implementation of the current state-of-the-art CPU algorithm based on stenciled cell lists. We report benchmarks for both neighbor list algorithms in a Lennard-Jones binary mixture with synthetic interaction range disparity and a realistic colloid solution. LBVHs outperformed the stenciled cell lists for systems with moderate or large size disparity and dilute or semidilute fractions of large particles, conditions typical of colloidal systems.}
+}
+@article{Brown2011,
+title = {Implementing molecular dynamics on hybrid high performance computers – short range forces},
+journal = {Computer Physics Communications},
+volume = {182},
+number = {4},
+pages = {898-911},
+year = {2011},
+issn = {0010-4655},
+doi = {https://doi.org/10.1016/j.cpc.2010.12.021},
+url = {https://www.sciencedirect.com/science/article/pii/S0010465510005102},
+author = {W. Michael Brown and Peng Wang and Steven J. Plimpton and Arnold N. Tharrington},
+keywords = {Molecular dynamics, GPU, Hybrid parallel computing},
+abstract = {The use of accelerators such as graphics processing units (GPUs) has become popular in scientific computing applications due to their low cost, impressive floating-point capabilities, high memory bandwidth, and low electrical power requirements. Hybrid high-performance computers, machines with more than one type of floating-point processor, are now becoming more prevalent due to these advantages. In this work, we discuss several important issues in porting a large molecular dynamics code for use on parallel hybrid machines – (1) choosing a hybrid parallel decomposition that works on central processing units (CPUs) with distributed memory and accelerator cores with shared memory, (2) minimizing the amount of code that must be ported for efficient acceleration, (3) utilizing the available processing power from both multi-core CPUs and accelerators, and (4) choosing a programming model for acceleration. We present our solution to each of these issues for short-range force calculation in the molecular dynamics package LAMMPS, however, the methods can be applied in many molecular dynamics codes. Specifically, we describe algorithms for efficient short range force calculation on hybrid high-performance machines. We describe an approach for dynamic load balancing of work between CPU and accelerator cores. We describe the Geryon library that allows a single code to compile with both CUDA and OpenCL for use on a variety of accelerators. Finally, we present results on a parallel test cluster containing 32 Fermi GPUs and 180 CPU cores.}
+}
+@article{Tang2014,
+title = {Accelerating dissipative particle dynamics simulations on GPUs: Algorithms, numerics and applications},
+journal = {Computer Physics Communications},
+volume = {185},
+number = {11},
+pages = {2809-2822},
+year = {2014},
+issn = {0010-4655},
+doi = {https://doi.org/10.1016/j.cpc.2014.06.015},
+url = {https://www.sciencedirect.com/science/article/pii/S0010465514002203},
+author = {Yu-Hang Tang and George Em Karniadakis},
+keywords = {DPD, CUDA, LAMMPS, Spontaneous vesicle formation},
+abstract = {We present a scalable dissipative particle dynamics simulation code, fully implemented on the Graphics Processing Units (GPUs) using a hybrid CUDA/MPI programming model, which achieves 10–30 times speedup on a single GPU over 16 CPU cores and almost linear weak scaling across a thousand nodes. A unified framework is developed within which the efficient generation of the neighbor list and maintaining particle data locality are addressed. Our algorithm generates strictly ordered neighbor lists in parallel, while the construction is deterministic and makes no use of atomic operations or sorting. Such neighbor list leads to optimal data loading efficiency when combined with a two-level particle reordering scheme. A faster in situ generation scheme for Gaussian random numbers is proposed using precomputed binary signatures. We designed custom transcendental functions that are fast and accurate for evaluating the pairwise interaction. The correctness and accuracy of the code is verified through a set of test cases simulating Poiseuille flow and spontaneous vesicle formation. Computer benchmarks demonstrate the speedup of our implementation over the CPU implementation as well as strong and weak scalability. A large-scale simulation of spontaneous vesicle formation consisting of 128 million particles was conducted to further illustrate the practicality of our code in real-world applications.
+Program summary
+Program title: GPU-accelerated DPD Package for LAMMPS Catalogue identifier: AETN_v1_0 Program summary URL:http://cpc.cs.qub.ac.uk/summaries/AETN_v1_0.html Program obtainable from: CPC Program Library, Queen’s University, Belfast, N. Ireland Licensing provisions: GNU General Public License, version 3 No. of lines in distributed program, including test data, etc.: 1602716 No. of bytes in distributed program, including test data, etc.: 26489166 Distribution format: tar.gz Programming language: C/C++, CUDA C/C++, MPI. Computer: Any computers having nVidia GPGPUs with compute capability 3.0. Operating system: Linux. Has the code been vectorized or parallelized?: Yes. Number of processors used: 1024 16-core CPUs and 1024 GPUs RAM: 500 Mbytes host memory, 2 Gbytes device memory Supplementary material: The data for the examples discussed in the manuscript is available for download. Classification: 6.5, 12, 16.1, 16.11. Nature of problem: Particle-based simulation of mesoscale systems involving nano/micro-fluids, polymers and spontaneous self-assembly process. Solution method: The system is approximated by a number of coarse-grained particles interacting through pairwise potentials and bonded potentials. Classical mechanics is assumed following Newton’s laws. The evolution of the system is integrated using a time-stepping scheme such as Velocity-Verlet. Restrictions: The code runs only on CUDA GPGPUs with compute capability 3.0. Unusual features: Fully implemented on GPGPUs with significant speedup. Running time: 78 h using 1024 GPGPUs for simulating a 128-million-particle system for 18.4 million time steps.}
+}
+
+@book{Nguyen2008,
+  title={GPU Gems 3},
+  author={Nguyen, H. and NVIDIA Corporation},
+  number={v. 3},
+  isbn={9780321515261},
+  lccn={2007023985},
+  series={Lab Companion Series},
+  url={https://developer.nvidia.com/gpugems/gpugems3},
+  year={2008},
+  publisher={Addison-Wesley}
+}
+
+
+@article{Peano1890,
+author={Peano, G.},
+year={1890},
+title={Sur une courbe, qui remplit toute une aire plane},
+journal={Mathematische Annalen},
+pages={157-160},
+volume={36},
+issn={1432-1807},
+url={https://doi.org/10.1007/BF01199438},
+doi={10.1007/BF01199438}
+}
+
+@book{Hilbert1935,
+author={David Hilbert},
+year={1935},
+title={Dritter Band: Analysis. Grundlagen der Mathematik. Physik Verschiedenes},
+journal={Mathematische Annalen},
+pages={157-160},
+volume={36},
+isbn={9783662384527},
+publisher={Springer, Berlin, Heidelberg},
+url={https://doi.org/10.1007/978-3-662-38452-7_1},
+doi={10.1007/978-3-662-38452-7_1}
+}
+
+@article{Morton1966,
+author={Guy Macdonald Morton},
+year={1966},
+title={A computer Oriented Geodetic Data Base; and a New Technique in File Sequencing},
+publisher={IBM},
+url={https://dominoweb.draco.res.ibm.com/0dabf9473b9c86d48525779800566a39.html}
+}
+
+@Misc{cub,
+author={Duane Merrill and NVIDIA Corporation},
+year={2011},
+title={CUB: Cooperative primitives for CUDA C++.}
+}
+
+@article{Ha2009,
+author = {Ha, Linh and Krüger, Jens and Silva, Claudio},
+year = {2009},
+month = {12},
+pages = {2368-2378},
+title = {Fast 4-way parallel radix sorting on GPUs},
+volume = {28},
+journal = {Comput. Graph. Forum},
+doi = {10.1111/j.1467-8659.2009.01542.x}
+}
+@article{Singh2018,
+author = {Singh, Dhirendra and Joshi, Ishan and Choudhary, Jaytrilok},
+year = {2018},
+month = {12},
+pages = {},
+title = {Survey of GPU Based Sorting Algorithms},
+volume = {46},
+journal = {International Journal of Parallel Programming},
+doi = {10.1007/s10766-017-0502-5}
+}
+@article{Merrill2011,
+author = {Merrill, Duane and Grimshaw, Andrew},
+year = {2011},
+month = {06},
+pages = {245-272},
+title = {High Performance and Scalable Radix Sorting: a Case Study of Implementing Dynamic Parallelism for GPU Computing.},
+volume = {21},
+journal = {Parallel Processing Letters},
+doi = {10.1142/S0129626411000187}
+}
+@article{Ermak1978,
+author = {Ermak,Donald L.  and McCammon,J. A. },
+title = {Brownian dynamics with hydrodynamic interactions},
+journal = {The Journal of Chemical Physics},
+volume = {69},
+number = {4},
+pages = {1352-1360},
+year = {1978},
+doi = {10.1063/1.436761},
+
+URL = { 
+        https://doi.org/10.1063/1.436761
+    
+},
+eprint = { 
+        https://doi.org/10.1063/1.436761
+    
+}
+
+}
+
+
+
+@misc{Lisicki2013,
+      title={Four approaches to hydrodynamic Green's functions -- the Oseen tensors}, 
+      author={Maciej Lisicki},
+      year={2013},
+      eprint={1312.6231},
+      archivePrefix={arXiv},
+      primaryClass={physics.flu-dyn}
+}

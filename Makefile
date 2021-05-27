@@ -14,6 +14,8 @@ verbose: clean
 	makeglossaries main
 	pdflatex $(OPTIONS) main
 
+rebuild:
+	@texfot	--ignore="This is" pdflatex -interaction=batchmode $(OPTIONS) main
 
 clean:
 	rm -rf $(TOCLEAN)

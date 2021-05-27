@@ -10,7 +10,10 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \usepackage{todonotes}
 \usepackage{xspace}
 
+\def\ucpp{uammd_cpp_lexer.py:UAMMDCppLexer -x}
+
 \usepackage[newfloat=true]{minted}
+
 \input{classicthesis-config}
 \usepackage{amsmath}
 \usepackage{algorithm}
@@ -68,6 +71,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newacronym{EM}{EM}{Euler-Maruyama}
 \newacronym{AB}{AB}{Adams-Bashforth}
 \newacronym{LK}{LK}{Leimkuhler}
+\newacronym{PBC}{PBC}{Periodic Boundary Conditions}
 
 \renewcommand{\vec}[1]{\bm{#1}}
 \newcommand{\uammd}{\gls{UAMMD}\xspace}
@@ -79,6 +83,10 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newcommand{\noise}{\widetilde{W}}
 \DeclareMathOperator{\erf}{erf}
 
+\newcommand{\ppos}{q}
+\newcommand{\pvel}{u}
+\newcommand{\fpos}{r}
+\newcommand{\fvel}{v}
 
 \addbibresource{Bibliography.bib}
 
@@ -249,7 +257,7 @@ Every time an algorithm available in \uammd is presented it will be acompanied b
 Often this will consist of a function creating and returning an instance of the related module in the following form
 
 
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 //Additional includes when necessary
 using namespace uammd;
@@ -263,7 +271,7 @@ These examples are meant to serve both as a tutorial and an easily copy-pastable
 The structure \emph{UAMMD} in these examples is not part of \uammd and is meant to group the core components of a typical \uammd code. It can be defined as follows
 
 
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 //Additional includes when necessary
 using namespace uammd;
@@ -334,6 +342,7 @@ In this chapter we will see some of the strategies that can be employed and how 
 
 \chapter{Particle interactions}
 
+
 Let us see how \uammd deals with interactions by introducing the \emph{Interactor} module.
 
 \section{The Interactor interface} \label{sec:interactor}
@@ -343,7 +352,7 @@ An Interactor can be issued to compute, for each particle, the forces, energies 
 To do so it can access the current state of the particles (like positions, velocities, etc).
 A minimal example of an Interactor
 
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Interactor/Interactor.cuh>
 using namespace uammd;
@@ -402,7 +411,7 @@ The same Transverser instance will be used to process every particle in an arbit
 The \emph{Transverser} interface requires a given class/struct to provide the following public device (unless prepare that must be a host function) member functions:
 
 \begin{itemize}
-\item \mintinline[breaklines]{c++}{Compute compute(real4 position_i, real4 position_j,Info info_i, Info info_j);}
+\item \mintinline[breaklines]{\ucpp}{Compute compute(real4 position_i, real4 position_j,Info info_i, Info info_j);}
 
   
   For a pair of particles
@@ -412,20 +421,20 @@ The \emph{Transverser} interface requires a given class/struct to provide the fo
   returning type, \emph{Compute}, must be a POD type (just an aggregate of
   plain types), for example a real when computing energy.
 
-\item \mintinline{c++}{void set(int particle_index, Compute &total);}
+\item \mintinline{\ucpp}{void set(int particle_index, Compute &total);}
 
   
    After calling compute for all neighbours this function will be called with the contents of "total" after the last call to "accumulate".
    Can be used to, for example, write the final result to main memory.
 
- \item \mintinline{c++}{Compute zero();}
+ \item \mintinline{\ucpp}{Compute zero();}
 
    
    This function returns the initial value of the computation, for example {0,0,0} when computing the force. 
    The returning type, \emph{Compute}, must be a POD type (just an aggregate of plain types), for example a real when computing energy. Furthemore it must be the same type returned by the "compute" member.
    This function is optional and defaults to zero initialization (it will return Compute() which works even for POD types).
     
- \item \mintinline{c++}{Info getInfo(int particle_index);}
+ \item \mintinline{\ucpp}{Info getInfo(int particle_index);}
 
    
    Will be called for each particle to be processed and returns the per-particle data necessary for the interaction with another particle (except the position which is always available). For example the mass in a gravitational interaction or the particle index for some custom interaction.
@@ -433,7 +442,7 @@ The \emph{Transverser} interface requires a given class/struct to provide the fo
    This function is optional and if not present it is assumed the only per-particle data required is the position. 
    In this case the function "compute" must only have the first two arguments.
 
- \item \mintinline{c++}{void accumulate(Compute &total, const Compute &current);}
+ \item \mintinline{\ucpp}{void accumulate(Compute &total, const Compute &current);}
 
    
   This function will be called after "compute" for each neighbour with its result and the accumulated result.
@@ -441,7 +450,7 @@ The \emph{Transverser} interface requires a given class/struct to provide the fo
   The first time it is called "total" will be have the value as given by the "zero" function.
   This function is optional and defaults to summation: total = total + current. Notice that this will fail for non trivial types.
      
-\item \mintinline{c++}{void prepare(std::shared_ptr<ParticleData> pd);}
+\item \mintinline{\ucpp}{void prepare(std::shared_ptr<ParticleData> pd);}
 
   
   This function will be called one time in the CPU side just before processing the particles.
@@ -451,7 +460,7 @@ The \emph{Transverser} interface requires a given class/struct to provide the fo
 Lets see a trivial example.
 This \emph{Transverser} can be used with a neighbour list to count the number of neighbours of each particle:
 \begin{listing}
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 struct NeighbourCounter{
   int *nneigh;
   real rc;
@@ -509,6 +518,44 @@ We are now ready to start exploring the different types of particle interactions
 
 Let us go through each of them and describe the different algorithms used to solve each case and how \uammd exposes them.
 
+
+\section{Periodic Boundary Conditions}
+In order to conserve the total volume of the system we use the \gls{MIC}, where a particle that leaves the simulation domain though one side appears on the other.
+Numerically we can express this algorithm as follows:
+
+\begin{algorithm}
+  \caption{Minimum Image Convention, takes a position or distance and returns it inside the simulation domain}
+  \begin{algorithmic}[1]
+    \Function{MIC}{r, L}   
+    \State \Return r - floor(r/L + 0.5)*L
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+We can also use this algorithm to get the minimum distance between two points, so particles near opposite walls interact.
+\subsection{Use in UAMMD}
+In \uammd, \gls{MIC} can be accesed via the \emph{Box} class.
+\begin{listing}[H]
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+using namespace uammd;
+int main(){
+  real lx, ly, lz;
+  lx = ly = lz = 32.0;
+  Box box({lx, ly, lz});
+  real3 position_outside_box = {0.5*lx+1, 0, 0};
+  real3 position_in_box = box.apply_pbc(position_outside_box);
+  //position_in_box holds {-lx*0.5+1,0,0}
+  return 0; 
+}
+\end{minted}
+\caption{Using the Box class.}
+\label{code:box}
+\end{listing}
+In \uammd the \emph{Box} object handles the domain details, including \gls{PBC}.
+\todo{code example}
+
+
+
 \section{Long range interactions}
 Say we are set to simulate a galaxy, so far away from others that it can be safely assumed their action is negligible. Say we want to simulate the dynamics of each of the $N$ stars in this galaxy. Gravity is the dominating interaction between each star, sadly it decays slowly enough to be considered an infinitely ranged one. The gravity potential can be written as follows
 \begin{equation}
@@ -564,10 +611,10 @@ The algorithm is summarized in algorithm \ref{alg:nbody}-
 
 Note that the computation as described here is not restricted to computing forces or energies between particles, it might be used for widely different computations that can be encoded as an nbody operation.
 \uammd acknowledges this generality via the \emph{Transverser} interface (see sec. \ref{sec:transverser}), that can be used to specialize these algorithms. 
-\subsection{How to use in UAMMD}
+\subsection{Use in UAMMD}
 There are three ways to access this algorithm depending on the final usage.
 The first is to use it to process a \emph{Transverser} acting on a group of particles:
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Interactor/NBody.cuh>
 using namespace uammd;
@@ -581,7 +628,7 @@ void tranverseWithNBody(UAMMD sim, Transverser tr){
 }
 \end{minted}
 The next one is to use it as an \emph{Interactor} to compute forces, energies and/or virials. This is done by providing the \emph{PairForces} module with a \emph{Potential} with an infinite cut off distance.
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Interactor/PairForces.cuh>
 using namespace uammd;
@@ -593,7 +640,7 @@ auto createLongRangedForcesWithPotential(UAMMD sim, Potential tr){
 \end{minted}
 We will come back to \emph{PairForces} in the following chapters, as it can also work with short ranged potentials.
 Finally, we can access \emph{NBody} outside the \uammd ecosystem (without \emph{ParticleData}, \emph{System}, etc).
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Interactor/NBodyBase.cuh>
 using namespace uammd;
@@ -683,7 +730,7 @@ It loosely behaves as a C++ standard container, providing \emph{begin} and \emph
 By using this interface we can write code that will work for any neighbour list algorithm.
 
 \begin{listing}
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 //The actual type name of the container will be different for each
 // type of list
 template<class NeighbourContainer>
@@ -730,8 +777,81 @@ Lets now see the different \gpu algorithms implemented in \uammd.
 
 \subsubsection{Cell list}\label{sec:celllist}
 
-This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA \cite{gpugems3}.
-The main idea behind the cell list is to perform a spatial binning and asign a hash to each particle according to the bin it is in. If we then sort these hashes we get a list in which all the particles in a given cell are contiguous. By accessing, for a certain particle, the particles in the surrounding cells we can find its neighbours without checking too many false positives ($r_{cut}^3\sqrt{2}$ \todo{check}).
+This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA and published in the famous book, GPU Gems 3\cite{Nguyen2008}. It is reminiscent of the classic CPU linked cells algorithm\cite{AllenTildesley} and in some ways and adaptation of it to the \gpu architecture. This algorithm is the standard in \gls{GPU} cell list generation and lot of works can be found describing it or variations from it\cite{Anderson2008}\cite{Dominguez2011}\cite{Howard2016}\cite{Brown2011}. In particular, our approach to building a cell list shares a lot of similarities with the one described in\cite{Tang2014}.
+The main idea behind the cell list is to perform a spatial binning and asign a hash to each particle according to the bin it is in. If we then sort these hashes we get a list in which all the particles in a given cell are contiguous. By accessing, for a certain particle, the particles in the $27$ surrounding cells we can find its neighbours without checking too many false positives. Ideally, for a given particle, we would want to check the distance only with the $N_{neigh}$ particles that lie at a distance closer (or equal) than the cut off distance, $r_{cut}$. Thus requiring to check a volume of $V_{min}=\frac{4}{3}\pi r_{cut}^3$. However, as the cell list partitions space in cubes of side $r_{cut}$, a volume of $V_{cl} = 27r_{cut}^3$ around each particle is visited.
+Assuming the particles are uniformly distributed, the cell list will, in average, check a number of innecesary particles that scales as $N_{cl}/N_{neigh} = V_{cl}/V_{min} \approx 6$. Although the cell list requires to, potentially, visit more than $6$ times the number of particles as strictly required its construction and traversal is so efficient that it is usually worth it.
+We are going to describe the algorithm for a rectangular box of side $\vec{L}=(L_x, L_y, L_z)$ with a cut off distance $r_{cut}$. This requires to partition the domain into a number of cells $\vec{n}=\textrm{floor}(\vec{L}/r_{cut}) = (n_x, n_y, n_z)$. Where \emph{floor} represents the integer part of the argument. It is important to ensure the resulting cell size is at least the cut off radius, so that $\vec{l} = \vec{L}/\vec{n} \ge r_{cut}$.
+It is possible to reduce the cell size in exchange for visiting more neighbouring cells ($126$ if $l=r_{cut}/2$), which will also reduce the number of false positives neighbour checks. However, testing suggests that this is in general not worth doing\cite{Anderson2008}.
+\begin{figure}
+  \centering
+  \includesvg{gfx/celllist1}{\columnwidth}
+  \caption{Representation of the spatial binning for a 2D distribution of particles. The particle demarked as $i$ lies in the cell with coordinates $(1,2)$, this coordinates will then be used to assign a hash to particle $i$. The dotted red line represents the order given by the space-filling curve, starting in the (0,0) cell.}
+  \label{fig:cl1}
+\end{figure}
+
+The algorithm for the cell list construction can be summarized in three separated steps
+\begin{itemize}
+\item Hash the positions according to the cell (bin) they lie in
+\item Sort the positions and hashes using the hashes as key
+\item Identify where each cell starts and ends in the sorted positions array
+\end{itemize}
+After these steps we end up with enough information to visit the $27$ neighbour cells of a given particle.
+We have to compute the assigned cell of a given position at several points during the algorithm. Doing this is straight forward; For a position inside the domain, $x \in [0, L)$, the bin asigned to it is $i = \textrm{floor}(x/n_x) \in [0, n_x- 1]$. It is important to notice that a particle located at exactly $x = L$ will be asigned the cell with index $n_x$, special consideration must be taken into account to avoid this situation. In particular, in a periodic domain, a particle at $x=L$ should be assigned to the cell $i=0$\footnote{Although this might sound evident, it is an easy to miss detail and the consequences resulting from its omission will haunt a naive developer for weeks (or so I am told).}.
+Figure \ref{fig:cl1} contains a representation of the binning.
+Lets describe now each step in detail
+\subsubsection*{Hashing the particles}
+
+We want to assign to each position a hash that is unique to the cell in the grid in which it lies (see fig. \ref{fig:cl1}).
+These are stored an auxiliar array in which the hashes for each index in the position array.
+One possibility is to simply use the linear cell index as a hash, i.e $\textrm{hash}(i,j,k) := i + (j + kn_y)n_x$.
+However, we can leverage the fact that the positions will be sorted according to this hash to improve the data locality for traversal. Using the cell index as hash will place particles with the same $x$ coordinate close in the final array, but this is not optimal, since we will have to also explore contigous cells in $y$ and $z$ which will end up far away.
+The usual solution is to use as hash some kind of space-filling curve that tends to assign similar values to cells that are spatially close. The key idea is to find a function that maps the three dimensional cell index to one dimension while preserving their locality. Any space filling curve, like Peano\cite{Peano1890} or Hilbert\cite{Hilbert1935} curves, can be used.
+We are going to use the Morton hash\cite{Morton1966}, a popular Z-order curve. Construction is fairly straight forward, although the implementation can be challenging to understand.
+By assigning to each cell coordinate it's binary representation and interleaving the three resulting patterns we get a hash that follows the path depicted in fig. \ref{fig:cl1}. In particular, we interleave three $10$ bit coordinates in a $32$ bit Morton hash (leaving 2 bits unused), which allows us to encode up to $1024$ cells per direction, enough for most applications. We can achieve this with algorithm\ref{alg:mortonhash}.
+
+This algorithm is comprised of two functions; First a \emph{mask} function that uses a series of bit masks to encode the bits of a number between $0$ and $1023$ in every third bit of a $32$ bit unsigned integer. Then a \emph{mortonhash} function that takes three numbers masked by the first function and interleaves them bit by bit by shifting them accordingly.
+
+As an example, lets say we want to compute a $6$ bit Morton hash from two $3$ bit coordinates. In that case a particle in a 2D cell with coordinates $(i,j)$, encoded as two $3$ bit numbers with bits $(i_0i_1i_2, j_0j_1j_2)$ will first get converted to the two $6$ bit numbers $(i_00i_10i_20, j_00j_10j_20)$ (via two calls to \emph{mask} in algorithm \ref{alg:mortonhash}) and then converted into a Morton hash (via the \emph{mortonhash} function) by interleaving them into a single $6$ bit number, $i_0j_0i_1j_1i_2j_2$.
+
+\begin{algorithm}
+  \caption{Computing a hash from the coordinates of a cell by interleaving three Morton hashes. The symbols $\ll$ (left shift), | (bitwise OR) and \& (bitwise AND) represent the bitwise C operators. } \label{alg:mortonhash}
+  \Input{The 3d coordinates of a cell in the grid $(i,j,k)$}
+  \begin{algorithmic}[1]
+    
+    \LeftComment{Interleave three 10 bit numbers into a 32 bit number}
+    \Function{mortonhash}{i,j,k}
+    \State \Return id $\gets$ mask($i$) $|$ (mask($j$)  $\ll 1$) $|$ (mask($k$) $\ll 2$);
+    \EndFunction
+
+    \LeftComment{Encode a 10 bit number in every third bit of a 32 bit one}
+    \Function{mask}{i}
+    \Ensure i $< 1024$
+    \State x $\gets$ i     \Comment{x must be an unsigned 32 bit integer}
+    \State x $\gets$ x \& 0x3FF
+    \State x $\gets$ (x | x $\ll$  16) \& 0x30000FF
+    \State x $\gets$ (x | x $\ll$  8)  \& 0x300F00F
+    \State x $\gets$ (x | x $\ll$  4)  \& 0x30C30C3
+    \State x $\gets$ (x | x $\ll$  2)  \& 0x9249249
+    \State \Return x
+    \EndFunction
+
+%    \Ensure
+%    \Statex All positions are contained in $[-L/2, L/2]$
+%    \State Assign hashes to positions
+%    \State Sort positions using hashes as key
+%    \State 
+  \end{algorithmic}
+\end{algorithm}
+
+
+
+\subsubsection*{Sorting the hashes}
+Once each particle position has been assigned a hash we sort them. For our use case, we need to sort the positions according to the values in the auxiliar array with the hashes, this operation is known as sort by key. Since all particles in a given cell are assigned the same, unique, hash this operation results in a list of positions such that contigous elements are guaranteed to correspond to the same cell.
+The most efficient way to perform this sorting operation in a \gpu (as far as the author is aware) is the radix sort algorithm\cite{Ha2009}\cite{Singh2018}\cite{Merrill2011}. This algorithm is capable of sorting with an $O(n)$ complexity and its implementation happens to be quite a good fit for a \gpu. In particular, \uammd uses the radix sort implementation in the CUDA library \emph{cub}\cite{cub}. Radix sort needs to traverse the input a number of times that increases with the number of bits in the keys. Our hashes are encoded in $30$ bit numbers and, depending on the geometry of the grid, the rightmost bit set in the largest hash might be even lower. This allows us to further optimize the sorting process. With our implementation of the Morton hash we can find the largest possible hash simply by evaluating the hash of cell $(n_x-1, n_y-1, n_1-1)$. We can leverage the C function \emph{ffs} (find first set) or \emph{clz} (count leading zero) to find the most significant bit set in an integer.
+
+
+\subsubsection*{Constructing the cell list}
+
 
 Inefficient for large size disparities.
 \subsubsection{Use in UAMMD}
@@ -744,7 +864,8 @@ There are two main ways to construct a Cell List in \uammd (and the other neighb
 \end{itemize}
 The following example shows how to construct and traverse a cell list using both methods
 
-\begin{minted}{c++}
+%\begin{uammdminted}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Interactor/NeighbourList/CellList.cuh>
 using namespace uammd;
@@ -793,21 +914,25 @@ void constructListWithPositions(Iterator positions,
 In both cases the internal structure of the cell list can be requested to facilitate any usage outside the proposed interfaces for neighbour traversing. In the case of the cell list, this means having access to an ordered list containing the indices of the particle s in each cell. Remembering that the cell list works by binning the domain, assigning a hash to each position according to the bin they are in and then sorting this hash list.
 As explained in sec. \ref{sec:celllist}, the cell list algorithm mainly stores two arrays containing the indices of the particles for each cell.
 However, there are some technical implementation details that we will discuss now.
-As part of the construction algorithm we need to sort the hashed positions into a, potentially, different order than the input positions. This allows us to easily identify the particles in each cell. However, this has the side fortunate side effect of providing us with a sorted positions array with the interesting property that particles that are close in space happen to be close (in average) in memory. In order to take advantage of this \emph{CellList} constructs the list based on the indices in this auxiliar array and provides it along the rest of the arrays.
+As part of the construction algorithm we need to sort the hashed positions into a, potentially, different order than the input positions. This allows us to easily identify the particles in each cell. Furthermore this has the side fortunate side effect of providing us with a sorted positions array with the interesting property that particles that are close in space happen to be close (in average) in memory. In order to take advantage of this \emph{CellList} constructs the list based on the indices in this auxiliar array and provides it along the rest of the arrays.
+A really good vidual representation of the data locality benefits of using this sorted positions for traversal can be found in fig. 6 in \cite{Tang2014}.
 Additionally, if the total number of cells is too large in particle configurations that result in a lot of empty cells, cleaning up the \emph{cellStart} array can become a large part of the total runtime. In order to overcome this, instead of cleaning the array which incurs visiting each element in the array and setting it to a certain value), \emph{CellList} simply invalidates all the list in $O(1)$ time by interpreting any value lower than a certain threshold (called \emph{VALID\_CELL}) as the cell being empty.
 This value starts being $0$ in the first update and is increased by the number of particle in each following update. When \emph{VALID\_CELL} is close to overload the maximum value representable by a C++ unsigned integer \emph{cellStart} is then cleaned and \emph{VALID\_CELL} goes back to $0$.
-Lets describe the full contents of the \emph{struct} returned by the \emph{CellList} method \mintinline{c++}{CellList::getCellListData()}.
+Lets describe the full contents of the \emph{struct} returned by the \emph{CellList} method \mintinline{\ucpp}{CellList::getCellListData()}.
 \begin{itemize}
-\item\mintinline{c++}{Grid grid}:
+\item\mintinline{\ucpp}{Grid grid}:
   The grid data for which the list was constructed, holds the number of cells $(n_x, n_y, n_z)$ and a \emph{Box} object.\todo{improve}
-\item\mintinline{c++}{uint VALID_CELL}:
-  The threshold value in the cell list, any value in \emph{cellStart} lower than this encodes the cell being empty.
-\item\mintinline{c++}{real4 *sortPos}:
-  
-\item\mintinline{c++}{uint * cellStart}:
-  For a given cell with index $(i,j,k)$ The element $icell = i + (j + kn_y)n_x$ Stores the index of the first particle in sortPos 
-\item\mintinline{c++}{int  * cellEnd}:
-\item\mintinline{c++}{int* groupIndex}
+\item\mintinline{\ucpp}{uint VALID_CELL}:
+  The threshold value in the cell list, any value in \emph{cellStart} lower than this encodes the cell being empty. 
+\item\mintinline{\ucpp}{real4* sortPos}:
+  Positions sorted to be contiguous if they fall into the same cell. 
+\item\mintinline{\ucpp}{uint* cellStart}:
+  For a given cell with index $(i,j,k)$. The element $icell = i + (j + kn_y)n_x$ stores the index of the first particle in \emph{sortPos} that lies in that cell.
+\item\mintinline{\ucpp}{int* cellEnd}:
+  Contrary to \emph{cellStart} this array stores the index of the last particle in the cell.
+\item\mintinline{\ucpp}{int* groupIndex}
+  Given the index of a particle in \emph{sortPos}, this array returns the index of that particle in \emph{ParticleData}.
+  This indirection is necessary when something other than the positions is needed (like the forces).
 \end{itemize}
 
 
@@ -840,44 +965,18 @@ Regarding traversal, as explained in sec. \ref{sec:nlist}, for a compacted list 
 Note that it is not necessary to store information about particles that are not involved in any bond. Another auxiliar array can be used storing the indexes of particles that have at least one bond.
 The special type of bond that involves a single particle is called a fixed point bond, usually attaching a particle to a certain point in space. This can be encoded by storing this position as part of the bond information.
 
-\subsection{How to use in UAMMD}
+\subsection{Use in UAMMD}
 
-
-\section{Periodic Boundary Conditions}
-In order to conserve the total volume of the system we use the \gls{MIC}, where a particle that leaves the simulation domain though one side appears on the other.
-Numerically we can express this algorithm as follows:
-
-\begin{algorithm}
-  \caption{Minimum Image Convention, takes a position or distance and returns it inside the simulation domain}
-  \begin{algorithmic}[1]
-    \Function{MIC}{r, L}   
-    \State \Return r - floor(r/L + 0.5)*L
-    \EndFunction
-  \end{algorithmic}
-\end{algorithm}
-We can also use this algorithm to get the minimum distance between two points, so particles near opposite walls interact.
-\subsection{How to use in UAMMD}
-In \uammd, \gls{MIC} can be accesed via the \emph{Box} class.
-\begin{listing}[H]
-\begin{minted}{c++}
-#include<uammd.cuh>
-using namespace uammd;
-int main(){
-  real lx, ly, lz;
-  lx = ly = lz = 32.0;
-  Box box({lx, ly, lz});
-  real3 position_outside_box = {0.5*lx+1, 0, 0};
-  real3 position_in_box = box.apply_pbc(position_outside_box);
-  //position_in_box holds {-lx*0.5+1,0,0}
-  return 0; 
-}
-\end{minted}
-\caption{Using the Box class.}
-\label{code:box}
-\end{listing}
 
 
 \chapter{Particle-based methods for simulating complex fluids}
+
+\section{The Integrator interface}\label{sec:integrator}
+Handles the time evolution of a group of particles.
+Interactors can be added to it.
+
+
+
 \section{Molecular Dynamics}\label{sec:md}
 
 At the lowest level, without considering quantum effects, our simulation units are interacting atoms or molecules whose motion can be described using classical mechanics. We refer to the numerical techniques used in this regime as \gls{MD}.
@@ -886,13 +985,13 @@ Even so \gls{MD} represents the basis for all particle based methods, where the 
 Although not the most fundamental way of expressing the equations of motions, we will stick to this somewhat simplified one. For a system of $N$ molecules interacting via a certain potential, Newton's equation of motion state that the acceleration experienced by each one comes from the total force, $\vec{F}$, acting on it.
 \begin{equation}
   \label{eq:md}
-  \vec{F} =  m\ddot{\vec{r}} = m\vec{a}
+  \vec{F} =  m\ddot{\vec{\ppos}} = m\vec{a}
 \end{equation}
-Where $m$ is the mass of the molecule, $\vec{r}$ its position in cartesian coordinates and $\vec{a}$ its acceleration.
+Where $m$ is the mass of the molecule, $\vec{\ppos}$ its position in cartesian coordinates and $\vec{a}$ its acceleration.
 The force is defined as the gradient of an underlying potential energy landscape, $U$.
 \begin{equation}
   \label{eq:mdfv}
-  \vec{F} = -\nabla_{\vec{r}} U(\{\vec{r}_1,...,\vec{r}_N\})
+  \vec{F} = -\nabla_{\vec{\ppos}} U(\{\vec{\ppos}_1,...,\vec{\ppos}_N\})
 \end{equation}
 Which in general is a function of the positions of the particles
 
@@ -952,18 +1051,18 @@ For now, we can use it to integrate eq. \eqref{eq:md} to get the velocity and th
 \begin{equation}
   \label{eq:basiceulermd}
   \begin{aligned}
-  \vec{v}^{n+1} &\approx& \vec{v}^n + \vec{a}^n\dt\\
-  \vec{r}^{n+1} &\approx& \vec{r}^n + \vec{v}^n\dt
+  \vec{\pvel}^{n+1} &\approx& \vec{\pvel}^n + \vec{a}^n\dt\\
+  \vec{\ppos}^{n+1} &\approx& \vec{\ppos}^n + \vec{\pvel}^n\dt
 \end{aligned}
 \end{equation}
-Where $\vec{v} := \dot{\vec{r}}$ represents the velocity of the molecule.
+Where $\vec{\pvel} := \dot{\vec{\ppos}}$ represents the velocity of the molecule.
 The Euler integrator as defined above is not symplectic\cite{symplectic} and as such presents several stability issues that make it non practical as compared with other strategies that will be discussed shortly. In particular, not being symplectic makes it unsuitable for our main goal, energy conservation\cite{eulerdrift}. On the other hand it is a first order method and lowering the time step too much to improve accuracy leads to numerical rounding errors (due to floating point accuracy).
 However, we can make a small modification to the Euler method to make it symplectic\cite{HairerNumericalIntegration}
 \begin{equation}
   \label{eq:semiimpliciteuler}
   \begin{aligned}
-    \vec{v}^{n+\half} &\approx& \vec{v}^n + \half\vec{a}^n\dt\\
-    \vec{r}^{n+\half} &\approx& \vec{r}^n + \half\vec{v}^{n+\half}\dt
+    \vec{\pvel}^{n+\half} &\approx& \vec{\pvel}^n + \half\vec{a}^n\dt\\
+    \vec{\ppos}^{n+\half} &\approx& \vec{\ppos}^n + \half\vec{\pvel}^{n+\half}\dt
   \end{aligned}
 \end{equation}
 This is called the semi implicit Euler scheme\cite{semiimplicitEuler}. While symplectic, this algorithm effectively requires two force evaluations per step (interpreting step as going from $t$ to $t+\dt$) and it is still a first order method.
@@ -973,14 +1072,14 @@ The most widespread algorithm for \gls{MD} is the so-called velocity Verlet meth
 Instead of truncating eq. \eqref{eq:fdmtaylor} at $O(\dt)$ as we did with Euler lets now truncate it at $O(\dt^3)$ and write the expressions for the positions at $t+\dt$ and $t-\dt$
 \begin{eqnarray}
   \label{eq:verletrp1}
-  \vec{r}^{n+1} &=& \vec{r}^n + \vec{v}^n\dt + \half\vec{a}^n\dt^2 + \vec{b}^n\dt^3 + O(\dt^4)\\
-  \vec{r}^{n-1} &=& \vec{r}^n - \vec{v}^n\dt + \half\vec{a}^n\dt^2 - \vec{b}^n\dt^3 + O(\dt^4)
+  \vec{\ppos}^{n+1} &=& \vec{\ppos}^n + \vec{\pvel}^n\dt + \half\vec{a}^n\dt^2 + \vec{b}^n\dt^3 + O(\dt^4)\\
+  \vec{\ppos}^{n-1} &=& \vec{\ppos}^n - \vec{\pvel}^n\dt + \half\vec{a}^n\dt^2 - \vec{b}^n\dt^3 + O(\dt^4)
 \end{eqnarray}
 Where $\vec{b}$ is just the term accompanying the $O(\dt^3)$ term, typically refered to as \emph{jerk}.
-By adding both equations together and solving for $\vec{r}^{n+1}$ we get
+By adding both equations together and solving for $\vec{\ppos}^{n+1}$ we get
 \begin{equation}
   \label{eq:stormerverlet}
-  \vec{r}^{n+1} = 2\vec{r}^n - \vec{r}^{n-1} + \half\vec{a}^n\dt^2 + O(\dt^4)
+  \vec{\ppos}^{n+1} = 2\vec{\ppos}^n - \vec{\ppos}^{n-1} + \half\vec{a}^n\dt^2 + O(\dt^4)
 \end{equation}
 When written like this, this equation can be used to integrate eq. \eqref{eq:md} and is known as the Störmer integration method. It can also be seen as an application of the central differencing method to the position and as such, eq. \eqref{eq:stormerverlet} is also know as the explicit central difference method.
 Although eq. \eqref{eq:stormerverlet} presents really good numericall stability ($O(\dt^4)$) at a small cost, it presents some issues that hinder its applicability.
@@ -988,22 +1087,22 @@ It requires storing the position at two points in time, which is inconvenient an
 Furthermore it eliminates the velocity from the integration, which can be computed from the positions using the central difference method
 \begin{equation}
   \label{eq:stormervel}
-  \vec{v}^n = \frac{\vec{r} ^{n+1} - \vec{r}^{n-1}}{2\dt} + O(\dt^2)
+  \vec{\pvel}^n = \frac{\vec{\ppos} ^{n+1} - \vec{\ppos}^{n-1}}{2\dt} + O(\dt^2)
 \end{equation}
 Mathematically this is a second order approximation to the velocity. However, computing the velocity in this way can result in large roundoff errors stemming from the substraction of two similar quantities.
 We can manipulate eqs. \eqref{eq:verletrp1} and \eqref{eq:stormervel} to arrive at the more commonly used version of the Verlet method, the so-called velocity Verlet algorithm.
-We can use the central difference method to evaluate the velocity at half step as $\vec{v}^{n+\half} = \frac{\vec{x}^{n+1} - \vec{x}^n}{\dt}$. By replacing $\vec{r}^{n+1}$ with eq. \eqref{eq:verletrp1} and truncating at $O(\dt^2)$ we get
+We can use the central difference method to evaluate the velocity at half step as $\vec{\pvel}^{n+\half} = \frac{\vec{x}^{n+1} - \vec{x}^n}{\dt}$. By replacing $\vec{\ppos}^{n+1}$ with eq. \eqref{eq:verletrp1} and truncating at $O(\dt^2)$ we get
 \begin{equation}
   \label{eq:verletvelhalf}
-  \vec{v}^{n+\half} = \vec{v}^n + \half\vec{a}^n\dt + O(\dt^2)
+  \vec{\pvel}^{n+\half} = \vec{\pvel}^n + \half\vec{a}^n\dt + O(\dt^2)
 \end{equation}
-Which allows to get a second order approximation of the position by replacing  $\vec{v}^{n+\half}$ into \eqref{eq:verletrp1}
+Which allows to get a second order approximation of the position by replacing  $\vec{\pvel}^{n+\half}$ into \eqref{eq:verletrp1}
 \begin{equation}
-  \vec{r}^{n+1} = \vec{r}^n +  \vec{v}^{n+\half}\dt + O(\dt^3)
+  \vec{\ppos}^{n+1} = \vec{\ppos}^n +  \vec{\pvel}^{n+\half}\dt + O(\dt^3)
 \end{equation}
 We can then use eq. \eqref{eq:verletvelhalf} to compute the velocity at $t+\dt$
 \begin{equation}
-  \vec{v}^{n+1} = \vec{v}^{n+\half} + \half\vec{a}^{n+1}\dt
+  \vec{\pvel}^{n+1} = \vec{\pvel}^{n+\half} + \half\vec{a}^{n+1}\dt
 \end{equation}
 Note that these equations are just a rewrite of the Störmer Verlet method above and thus present the same stability and accuracy while eliminating the aforementioned incoveniences presented by the former.\todo{Como se demuestra que la posicion es $O(\dt^4)$?}
 Thus the overall algorithm is second order accurate in the velocity and fourth order accurate in the positions.
@@ -1011,12 +1110,12 @@ Finally, the velocity Verlet algorithm can be summarized in the following steps
 \begin{equation}
   \label{eq:verletnve}
   \begin{aligned}
-    \vec{v}^{n+\half} &=& \vec{v}^n + \half \vec{a}^n\dt\\
-  \vec{r}^{n+1} &=& \vec{r}^n +  \vec{v}^{n+\half}\dt\\
-  \vec{v}^{n+1} &=& \vec{v}^{n+\half} + \half\vec{a}^{n+1}\dt
+    \vec{\pvel}^{n+\half} &=& \vec{\pvel}^n + \half \vec{a}^n\dt\\
+  \vec{\ppos}^{n+1} &=& \vec{\ppos}^n +  \vec{\pvel}^{n+\half}\dt\\
+  \vec{\pvel}^{n+1} &=& \vec{\pvel}^{n+\half} + \half\vec{a}^{n+1}\dt
 \end{aligned}
 \end{equation}
-Note that, with the exception of the first step, there is no need to compute the accelerations twice, since the forces at time $t$ are known from the previous step. Forces at $t+\dt$ should be evaluated after computing $\vec{r}^{n+1}$, typically overwritting the current forces. The only storage needed are the velocities, positions and accelerations per particle.
+Note that, with the exception of the first step, there is no need to compute the accelerations twice, since the forces at time $t$ are known from the previous step. Forces at $t+\dt$ should be evaluated after computing $\vec{\ppos}^{n+1}$, typically overwritting the current forces. The only storage needed are the velocities, positions and accelerations per particle.
 Thus, the velocity Verlet algorithm presents all the necessary properties for being a popular integrator. It has good numerical stability, a small memory footprint, good energy conservation, guaranteed momentum conservation,...
 
 %\subsection{Testing the algorithm}
@@ -1030,7 +1129,7 @@ The starting kinetic energy of the system will be set to match this energy. Note
 Alternatively you can instruct VerletNVE to leave particle velocities untouched, which will result in the initial total energy being uncontrolled by the module.
 The only tool used by this module to set the initial total energy is the kinetic energy, which is always positive. As such, an error will be thrown if the target energy is \emph{less} than the potential energy at creation. See sec. \ref{sec:uammd_errors} on how to deal with errors.
 
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Integrator/VerletNVE.cuh>
 using namespace uammd;
@@ -1068,10 +1167,10 @@ Where we have simply added more forces to eq. \eqref{eq:md}. The first term in e
 
 This random term transforms eq. \eqref{eq:langevin} into an stochastic differential equation, in which special care must be taken when integrating.
 
-The dissipative or drag term opposes the movement of the particles and is often written as $\vec{F_d} = -\xi \vec{v}$. The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$. Additionally, $\xi$ will depend on the properties of the solvent, i.e. viscosity, and the submerged particle, i.e. radius.
+The dissipative or drag term opposes the movement of the particles and is often written as $\vec{F_d} = -\xi \vec{\pvel}$. The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$. Additionally, $\xi$ will depend on the properties of the solvent, i.e. viscosity, and the submerged particle, i.e. radius.
 When a system in thermodynamical equilibrium dissipates energy in the form of heat, like the drag force is doing in eq. \eqref{eq:langevin}, the fluctuation-dissipation theorem states that there must be an opposite process that reintroduces this energy via thermal fluctuations. Otherwise the system would spontaneously freeze or heat.
 The fluctuation-dissipation balance can be interpreted a consequence of the equipartition theorem in the long time limit. In this case stemming from the conversion of a system of colliding particles merely following Newton's equations to a heat bath. We can use the equipartition theorem for a single particle in the absence of any conservative forces to relate $\vec{F_d}$ with $\vec{F_r}$.
-The Hamiltonian for this system is simply $H = \frac{p^2}{2m}$, where $p = m\dot{r}$ is the momentum.
+The Hamiltonian for this system is simply $H = \frac{p^2}{2m}$, where $p = m\dot{\ppos}$ is the momentum.
 Lets apply these arguments to a one dimensional system for simplicity, understanding they also hold for the three dimensional case. The equipartition theorem states that for every degree of freedom in the system the following equation must hold.
 \begin{equation}
   \left\langle p \frac{\partial H}{\partial p}\right\rangle = \left\langle p \frac{p}{m}\right\rangle = k_BT
@@ -1143,7 +1242,7 @@ Finally, we can rewrite eq. \eqref{eq:langevin} as
 %
 \begin{equation}
   \label{eq:langevinfull}
-  m\vec{a} = \vec{F_c} - \xi \vec{v} + \sqrt{2\xi k_BT}\vec{\widetilde{W}}
+  m\vec{a} = \vec{F_c} - \xi \vec{\pvel} + \sqrt{2\xi k_BT}\vec{\widetilde{W}}
 \end{equation}
 Where $\vec{\widetilde{W}}$ is a collection of independent Wiener processes.
 We have made a lot of assumptions to arrive at eq. \eqref{eq:langevinfull}, mainly disregarding hydrodynamic effects of the solvent which ultimately translates in the friction coefficient being a constant (as in independent of the position and system configuration). We will see in following chapters how to improve these appoximations. In any case, \gls{LD} allows to introduce the fluctuation dissipation balance which holds even when lifting most of our current approximations.
@@ -1154,7 +1253,7 @@ A bad discretization of this term can lead to convergence issues, such is the ca
 Without entering yet into the world of Stochastic calculus, we can overcome this issue by solving eq. \eqref{eq:langevinfull} in integral form. Lets start by studying the one dimensional case of a single particle, since the three directions are uncoupled and particles are independent (beyond the conservative forces) making the jump to 3D and many particles will be trivial. For simplicity, lets define $\beta := \sqrt{2\xi k_BT}\widetilde{W}$. Now we integrate eq. \eqref{eq:langevinfull} between the interval $t$ and $t+\dt$
 \begin{equation}
   \label{eq:langevinriemann}
-  \int_t^{t+\dt} m\dot{v}dt' = \int_t^{t+\dt}F_c dt' - \int_t^{t+\dt}\xi\dot{r}dt' + \int_t^{t+\dt}\beta(t')dt'
+  \int_t^{t+\dt} m\dot{\pvel}dt' = \int_t^{t+\dt}F_c dt' - \int_t^{t+\dt}\xi\dot{\ppos}dt' + \int_t^{t+\dt}\beta(t')dt'
 \end{equation}
 The key now is to realize that we can compute the last term numerically by using the Riemann sum definition of the integral in the Itô sense. Lets refer to the last term as
 \begin{equation}
@@ -1172,7 +1271,7 @@ Without approximations, we can write eq. \eqref{eq:langevinriemann} as
 \end{equation}
 On the other hand, making use of the definition of velocity
 \begin{equation}
-  \int_t^{t+\dt}\dot{r}dt' = r^{n+1} - r^n = \int_t^{t+\dt}vdt'
+  \int_t^{t+\dt}\dot{\ppos}dt' = r^{n+1} - r^n = \int_t^{t+\dt}vdt'
 \end{equation}
 Which can be approximated to second order using the Riemann sum with two intervals (similarly as we did for Euler methods in sec. \ref{sec:euler}) as
 \begin{equation}
@@ -1192,8 +1291,8 @@ b := \frac{1}{1+\frac{\xi\dt}{2}}
 The deterministic force term can be approximated to second order using the same strategy as in eq. \eqref{eq:gsvel}. However, for eq. \eqref{eq:gspos} only one term of the Riemann sum is needed to make it second order accurate (as it gets multiplied by $\dt^2$). We can then write the final equations for the velocity and position in three dimensions as
 \begin{eqnarray}
   \label{eq:gsfinal}
-  \vec{r}^{n+1}  &=&  \vec{r}^n + b \dt \vec{v}^n + \frac{b\dt^2}{2m}\vec{F_c}^n + \frac{b\dt}{2m}\vec{\beta}^{n+1}\\
-  \vec{v}^{n+1} &=& a\vec{v}^n + \frac{\dt}{2m}\left(a\vec{F_c}^n + \vec{F_c} ^{n+1}\right) +  \frac{b}{m}\vec{\beta}^{n+1}
+  \vec{\ppos}^{n+1}  &=&  \vec{\ppos}^n + b \dt \vec{\pvel}^n + \frac{b\dt^2}{2m}\vec{F_c}^n + \frac{b\dt}{2m}\vec{\beta}^{n+1}\\
+  \vec{\pvel}^{n+1} &=& a\vec{\pvel}^n + \frac{\dt}{2m}\left(a\vec{F_c}^n + \vec{F_c} ^{n+1}\right) +  \frac{b}{m}\vec{\beta}^{n+1}
 \end{eqnarray}
 Where
 \begin{equation}
@@ -1207,7 +1306,7 @@ The Grønbech-Jensen algorithm described above is available in \uammd as an Inte
 This module will initialize the particle's velocities near the equilibrium Boltzmann distribution.
 Alternatively you can instruct it to leave particle velocities untouched. The system's temperature will then tend to the equilirbrium one according to the friction coefficient and each particle's mass.
 
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Integrator/VerletNVT.cuh>
 using namespace uammd;
@@ -1244,18 +1343,18 @@ But with different definitions for the three forces, in particular
 \begin{equation}
   \label{eq:dpdforces}
   \begin{aligned}
-    \vec{F^c}_{ij} &=&\omega(r_{ij})\hat{\vec{r}}_{ij}\\
-    \vec{F^d}_{ij} &=&-\xi\omega^2(r_{ij})(\vec{v}_{ij}\cdot\vec{r}_{ij})\hat{\vec{r}}_{ij}\\
-    \vec{F^r}_{ij} &=&\sqrt{2\xi\kT}\omega(r_{ij})\widetilde{W}_{ij}\hat{\vec{r}}_{ij}    
+    \vec{F^c}_{ij} &=&\omega(r_{ij})\hat{\vec{\ppos}}_{ij}\\
+    \vec{F^d}_{ij} &=&-\xi\omega^2(r_{ij})(\vec{\pvel}_{ij}\cdot\vec{\ppos}_{ij})\hat{\vec{\ppos}}_{ij}\\
+    \vec{F^r}_{ij} &=&\sqrt{2\xi\kT}\omega(r_{ij})\widetilde{W}_{ij}\hat{\vec{\ppos}}_{ij}    
   \end{aligned}
 \end{equation}
-Where $\vec{v}_{ij} = \vec{v}_j - \vec{v}_i$ is the relative velocity between particles $i$ and $j$. Here $\xi$ represents a friction coefficient (similar as in sec. \ref{sec:langevin}) and is related to the random force strength via fluctuation-dissipation balance in a familiar way\cite{Espanol1995}. The factor $\widetilde{W}_{ij}$ is different from the one in sec. \ref{sec:langevin} in that it affects pairs of particles (instead of each individual one), it also represents a Gaussian random number with zero mean and unit standard deviation, but must be chosen independently for each pair while ensuring symmetry so that $\widetilde{W}_{ij} = \widetilde{W}_{ji}$.
+Where $\vec{\pvel}_{ij} = \vec{\pvel}_j - \vec{\pvel}_i$ is the relative velocity between particles $i$ and $j$. Here $\xi$ represents a friction coefficient (similar as in sec. \ref{sec:langevin}) and is related to the random force strength via fluctuation-dissipation balance in a familiar way\cite{Espanol1995}. The factor $\widetilde{W}_{ij}$ is different from the one in sec. \ref{sec:langevin} in that it affects pairs of particles (instead of each individual one), it also represents a Gaussian random number with zero mean and unit standard deviation, but must be chosen independently for each pair while ensuring symmetry so that $\widetilde{W}_{ij} = \widetilde{W}_{ji}$.
 The weight function $\omega(r)$ is a soft repulsive force usually defined as
 \begin{equation}
   \label{eq:dpdw}
   \omega(r) =
   \begin{cases}
-    \alpha\left(1-\frac{r}{r_{cut}}\right) & r<r_{cut}\\
+    \alpha\left(1-\frac{\ppos}{r_{cut}}\right) & r<r_{cut}\\
     0 & r\ge r_{cut}\\                                    
   \end{cases}
 \end{equation}
@@ -1268,7 +1367,7 @@ One popular approach is to simply use velocity Verlet as described in sec. \ref{
 \subsection{Use in UAMMD}
 In \uammd \gls{DPD} is interpreted as a \emph{Potential} that can be added to a \emph{VerletNVE} \emph{Integrator}.
 
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Integrator/VerletNVE.cuh>
 #include<Interactor/PairForces.cuh>
@@ -1297,16 +1396,21 @@ auto createIntegratorDPD(UAMMD sim){
 }
 \end{minted}
 
+
+\section{Smoothed Particle Hydrodynamics}
+\todo{Describe SPH}
+
+
 \section{Brownian Dynamics}\label{sec:bd}
 \todo{Introduccion al origen de BD y que problemas resuelve que LD no}
-When the viscous forces are much larger than the inertial forces, i.e. $ |\xi\vec{v}| \gg |m\vec{a}|$, the inertial term in eq. \eqref{eq:langevinfull} vanishes.
+When the viscous forces are much larger than the inertial forces, i.e. $ |\xi\vec{\pvel}| \gg |m\vec{a}|$, the inertial term in eq. \eqref{eq:langevinfull} vanishes.
 \gls{BD} can thus be interpreted as the overdamped, or non-intertial, limit of \gls{LD}. In this regime the decorrelation time of the velocity, defined as $\tau_l = m/\xi$ tends to zero.
 Another way to interpret \gls{BD}, that makes more justice to its unique capability to account for timescale separation, is to understand it as the long time limit of the Langevin equation. This is a powerful property of \gls{BD}, since sampling the probability distributions of the underlying stochastic processes (stemming from the rapid movement of the solvent particles) does not require to sample their detailed microscopic dynamics.
 Note, however, that we are still disregarding hydrodynamic interactions by assuming the density of particles is low enough for them to be neglegible. This translates into the friction coefficient being independent on the particle positions. We will see in section \ref{sec:bdhi} how to introduce this dependence.
 One way or the other, given that by construction the decorrelation rate of the velocity is instantaneous it is not as natural to talk about the friction $\xi$ coefficient in terms of it. Alternatively, the inverse of the friction, refered to as the mobility $M:=1/\xi$, becomes the natural parameter. The eq. \eqref{eq:langevinfull} in the non inertial regime can thus be written as
 \begin{equation}
   \label{eq:bdlange}
-  \dot{\vec{r}} = M\vec{F} + \sqrt{2D}\vec{\mathcal{\noise}}
+  \dot{\vec{\ppos}} = M\vec{F} + \sqrt{2D}\vec{\mathcal{\noise}}
 \end{equation}
 Where the expression for the diffusion coefficient, $D := Mk_BT$, is the famous Einstein relation\cite{einstein}, comming from the fluctuation-dissipation balance as discussed in sec. \ref{sec:langevin}. Here $\vec{F}$ is some force acting on the particle.
 It is important to notice that the noise, $\vec{\mathcal{\noise}}$, is no longer just a random force coming from an additive action of many collisions with solvent particles, but the average of an stochastic forcing over a long period of time $\dt \gg \tau_l$.
@@ -1365,13 +1469,13 @@ In \gls{BD} displacements are proportional to the forces via the mobility, i.e t
 Coupled with the thermal fluctuations, the velocity is basically transformed into a random variable. This makes expressing eq. \eqref{eq:bdlange} in terms of the velocity awkward. The relevant variable is now the position and it is therefore usual to write eq. \eqref{eq:bdlange} in terms of displacements via the so-called Itô formula
 \begin{equation}
   \label{eq:bd}
-  d\vec{r} = M\vec{F}dt + \sqrt{2D}d\vec{\noise}
+  d\vec{\ppos} = M\vec{F}dt + \sqrt{2D}d\vec{\noise}
 \end{equation}
 Where the stochastic term $d\vec{\noise}$ is usually refered to as the Brownian motion or a Wiener process.
 A solution to eq. \eqref{eq:bd} is one that satisfies
 \begin{equation}
   \label{eq:bddis}
-  \vec{r}(t) = \vec{r}_0 + \int_0^tM\vec{F}dt + \int_0^t\sqrt{2D}d\vec{\noise}
+  \vec{\ppos}(t) = \vec{\ppos}_0 + \int_0^tM\vec{F}dt + \int_0^t\sqrt{2D}d\vec{\noise}
 \end{equation}
 It is important to understand here that the integral of the Brownian motion is interpreted in the Itô sense.
 In the Itô interpretation, this integral is defined as the limit in probability of a Riemann sum, where the Brownian integral of a certain function $f$ between a certain time interval $[0, t]$ is
@@ -1398,14 +1502,14 @@ With this discretization of the noise we can devise several strategies to numeri
 %\subsection{Euler Maruyama}
 Using eq. \eqref{eq:bddis} and \eqref{eq:itonoise2} we can write
 \begin{equation}
-  \vec{r}^{n+1} = \vec{r}^n + M\vec{F}^n\dt + \sqrt{2D\dt}\vec{\mathcal{\noise}}^n
+  \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^n\dt + \sqrt{2D\dt}\vec{\mathcal{\noise}}^n
 \end{equation}
 It can be proved that this algorithm is weakly convergent with order $1$ and strongly convergent with order $1/2$\cite{Kloeden2011}. Thus the \gls{EM} scheme is not particularly accurate, even in the absence of fluctuations.
 There are, however, other solvers that yield better accuracy at the same, or similar, computational cost. Lets see some of them
 %\subsection{Adams Bashforth}
 The \gls{AB} scheme uses the forces from the previous step to improve the prediction for the next. This incurs the overhead of storing the previous forces but its computational cost is marginally larger than \gls{EM}. This algorithm mixes a first order method for the noise with a second order method for the force. It yields better accuracy than EulerMaruyama, although this comes from experience since as of the time of writing no formal work has been done on its weak accuracy. An empirical demonstration of its better accuracy can be found in\cite{Balboa2017}.
 \begin{equation}
-  \vec{r}^{n+1} = \vec{r}^n + M\left[\frac{3}{2}\vec{F}^n - \half \vec{F}^{n-1}\right]\dt + \sqrt{2D\dt}\vec{\mathcal{\noise}}^n
+  \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\left[\frac{3}{2}\vec{F}^n - \half \vec{F}^{n-1}\right]\dt + \sqrt{2D\dt}\vec{\mathcal{\noise}}^n
 \end{equation}
 
 %\subsection{Leimkuhler}
@@ -1413,7 +1517,7 @@ Another integrator recently developed by Leimkuhler in\cite{Leimkuhler2015}
  While also a first order method it seems to yield better accuracy than \gls{AB} and \gls{EM}. I am not aware of any formal studies of its accuracy.
  The update rule is very similar to \gls{EM} but uses noise from two steps (which are generated each time instead of stored)
  \begin{equation}
-  \vec{r}^{n+1} = \vec{r}^n + M\vec{F}^n\dt + \sqrt{\frac{D\dt}{2}}\left[\vec{\mathcal{\noise}}^n + \vec{\mathcal{\noise}}^{n-1}\right]
+  \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^n\dt + \sqrt{\frac{D\dt}{2}}\left[\vec{\mathcal{\noise}}^n + \vec{\mathcal{\noise}}^{n-1}\right]
 \end{equation}
 Note that, as stated in\cite{Leimkuhler2015}, while this solver seems to be better than the rest at sampling equilibrium configurations, it does not correctly solves the dynamics of the problem.
 
@@ -1423,14 +1527,14 @@ It is a two step explicit midpoint predictor-corrector scheme. It has a fourth o
 Mid Point updates the simulation with the following rule
 \begin{equation}
   \begin{aligned}
-    &\vec{r}^{n+1/2} = \vec{r}^n + \half M\vec{F}^n\dt + \sqrt{D\dt}\vec{\mathcal{\noise}}^{n_1}\\
-    &\vec{r}^{n+1} = \vec{r}^n + M\vec{F}^{n+1/2}\dt + \sqrt{D\dt}\left[\vec{\mathcal{\noise}}^{n_1}  + \vec{\mathcal{\noise}}^{n_2}\right]
+    &\vec{\ppos}^{n+1/2} = \vec{\ppos}^n + \half M\vec{F}^n\dt + \sqrt{D\dt}\vec{\mathcal{\noise}}^{n_1}\\
+    &\vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^{n+1/2}\dt + \sqrt{D\dt}\left[\vec{\mathcal{\noise}}^{n_1}  + \vec{\mathcal{\noise}}^{n_2}\right]
   \end{aligned}
 \end{equation}
 \todo{Compare all algorithms by showing a g(r) with different time steps}
 \subsection{Use in UAMMD}
 
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Integrator/BrownianDynamics.cuh>
 using namespace uammd;
@@ -1451,11 +1555,65 @@ auto createIntegratorBD(UAMMD sim){
 \end{minted}
 
 
-
-\section{Smoothed Particle Hydrodynamics}
-\todo{Describe SPH}
-
 \section{Brownian Dynamics with Hydrodynamic Interactions (BDHI)}
+In our discussion about \gls{LD} and \gls{BD} we neglected hydrodynamic interactions. We considered the effect of the solvent on the submerged particles without considering the opposite interaction. Particles disturb the fluid around them, which in turn has an effect on the rest. This effect can be considered approximately by making the friction coefficient in eq. \eqref{eq:langevinfull} be configuration dependent, as we saw with \gls{DPD} or \gls{SPH}. However, we were forced to include the solvent particles (or more appropriately, groups of them) explicitly. Furthermore, both methods lie in the inertial regime of the particles, forcing us to describe a fast time scale that might be of no interest in a given model.
+We would like to reintroduce hydrodynamic interactions into our description of \gls{BD}. Thus far we have taken a bottom-up approach, starting by modeling the dynamics of the solvent particles themselves and then eliminating degrees of freedom. It is worth now to take a top-down approach and then bridge the gap back to \gls{BD}.
+In order to do that lets introduce the steady Stokes equations, describing the dynamics of an incompressible fluid in an overdamped (non-inertial) regime. We will then introduce a localized delta force and study how it propagates to the rest of the fluid. This will allow us to connect it back to \gls{BD} while taking into account hydrodynamic correlations.
+The incompressible Navier-Stokes equations can be written as
+\begin{equation}
+  \label{eq:navierstokes}
+  \begin{aligned}
+    \rho\dot{\vec{\fvel}} + \nabla \pi &= \eta \nabla^2\vec{\fvel} + \vec{f}\\
+    \nabla\cdot\vec{\fvel} &= 0
+  \end{aligned}
+\end{equation}
+Where $\vec{\fvel}(\vec{\fpos})$ represents the velocity of the fluid, $\pi$ the pressure and $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid.
+We are not interested yet in introducing thermal fluctuations into the description and thus they are not included in eq. \eqref{eq:navierstokes}.
+If we take the overdamped limit we get the so-called Stokes equations
+\begin{equation}
+  \label{eq:stokes}
+  \begin{aligned}
+    \nabla \pi - \eta \nabla^2\vec{\fvel} &=  \vec{f}\\
+    \nabla\cdot\vec{\fvel} &= 0
+  \end{aligned}  
+\end{equation}
+We can eliminate the pressure from the description by using the proyection method. Lets take the divergence of the first equation
+\begin{equation}
+  \nabla^2 \pi - \eta \nabla\cdot(\nabla^2\vec{\fvel}) =  \nabla\cdot\vec{f}
+\end{equation}
+Since the divergence of the velocity is zero the second term vanishes, so we can identify
+\begin{equation}
+  \pi = \nabla^{-2}(\nabla\cdot\vec{f})
+\end{equation}
+Replacing the pressure in eq. \eqref{eq:stokes}
+\begin{equation}
+  \eta\nabla^2\vec{\fvel} = \nabla\left[\nabla^{-2}(\nabla\cdot\vec{f})\right] - \vec{f} = -\mathcal{P} \vec{f}
+\end{equation}
+Where $\mathcal{P}  =  I - \nabla\nabla^{-2}\nabla$ is called the projection operator, since it projects onto a space of divergence-free velocities. Finally, we can identify $\mathcal{L} = -\nabla^{-2}\mathcal{P}$ as the Stokes solution operator to arrive at
+\begin{equation}
+  \vec{\fvel} = \eta^{-1}\mathcal{L}\vec{f}
+\end{equation}
+Now we have a formalism to translate between forces and velocities in the fluid. Lets connect that with a particle submerged in it.
+The effect of a particle is going to be mediated to the fluid through the forces acting on it, via a smooth kernel function, $\delta_a(\vec{r})$ that integrates to unity and is localized inside an spherical region of radius $a$. We will use this kernel to communicate forces to the fluid, which we refer to as spreading, so
+\begin{equation}
+  \vec{f}(\vec{\fpos}) = \mathcal{S}(\vec{\fpos})\vec{F}
+\end{equation}
+Being $\vec{F}$ a force acting on the particle.
+The spreading operator, $\mathcal{S}$, transforms the force acting on a particle located at $\vec{\ppos}$ into a smooth force density on the fluid. It can then be defined as
+\begin{equation}
+  \mathcal{S}_{\vec{\ppos}}(\vec{\fpos})\vec{F} = \delta_a(\vec{\fpos}-\vec{\ppos})\vec{F}
+\end{equation}
+The same kernel is also used to sample the fluid velocity around the particle, which we call interpolation. We are going to assume a no-slip condition in the boundaries of the particle such that it follows the local velocity of the fluid, so
+\begin{equation}
+  \vec{\pvel}= \mathcal{J}_{\vec{\ppos}}\vec{\fvel}
+\end{equation}
+The interpolation operator, $\mathcal{J}=\mathcal{S}^*$ is the opposite operation to spreading
+\begin{equation}
+  \mathcal{J}_{\vec{\ppos}}\vec{\fvel} = \int{\delta_a(\vec{\ppos} - \vec{\fpos})\vec{\fvel}(\vec{\fpos})d\vec{\fpos}}
+\end{equation}
+
+
+
 Generalization of BD when M is different for each particle
 Hydrodynamics with Greens formalism
 
@@ -1542,7 +1700,7 @@ Once eq. \eqref{eq:ttpoisson} is solved we have the value of the potential in ev
 % Where $\bar{\phi}(\vec{z}_i)=\bar{\phi}_i$ is the convolution of the potential with a Gaussian centered at the charge's location and can also be interpreted as the average potential at that point.
 Where $J$ represents the interpolation operator that averages a quantity defined in space to a certain location transforming from an Eulerian description to a Lagrangian one. In this case $J$ is the convolution with a Gaussian centered at $\vec{z}_i$. Notice that interpolation is the adjoint operation to spreading so that $J^{*} \propto S$.
 
-In a similar way we compute the electrostatic force $\vec{F}_i = -\nabla_i{U}$ acting on each charge from the electric field
+In a similar way we compute the electrostatic force $\vec{F}_i = -\nabla_i{\fvel}$ acting on each charge from the electric field
 \begin{equation}
   \vec{E} = -\nabla{\phi} 
 \end{equation}
@@ -1664,7 +1822,7 @@ Where $L$ is the domain size (a cubic box is considered, but the arguments can b
 
 This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
 
-\begin{minted}{c++}
+\begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Interactor/SpectralEwaldPoisson.cuh>
 using namespace uammd;
