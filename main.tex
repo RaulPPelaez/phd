@@ -72,8 +72,10 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newacronym{AB}{AB}{Adams-Bashforth}
 \newacronym{LK}{LK}{Leimkuhler}
 \newacronym{PBC}{PBC}{Periodic Boundary Conditions}
-
+\newacronym{RPY}{RPY}{Rotne-Prager-Yamakawa}
 \renewcommand{\vec}[1]{\bm{#1}}
+\newcommand{\tens}[1]{\bm{\mathcal{#1}}}
+\newcommand{\oper}[1]{\mathcal{#1}}
 \newcommand{\uammd}{\gls{UAMMD}\xspace}
 \newcommand{\gpu}{\gls{GPU}\xspace}
 \newcommand{\dt}{\delta t}
@@ -96,7 +98,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \frenchspacing
 \raggedbottom
 \selectlanguage{american} % american ngerman
-%\renewcommand*{\bibname}{new name}
+% \renewcommand*{\bibname}{new name}
 %\setbibpreamble{}
 \pagenumbering{roman}
 \pagestyle{plain}
@@ -505,10 +507,6 @@ Furthermore, while \emph{Transverser} describes a very general computation, \emp
 
 \todo{DESCRIBE INTERFACE}
 
-
-
-
-
 We are now ready to start exploring the different types of particle interactions, mainly:
 \begin{itemize}
 \item Long range interactions
@@ -556,7 +554,7 @@ In \uammd the \emph{Box} object handles the domain details, including \gls{PBC}.
 
 
 
-\section{Long range interactions}
+\chapter{Long range interactions}
 Say we are set to simulate a galaxy, so far away from others that it can be safely assumed their action is negligible. Say we want to simulate the dynamics of each of the $N$ stars in this galaxy. Gravity is the dominating interaction between each star, sadly it decays slowly enough to be considered an infinitely ranged one. The gravity potential can be written as follows
 \begin{equation}
   \label{eq:gravity}
@@ -565,7 +563,7 @@ Say we are set to simulate a galaxy, so far away from others that it can be safe
 Where $G$ is the gravitational constant and $m_1$, $m_2$ are the masses of each particle.
 In this case, if we want to compute the force acting on a star due to the presence of all the others we must check each and everyone of them. This leads to a lot of interactions to check, more precisely $N^2$ of them. Of course, there are more sophisticated ways of performing such a computation, such as fast multipole methods \cite{fmm} or Ewald splitting (which will be discussed on section \ref{ewald}). But some times these techniques are not a possibility so it is valuable to see how to efficiently handle this computations.
 Furthermore this computation is a really good fit for a \gls{GPU} as we are going to see.
-\subsection{The NBody algorithm}
+\section{The NBody algorithm}
 The naive parallel algorithm that checks, for each particle, every other would simply assign a particle (or a group of them) to a thread and then iterate over the rest is summarized in algorithm \ref{alg:nbodynaive}.
 \begin{algorithm}
   \caption{Naive NBody algorithm. Each particle, i, visits all the others.}\label{alg:nbodynaive}
@@ -655,9 +653,196 @@ void transverseWithoutUAMMD(real4* positions, int numberParticles,
 \end{minted}
 
 
+Long range interactions in a periodic domain pose a special challenge. Direct summation would require to take into account the periodic copies of the system. On the other hand, this summation might not even be convergent, as is the case with electrostatics. It is necessary to elaborate special algorithms for these cases. In \uammd, and algorithm to solve the Poisson equation for electrostatics in a triply periodic environment is available.
+
+\section{Triply Periodic Electrostatics} \label{ch:tppoisson}
+%\section{Theory} \label{sec:tppoisson_theory}
+We are going to describe a fast spectral solver for this equation with periodic boundary conditions and Gaussian sources of arbitrary widths at the charges' locations. This approach is similar to the ones presented at \cite{Lindbo2011,Tornberg2015}.
+We want to solve the Poisson equation in a periodic domain in the presence of a charge density $f(\vec{\fpos}=(x,y,z))$.
+\begin{equation}
+  \label{eq:ttpoisson}
+ \varepsilon\Delta\phi=-f
+\end{equation}
+Here $\varepsilon$ represents the permittivity of the medium and $f$ accounts for $N$ Gaussian charges of strenght $Q_i$ located at $\vec{z}_i$
+\begin{equation}
+  \label{eq:tppoisson_cdens}
+  f(\vec{\fpos})= \oper{S}(\vec{\fpos})Q = \sum_iQ_ig(||\vec{\fpos}-\vec{\ppos}_i||)
+\end{equation}
+Where $\oper{S}$ represents the spreading operator which transforms the charges around the particles to a smooth charge density field. The charges have a Gaussian shape
+\begin{equation}
+  \label{eq:tpppoisson_gaussiansource}
+ g(r)=\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2g_w^2}\right)}
+\end{equation}
+Where $g_w$ represents the width of the Gaussian charges (notice that the case $g_w\rightarrow 0$ corresponds to point charges).
+Once eq. \eqref{eq:ttpoisson} is solved we have the value of the potential in every point in space and can be evaluated at the charges locations via the interpolation operator
+\begin{equation}  
+  \oper{J}_{\vec{\ppos}_i}\phi = \int Q_ig(\vec{\ppos}_i - \vec{\fpos})\phi(\vec{\fpos})d\vec{\fpos}
+\end{equation}
+Here $\oper{J}$ represents the interpolation operator, that averages a quantity defined in space to a charge's location. This is the inverse operation to spreading, $\oper{J} = \oper{S}^*$.
+%In this case $J$ is the convolution with a Gaussian centered at $\vec{\ppos}_i$.
+
+The electrostatic energy can be computed as
+\begin{equation}
+  \label{tppoisson_avgpot}
+  U =  \frac{1}{2}\sum_i{\oper{J}_{\vec{\ppos}_i}\phi} 
+\end{equation}
+% Where $\bar{\phi}(\vec{z}_i)=\bar{\phi}_i$ is the convolution of the potential with a Gaussian centered at the charge's location and can also be interpreted as the average potential at that point.
+
+In a similar way we compute the electrostatic force $\vec{F}_i = -\nabla_i{\fvel}$ acting on each charge from the electric field
+\begin{equation}
+  \vec{E} = -\nabla{\phi}
+\end{equation}
+By interpolating again
+\begin{equation}
+  \label{tppoisson_avgfield}
+\vec{E}_i = \oper{J}_{\vec{\ppos}_i}\vec{E}(\vec{\fpos})
+\end{equation}
+So that the electrostatic force acting on particle $i$ is
+\begin{equation}
+\vec{F}_i = Q_i\oper{J}_{\vec{\ppos}_i}\vec{E}
+\end{equation}
+
+% Where the sum in eq. \ref{eq:tpppoisson_gaussiansource} goes through every point $\vec{z}_k$ in the domain.
+Given that eq. \eqref{eq:tpppoisson_gaussiansource} has in principle an infinite support evaluating eq. \eqref{eq:tppoisson_cdens} at every point in space, as well as computing the averages of the electric potential and field in eqs. \eqref{tppoisson_avgpot} and \eqref{tppoisson_avgfield} can be highly ineficient. In practice we overcome this limitation by truncating eq. \eqref{eq:tpppoisson_gaussiansource} at a certain distance according to a desired tolerance.
+\subsection*{Basic Algorithm}
+Eq. \eqref{eq:ttpoisson} can be easily solved in Fourier space by convolution with the Poisson's Greens function 
+\begin{equation}
+  \label{tppoisson_phihat}
+ \hat\phi(\vec{k}) = \frac{\hat f(\vec{k})}{\varepsilon k^2}
+\end{equation}   
+The electric field can be derived from the potential in fourier space via \emph{ik} differenciation \cite{ikdiff}.
+\begin{equation}
+    \label{tppoisson_ehat}
+  \hat{\vec{E}} = i\vec{k}\hat{\phi}
+\end{equation}
+
+Eq. \eqref{tppoisson_phihat} can be discretized using 3D \gls{FFT} in a grid with spacing fine enough to resolve the Gaussian charges in eq. \eqref{eq:tppoisson_cdens}.
+
+The whole algorithm, going from particle charges to forces, can be summarized as follows
+\begin{itemize}
+\item Spread charges to the grid, eq. \eqref{eq:tppoisson_cdens}
+\item Fourier transform $f\rightarrow \hat{f}$
+\item Multiply by the Poisson's Greens function to obtain the potential, eq. \eqref{tppoisson_phihat}
+\item Compute field via \emph{ik} differentiation, eq. \eqref{tppoisson_ehat}
+\item Transform potential and field back to real space $\hat{\phi} \rightarrow \phi$; $\hat{\vec{E}} \rightarrow \vec{E}$
+\item Interpolate energy and/or force to charge locations, eqs. \eqref{tppoisson_avgpot} and \eqref{tppoisson_avgfield}.
+\end{itemize}
+Using operator notation
+\begin{equation}
+  \label{eq:tppoison_alg}
+  \vec{F}_i = Q_i\oper{J}_{\vec{\ppos}}\textrm{FFT}^{-1} \left[\frac{i\vec{K}}{\varepsilon K^2} \cdot \textrm{FFT}\left( \oper{S} Q\right)\right]
+\end{equation}
+Where $\textrm{FFT}$ represents the Fourier transform, $\vec{K}$ is the tensor with of all wave vectors (being $K$ their modulus).
+%\begin{equation}
+%  \label{eq:tppoison_alg_u}
+%  U_i = q_iJ_iF^{-1} \frac{1}{\epsilon K^2}F Sq
+%\end{equation}
+
+The main problem with this approach is that the grid needs to be fine enough to correctly describe the Gaussian sources. Thus a small width results in a high number of grid cells. This hinders the ability to simulate large domains (in terms of $g_w$) or narrow (or even point) sources. In order to overcome this limitation we use an Ewald splitting technique\cite{ewaldsplit}.
+
+We can write the potential as
+\begin{equation}
+ \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{(near)} + \phi^{(far)}
+\end{equation}
+Where $\star$ represents convolution and the intermediate solution $\psi$ satisfies
+ \begin{equation}
+ \varepsilon\Delta\psi=-f\star\gamma^{1/2}
+\end{equation}   
+The splitting function $\gamma$ is defined as
+ \begin{equation}
+ \gamma^{1/2} = \frac{8\xi^3}{(2\pi)^{3/2}}\exp\left(-2r^2\xi^2\right)
+\end{equation}
+Here the splitting parameter, $\xi$, is an arbitrary factor that is chosen to optimize performance. 
+Given that the Laplacian commutes with the convolution we can divide the problem in two separate parts, denoted as near and far field  
+ \begin{equation}
+ \varepsilon\Delta\phi^{(far)}=-f\star\gamma
+\end{equation}   
+\begin{equation}
+ \label{tppoisson_ewald_near}
+ \varepsilon\Delta\phi^{(near)}=-f\star(1-\gamma)
+\end{equation}   
+The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case by effectively modifying the width of the Gaussian sources from $g_w$ to
+\begin{equation}
+  g_t = \sqrt{\frac{1}{4\xi^2} + g_w^2}
+\end{equation}
+Notice that this overcomes the difficulties for the case of point sources, since we can arbitrarily increase $\xi$ to work with an arbitrarily large Gaussian source.
+
+In contrast the near field effective charges are sharply peaked and narrower than the originals, rapidly decaying to zero. We can compute the Green's function for eq. \eqref{tppoisson_ewald_near} analytically by convolving the original Poisson Green's function with the effective charges in eq. \eqref{tppoisson_ewald_near} in Fourier space
+\begin{equation}
+  \hat{G}^{(near)}(k) = \frac{(1-\hat{\gamma})\hat{g}}{\varepsilon k^2}
+\end{equation}
+The inverse transform of this kernel gives us the potential at any point of the grid 
+\begin{equation}
+  \phi^{(near)}(\vec{\fpos}) = \sum_i{Q_iG^{(near)}(||\vec{\fpos}-\vec{\ppos}_i||)}
+\end{equation}
+However, we are only interested in the potential averaged at the charges locations. Instead of storing and computing the potential in a grid and then interpolating as in the far field we can compute this analytically. Given that $\oper{J} \phi^{(near)} = g\star \phi^{(near)}$ we can define a pre-interpolated interaction kernel as
+\begin{equation}
+  \hat{G}_{\oper{J}}^{(near)}(k) = \hat{g}\hat{G}^{(near)} = \frac{(1-\hat{\gamma})\hat{g}^2}{\varepsilon k^2}
+\end{equation}
+This expression is radially symmetric, which allows to compute the inverse Fourier transform as
+\begin{equation}
+  \label{tppoisson_gnear}
+  \begin{aligned}
+    G_{\oper{J}}^{(near)}(r) &= \frac{1}{2\pi^2r}\int{\hat{G}^{(near)}_{\oper{J}}k \sin(kr)dk} \\
+            &= \frac{1}{4\pi\epsilon r}\left(\erf\left(\frac{r}{2g_w}\right) - \erf\left(\frac{r}{2g_t}\right)\right)
+  \end{aligned}
+\end{equation}
+Which decays exponentially and thus can be truncated at a certain cut off radius $r_c$. Furthermore this expression requires special consideration at short distances where numerical issues could arise. In this cases the Taylor expansion of eq. \eqref{tppoisson_gnear} can be used instead.
+We can use this expression to compute the potential or energy at the charges locations
+\begin{equation}
+  U_i = Q_i\oper{J}_{\vec{\ppos}}\phi^{(near)}(\vec{\fpos}) = Q_i\sum_j{Q_jG_{\oper{J}}^{(near)}(||\vec{\ppos}_i - \vec{\ppos}_j||)}
+\end{equation}
+Similarly we compute the electric field or force acting on each charge 
+\begin{equation}
+  \vec{F}_i = Q_i \oper{J}_{\vec{\ppos}} \vec{E}^{(near)}_i = Q_i\sum_j{Q_j\frac{\partial G_{\oper{J}}^{(near)}({r_{ij}})}{\partial r}\frac{\vec{r}_{ij}}{r_{ij}}}
+\end{equation}
+Where $\vec{r}_{ij} = \vec{z}_i - \vec{z}_j$ and $r_{ij} = ||\vec{r}_{ij}||$.
+
+\section{Accuracy}
+There are several parameters than can be tweaked to control the overall accuracy of the algorithm:
+The grid cell size $h$ or the number of grid cells $n$ control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
+\begin{equation}
+h = L/n = g_w/\alpha
+\end{equation}
+Where $L$ is the domain size (a cubic box is considered, but the arguments can be extended easily to any domain dimensions) and $\alpha$ is a proportionality factor. Note that $n$ should be chosen to be an \gls{FFT}-friendly number.
 
 
-\section{Short range interactions}
+\section{How to use in UAMMD}
+
+This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
+
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Interactor/SpectralEwaldPoisson.cuh>
+using namespace uammd;
+//Creates and returns a triply periodic Poisson solver Interactor
+auto createTPPoissonInteractor(UAMMD sim){
+  Poisson::Parameters par;
+  par.box = sim.par.box;
+  //Permittivity
+  par.epsilon = sim.par.epsilon;
+  //Gaussian width of the sources
+  par.gw = sim.par.gw; 
+  //Overall tolerance of the algorithm
+  par.tolerance = sim.par.tolerance;
+  //If a splitting parameter is passed
+  // the code will run in Ewald split mode
+  //Otherwise, the non Ewald version will be used
+  //par.split = 1.0;
+  //The charges and positions will be requested from sim.pd
+  return std::make_shared<Poisson>(sim.pd, sim.pg, sim.sys, par);
+}
+\end{minted}
+The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for L->inf is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance. See test/Potential/Poisson  
+
+
+\subsection{Use in UAMMD}
+
+
+
+
+
+\chapter{Short range interactions}
 Particles interacting closely, a.i. there is less information to share between them, allow for specific optimizations abusing the locality of the required computation.
 In reality it can happen that the effect of one particle on another is short ranged in nature, as could be the case for interactions stemming directly from quantum effects such as Van-der-Walls forces. It can also happen that a combination of several long ranged interactions result in an effective short ranged one, such as a screened electrostatic interaction (like the DLVO potential). Other times when the interaction cannot be made to decay rapidly using natural arguments we can still transform it into a short range one with techniques such as Ewald splitting, which will be discussed in section \ref{sec:ewald}.
 The reason for giving short range interactions so much credit is simple: Imagine a system with $N$ uniformly distributed particles inside a given domain. If we let each particle interact with every other we need to check $N^2$ pairs of particles as we already saw. On the other hand, restricting the interaction to a certain distance, such that each particle has a number of neighbours $k<<N$ reduces the number of checks to $kN$.
@@ -964,9 +1149,6 @@ In contrast with the cell list algorithm the bond list creation algorithm does n
 Regarding traversal, as explained in sec. \ref{sec:nlist}, for a compacted list such as this we need to store the bond list itself (containing a list of bonds for each particle) and then two auxiliar arrays; One with offset information (the index in the bond list where the particular list for a given particle is located) and another with the number of bonds for each particle.
 Note that it is not necessary to store information about particles that are not involved in any bond. Another auxiliar array can be used storing the indexes of particles that have at least one bond.
 The special type of bond that involves a single particle is called a fixed point bond, usually attaching a particle to a certain point in space. This can be encoded by storing this position as part of the bond information.
-
-\subsection{Use in UAMMD}
-
 
 
 \chapter{Particle-based methods for simulating complex fluids}
@@ -1471,7 +1653,7 @@ Coupled with the thermal fluctuations, the velocity is basically transformed int
   \label{eq:bd}
   d\vec{\ppos} = M\vec{F}dt + \sqrt{2D}d\vec{\noise}
 \end{equation}
-Where the stochastic term $d\vec{\noise}$ is usually refered to as the Brownian motion or a Wiener process.
+Where the stochastic term $d\vec{\noise}$, usually refered to as the Brownian motion or a Wiener process, is a collection of independent random numbers with zero mean and standard deviation $\dt$.
 A solution to eq. \eqref{eq:bd} is one that satisfies
 \begin{equation}
   \label{eq:bddis}
@@ -1568,7 +1750,7 @@ The incompressible Navier-Stokes equations can be written as
   \end{aligned}
 \end{equation}
 Where $\vec{\fvel}(\vec{\fpos})$ represents the velocity of the fluid, $\pi$ the pressure and $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid.
-We are not interested yet in introducing thermal fluctuations into the description and thus they are not included in eq. \eqref{eq:navierstokes}.
+We are not interested yet in introducing thermal fluctuations into the description and thus they are not included in eq. \eqref{eq:navierstokes}. However, they can be later reintroduced as an external force.
 If we take the overdamped limit we get the so-called Stokes equations
 \begin{equation}
   \label{eq:stokes}
@@ -1577,7 +1759,7 @@ If we take the overdamped limit we get the so-called Stokes equations
     \nabla\cdot\vec{\fvel} &= 0
   \end{aligned}  
 \end{equation}
-We can eliminate the pressure from the description by using the proyection method. Lets take the divergence of the first equation
+We can eliminate the pressure from the description by using the projection method. Lets take the divergence of the first equation
 \begin{equation}
   \nabla^2 \pi - \eta \nabla\cdot(\nabla^2\vec{\fvel}) =  \nabla\cdot\vec{f}
 \end{equation}
@@ -1587,52 +1769,187 @@ Since the divergence of the velocity is zero the second term vanishes, so we can
 \end{equation}
 Replacing the pressure in eq. \eqref{eq:stokes}
 \begin{equation}
-  \eta\nabla^2\vec{\fvel} = \nabla\left[\nabla^{-2}(\nabla\cdot\vec{f})\right] - \vec{f} = -\mathcal{P} \vec{f}
+  \eta\nabla^2\vec{\fvel} = \nabla\left[\nabla^{-2}(\nabla\cdot\vec{f})\right] - \vec{f} = -\oper{P} \vec{f}
 \end{equation}
-Where $\mathcal{P}  =  I - \nabla\nabla^{-2}\nabla$ is called the projection operator, since it projects onto a space of divergence-free velocities. Finally, we can identify $\mathcal{L} = -\nabla^{-2}\mathcal{P}$ as the Stokes solution operator to arrive at
+Where $\oper{P}  =  \mathbb{I} - \nabla\nabla^{-2}\nabla$ is called the projection operator, since it projects onto a space of divergence-free velocities. $\mathbb{I}$ represents the identity. Finally, we can identify $\oper{L} = -\nabla^{-2}\oper{P}$ as the Stokes solution operator to arrive at
 \begin{equation}
-  \vec{\fvel} = \eta^{-1}\mathcal{L}\vec{f}
+  \vec{\fvel} = \eta^{-1}\oper{L}\vec{f}
 \end{equation}
-Now we have a formalism to translate between forces and velocities in the fluid. Lets connect that with a particle submerged in it.
-The effect of a particle is going to be mediated to the fluid through the forces acting on it, via a smooth kernel function, $\delta_a(\vec{r})$ that integrates to unity and is localized inside an spherical region of radius $a$. We will use this kernel to communicate forces to the fluid, which we refer to as spreading, so
+Now we have a formalism to translate between forces and velocities in the fluid. Lets connect that with a group of particles submerged in it.
+The effect of a particle is going to be mediated to the fluid through the forces acting on it, via a kernel function, $\delta_a(\vec{r})$ that integrates to unity and is localized inside a region of size $a$, refered to as the hydrodynamic radius of the particle. The symbol $\delta$ is used here to indicate that this kernel will usually be a smooth smeared delta function. We will use $\delta_a$ to communicate forces to the fluid, which we refer to as spreading
 \begin{equation}
-  \vec{f}(\vec{\fpos}) = \mathcal{S}(\vec{\fpos})\vec{F}
+  \vec{f}(\vec{\fpos}) = \oper{S}(\vec{\fpos})\vec{F}
 \end{equation}
-Being $\vec{F}$ a force acting on the particle.
-The spreading operator, $\mathcal{S}$, transforms the force acting on a particle located at $\vec{\ppos}$ into a smooth force density on the fluid. It can then be defined as
+Where $\vec{F} =\{\vec{F}_1,...,\vec{F}_N\}$ are the forces acting on each particle.
+The spreading operator, $\oper{S}$, transforms the force acting on the particles (located at $\vec{\ppos}_i$) into a force density on the fluid. It can then be defined as
 \begin{equation}
-  \mathcal{S}_{\vec{\ppos}}(\vec{\fpos})\vec{F} = \delta_a(\vec{\fpos}-\vec{\ppos})\vec{F}
+  \oper{S}(\vec{\fpos})\vec{F} = \sum_i\delta_a(\vec{\fpos}-\vec{\ppos}_i)\vec{F}_i
 \end{equation}
-The same kernel is also used to sample the fluid velocity around the particle, which we call interpolation. We are going to assume a no-slip condition in the boundaries of the particle such that it follows the local velocity of the fluid, so
+The same kernel is also used to sample the fluid velocity around the particle, which we call interpolation. We are going to assume a no-slip condition in the boundaries of the particles such that they follows the local velocity of the fluid. Thus the velocity of a given particle is given by
 \begin{equation}
-  \vec{\pvel}= \mathcal{J}_{\vec{\ppos}}\vec{\fvel}
+  \label{eq:bdhifvel}
+  \vec{\pvel}_i= \oper{J}_{\vec{\ppos}_i}\vec{\fvel}
 \end{equation}
-The interpolation operator, $\mathcal{J}=\mathcal{S}^*$ is the opposite operation to spreading
+  
+The interpolation operator, $\oper{J}=\oper{S}^*$, is the opposite operation to spreading
 \begin{equation}
-  \mathcal{J}_{\vec{\ppos}}\vec{\fvel} = \int{\delta_a(\vec{\ppos} - \vec{\fpos})\vec{\fvel}(\vec{\fpos})d\vec{\fpos}}
+  \oper{J}_{\vec{\ppos}_i}\vec{\fvel} = \int{\delta_a(\vec{\ppos}_i - \vec{\fpos})\vec{\fvel}(\vec{\fpos})d\vec{\fpos}}
 \end{equation}
+We can now write an equation for the velocity of the particles
+\begin{equation}
+  \label{eq:bdhibdrelation}
+  \frac{d\vec{q}}{dt} = \vec{u} = \eta^{-1}\oper{J}_{\vec{\ppos}}\oper{L}(\oper{S}\vec{F})
+\end{equation}
+This equation is reminiscent of eq. \eqref{eq:bd} by defining the mobility as
+\begin{equation}
+  \label{eq:bdhimobns}
+  \tens{M} = \eta^{-1}\oper{J}\oper{L}\oper{S}
+\end{equation}
+Where the symbol has been changed to enphasize that this mobility is now a configuration-dependent tensor. In particular, eq. \eqref{eq:bdhimobns} yields a pairwise mobility, depending only on the positions of the particles as
+\begin{equation}
+  \label{eq:bdhimob}
+  \tens{M}_{ij} = \eta^{-1}\int{\delta_a(\vec{q}_j-\vec{r})\tens{G}(\vec{r}, \vec{r}')\delta_a(\vec{q}_i -\vec{r}')d\vec{r}d\vec{r}'}
+\end{equation}
+Here $\tens{G}$ is the Green's function of eq. \eqref{eq:stokes} for unit viscosity.
+It is worth exploring here the form of $\tens{G}$ in the particular case of an unbounded domain with fluid at rest at infinity. 
+In this case all operators in the Stokes solution operator commute in Fourier space and we can write 
+\begin{equation}
+  \hat{\oper{L}}(\vec{k}) = \frac{1}{k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
+\end{equation}
+Where $\vec{k}$ are the wave numbers.
+We can now find the response of eq. \eqref{eq:stokes} to a delta forcing by solving, for a single particle with a force $\vec{F}_0$, using $\delta_a(\vec{r}) := \delta(\vec{r})$.
+In this case we can write eq. \eqref{eq:bdhifvel} in Fourier space as
+\begin{equation}
+  \label{eq:bdhifvelfou}
+  \hat{\vec{\fvel}} = \eta^{-1}\frac{1}{k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)\vec{F}_0
+\end{equation}
+The inverse transform of eq. \eqref{eq:bdhifvelfou} can be computed analytically by solving the following integral
+\begin{equation}
+  \vec{\fvel} = \frac{\vec{F}_0}{8\pi^3\eta}\int\frac{1}{k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)d\vec{k}
+\end{equation}
+This integral can be solved with the help of some known mathematical relations\cite{Lisicki2013} to get the Green's function for the Stokes equation
+\begin{equation}
+  \label{eq:bdhioseen}
+\tens{O}(\vec{r}) = \frac{1}{8\pi\eta r}\left(\mathbb{I} - \frac{\vec{r}\otimes\vec{r}}{r^2}\right)
+\end{equation}
+This Green's function is known as the Oseen tensor\cite{Oseen}, the solution for a three dimensional unbounded domain with fluid at rest at infinity. We can use evaluate the mobility in eq. \eqref{eq:bdhimob} by convolving with the kernel, $\delta_a$. Remember that we have defined the Green's function in eq. \eqref{eq:bdhimob} as the Stokes solution for unit viscosity. For the case of point particles ($\delta_a$ being a delta function) we get
+\begin{equation}
+  \label{eq:oseenmob}
+  \tens{M}_{ij} := \tens{M}(\vec{r} = \vec{q}_i - \vec{q}_j) = \frac{1}{8\pi\eta r}\left(\mathbb{I} - \frac{\vec{r}\otimes\vec{r}}{r^2}\right)
+\end{equation}
+In practice we would like to take into account the finite size of the submerged particles, which amounts to choosing a different kernel in eq. \eqref{eq:bdhimob} or, in the purely particle based description of eq. \eqref{eq:bd}, a different (pairwise) approximation to the mobility altogether.
+We will see in future sections how to solve the dynamics of the particles without the need of the explicit form for the Green's function by discretizing eq. \eqref{eq:bdhifvel} directly. This can be useful for special geometries in which the differential operators in Stokes solution operator do not commute or when eq. \eqref{eq:bdhimob} cannot be solved analytically. For the moment lets stick to imposing a mobility tensor explicitly.
+The Oseen mobility presents asymptotic behavior at short distance stemming from the point particle assumption. However, we are usually interested in simulating the dynamics of objects with a certain hydrodynamic radius.
 
 
+One of the usual choices for the mobility tensor is the \gls{RPY} tensor\cite{Rotne1969,Yamakawa1970}, a regularization of the Oseen tensor at short distances integrated on the surface of a sphere of radius $a$. The \gls{RPY} mobility can be written as
+\begin{equation}
+  \label{eq:rpy}
+  \tens{M}_{ij}(\vec{r} = \vec{q}_i-\vec{q}_j) = M_0\left\{
+  \begin{aligned}
+    &\left( \frac{3a}{4r} + \frac{a^3}{2r^3} \right)\mathbb{I} + \left(\frac{3a}{4r} - \frac{3a^3}{2r^3}\right)\frac{\vec{r}\otimes\vec{r}}{r^2}  & r > 2a\\
+    &\left(1 - \frac{9r}{32a} \right)\mathbb{I} + \left( \frac{3r}{32a} \right)\frac{\vec{r}\otimes\vec{r}}{r^2} & r \le 2a
+  \end{aligned}\right.
+\end{equation}
+The self mobility $M_0 = \tens{M}_{ii} = \frac{1}{6\pi\eta·a}$ is, by no coincidence, equal to the drag for a sphere moving through a Stokesian fluid as given by the Stokes law\cite{Dhont1996}.
+This approximation is valid for dilute suspensions (and) to leading order in the far field. Although the \gls{RPY} tensor has been proven to accurately capture hydrodynamics even when particles overlap beyond their hydrodynamic radius\cite{Ermak1978}.
+Given its popularity a lot of works attempting to generalize or adapt the \gls{RPY} tensor for different geometries an use cases can be found\cite{Wajnryb2013,Liang2013,Guan2018,Fiore2017}. In particular, we will make use of the generalization in\cite{Zuk2014}, which allows for each particle to have a different hydrodynamic radius.
 
-Generalization of BD when M is different for each particle
-Hydrodynamics with Greens formalism
+Notice that, as revealed by eqs. \eqref{eq:oseenmob} and \eqref{eq:rpy}, the approximations for the pairwise mobility usually come under the form
+\begin{equation}
+  \tens{M}(\vec{r}) = M_0 \left(f(r)\mathbb{I} + g(r)\frac{\vec{r}\otimes\vec{r}}{r^2}\right)
+\end{equation}
+Being $M_0 := \tens{M}(0)$ the self mobility.
+This is an expression of the fact that the mobility is usually isotropic and translationally invariant.
 
-Separation between open and periodic boundaries
-
-Particle only methods
-
+The only piece missing now is the fluctuating term. However, we already saw back in sec. \ref{sec:langevin} the relation between the noise and the drag via the fluctuation-dissipation balance. Making an analogy with eq. \eqref{eq:bd} we can finally write the equations of motion for a system of particles with hydrodynamic interactions
+\begin{equation}
+  \label{eq:bdhi}
+  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}}
+\end{equation}
+Where the mobility is now a tensor with dimensions $3N\times 3N$. The fluctuating term involves finding the square root of the mobility, defined as
+\begin{equation}
+  \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T
+\end{equation}
+This requires that the mobility matrix is positive definite (like the Oseen and \gls{RPY} tensors).
+Solving eq. \eqref{eq:bdhi} numerically by direct evaluation results in an algorithm with a complexity of at least $O(N^2)$ due to the matrix-vector multiplication of the mobility tensor and the forces. Furthermore, finding the square root of the mobility will typically dominate the cost of the algorithm. Even so, there might be situations in which such an algorithm could be the best option.
+Temporal integration can be achieved with any of the methods described in sec. \ref{sec:bd}. However, it is important to consider the extreme cost of computing and/or storing both terms in eq. \eqref{eq:bdhi} when choosing an algorithm. As such, in \uammd we usually restrict ourselves to the Euler-Maruyama method.
+Lets see two ways of computing the fluctuations numerically.
 \subsection{Cholesky}
+The classic strategy for computing the square root of the mobility, originally proposed by Ermak\cite{Ermak1978}, is by direct Cholesky factorization. This operation requires $O(N^3)$ operation, rendering this algorithm unsuitable for large numbers of particles (above $10^4$). However, the sheer raw power of the \gpu can make this a valid option. In \uammd the Cholesky factorization is accomplished via a single library call to NVIDIA's cuSolver function \emph{potrf}.
+
+\subsubsection{Use in UAMMD}\label{sec:uammdchol}
+In \uammd, \gls{BDHI} algorithms are separated between temporal integration schemes and strategies for computing the deterministic and stochastic displacements. Both pieces are joined to form an \emph{Integrator} that can be used as usual.
+Here is an example of the Euler-Maruyama integration scheme being specialized with the Cholesky decomposition algorithm for the fluctuations.
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Integrator/BDHI/BDHI_EulerMaruyama.cuh>
+#include<Integrator/BDHI/BDHI_Cholesky.cuh>
+using namespace uammd;
+//A function that creates and returns a BDHI integrator
+// using Cholesky decomposition for the noise
+auto createIntegratorBDHICholesky(UAMMD sim){   
+  //An strategy is mixed with an integration scheme
+  using Cholesky = BDHI::EulerMaruyama<BDHI::Cholesky>;
+  Cholesky::Parameters par;
+  par.temperature = sim.par.temperature;
+  par.viscosity = sim.par.viscosity;
+  //For Cholesky the radius is optional.
+  //If not selected, the module will use the individual 
+  //  radius of each particle.
+  //par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
+  par.dt = sim.par.dt;
+  auto bdhi = std::make_shared<Cholesky>(sim.pd, sim.pg, sim.sys, par);
+  return bdhi;
+}
+\end{minted}
+
 
 \subsection{Lanczos}
+Fixmann proposed a method based on Chebyshev polynomials\cite{Fixman1986} to compute the square root of the mobility. This method requires approximating the extremal eigenvalues of the mobility. A lot of strategies can be employed to find out these eigenvalues, with complexities ranging from $O(N^3)$ (thus beating the purpose) to $O(N^{2.25})$\cite{Jendrejack2000}. More recently, a family of iterative algorithms based on Krylov subspace decompositions have emerged\cite{Ando2012,Saadat2014} showcasing algorithmic complexities in the order $O(kN^2)$, being $k$ the number of required iterations (which is usually around the order of $10$ depending on the desired tolerance). In \uammd the technique developed in \cite{Ando2012} is implemented.
+
+\todo{Some description of the algorithm might be cool... Explain at least why its call Lanczos}
+
+\subsubsection{Use in UAMMD}
+Using the Lanczos strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). With the difference that now, being this an iterative algorithm, a tolerance can be selected.
+Here is an example of the Euler-Maruyama integration scheme being specialized with the Cholesky decomposition algorithm for the fluctuations.
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Integrator/BDHI/BDHI_EulerMaruyama.cuh>
+#include<Integrator/BDHI/BDHI_Cholesky.cuh>
+using namespace uammd;
+//A function that creates and returns a BDHI integrator
+// using Cholesky decomposition for the noise
+auto createIntegratorBDHICholesky(UAMMD sim){   
+  //An strategy is mixed with an integration scheme
+  using Cholesky = BDHI::EulerMaruyama<BDHI::Cholesky>;
+  Cholesky::Parameters par;
+  par.temperature = sim.par.temperature;
+  par.viscosity = sim.par.viscosity;
+  //For Cholesky the radius is optional.
+  //If not selected, the module will use the individual 
+  //  radius of each particle.
+  //par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
+  par.dt = sim.par.dt;
+  auto bdhi = std::make_shared<Cholesky>(sim.pd, sim.pg, sim.sys, par);
+  return bdhi;
+}
+\end{minted}
+
+\subsection{Force Coupling Method (FCM)}
+
+Introduction to spectral methods
+
+
+\subsection{Positively Split Ewald (PSE)}
+
+
 
 \chapter{Eulerian-Lagrangian methods for Fluctuating Hydrodynamics}
 Using a grid
 
 \section{The Immersed Boundary method}
 
-\subsection{Force Coupling Method (FCM)}
-
-Introduction to spectral methods
 
 
 \section{Fluctuating Immersed Boundary (FIB)}
@@ -1647,8 +1964,6 @@ Using the tools from the previous chapters (spectral method + immersed boundary)
 
 \section{Ewald splitting}
 
-
-\subsection{Positively Split Ewald (PSE)}
 
 
 \chapter{MCMC}
@@ -1668,197 +1983,6 @@ Using the tools from the previous chapters (spectral method + immersed boundary)
 Describe quasi2D paper.
 
 
-\chapter{Triply Periodic Electrostatics} \label{ch:tppoisson}
-\red{Not really new, but must be explained after ewald splitting!}
-
-Long range electrostatics in a triply periodic domain are available in \gls{UAMMD} as the \emph{SpectralEwaldPoisson} \hyperref[sec:interactor]{Interactor} module.  
-This is a fast spectral solver for the Poisson equation with periodic boundary conditions and Gaussian sources (of arbitrary widths) at the charges locations. This approach is similar to the ones presented at \cite{sepois1,sepois2, sepois3}.
-\section{Theory} \label{sec:tppoisson_theory}
-We want to solve the Poisson equation in a periodic domain in the presence of a charge density $f(\vec{x}=(x,y,z))$
-\begin{equation}
-  \label{eq:ttpoisson}
- \epsilon\Delta\phi=-f
-\end{equation}
-Where $f$ accounts for $N$ Gaussian charges of strenght $q_i$ located at $\vec{z}_i$ 
-\begin{equation}
-  \label{eq:tppoisson_cdens}
-  f(\vec{x})= S(\vec{x})q = \sum_{i=1}^Nq_ig(||\vec{x}-\vec{z}_i||)
-\end{equation}
-Where $S$ represents the spreading operator which communicates quantities defined at the charges locations to the whole domain, somewhat transforming the problem from a Lagrangian description (point sources) to an Eulerian one (whole domain). Given that
-\begin{equation}
-  \label{eq:tpppoisson_gaussiansource}
- g(r)=\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2g_w^2}\right)}
-\end{equation}
-Where $g_w$ represents the width of the Gaussian charges (notice that the case $g_w\rightarrow 0$ corresponds to point charges).
-The spreading is carried by a Gaussian.
-
-Once eq. \eqref{eq:ttpoisson} is solved we have the value of the potential in every point in space and the electrostatic energy can be computed as
-\begin{equation}
-  \label{tppoisson_avgpot}
-  U = \frac{1}{2}\int_{\vec{x}}{ \phi(\vec{x}) f(\vec{x}) d\vec{x}} = \frac{1}{2}\sum_i^N{q_i\int_{\vec{x}}\phi(\vec{x})g(||\vec{x}-\vec{z}_i||) d\vec{x}} = \frac{1}{2}\sum_i^N{q_iJ(\vec{z}_i)\phi}
-\end{equation}
-% Where $\bar{\phi}(\vec{z}_i)=\bar{\phi}_i$ is the convolution of the potential with a Gaussian centered at the charge's location and can also be interpreted as the average potential at that point.
-Where $J$ represents the interpolation operator that averages a quantity defined in space to a certain location transforming from an Eulerian description to a Lagrangian one. In this case $J$ is the convolution with a Gaussian centered at $\vec{z}_i$. Notice that interpolation is the adjoint operation to spreading so that $J^{*} \propto S$.
-
-In a similar way we compute the electrostatic force $\vec{F}_i = -\nabla_i{\fvel}$ acting on each charge from the electric field
-\begin{equation}
-  \vec{E} = -\nabla{\phi} 
-\end{equation}
-By interpolating again
-\begin{equation}
-  \label{tppoisson_avgfield}
-\vec{E}(\vec{z}_i) = \int_{\vec{x}}{\vec{E}(\vec{x})g(||\vec{x}-\vec{z}||)d\vec{x}} = J(\vec{z}_i)\vec{E} %\bar{\vec{E}}_i
-\end{equation}
-So that
-\begin{equation}
-\vec{F}_i = q_iJ_i\vec{E}%\bar{\vec{E}}_i
-\end{equation}
-
-% Where the sum in eq. \ref{eq:tpppoisson_gaussiansource} goes through every point $\vec{z}_k$ in the domain.
-Given that eq. \eqref{eq:tpppoisson_gaussiansource} has in principle an infinite support evaluating eq. \eqref{eq:tppoisson_cdens} at every point in space, as well as computing the averages of the electric potential and field in eqs. \eqref{tppoisson_avgpot} and \eqref{tppoisson_avgfield} can be highly ineficient. In practice we overcome this limitation by truncating eq. \eqref{eq:tpppoisson_gaussiansource} at a certain distance according to a desired tolerance.
-\section{Basic Algorithm}
-Eq. \eqref{eq:ttpoisson} can be easily solved in Fourier space by convolution with the Poisson's Greens function 
-\begin{equation}
-  \label{tppoisson_phihat}
- \hat\phi(\vec{k}) = \frac{\hat f(\vec{k})}{\epsilon k^2}
-\end{equation}   
-The electric field can be derived from the potential in fourier space via \emph{ik} differenciation \cite{ikdiff}.
-\begin{equation}
-  \hat{\vec{E}} = i\vec{k}\hat{\phi}
-\end{equation}
-
-Eq. \eqref{tppoisson_phihat} can be discretized using 3D \gls{FFT} in a grid with spacing fine enough to resolve the Gaussian charges in eq. \eqref{eq:tppoisson_cdens}.
-
-The whole algorithm, going from particle charges to forces, can be summarized as follows
-\begin{itemize}
-\item Spread charges to the grid: $f=Sq$
-\item Fourier transform $f\rightarrow \hat{f}$
-\item Multiply by the Poisson's Greens function to obtain the potential $\hat{\phi}=\frac{\hat{f}}{\epsilon k^2}$
-\item Compute field via \emph{ik} differentiation $\hat{\vec{E}} = i\vec{k}\hat{\phi}$
-\item Transform potential and field back to real space $\hat{\phi} \rightarrow \phi$; $\hat{\vec{E}} \rightarrow \vec{E}$
-\item Interpolate energy and/or force to charge locations $\vec{F}_i = q_iJ_i\vec{E}$; $U = q_iJ_i\phi$
-\end{itemize}
-Using operator notation
-\begin{equation}
-  \label{eq:tppoison_alg}
-  \vec{F}_i = q_iJ_iF^{-1} \frac{i\vec{K}}{\epsilon K^2} \cdot F Sq
-\end{equation}
-Where $F$ represents the Fourier transform and $\vec{K}$ is the tensor with of all wave vectors and $K$ their modulus.
-\begin{equation}
-  \label{eq:tppoison_alg_u}
-  U_i = q_iJ_iF^{-1} \frac{1}{\epsilon K^2}F Sq
-\end{equation}
-
-
-The main problem with this approach is that the grid size is related with the gaussian width (such that having a small width results in a high number of grid cells). This limits the ability to simulate large domains (in terms of $g_w$) or narrow (or point) sources. In order to overcome this limitation we use a spectral Ewald technique.
-
-We can write the potential as  
-\begin{equation}
- \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{(near)} + \phi^{(far)}
-\end{equation}  
-Where  $\star$ represents convolution and
- \begin{equation}
- \epsilon\Delta\psi=-f\star\gamma^{1/2}
-\end{equation}   
-and  
- \begin{equation}
- \gamma^{1/2} = \frac{8\xi^3}{(2\pi)^{3/2}}\exp\left(-2r^2\xi^2\right)
-\end{equation}   
-Here the splitting parameter $\xi$ is an arbitrary number that is chosen to optimize performance. 
-Given that the Laplacian commutes with the convolution we can divide the problem in two separate parts, denoted as near and far field  
- \begin{equation}
- \epsilon\Delta\phi^{(far)}=-f\star\gamma
-\end{equation}   
-\begin{equation}
- \label{tppoisson_ewald_near}
- \epsilon\Delta\phi^{(near)}=-f\star(1-\gamma)
-\end{equation}   
-The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case by effectively modifying width of the Gaussian sources from $g_w$ to
-\begin{equation}
-  g_t = \sqrt{\frac{1}{4\xi^2} + g_w^2}
-\end{equation}
-Notice that this overcomes the difficulties for the case of point sources, since we can arbitrarily increase $\xi$ to work with an arbitrarily large Gaussian source.
-
-In contrast the near field effective charges are sharply peaked and narrower than the originals, rapidly decaying to zero. We can compute the Green's function for eq. \eqref{tppoisson_ewald_near} analytically by convolving the original Poisson Green's function with the effective charges in eq. \eqref{tppoisson_ewald_near} in Fourier space
-\begin{equation}
-  \hat{G}^{(near)}(k) = \frac{(1-\hat{\gamma})\hat{g}}{\epsilon k^2}
-\end{equation}
-The inverse transform of this kernel gives us the potential at any point of the grid 
-\begin{equation}
-  \phi^{(near)}(\vec{x}) = \sum_{i=0}^N{q_iG^{(near)}(||\vec{x}-\vec{z}_i||)}
-\end{equation}
-However, we are only interested in the potential averaged at the charges locations. Instead of storing and computing the potential in a grid and then interpolating as in the far field we can compute this analytically. Given that $J \phi^{(near)} = g\star \phi^{(near)}$ we can define a pre-interpolated interaction kernel as
-\begin{equation}
-  \hat{G}_J^{(near)}(k) = \hat{g}\hat{G}^{(near)} = \frac{(1-\hat{\gamma})\hat{g}^2}{\epsilon k^2}
-\end{equation}
-
-This expression is radially symmetric which allows to compute the inverse Fourier transform as
-\begin{eqnarray}
-  \label{tppoisson_gnear}
-  G_J^{(near)}(r) &=& \frac{1}{2\pi^2r}\int_0^\infty{\hat{G}^{(near)}_Jk \sin(kr)dk}\nonumber \\
-            &=& \frac{1}{4\pi\epsilon r}\left(\erf\left(\frac{r}{2g_w}\right) - \erf\left(\frac{r}{2g_t}\right)\right)
-\end{eqnarray}
-Which decays exponentially and thus can be truncated at a certain cut off radius $r_c$. Furthermore this expression requires special consideration at short distances where numerical issues could arise. In this cases the Taylor expansion of eq. \eqref{tppoisson_gnear} can be used instead.
-We can use this expression to compute the potential or energy at the charges locations
-\begin{equation}
-  U_i = q_i\phi^{(near)}_i = q_iJ_i\phi^{(near)}(\vec{x}) = q_i\sum_{j=0}^N{q_jG_j^{(near)}(||\vec{z}_i - \vec{z}_j||)}
-\end{equation}
-Similarly we compute the electric field or force acting on each charge 
-\begin{equation}
-  \vec{F}_i = q_i J \vec{E}^{(near)}_i = q_i\sum_{j=0}^N{q_j\frac{\partial G_J^{(near)}(r_{ij})}{\partial r}\vec{r}_{ij}/r_{ij}}
-\end{equation}
-Where $\vec{r}_{ij} = \vec{z}_i - \vec{z}_j$ and $r_{ij} = ||\vec{r}_{ij}||$.
-
-\section{Accuracy}
-There are several parameters than can be tweaked to control the overall accuracy of the algorithm:
-The grid cell size $h$ or the number of grid cells $n$ control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
-\begin{equation}
-h = L/n = g_w/\alpha
-\end{equation}
-Where $L$ is the domain size (a cubic box is considered, but the arguments can be extended easily to any domain dimensions) and $\alpha$ is a proportionality factor. Note that $n$ should be chosen to be an \gls{FFT}-friendly number.
-
-
-\section{How to use in UAMMD}
-
-This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
-
-\begin{minted}{\ucpp}
-#include<uammd.cuh>
-#include<Interactor/SpectralEwaldPoisson.cuh>
-using namespace uammd;
-int main(int argc, char *argv[]){
-  int N = 1<<14; //An arbitrary number of particles
-  //UAMMD initialization
-  auto sys = make_shared<System>(arc, argv);
-  auto pd = make_shared<ParticleData>(N, sys);
-  { //Initialize positions and charges
-    auto pos = pd->getPos(access::cpu, access::write);
-    auto charge = pd->getCharge(access::cpu, access::write);
-    //...
-  }
-  Poisson::Parameters par;
-  par.box = Box(make_real3(128,128,128));
-  par.epsilon = 1; //Permittivity
-  par.gw = 1.0; //Gaussian width
-  par.tolerance = 1e-4;
-  par.split = 1.0;
-  auto poisson = make_shared<Poisson>(pd, sys, par);
-...
-  myintegrator->addInteractor(poisson);
-...
-return 0;
-}
-\end{minted}
-The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for L->inf is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance. See test/Potential/Poisson  
-%\section{REFERENCES}
-%[1] https://github.com/RaulPPelaez/UAMMD/wiki/Interactor   
-%[2] https://github.com/RaulPPelaez/UAMMD/wiki/DPPoisson  
-%[3] https://github.com/RaulPPelaez/UAMMD/wiki/IBM  
-%[4] https://doi.org/10.1016/j.jcp.2011.08.022  
-%[5] https://arxiv.org/pdf/1404.3534.pdf  
-%
-
-Not really new...
 
 \chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
 \section{Introduction}
@@ -2056,7 +2180,18 @@ asdasdasdas
 %\part{Appendix}
 %\input{Chapters/Chapter0A}
 
-\cleardoublepage\input{FrontBackmatter/Bibliography}
+\defbibheading{bibintoc}[\bibname]{%
+  \phantomsection
+  \manualmark
+  \markboth{\spacedlowsmallcaps{#1}}{\spacedlowsmallcaps{#1}}%
+  \addtocontents{toc}{\protect\vspace{\beforebibskip}}%
+  \addcontentsline{toc}{chapter}{\tocEntry{#1}}%
+  \chapter*{#1}%
+}
+
+
+\printbibliography[heading=bibintoc]
+
 \cleardoublepage\input{FrontBackmatter/Declaration}
 \cleardoublepage\input{FrontBackmatter/Colophon}
 \newpage
