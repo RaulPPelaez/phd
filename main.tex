@@ -1818,7 +1818,7 @@ It can be easily proved, by using that $-\oper{L}\nabla^2\oper{L} = \oper{L}$\ci
   \label{eq:mobsqrt}
   \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T
 \end{equation}
-The symbol has been changed to enphasize that this mobility is now a configuration-dependent tensor. In particular, eq. \eqref{eq:bdhimobns} yields a pairwise mobility, depending only on the positions of the particles as
+The symbol has been changed to emphasize that this mobility is now a configuration-dependent tensor. In particular, eq. \eqref{eq:bdhimobns} yields a pairwise mobility, depending only on the positions of the particles as
 \begin{equation}
   \label{eq:bdhimob}
   \tens{M}_{ij} = \eta^{-1}\int{\delta_a(\vec{q}_j-\vec{r})\tens{G}(\vec{r}, \vec{r}')\delta_a(\vec{q}_i -\vec{r}')d\vec{r}d\vec{r}'}
@@ -1846,7 +1846,7 @@ This integral can be solved with the help of some known mathematical relations\c
   \label{eq:bdhioseen}
 \tens{O}(\vec{r}) = \frac{1}{8\pi\eta r}\left(\mathbb{I} - \frac{\vec{r}\otimes\vec{r}}{r^2}\right)
 \end{equation}
-This Green's function is known as the Oseen tensor\cite{Oseen}, the solution for a three dimensional unbounded domain with fluid at rest at infinity. We can use evaluate the mobility in eq. \eqref{eq:bdhimob} by convolving with the kernel, $\delta_a$. Remember that we have defined the Green's function in eq. \eqref{eq:bdhimob} as the Stokes solution for unit viscosity. For the case of point particles ($\delta_a$ being a delta function) we get
+This Green's function is known as the Oseen tensor\cite{Oseen}, the solution for a three dimensional unbounded domain with fluid at rest at infinity. We can evaluate the mobility in eq. \eqref{eq:bdhimob} by convolving with the kernel, $\delta_a$. Remember that we have defined the Green's function in eq. \eqref{eq:bdhimob} as the Stokes solution for unit viscosity. For the case of point particles ($\delta_a$ being a delta function) we get
 \begin{equation}
   \label{eq:oseenmob}
   \tens{M}_{ij} := \tens{M}(\vec{r} = \vec{q}_i - \vec{q}_j) = \frac{1}{8\pi\eta r}\left(\mathbb{I} - \frac{\vec{r}\otimes\vec{r}}{r^2}\right)
@@ -1856,15 +1856,16 @@ We will see in future sections how to solve the dynamics of the particles withou
 The Oseen mobility presents asymptotic behavior at short distance stemming from the point particle assumption. However, we are usually interested in simulating the dynamics of objects with a certain hydrodynamic radius.
 
 
-One of the usual choices for the mobility tensor is the \gls{RPY} tensor\cite{Rotne1969,Yamakawa1970}, a regularization of the Oseen mobility at short distances that describe the hydrodynamic interaction of two spheres of radius $a$. In particular, integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator in the surface, $S$, of a sphere of radius $a$
+One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. In particular, integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator in the surface, $S$, of two spheres of radius $a$
 \begin{equation}
   \label{eq:rpymobfour}
   \begin{aligned}
     \tens{M}_{ij}^{\textrm{RPY}} &= \frac{\eta^{-1}}{(4\pi a^2)^2} \int_{S_1}dS_1\int_{S_2}dS_2 \int d\vec{k} \exp(i\vec{k}\vec{r})\hat{\oper{L}}(\vec{k})\\
-    &= \eta^{-1} \int \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\frac{sin(ka)}{ka} \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)d\vec{k}
+    &= \eta^{-1} \int \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(sinc(ka) \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)d\vec{k}
 \end{aligned}
 \end{equation}
-Now, the free-space \gls{RPY} mobility tensor can be written as
+A detailed solution for this integral can be found at\cite{Wajnryb2013}. It is important to note that the integral must be handled separatedly when the two particles overlap.
+Finally, the free-space \gls{RPY} mobility tensor can be written in real space as\cite{Wajnryb2013}
 \begin{equation}
   \label{eq:rpy}
   \tens{M}^{\textrm{RPY}}_{ij}(\vec{r} = \vec{q}_i-\vec{q}_j) = M_0\left\{
@@ -1874,7 +1875,7 @@ Now, the free-space \gls{RPY} mobility tensor can be written as
   \end{aligned}\right.
 \end{equation}
 The self mobility $M_0 = \tens{M}_{ii} = \frac{1}{6\pi\eta·a}$ is, by no coincidence, equal to the drag for a sphere moving through a Stokesian fluid as given by the Stokes law\cite{Dhont1996}.
-This approximation is valid for dilute suspensions (and) to leading order in the far field. Although the \gls{RPY} tensor has been proven to accurately capture hydrodynamics even when particles overlap beyond their hydrodynamic radius\cite{Ermak1978}.
+This approximation is valid for dilute suspensions (and) to leading order in the far field. Although the \gls{RPY} tensor has been proven to accurately capture hydrodynamics even when particles overlap beyond their hydrodynamic radius\cite{Ermak1978}\cite{Wajnryb2013}.
 Given its popularity a lot of works attempting to generalize or adapt the \gls{RPY} tensor for different geometries an use cases can be found\cite{Wajnryb2013,Liang2013,Guan2018,Fiore2017}. In particular, we will make use of the generalization in\cite{Zuk2014}, which allows for each particle to have a different hydrodynamic radius.
 
 Notice that, as revealed by eqs. \eqref{eq:oseenmob} and \eqref{eq:rpy}, the approximations for the pairwise mobility usually come under the form
@@ -1893,14 +1894,14 @@ Where the mobility is now a tensor with dimensions $3N\times 3N$. The fluctuatin
 %\begin{equation}
 %  \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T
 %\end{equation}
-This requires that the mobility matrix is positive definite (like the Oseen and \gls{RPY} tensors).
+This requires that the mobility matrix is positive definite. Note that the \gls{RPY} tensor is positive definite for all particle configurations, whereas the Oseen tensor becomes non positive definite at short distances.
 Solving eq. \eqref{eq:bdhi} numerically by direct evaluation results in an algorithm with a complexity of at least $O(N^2)$ due to the matrix-vector multiplication of the mobility tensor and the forces. Furthermore, finding the square root of the mobility will typically dominate the cost of the algorithm. Even so, there might be situations in which such an algorithm could be the best option.
 Temporal integration can be achieved with any of the methods described in sec. \ref{sec:bd}. However, it is important to consider the extreme cost of computing and/or storing both terms in eq. \eqref{eq:bdhi} when choosing an algorithm. As such, in \uammd we usually stick to the Euler-Maruyama method.
 
-The deterministic term can be computed via a library call to a matrix-vector multiplication function. However, this incurs $(O(N^2)$ storage. If the full mobility matrix is not needed for a later stage, it can be computed on the fly by using the \emph{NBody} algorithm in sec. \ref{sec:nbody}.
+The deterministic term can be computed via a library call to a matrix-vector multiplication function. However, this incurs $O(N^2)$ storage. If the full mobility matrix is not needed for a later stage, it can be computed on the fly by using the \emph{NBody} algorithm in sec. \ref{sec:nbody}.
 Lets see two ways of computing the fluctuations numerically.
 \subsection{Cholesky}\label{sec:chol}
-The classic strategy for computing the square root of the mobility, originally proposed by Ermak\cite{Ermak1978}, is by direct Cholesky factorization. This operation requires $O(N^3)$ operation, rendering this algorithm unsuitable for large numbers of particles (above $10^4$). Additionally, it has $O(N^2)$ storage requirements, since the full mobility matrix has to be stored.
+The classic strategy for computing the square root of the mobility, originally proposed by Ermak\cite{Ermak1978}, is by direct Cholesky factorization. This operation requires $O(N^3)$ operations, rendering this algorithm unsuitable for large numbers of particles (above $10^4$). Additionally, it has $O(N^2)$ storage requirements, since the full mobility matrix has to be stored.
 However, the sheer raw power of the \gpu can make this a valid option. In \uammd the Cholesky factorization is accomplished via a single library call to NVIDIA's cuSolver function \emph{potrf}.
 
 \subsubsection{Use in UAMMD}\label{sec:uammdchol}
@@ -1942,22 +1943,24 @@ Here is an example of the Euler-Maruyama integration scheme being specialized wi
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Integrator/BDHI/BDHI_EulerMaruyama.cuh>
-#include<Integrator/BDHI/BDHI_Cholesky.cuh>
+#include<Integrator/BDHI/BDHI_Lanczos.cuh>
 using namespace uammd;
 //A function that creates and returns a BDHI integrator
-// using Cholesky decomposition for the noise
-auto createIntegratorBDHICholesky(UAMMD sim){   
+// using Lanczos decomposition for the noise
+auto createIntegratorBDHILanczos(UAMMD sim){   
   //An strategy is mixed with an integration scheme
-  using Cholesky = BDHI::EulerMaruyama<BDHI::Cholesky>;
-  Cholesky::Parameters par;
+  using Lanczos = BDHI::EulerMaruyama<BDHI::Lanczos>;
+  Lanczos::Parameters par;
   par.temperature = sim.par.temperature;
   par.viscosity = sim.par.viscosity;
-  //For Cholesky the radius is optional.
+  //For Lanczos the radius is optional.
   //If not selected, the module will use the individual 
   //  radius of each particle.
   //par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
   par.dt = sim.par.dt;
-  auto bdhi = std::make_shared<Cholesky>(sim.pd, sim.pg, sim.sys, par);
+  //The tolerance for the stochastic term computation
+  par.tolerance = sim.par.tolerance;
+  auto bdhi = std::make_shared<Lanczos>(sim.pd, sim.pg, sim.sys, par);
   return bdhi;
 }
 \end{minted}
@@ -1965,13 +1968,13 @@ auto createIntegratorBDHICholesky(UAMMD sim){
 \subsection{Force Coupling Method (FCM)}\label{sec:fcm}
 Both \emph{Cholesky} and \emph{Lanczos} methods use the explicit form of an open boundary mobility. This makes them open boundary algorithms since they do not take into account the periodic images of the system in any way. Furthermore, the computational complexity of these methods is restrictive. Luckily, we can manage to do it in $O(N)$ operations if we consider periodic boundary conditions. In particular by solving eq. \eqref{eq:bdhibdrelation} directly in Fourier space via the Force Coupling Method\cite{Keaveny2014}. In doing so, we get the added benefit (and disadvantage) of not impossing a specific mobility tensor, which will arise naturally according to the spreading kernel.
 
-In order to do this we first spread particle forces to the fluid ($\oper{S}\vec{F}$ in eq. \eqref{eq:bdhibdrelation}) and transform them to Fourier space. Then the Fourier representation of the Stokes solution operator in eq. \eqref{eq:stokesoperfou} is used to obtain the velocities in the fluid in Fourier space. The fluid velocity is then transformed back to real space and eq. \eqref{eq:bdhifvel} is applied to get the particle displacements by interpolation.
+In order to do this we first spread particle forces to the fluid ($\oper{S}\vec{F}$ in eq. \eqref{eq:bdhibdrelation}) and transform them to Fourier space. Then the Fourier representation of the Stokes solution operator in eq. \eqref{eq:stokesoperfou} is used to obtain the velocities in the fluid in Fourier space via multiplication. The fluid velocity is then transformed back to real space and eq. \eqref{eq:bdhifvel} is applied to get the particle displacements by interpolation.
 The kernel used in \gls{FCM} is a Gaussian, in particular
 \begin{equation}
   \label{eq:fcmkernel}
   \delta_a(r = ||\vec{\ppos}_i - \vec{\fpos}||) := \frac{1}{(2\pi\sigma_a)^{3/2}}\exp\left(\frac{-r^2}{2\sigma_a^2}\right)
 \end{equation}
-Where $\sigma_a = a/\sqrt{\pi}$.
+Where $\sigma_a = a/\sqrt{\pi}$. This naturally regularizes the Oseen tensor at short distances, yielding \gls{RPY}-like behavior. In fact, the mobility tensor can be computed anaytically in this case\todo{poner expresion? citar algo?}.
 
 The fluctuating term, $\nabla\cdot\mathcal{Z}$, is computed directly in Fourier space in the fluid via \emph{ik} differentiation. This makes evaluating the Brownian motion effectively cost free.
 The computation of the fluid velocities is independent on the number of particles (since the first step is to spread the forces to the fluid). The complexity of the spreading and interpolation operations grow linear with the number of particles. Thus the overall complexity of the algorithm is $O(N)$.
@@ -2024,17 +2027,53 @@ auto createIntegratorBDHIFCM(UAMMD sim){
 \subsection{Positively Split Ewald (PSE)}\label{sec:pse}
 In a similar way as with triply periodic electrostatics (see sec. \ref{ch:tppoisson}), in \gls{FCM} the size of the grid is tied to the hydrodynamic radius of the particles. Hindering its ability to simulate either large domains or small particles. Furthermore, the \gls{FCM} does not imposes a mobility explicitly, making it impossible to control the near field hydrodynamic effects without modifying the shape of the spreading kernels. We can apply an Ewald splitting strategy to overcome this limitation as described in\cite{Fiore2017}.
 
-In particular, we will solve eq. \eqref{eq:bdhi} using the \gls{RPY} mobility in with periodic boundary conditions. We can express the periodic \gls{RPY} tensor in Fourier space by replacing the integral in eq. \eqref{eq:rpymobfour} by a sum
+In particular, we will solve eq. \eqref{eq:bdhi} using the \gls{RPY} mobility in with periodic boundary conditions. We can write the Stokes solution operator in eq. \eqref{eq:stokesoperfou} for a periodic system in real space using the same strategy as in\cite{Hasimoto1959}
 \begin{equation}
-  \tens{M}_{ij}^{\textrm{RPY}}= \frac{1}{\eta dV} \sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\frac{sin(ka)}{ka} \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
+  \label{eq:psestokesoper}
+  \oper{L}(\vec{\fpos}) = \frac{1}{V}\sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
 \end{equation}
+Where $V = L^3$ is the volume of the periodic domain.
 
+We can now write the periodic \gls{RPY} tensor, which amounts to replacing the integral in eq. \eqref{eq:rpymobfour} by a sum.
+\begin{equation}
+  \label{eq:pserpyfou}
+  \tens{M}_{ij}^{\textrm{RPY}}= \frac{1}{\eta V} \sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(sinc(ka) \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
+\end{equation}
 
 In \gls{PSE}, the \gls{RPY} tensor is expressed a sum of two symmetric, positive definite, operators. The first of them is spatially local and can be evaluated exactly using the algorithm in sec. \ref{sec:lanczos} (with the added benefit that most elements in the mobility tensor will be zero). The second operator is non local and its contribution can be taken into account using the same spectral algorithm as in sec. \ref{sec:fcm}.
 Thus we are looking for a mobility tensor in the form
 \begin{equation}
   \tens{M}_{ij} = \tens{M}_{ij}^{\far} + \tens{M}^{ \near}_{ij}
 \end{equation}
+We use the Ewald sum splitting of Hasimoto\cite{Hasimoto1959} for eq. \eqref{eq:pserpyfou} so that
+\begin{equation}
+  \label{eq:pserpyfar}
+  \tens{M}_{ij}^{\far}= \frac{1}{\eta V} \sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(sinc(ka) \right)^2H(k,\xi)\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
+\end{equation}
+Where the Hasimoto splitting function is defined as
+\begin{equation}
+  \label{eq:psehasimoto}
+  H(k,\xi) = \left(1 + \frac{k^2}{4\xi^2}\right)\exp\left(-\frac{k^2}{4\xi^2}\right)
+\end{equation}
+Here $\xi$ is the splitting parameter (see sec. \ref{ch:tppoisson}), an arbitrary parameter that allows to shift the weight of the mobility from one term to another.
+The integral for the inverse transform of the near part can be computed analytically, this term can be written as
+\begin{equation}
+  \label{eq:pserpynear}
+  \tens{M}_{ij}^{\near}= F(k,\xi)\mathcal I - G(k,\xi)\left(\frac{\vec{r}\otimes\vec{r}}{r^2}\right)
+\end{equation}
+Where the functions $F$ and $G$ have really convoluted expressions that can be found in Appendix A of\cite{Fiore2017} or in the \uammd source code\footnote{This expressions are really long and convoluted. The corresponding code evaluating the near field in eq. \eqref{eq:pserpynear} is located in the source file \emph{RPY\_PSE.cuh}, which is written to facilitate its copy-pasting for other implementations.}.
+
+Both contributions to the mobility in \eqref{eq:pserpynear} and \eqref{eq:pserpyfar} are guaranteed to be positive definite for all particle configurations\todo{Why?}.
+This allows to use the techniques we have already used in previous sections to evaluate each term. The deterministic term (the multiplication of the mobility by the forces acting on the particles) can simply be computed separatedly and then added. The fluctuations pose more of a challenge if we want to refrain from computing storing the square root of the mobility. In particular, we can separate the fluctuating contribution in eq. \eqref{eq:bdhi} in a far and near field ones by defining
+\begin{equation}
+  \tens{M}^{1/2} d\vec{\noise} :=  (\tens{M}^{\near})^{1/2} d\vec{\noise}_1 + (\tens{M}^{\far})^{1/2} d\vec{\noise}_2
+\end{equation}
+Where $\vec{\noise}_{1,2}$ are independent Wiener processes.
+
+\todo{Why can they do this so freely??}
+The far field computation is thus identical to the \gls{FCM} if we use $\sigma_a = ...$ as the width of the kernel (or equivalently, setting the hydrodynamic radius to $a=...$)\todo{complete}. And also differences in the mobility (a factor in the noise)
+For the near field, we can use the infrastructure in the \emph{Lanczos} algorithm (see sec. \ref{sec:lanczos}) with the mobility in eq. \eqref{eq:pserpynear}.
+
 
 \chapter{Eulerian-Lagrangian methods for Fluctuating Hydrodynamics}
 In general, \gls{BC}s in the previous methods have to be introduced via the Green's function in eq. \eqref{eq:bdhimob}. However, this Green's function might be unknown or simply non analytic. We can discretize and solve eq. \eqref{eq:bdhibdrelation} directly to have more fine control over the \gls{BC}s.
