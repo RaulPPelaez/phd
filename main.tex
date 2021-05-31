@@ -80,8 +80,11 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newcommand{\gpu}{\gls{GPU}\xspace}
 \newcommand{\dt}{\delta t}
 \newcommand{\kT}{k_B T}
+\newcommand{\near}{\textrm{near}}
+\newcommand{\far}{\textrm{far}}
 \newcommand{\half}{\frac{1}{2}}
 \newcommand{\red}[1]{{\color{red}#1}}
+\newcommand{\fou}[1]{\widehat{#1}}
 \newcommand{\noise}{\widetilde{W}}
 \DeclareMathOperator{\erf}{erf}
 
@@ -742,7 +745,7 @@ The main problem with this approach is that the grid needs to be fine enough to 
 
 We can write the potential as
 \begin{equation}
- \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{(near)} + \phi^{(far)}
+ \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{\near} + \phi^{\far}
 \end{equation}
 Where $\star$ represents convolution and the intermediate solution $\psi$ satisfies
  \begin{equation}
@@ -755,11 +758,11 @@ The splitting function $\gamma$ is defined as
 Here the splitting parameter, $\xi$, is an arbitrary factor that is chosen to optimize performance. 
 Given that the Laplacian commutes with the convolution we can divide the problem in two separate parts, denoted as near and far field  
  \begin{equation}
- \varepsilon\Delta\phi^{(far)}=-f\star\gamma
+ \varepsilon\Delta\phi^{\far}=-f\star\gamma
 \end{equation}   
 \begin{equation}
  \label{tppoisson_ewald_near}
- \varepsilon\Delta\phi^{(near)}=-f\star(1-\gamma)
+ \varepsilon\Delta\phi^{\near}=-f\star(1-\gamma)
 \end{equation}   
 The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case by effectively modifying the width of the Gaussian sources from $g_w$ to
 \begin{equation}
@@ -769,36 +772,36 @@ Notice that this overcomes the difficulties for the case of point sources, since
 
 In contrast the near field effective charges are sharply peaked and narrower than the originals, rapidly decaying to zero. We can compute the Green's function for eq. \eqref{tppoisson_ewald_near} analytically by convolving the original Poisson Green's function with the effective charges in eq. \eqref{tppoisson_ewald_near} in Fourier space
 \begin{equation}
-  \hat{G}^{(near)}(k) = \frac{(1-\hat{\gamma})\hat{g}}{\varepsilon k^2}
+  \hat{G}^{\near}(k) = \frac{(1-\hat{\gamma})\hat{g}}{\varepsilon k^2}
 \end{equation}
 The inverse transform of this kernel gives us the potential at any point of the grid 
 \begin{equation}
-  \phi^{(near)}(\vec{\fpos}) = \sum_i{Q_iG^{(near)}(||\vec{\fpos}-\vec{\ppos}_i||)}
+  \phi^{\near}(\vec{\fpos}) = \sum_i{Q_iG^{\near}(||\vec{\fpos}-\vec{\ppos}_i||)}
 \end{equation}
-However, we are only interested in the potential averaged at the charges locations. Instead of storing and computing the potential in a grid and then interpolating as in the far field we can compute this analytically. Given that $\oper{J} \phi^{(near)} = g\star \phi^{(near)}$ we can define a pre-interpolated interaction kernel as
+However, we are only interested in the potential averaged at the charges locations. Instead of storing and computing the potential in a grid and then interpolating as in the far field we can compute this analytically. Given that $\oper{J} \phi^{\near} = g\star \phi^{\near}$ we can define a pre-interpolated interaction kernel as
 \begin{equation}
-  \hat{G}_{\oper{J}}^{(near)}(k) = \hat{g}\hat{G}^{(near)} = \frac{(1-\hat{\gamma})\hat{g}^2}{\varepsilon k^2}
+  \hat{G}_{\oper{J}}^{\near}(k) = \hat{g}\hat{G}^{\near} = \frac{(1-\hat{\gamma})\hat{g}^2}{\varepsilon k^2}
 \end{equation}
 This expression is radially symmetric, which allows to compute the inverse Fourier transform as
 \begin{equation}
   \label{tppoisson_gnear}
   \begin{aligned}
-    G_{\oper{J}}^{(near)}(r) &= \frac{1}{2\pi^2r}\int{\hat{G}^{(near)}_{\oper{J}}k \sin(kr)dk} \\
+    G_{\oper{J}}^{\near}(r) &= \frac{1}{2\pi^2r}\int{\hat{G}^{\near}_{\oper{J}}k \sin(kr)dk} \\
             &= \frac{1}{4\pi\epsilon r}\left(\erf\left(\frac{r}{2g_w}\right) - \erf\left(\frac{r}{2g_t}\right)\right)
   \end{aligned}
 \end{equation}
 Which decays exponentially and thus can be truncated at a certain cut off radius $r_c$. Furthermore this expression requires special consideration at short distances where numerical issues could arise. In this cases the Taylor expansion of eq. \eqref{tppoisson_gnear} can be used instead.
 We can use this expression to compute the potential or energy at the charges locations
 \begin{equation}
-  U_i = Q_i\oper{J}_{\vec{\ppos}}\phi^{(near)}(\vec{\fpos}) = Q_i\sum_j{Q_jG_{\oper{J}}^{(near)}(||\vec{\ppos}_i - \vec{\ppos}_j||)}
+  U_i = Q_i\oper{J}_{\vec{\ppos}}\phi^{\near}(\vec{\fpos}) = Q_i\sum_j{Q_jG_{\oper{J}}^{\near}(||\vec{\ppos}_i - \vec{\ppos}_j||)}
 \end{equation}
 Similarly we compute the electric field or force acting on each charge 
 \begin{equation}
-  \vec{F}_i = Q_i \oper{J}_{\vec{\ppos}} \vec{E}^{(near)}_i = Q_i\sum_j{Q_j\frac{\partial G_{\oper{J}}^{(near)}({r_{ij}})}{\partial r}\frac{\vec{r}_{ij}}{r_{ij}}}
+  \vec{F}_i = Q_i \oper{J}_{\vec{\ppos}} \vec{E}^{\near}_i = Q_i\sum_j{Q_j\frac{\partial G_{\oper{J}}^{\near}({r_{ij}})}{\partial r}\frac{\vec{r}_{ij}}{r_{ij}}}
 \end{equation}
-Where $\vec{r}_{ij} = \vec{z}_i - \vec{z}_j$ and $r_{ij} = ||\vec{r}_{ij}||$.
+Where $\vec{r}_{ij} = \vec{\ppos}_i - \vec{\ppos}_j$ and $r_{ij} = ||\vec{r}_{ij}||$. The derivative of eq. \eqref{tppoisson_gnear} can be computed analytically.
 
-\section{Accuracy}
+\subsection*{Accuracy}
 There are several parameters than can be tweaked to control the overall accuracy of the algorithm:
 The grid cell size $h$ or the number of grid cells $n$ control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
 \begin{equation}
@@ -807,7 +810,7 @@ h = L/n = g_w/\alpha
 Where $L$ is the domain size (a cubic box is considered, but the arguments can be extended easily to any domain dimensions) and $\alpha$ is a proportionality factor. Note that $n$ should be chosen to be an \gls{FFT}-friendly number.
 
 
-\section{How to use in UAMMD}
+\subsection{Use in UAMMD}
 
 This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
 
@@ -833,13 +836,7 @@ auto createTPPoissonInteractor(UAMMD sim){
   return std::make_shared<Poisson>(sim.pd, sim.pg, sim.sys, par);
 }
 \end{minted}
-The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for L->inf is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance. See test/Potential/Poisson  
-
-
-\subsection{Use in UAMMD}
-
-
-
+The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for $L\rightarrow\infty$ is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance.
 
 
 \chapter{Short range interactions}
@@ -1745,35 +1742,42 @@ The incompressible Navier-Stokes equations can be written as
 \begin{equation}
   \label{eq:navierstokes}
   \begin{aligned}
-    \rho\dot{\vec{\fvel}} + \nabla \pi &= \eta \nabla^2\vec{\fvel} + \vec{f}\\
+    \rho\dot{\vec{\fvel}} + \nabla \pi &= \eta \nabla^2\vec{\fvel} + \vec{f} + \nabla\cdot \mathcal{Z}\\
     \nabla\cdot\vec{\fvel} &= 0
   \end{aligned}
 \end{equation}
 Where $\vec{\fvel}(\vec{\fpos})$ represents the velocity of the fluid, $\pi$ the pressure and $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid.
-We are not interested yet in introducing thermal fluctuations into the description and thus they are not included in eq. \eqref{eq:navierstokes}. However, they can be later reintroduced as an external force.
+The fluctuating stress tensor, $\mathcal{Z}(\vec{\fpos}, t)$, must comply with the fluctuation-dissipation balance (see sec. \ref{sec:langevin}) by presenting the following statistical properties
+\begin{equation}
+  \begin{aligned}
+&  \langle \mathcal Z_{ij}\rangle = 0\\
+&  \langle \mathcal Z_{ik}(\vec{\fpos},t)\mathcal Z_{jm}(\vec{\fpos}',t')\rangle = 2\kT\eta(\delta_{ij}\delta_{km} + \delta_{im}\delta{kj})\delta(\vec{\fpos}-\vec{\fpos}')\delta(t-t')
+\end{aligned}
+\end{equation}
+In order to generalize the notation for eq. \eqref{eq:navierstokes}, we introduce the fluctuations into the fluid forcing term, making $\tilde{\vec{f}} = \vec{f} + \nabla\cdot\mathcal{Z}$.
 If we take the overdamped limit we get the so-called Stokes equations
 \begin{equation}
   \label{eq:stokes}
   \begin{aligned}
-    \nabla \pi - \eta \nabla^2\vec{\fvel} &=  \vec{f}\\
+    \nabla \pi - \eta \nabla^2\vec{\fvel} &=  \tilde{\vec{f}}\\
     \nabla\cdot\vec{\fvel} &= 0
   \end{aligned}  
 \end{equation}
 We can eliminate the pressure from the description by using the projection method. Lets take the divergence of the first equation
 \begin{equation}
-  \nabla^2 \pi - \eta \nabla\cdot(\nabla^2\vec{\fvel}) =  \nabla\cdot\vec{f}
+  \nabla^2 \pi - \eta \nabla\cdot(\nabla^2\vec{\fvel}) =  \nabla\cdot\tilde{\vec{f}}
 \end{equation}
 Since the divergence of the velocity is zero the second term vanishes, so we can identify
 \begin{equation}
-  \pi = \nabla^{-2}(\nabla\cdot\vec{f})
+  \pi = \nabla^{-2}(\nabla\cdot\tilde{\vec{f}})
 \end{equation}
 Replacing the pressure in eq. \eqref{eq:stokes}
 \begin{equation}
-  \eta\nabla^2\vec{\fvel} = \nabla\left[\nabla^{-2}(\nabla\cdot\vec{f})\right] - \vec{f} = -\oper{P} \vec{f}
+  \eta\nabla^2\vec{\fvel} = \nabla\left[\nabla^{-2}(\nabla\cdot\tilde{\vec{f}})\right] - \tilde{\vec{f}} = -\oper{P} \tilde{\vec{f}}
 \end{equation}
 Where $\oper{P}  =  \mathbb{I} - \nabla\nabla^{-2}\nabla$ is called the projection operator, since it projects onto a space of divergence-free velocities. $\mathbb{I}$ represents the identity. Finally, we can identify $\oper{L} = -\nabla^{-2}\oper{P}$ as the Stokes solution operator to arrive at
 \begin{equation}
-  \vec{\fvel} = \eta^{-1}\oper{L}\vec{f}
+  \vec{\fvel} = \eta^{-1}\oper{L}\tilde{\vec{f}}
 \end{equation}
 Now we have a formalism to translate between forces and velocities in the fluid. Lets connect that with a group of particles submerged in it.
 The effect of a particle is going to be mediated to the fluid through the forces acting on it, via a kernel function, $\delta_a(\vec{r})$ that integrates to unity and is localized inside a region of size $a$, refered to as the hydrodynamic radius of the particle. The symbol $\delta$ is used here to indicate that this kernel will usually be a smooth smeared delta function. We will use $\delta_a$ to communicate forces to the fluid, which we refer to as spreading
@@ -1798,14 +1802,23 @@ The interpolation operator, $\oper{J}=\oper{S}^*$, is the opposite operation to 
 We can now write an equation for the velocity of the particles
 \begin{equation}
   \label{eq:bdhibdrelation}
-  \frac{d\vec{q}}{dt} = \vec{u} = \eta^{-1}\oper{J}_{\vec{\ppos}}\oper{L}(\oper{S}\vec{F})
+  \frac{d\vec{q}}{dt} = \vec{u} = \eta^{-1}\oper{J}_{\vec{\ppos}}\oper{L}(\oper{S}\vec{F} + \nabla\cdot\mathcal Z)
 \end{equation}
 This equation is reminiscent of eq. \eqref{eq:bd} by defining the mobility as
 \begin{equation}
   \label{eq:bdhimobns}
   \tens{M} = \eta^{-1}\oper{J}\oper{L}\oper{S}
 \end{equation}
-Where the symbol has been changed to enphasize that this mobility is now a configuration-dependent tensor. In particular, eq. \eqref{eq:bdhimobns} yields a pairwise mobility, depending only on the positions of the particles as
+and its ``square root'' as
+\begin{equation}
+  \tens{M}^{1/2} = \eta^{-1}\oper{J}\oper{L}\nabla
+\end{equation}
+It can be easily proved, by using that $-\oper{L}\nabla^2\oper{L} = \oper{L}$\cite{Delong2014}, that this definition of the square root of the mobility satisfies the fluctuation-dissipation balance so that
+\begin{equation}
+  \label{eq:mobsqrt}
+  \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T
+\end{equation}
+The symbol has been changed to enphasize that this mobility is now a configuration-dependent tensor. In particular, eq. \eqref{eq:bdhimobns} yields a pairwise mobility, depending only on the positions of the particles as
 \begin{equation}
   \label{eq:bdhimob}
   \tens{M}_{ij} = \eta^{-1}\int{\delta_a(\vec{q}_j-\vec{r})\tens{G}(\vec{r}, \vec{r}')\delta_a(\vec{q}_i -\vec{r}')d\vec{r}d\vec{r}'}
@@ -1814,7 +1827,8 @@ Here $\tens{G}$ is the Green's function of eq. \eqref{eq:stokes} for unit viscos
 It is worth exploring here the form of $\tens{G}$ in the particular case of an unbounded domain with fluid at rest at infinity. 
 In this case all operators in the Stokes solution operator commute in Fourier space and we can write 
 \begin{equation}
-  \hat{\oper{L}}(\vec{k}) = \frac{1}{k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
+  \label{eq:stokesoperfou}
+  \fou{\oper{L}}(\vec{k}) = \frac{1}{k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
 \end{equation}
 Where $\vec{k}$ are the wave numbers.
 We can now find the response of eq. \eqref{eq:stokes} to a delta forcing by solving, for a single particle with a force $\vec{F}_0$, using $\delta_a(\vec{r}) := \delta(\vec{r})$.
@@ -1842,10 +1856,18 @@ We will see in future sections how to solve the dynamics of the particles withou
 The Oseen mobility presents asymptotic behavior at short distance stemming from the point particle assumption. However, we are usually interested in simulating the dynamics of objects with a certain hydrodynamic radius.
 
 
-One of the usual choices for the mobility tensor is the \gls{RPY} tensor\cite{Rotne1969,Yamakawa1970}, a regularization of the Oseen tensor at short distances integrated on the surface of a sphere of radius $a$. The \gls{RPY} mobility can be written as
+One of the usual choices for the mobility tensor is the \gls{RPY} tensor\cite{Rotne1969,Yamakawa1970}, a regularization of the Oseen mobility at short distances that describe the hydrodynamic interaction of two spheres of radius $a$. In particular, integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator in the surface, $S$, of a sphere of radius $a$
+\begin{equation}
+  \label{eq:rpymobfour}
+  \begin{aligned}
+    \tens{M}_{ij}^{\textrm{RPY}} &= \frac{\eta^{-1}}{(4\pi a^2)^2} \int_{S_1}dS_1\int_{S_2}dS_2 \int d\vec{k} \exp(i\vec{k}\vec{r})\hat{\oper{L}}(\vec{k})\\
+    &= \eta^{-1} \int \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\frac{sin(ka)}{ka} \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)d\vec{k}
+\end{aligned}
+\end{equation}
+Now, the free-space \gls{RPY} mobility tensor can be written as
 \begin{equation}
   \label{eq:rpy}
-  \tens{M}_{ij}(\vec{r} = \vec{q}_i-\vec{q}_j) = M_0\left\{
+  \tens{M}^{\textrm{RPY}}_{ij}(\vec{r} = \vec{q}_i-\vec{q}_j) = M_0\left\{
   \begin{aligned}
     &\left( \frac{3a}{4r} + \frac{a^3}{2r^3} \right)\mathbb{I} + \left(\frac{3a}{4r} - \frac{3a^3}{2r^3}\right)\frac{\vec{r}\otimes\vec{r}}{r^2}  & r > 2a\\
     &\left(1 - \frac{9r}{32a} \right)\mathbb{I} + \left( \frac{3r}{32a} \right)\frac{\vec{r}\otimes\vec{r}}{r^2} & r \le 2a
@@ -1861,22 +1883,25 @@ Notice that, as revealed by eqs. \eqref{eq:oseenmob} and \eqref{eq:rpy}, the app
 \end{equation}
 Being $M_0 := \tens{M}(0)$ the self mobility.
 This is an expression of the fact that the mobility is usually isotropic and translationally invariant.
-
-The only piece missing now is the fluctuating term. However, we already saw back in sec. \ref{sec:langevin} the relation between the noise and the drag via the fluctuation-dissipation balance. Making an analogy with eq. \eqref{eq:bd} we can finally write the equations of motion for a system of particles with hydrodynamic interactions
+%The only piece missing now is the fluctuating term. However, we already saw back in sec. \ref{sec:langevin} the relation between the noise and the drag via the fluctuation-dissipation balance.
+Making an analogy with eq. \eqref{eq:bd} we can finally write the equations of motion for a system of particles with hydrodynamic interactions
 \begin{equation}
   \label{eq:bdhi}
   d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}}
 \end{equation}
-Where the mobility is now a tensor with dimensions $3N\times 3N$. The fluctuating term involves finding the square root of the mobility, defined as
-\begin{equation}
-  \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T
-\end{equation}
+Where the mobility is now a tensor with dimensions $3N\times 3N$. The fluctuating term involves finding the square root of the mobility, defined in eq. \eqref{eq:mobsqrt}.
+%\begin{equation}
+%  \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T
+%\end{equation}
 This requires that the mobility matrix is positive definite (like the Oseen and \gls{RPY} tensors).
 Solving eq. \eqref{eq:bdhi} numerically by direct evaluation results in an algorithm with a complexity of at least $O(N^2)$ due to the matrix-vector multiplication of the mobility tensor and the forces. Furthermore, finding the square root of the mobility will typically dominate the cost of the algorithm. Even so, there might be situations in which such an algorithm could be the best option.
-Temporal integration can be achieved with any of the methods described in sec. \ref{sec:bd}. However, it is important to consider the extreme cost of computing and/or storing both terms in eq. \eqref{eq:bdhi} when choosing an algorithm. As such, in \uammd we usually restrict ourselves to the Euler-Maruyama method.
+Temporal integration can be achieved with any of the methods described in sec. \ref{sec:bd}. However, it is important to consider the extreme cost of computing and/or storing both terms in eq. \eqref{eq:bdhi} when choosing an algorithm. As such, in \uammd we usually stick to the Euler-Maruyama method.
+
+The deterministic term can be computed via a library call to a matrix-vector multiplication function. However, this incurs $(O(N^2)$ storage. If the full mobility matrix is not needed for a later stage, it can be computed on the fly by using the \emph{NBody} algorithm in sec. \ref{sec:nbody}.
 Lets see two ways of computing the fluctuations numerically.
-\subsection{Cholesky}
-The classic strategy for computing the square root of the mobility, originally proposed by Ermak\cite{Ermak1978}, is by direct Cholesky factorization. This operation requires $O(N^3)$ operation, rendering this algorithm unsuitable for large numbers of particles (above $10^4$). However, the sheer raw power of the \gpu can make this a valid option. In \uammd the Cholesky factorization is accomplished via a single library call to NVIDIA's cuSolver function \emph{potrf}.
+\subsection{Cholesky}\label{sec:chol}
+The classic strategy for computing the square root of the mobility, originally proposed by Ermak\cite{Ermak1978}, is by direct Cholesky factorization. This operation requires $O(N^3)$ operation, rendering this algorithm unsuitable for large numbers of particles (above $10^4$). Additionally, it has $O(N^2)$ storage requirements, since the full mobility matrix has to be stored.
+However, the sheer raw power of the \gpu can make this a valid option. In \uammd the Cholesky factorization is accomplished via a single library call to NVIDIA's cuSolver function \emph{potrf}.
 
 \subsubsection{Use in UAMMD}\label{sec:uammdchol}
 In \uammd, \gls{BDHI} algorithms are separated between temporal integration schemes and strategies for computing the deterministic and stochastic displacements. Both pieces are joined to form an \emph{Integrator} that can be used as usual.
@@ -1905,10 +1930,11 @@ auto createIntegratorBDHICholesky(UAMMD sim){
 \end{minted}
 
 
-\subsection{Lanczos}
+\subsection{Lanczos}\label{sec:lanczos}
 Fixmann proposed a method based on Chebyshev polynomials\cite{Fixman1986} to compute the square root of the mobility. This method requires approximating the extremal eigenvalues of the mobility. A lot of strategies can be employed to find out these eigenvalues, with complexities ranging from $O(N^3)$ (thus beating the purpose) to $O(N^{2.25})$\cite{Jendrejack2000}. More recently, a family of iterative algorithms based on Krylov subspace decompositions have emerged\cite{Ando2012,Saadat2014} showcasing algorithmic complexities in the order $O(kN^2)$, being $k$ the number of required iterations (which is usually around the order of $10$ depending on the desired tolerance). In \uammd the technique developed in \cite{Ando2012} is implemented.
 
-\todo{Some description of the algorithm might be cool... Explain at least why its call Lanczos}
+Another benefit of this method over Cholesky is that it is not required to store the full mobility matrix in order to compute the fluctuations. The product of the mobility tensor by a vector (the forces in the deterministic term and a random noise in the fluctuating one) can be computed by recomputing the necessary terms. This will be particularly useful later, when most elements in the mobility tensor become zero, reducing the complexity of the computation for both terms.
+\todo{Some description of the algorithm might be cool... Explain at least why its called Lanczos}
 
 \subsubsection{Use in UAMMD}
 Using the Lanczos strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). With the difference that now, being this an iterative algorithm, a tolerance can be selected.
@@ -1936,17 +1962,82 @@ auto createIntegratorBDHICholesky(UAMMD sim){
 }
 \end{minted}
 
-\subsection{Force Coupling Method (FCM)}
+\subsection{Force Coupling Method (FCM)}\label{sec:fcm}
+Both \emph{Cholesky} and \emph{Lanczos} methods use the explicit form of an open boundary mobility. This makes them open boundary algorithms since they do not take into account the periodic images of the system in any way. Furthermore, the computational complexity of these methods is restrictive. Luckily, we can manage to do it in $O(N)$ operations if we consider periodic boundary conditions. In particular by solving eq. \eqref{eq:bdhibdrelation} directly in Fourier space via the Force Coupling Method\cite{Keaveny2014}. In doing so, we get the added benefit (and disadvantage) of not impossing a specific mobility tensor, which will arise naturally according to the spreading kernel.
 
-Introduction to spectral methods
+In order to do this we first spread particle forces to the fluid ($\oper{S}\vec{F}$ in eq. \eqref{eq:bdhibdrelation}) and transform them to Fourier space. Then the Fourier representation of the Stokes solution operator in eq. \eqref{eq:stokesoperfou} is used to obtain the velocities in the fluid in Fourier space. The fluid velocity is then transformed back to real space and eq. \eqref{eq:bdhifvel} is applied to get the particle displacements by interpolation.
+The kernel used in \gls{FCM} is a Gaussian, in particular
+\begin{equation}
+  \label{eq:fcmkernel}
+  \delta_a(r = ||\vec{\ppos}_i - \vec{\fpos}||) := \frac{1}{(2\pi\sigma_a)^{3/2}}\exp\left(\frac{-r^2}{2\sigma_a^2}\right)
+\end{equation}
+Where $\sigma_a = a/\sqrt{\pi}$.
+
+The fluctuating term, $\nabla\cdot\mathcal{Z}$, is computed directly in Fourier space in the fluid via \emph{ik} differentiation. This makes evaluating the Brownian motion effectively cost free.
+The computation of the fluid velocities is independent on the number of particles (since the first step is to spread the forces to the fluid). The complexity of the spreading and interpolation operations grow linear with the number of particles. Thus the overall complexity of the algorithm is $O(N)$.
+
+Summarizing, we can express the fluid velocity in Fourier space as
+\begin{equation}
+  \fou{\vec{u}}(\vec{k}) = \frac{1}{\eta k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)\left( i\vec{k}\cdot\fou{\mathcal{Z}} + \fou{\vec{f}}\right)
+\end{equation}
+\subsection*{Spatio-temporal discretization}
+Assuming a cubic box (the description can be then generalized to non-cubic boxes easily) we solve the velocity of the fluid in a grid with size $h$, with a number of cells in each size $N_c = L/h$.
+We use \gls{FFT} to discretize the Fourier transform, this requires us to evaluate the properties of the fluid in a grid. This grid must be fine enough to correctly describe the Gaussian interpolator in eq. \eqref{eq:fcmkernel} (similarly to the discrete description in sec. \ref{ch:tppoisson}). On the other hand, the kernel in eq. \eqref{eq:fcmkernel} has an infinte range and to make the overall spreading/interpolation have a constant cost for each particle (independent on the size of the domain) it is necessary to truncate it at a certain distance. In particular, the author in \cite{Keaveny2014} suggests making $\delta_a(r>3a) = 0$ and $\sigma_a/h > 1.86$, suggesting that the error is less than machine precision for $\sigma_a/h = 14.89$.
+We will study later these tolerance considerations.
+
+The noise can be computed in Fourier space by generating Gaussian random numbers with zero mean and standard deviation given by
+\begin{equation}
+  \langle \fou{\mathcal{Z}}_{ik}(\vec{k})\fou{\mathcal{Z}}^*_{jm} (-\vec{k})\rangle = \frac{2\kT\eta N_c^3}{ h^3 \dt}(\delta_{ij}\delta_{km} + \delta_{im}\delta_{kj})
+\end{equation}
+Special care must be taken to enforce this condition, in particular by ensuring the uncoupled modes, also known as Nyquist points\cite{nyquist}, are real (equal to their conjugate).
+
+\subsubsection{Use in UAMMD}
+Using the \gls{FCM} strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). Being an approximate algorithm, a tolerance has to be specified and since now the domain is periodic, a domain size is also needed.
+
+In contrast with the open boundary algorithms in sections \ref{sec:chol} and \ref{sec:lanczos} this implementation does not allow to set a different hydrodynamic radius for each particle.
+Here is an example of the Euler-Maruyama integration scheme being specialized with \gls{FCM}.
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Integrator/BDHI/BDHI_EulerMaruyama.cuh>
+#include<Integrator/BDHI/BDHI_FCM.cuh>
+using namespace uammd;
+//A function that creates and returns a BDHI integrator
+// using Force Coupling Method
+auto createIntegratorBDHIFCM(UAMMD sim){   
+  //An strategy is mixed with an integration scheme
+  using FCM = BDHI::EulerMaruyama<BDHI::FCM>;
+  FCM::Parameters par;
+  par.temperature = sim.par.temperature;
+  par.viscosity = sim.par.viscosity;
+  par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
+  par.dt = sim.par.dt;
+  par.tolerance = sim.par.tolerance;
+  par.box = sim.par.box;
+  auto bdhi = std::make_shared<FCM>(sim.pd, sim.pg, 
+                                    sim.sys, par);
+  return bdhi;
+}
+\end{minted}
 
 
-\subsection{Positively Split Ewald (PSE)}
+
+\subsection{Positively Split Ewald (PSE)}\label{sec:pse}
+In a similar way as with triply periodic electrostatics (see sec. \ref{ch:tppoisson}), in \gls{FCM} the size of the grid is tied to the hydrodynamic radius of the particles. Hindering its ability to simulate either large domains or small particles. Furthermore, the \gls{FCM} does not imposes a mobility explicitly, making it impossible to control the near field hydrodynamic effects without modifying the shape of the spreading kernels. We can apply an Ewald splitting strategy to overcome this limitation as described in\cite{Fiore2017}.
+
+In particular, we will solve eq. \eqref{eq:bdhi} using the \gls{RPY} mobility in with periodic boundary conditions. We can express the periodic \gls{RPY} tensor in Fourier space by replacing the integral in eq. \eqref{eq:rpymobfour} by a sum
+\begin{equation}
+  \tens{M}_{ij}^{\textrm{RPY}}= \frac{1}{\eta dV} \sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\frac{sin(ka)}{ka} \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
+\end{equation}
 
 
+In \gls{PSE}, the \gls{RPY} tensor is expressed a sum of two symmetric, positive definite, operators. The first of them is spatially local and can be evaluated exactly using the algorithm in sec. \ref{sec:lanczos} (with the added benefit that most elements in the mobility tensor will be zero). The second operator is non local and its contribution can be taken into account using the same spectral algorithm as in sec. \ref{sec:fcm}.
+Thus we are looking for a mobility tensor in the form
+\begin{equation}
+  \tens{M}_{ij} = \tens{M}_{ij}^{\far} + \tens{M}^{ \near}_{ij}
+\end{equation}
 
 \chapter{Eulerian-Lagrangian methods for Fluctuating Hydrodynamics}
-Using a grid
+In general, \gls{BC}s in the previous methods have to be introduced via the Green's function in eq. \eqref{eq:bdhimob}. However, this Green's function might be unknown or simply non analytic. We can discretize and solve eq. \eqref{eq:bdhibdrelation} directly to have more fine control over the \gls{BC}s.
 
 \section{The Immersed Boundary method}
 
@@ -1955,6 +2046,7 @@ Using a grid
 \section{Fluctuating Immersed Boundary (FIB)}
 
 
+\todo{Graph comparing the different methods using several interpolation kernels}
 \section{Inertial Coupling Method (ICM)}
 
 Putting inertia into the mix
