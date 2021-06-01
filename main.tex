@@ -80,6 +80,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newcommand{\gpu}{\gls{GPU}\xspace}
 \newcommand{\dt}{\delta t}
 \newcommand{\kT}{k_B T}
+\newcommand{\sinc}{\textrm{sinc}}
 \newcommand{\near}{\textrm{near}}
 \newcommand{\far}{\textrm{far}}
 \newcommand{\half}{\frac{1}{2}}
@@ -533,7 +534,7 @@ Numerically we can express this algorithm as follows:
   \end{algorithmic}
 \end{algorithm}
 We can also use this algorithm to get the minimum distance between two points, so particles near opposite walls interact.
-\subsection{Use in UAMMD}
+\subsection*{Use in UAMMD}
 In \uammd, \gls{MIC} can be accesed via the \emph{Box} class.
 \begin{listing}[H]
 \begin{minted}{\ucpp}
@@ -612,7 +613,7 @@ The algorithm is summarized in algorithm \ref{alg:nbody}-
 
 Note that the computation as described here is not restricted to computing forces or energies between particles, it might be used for widely different computations that can be encoded as an nbody operation.
 \uammd acknowledges this generality via the \emph{Transverser} interface (see sec. \ref{sec:transverser}), that can be used to specialize these algorithms. 
-\subsection{Use in UAMMD}
+\subsection*{Use in UAMMD}
 There are three ways to access this algorithm depending on the final usage.
 The first is to use it to process a \emph{Transverser} acting on a group of particles:
 \begin{minted}{\ucpp}
@@ -810,7 +811,7 @@ h = L/n = g_w/\alpha
 Where $L$ is the domain size (a cubic box is considered, but the arguments can be extended easily to any domain dimensions) and $\alpha$ is a proportionality factor. Note that $n$ should be chosen to be an \gls{FFT}-friendly number.
 
 
-\subsection{Use in UAMMD}
+\subsection*{Use in UAMMD}
 
 This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
 
@@ -1036,7 +1037,7 @@ The most efficient way to perform this sorting operation in a \gpu (as far as th
 
 
 Inefficient for large size disparities.
-\subsubsection{Use in UAMMD}
+\subsubsection*{Use in UAMMD}
 There are two main ways to construct a Cell List in \uammd (and the other neighbour lists behave in a similar way):
 \begin{itemize}
 \item Through the \uammd ecosystem.
@@ -1300,7 +1301,7 @@ Thus, the velocity Verlet algorithm presents all the necessary properties for be
 %\subsection{Testing the algorithm}
 %
 %One way to measure the effectiveness of the algorithm is to check the energy conservation\todo{Is this worth doing?}
-\subsection{Use in UAMMD}
+\subsection*{Use in UAMMD}
 The velocity Verlet algorithm in the NVE ensemble is available in \uammd as an Integrator module called \emph{VerletNVE}.
 
 As an energy conserving algorithm, VerletNVE offers the possibility of setting a certain energy per particle at creation.
@@ -1479,7 +1480,7 @@ Where
 \end{equation}
 Note that, since the we need the force at $t+\dt$ to compute the velocities at $t+\dt$ the forces have to be a function of the positions only (and not velocities).
 
-\subsection{Use in UAMMD}
+\subsection*{Use in UAMMD}
 The Grønbech-Jensen algorithm described above is available in \uammd as an Integrator module called \emph{GronbechJensen}, under the namespace \emph{VerletNVT}.
 
 This module will initialize the particle's velocities near the equilibrium Boltzmann distribution.
@@ -1543,7 +1544,7 @@ Numerical integration of the \gls{SDE} \eqref{eq:dpddyn} is tricky for the same 
 All of these methods improve the accuracy of the predicted transport properties and response functions in exchange for increase computational cost. 
 One popular approach is to simply use velocity Verlet as described in sec. \ref{sec:velocityverlet} with the forces in eq. \eqref{eq:dpdforces}. This yields ``poor'' stability and presents certain artifacts\cite{Besold2000} due to the mistreatment of the derivative of the noise term incurred by treating eq. \eqref{eq:dpddyn} as an \gls{ODE} instead of a proper \gls{SDE}. However, it is often good enough and while it might require a smaller time step to recover measurables to an acceptable tolerance it is the fastest approach and trivial to implement in a code already providing the velocity Verlet algorithm.
 \todo{Preguntar a Rafa sobre integradores DPD. Por que nadie lo trata como una SDE y evalua v en $t+1/2$?}
-\subsection{Use in UAMMD}
+\subsection*{Use in UAMMD}
 In \uammd \gls{DPD} is interpreted as a \emph{Potential} that can be added to a \emph{VerletNVE} \emph{Integrator}.
 
 \begin{minted}{\ucpp}
@@ -1711,7 +1712,7 @@ Mid Point updates the simulation with the following rule
   \end{aligned}
 \end{equation}
 \todo{Compare all algorithms by showing a g(r) with different time steps}
-\subsection{Use in UAMMD}
+\subsection*{Use in UAMMD}
 
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
@@ -1899,12 +1900,14 @@ Solving eq. \eqref{eq:bdhi} numerically by direct evaluation results in an algor
 Temporal integration can be achieved with any of the methods described in sec. \ref{sec:bd}. However, it is important to consider the extreme cost of computing and/or storing both terms in eq. \eqref{eq:bdhi} when choosing an algorithm. As such, in \uammd we usually stick to the Euler-Maruyama method.
 
 The deterministic term can be computed via a library call to a matrix-vector multiplication function. However, this incurs $O(N^2)$ storage. If the full mobility matrix is not needed for a later stage, it can be computed on the fly by using the \emph{NBody} algorithm in sec. \ref{sec:nbody}.
-Lets see two ways of computing the fluctuations numerically.
+
+Although our mathematical framework is not limited to it, thus far the mobility matrices we have computed explicitly (in eqs. \eqref{eq:rpy} and \eqref{eq:oseenmob}) correspond to systems with open boundaries (since they come from applying the unbounded Green's function in eq. \eqref{eq:stokesoperfou}). Lets first see how to solve eq. \eqref{eq:bdhi} by using the unbounded \gls{RPY} mobility and then explore other strategies that can be used when assuming periodic boundary conditions.
 \subsection{Cholesky}\label{sec:chol}
 The classic strategy for computing the square root of the mobility, originally proposed by Ermak\cite{Ermak1978}, is by direct Cholesky factorization. This operation requires $O(N^3)$ operations, rendering this algorithm unsuitable for large numbers of particles (above $10^4$). Additionally, it has $O(N^2)$ storage requirements, since the full mobility matrix has to be stored.
 However, the sheer raw power of the \gpu can make this a valid option. In \uammd the Cholesky factorization is accomplished via a single library call to NVIDIA's cuSolver function \emph{potrf}.
+On the other hand, since the mobility matrix has to be stored anyway, the rest of the algorithm can be coded via a few function calls to a linear algebra library. In particular, the Cholesky module in \uammd uses the matrix-vector multiplications in the \emph{cuBLAS} library\cite{cublas}. Taking into account the symmetric form of the mobility matrix, only the upper half needs to be computed and stored, \emph{cuBLAS} (and most linear algebra libraries) provide subroutines that leverage this. In this regard, there is not much possibility for optimization.
 
-\subsubsection{Use in UAMMD}\label{sec:uammdchol}
+\subsubsection*{Use in UAMMD}\label{sec:uammdchol}
 In \uammd, \gls{BDHI} algorithms are separated between temporal integration schemes and strategies for computing the deterministic and stochastic displacements. Both pieces are joined to form an \emph{Integrator} that can be used as usual.
 Here is an example of the Euler-Maruyama integration scheme being specialized with the Cholesky decomposition algorithm for the fluctuations.
 \begin{minted}{\ucpp}
@@ -1937,7 +1940,7 @@ Fixmann proposed a method based on Chebyshev polynomials\cite{Fixman1986} to com
 Another benefit of this method over Cholesky is that it is not required to store the full mobility matrix in order to compute the fluctuations. The product of the mobility tensor by a vector (the forces in the deterministic term and a random noise in the fluctuating one) can be computed by recomputing the necessary terms. This will be particularly useful later, when most elements in the mobility tensor become zero, reducing the complexity of the computation for both terms.
 \todo{Some description of the algorithm might be cool... Explain at least why its called Lanczos}
 
-\subsubsection{Use in UAMMD}
+\subsubsection*{Use in UAMMD}
 Using the Lanczos strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). With the difference that now, being this an iterative algorithm, a tolerance can be selected.
 Here is an example of the Euler-Maruyama integration scheme being specialized with the Cholesky decomposition algorithm for the fluctuations.
 \begin{minted}{\ucpp}
@@ -1968,7 +1971,7 @@ auto createIntegratorBDHILanczos(UAMMD sim){
 \subsection{Force Coupling Method (FCM)}\label{sec:fcm}
 Both \emph{Cholesky} and \emph{Lanczos} methods use the explicit form of an open boundary mobility. This makes them open boundary algorithms since they do not take into account the periodic images of the system in any way. Furthermore, the computational complexity of these methods is restrictive. Luckily, we can manage to do it in $O(N)$ operations if we consider periodic boundary conditions. In particular by solving eq. \eqref{eq:bdhibdrelation} directly in Fourier space via the Force Coupling Method\cite{Keaveny2014}. In doing so, we get the added benefit (and disadvantage) of not impossing a specific mobility tensor, which will arise naturally according to the spreading kernel.
 
-In order to do this we first spread particle forces to the fluid ($\oper{S}\vec{F}$ in eq. \eqref{eq:bdhibdrelation}) and transform them to Fourier space. Then the Fourier representation of the Stokes solution operator in eq. \eqref{eq:stokesoperfou} is used to obtain the velocities in the fluid in Fourier space via multiplication. The fluid velocity is then transformed back to real space and eq. \eqref{eq:bdhifvel} is applied to get the particle displacements by interpolation.
+In order to do this we first spread particle forces to the fluid ($\oper{S}\vec{F}$ in eq. \eqref{eq:bdhibdrelation}) and transform them to Fourier space. Then the Green's function (like eq. \eqref{eq:stokesoperfou} for periodic boundary conditions) is used to obtain the velocities in the fluid in Fourier space via multiplication. The fluid velocity is then transformed back to real space and eq. \eqref{eq:bdhifvel} is applied to get the particle displacements by interpolation.
 The kernel used in \gls{FCM} is a Gaussian, in particular
 \begin{equation}
   \label{eq:fcmkernel}
@@ -1981,11 +1984,15 @@ The computation of the fluid velocities is independent on the number of particle
 
 Summarizing, we can express the fluid velocity in Fourier space as
 \begin{equation}
-  \fou{\vec{u}}(\vec{k}) = \frac{1}{\eta k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)\left( i\vec{k}\cdot\fou{\mathcal{Z}} + \fou{\vec{f}}\right)
+  \label{eq:fcmvel}
+  \fou{\vec{u}}(\vec{k}) = \eta^{-1}B(k)\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)\left( i\vec{k}\cdot\fou{\mathcal{Z}} + \fou{\vec{f}}\right)
 \end{equation}
+Where $B(k)$ is a factor in Fourier space, i.e $B := \frac{1}{k^2}$ for the Green's function in eq. \eqref{eq:stokesoperfou}.
+\todo{Spectral splitting as in PSE can also be done here, which would allow to reduce the support by restricting the kernel to be a Gaussian, probably not worth it because of it.}
+Note that any smooth, closely-supported kernel can be used here instead of a Gaussian, which will regularize differently the near field hydrodynamics.
 \subsection*{Spatio-temporal discretization}
 Assuming a cubic box (the description can be then generalized to non-cubic boxes easily) we solve the velocity of the fluid in a grid with size $h$, with a number of cells in each size $N_c = L/h$.
-We use \gls{FFT} to discretize the Fourier transform, this requires us to evaluate the properties of the fluid in a grid. This grid must be fine enough to correctly describe the Gaussian interpolator in eq. \eqref{eq:fcmkernel} (similarly to the discrete description in sec. \ref{ch:tppoisson}). On the other hand, the kernel in eq. \eqref{eq:fcmkernel} has an infinte range and to make the overall spreading/interpolation have a constant cost for each particle (independent on the size of the domain) it is necessary to truncate it at a certain distance. In particular, the author in \cite{Keaveny2014} suggests making $\delta_a(r>3a) = 0$ and $\sigma_a/h > 1.86$, suggesting that the error is less than machine precision for $\sigma_a/h = 14.89$.
+We use \gls{FFT} to discretize the Fourier transform, this requires us to evaluate the properties of the fluid in a grid. This grid must be fine enough to correctly describe the Gaussian interpolator in eq. \eqref{eq:fcmkernel} (similarly to the discrete description in sec. \ref{ch:tppoisson}). On the other hand, the kernel in eq. \eqref{eq:fcmkernel} has an infinte range and to make the overall spreading/interpolation have a constant cost for each particle (independent on the size of the domain) it is necessary to truncate it at a certain distance, $r_c$. In particular, the author in \cite{Keaveny2014} suggests $r_c=m \sigma_a$, with $m=3\sqrt{\pi}\approx 5.3$ being the number of standard deviations of the Gaussian that are taken into account (thus making $\delta_a(r>r_c) = 0$), and $\sigma_a/h > 1.86$, suggesting that the error is less than machine precision for $\sigma_a/h = 14.89$. We can then set a number of support cells for the kernel as $n_s = 2 \textrm{ceil}(r_c/h)+1$.
 We will study later these tolerance considerations.
 
 The noise can be computed in Fourier space by generating Gaussian random numbers with zero mean and standard deviation given by
@@ -1993,8 +2000,8 @@ The noise can be computed in Fourier space by generating Gaussian random numbers
   \langle \fou{\mathcal{Z}}_{ik}(\vec{k})\fou{\mathcal{Z}}^*_{jm} (-\vec{k})\rangle = \frac{2\kT\eta N_c^3}{ h^3 \dt}(\delta_{ij}\delta_{km} + \delta_{im}\delta_{kj})
 \end{equation}
 Special care must be taken to enforce this condition, in particular by ensuring the uncoupled modes, also known as Nyquist points\cite{nyquist}, are real (equal to their conjugate).
-
-\subsubsection{Use in UAMMD}
+\todo{speficy how to deal with nyquist points, appendix with cufft format description and how to deal with wavenumbers}
+\subsubsection*{Use in UAMMD}
 Using the \gls{FCM} strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). Being an approximate algorithm, a tolerance has to be specified and since now the domain is periodic, a domain size is also needed.
 
 In contrast with the open boundary algorithms in sections \ref{sec:chol} and \ref{sec:lanczos} this implementation does not allow to set a different hydrodynamic radius for each particle.
@@ -2037,18 +2044,18 @@ Where $V = L^3$ is the volume of the periodic domain.
 We can now write the periodic \gls{RPY} tensor, which amounts to replacing the integral in eq. \eqref{eq:rpymobfour} by a sum.
 \begin{equation}
   \label{eq:pserpyfou}
-  \tens{M}_{ij}^{\textrm{RPY}}= \frac{1}{\eta V} \sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(sinc(ka) \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
+  \tens{M}_{ij}^{\textrm{RPY}}(\vec{r})= \frac{1}{\eta V} \sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\sinc(ka) \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
 \end{equation}
 
 In \gls{PSE}, the \gls{RPY} tensor is expressed a sum of two symmetric, positive definite, operators. The first of them is spatially local and can be evaluated exactly using the algorithm in sec. \ref{sec:lanczos} (with the added benefit that most elements in the mobility tensor will be zero). The second operator is non local and its contribution can be taken into account using the same spectral algorithm as in sec. \ref{sec:fcm}.
 Thus we are looking for a mobility tensor in the form
 \begin{equation}
-  \tens{M}_{ij} = \tens{M}_{ij}^{\far} + \tens{M}^{ \near}_{ij}
+  \tens{M}_{ij}^{\textrm{RPY}} = \tens{M}_{ij}^{\far} + \tens{M}^{ \near}_{ij}
 \end{equation}
 We use the Ewald sum splitting of Hasimoto\cite{Hasimoto1959} for eq. \eqref{eq:pserpyfou} so that
 \begin{equation}
   \label{eq:pserpyfar}
-  \tens{M}_{ij}^{\far}= \frac{1}{\eta V} \sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(sinc(ka) \right)^2H(k,\xi)\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
+  \tens{M}_{ij}^{\far}= \frac{1}{\eta V} \sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\sinc(ka) \right)^2H(k,\xi)\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
 \end{equation}
 Where the Hasimoto splitting function is defined as
 \begin{equation}
@@ -2059,27 +2066,88 @@ Here $\xi$ is the splitting parameter (see sec. \ref{ch:tppoisson}), an arbitrar
 The integral for the inverse transform of the near part can be computed analytically, this term can be written as
 \begin{equation}
   \label{eq:pserpynear}
-  \tens{M}_{ij}^{\near}= F(k,\xi)\mathcal I - G(k,\xi)\left(\frac{\vec{r}\otimes\vec{r}}{r^2}\right)
+  \tens{M}_{ij}^{\near}= F(r,\xi)\mathbb I - G(r,\xi)\left(\frac{\vec{r}\otimes\vec{r}}{r^2}\right)
 \end{equation}
-Where the functions $F$ and $G$ have really convoluted expressions that can be found in Appendix A of\cite{Fiore2017} or in the \uammd source code\footnote{This expressions are really long and convoluted. The corresponding code evaluating the near field in eq. \eqref{eq:pserpynear} is located in the source file \emph{RPY\_PSE.cuh}, which is written to facilitate its copy-pasting for other implementations.}.
+Where the functions $F$ and $G$ are two rapidly decaying functions with really convoluted expressions that can be found in Appendix A of\cite{Fiore2017} or in the \uammd source code\footnote{This expressions are really long and convoluted. The corresponding code evaluating the near field in eq. \eqref{eq:pserpynear} is located in the source file \emph{RPY\_PSE.cuh}, which is written to facilitate its copy-pasting for other implementations.}.
 
 Both contributions to the mobility in \eqref{eq:pserpynear} and \eqref{eq:pserpyfar} are guaranteed to be positive definite for all particle configurations\todo{Why?}.
-This allows to use the techniques we have already used in previous sections to evaluate each term. The deterministic term (the multiplication of the mobility by the forces acting on the particles) can simply be computed separatedly and then added. The fluctuations pose more of a challenge if we want to refrain from computing storing the square root of the mobility. In particular, we can separate the fluctuating contribution in eq. \eqref{eq:bdhi} in a far and near field ones by defining
+This allows to use the techniques we have already used in previous sections to evaluate each term. The deterministic term (the multiplication of the mobility by the forces acting on the particles) can simply be computed separatedly and then added.
+
+The fluctuations pose more of a challenge if we want to refrain from computing and storing the square root of the mobility. In particular, we can split the fluctuating contribution in eq. \eqref{eq:bdhi} into a far and near field ones by defining
 \begin{equation}
-  \tens{M}^{1/2} d\vec{\noise} :=  (\tens{M}^{\near})^{1/2} d\vec{\noise}_1 + (\tens{M}^{\far})^{1/2} d\vec{\noise}_2
+  (\tens{M}^{\textrm{RPY}})^{1/2} d\vec{\noise} :=  (\tens{M}^{\near})^{1/2} d\vec{\noise}_1 + (\tens{M}^{\far})^{1/2} d\vec{\noise}_2
 \end{equation}
 Where $\vec{\noise}_{1,2}$ are independent Wiener processes.
-
 \todo{Why can they do this so freely??}
-The far field computation is thus identical to the \gls{FCM} if we use $\sigma_a = ...$ as the width of the kernel (or equivalently, setting the hydrodynamic radius to $a=...$)\todo{complete}. And also differences in the mobility (a factor in the noise)
-For the near field, we can use the infrastructure in the \emph{Lanczos} algorithm (see sec. \ref{sec:lanczos}) with the mobility in eq. \eqref{eq:pserpynear}.
+Lets see in more detail how to adapt our previous algorithms to solve each part of the problem
 
+\subsubsection*{The far field}
+
+The far field computation is identical to the \gls{FCM} with a couple of changes.
+First, the Green's function has to be modified, in particular, we need to redefine the Fourier factor in eq. \eqref{eq:fcmvel}
+\begin{equation}
+  B(k) := \frac{1}{k^2V}\tilde{H}(k,\xi)\exp\left(\frac{-k^2\lambda}{4\xi^2}\right)\sinc(ka)^2
+\end{equation}
+This describes the Green's function associated with the far field \gls{RPY} mobility in eq. \eqref{eq:pserpyfar}. In order to spread a Gaussian instead of a delta we have introduced a second splitting parameter, $\lambda$, to split the exponential in $H$ (a common strategy\cite{Lindbo2011}\cite{Wang2016}). This allows us to define the spreading kernel in \gls{FCM} as an exponential with $\sigma_a := \frac{\sqrt{\lambda}}{2\xi}$. On the other hand, this restricts the far field spreading kernel to a Gaussian, without the possibility of using other more closely supported kernels easily, since the splitting requires knowledge of the Fourier transform of the kernel.
+
+The cell size has to be chosen according to a certain cut off wave number in eq. \eqref{eq:pserpyfar}. The authors in \cite{Lindbo2010} give an upper bound for the truncation error of the fourier sum as $E_f \approx \exp(-k_{\textrm{cut}}^2/4\xi^2)$. Thus we can set $E_f$ to be less than the tolerance, $\epsilon$, and set
+\begin{equation}
+  k_{\textrm{cut}} = 2\xi\sqrt{-\log_{10}(\epsilon)}
+\end{equation}
+From here we can compute the necessary grid cell size as $h = \pi/k_{\textrm{cut}}$.
+
+As evidenced by this new definition of $\sigma_a$, the spreading kernel is now uncoupled with the hydrodynamic radius. The width and support of the kernel can now be chosen to minimize quadrature and truncation errors. In particular the authors in \cite{Lindbo2011} suggest choosing $m = C\sqrt{\pi n_s}$, where $C = 0.976$ is an empirical parameter. The number of standard deviations, $m$, can be computed by making the quadrature error, $E_q \approx \textrm{erfc}(m/\sqrt{2})$, less than a certain tolerance, $E_q<\epsilon$(see sec. 3.2 in \cite{Lindbo2011}). We can then set the splitting parameter as $\lambda = \left(\frac{hn_s\xi}{m}\right)^2$.
+
+%\begin{equation}
+%  \tilde{H}(k,\xi,\tau) :=  \left(1 + \frac{k^2}{4\xi^2}\right)\exp\left(-\frac{k^2}{4\xi^2}\right)
+%\end{equation}
+\subsubsection*{The near field}
+
+For the near field, we can use the infrastructure in the \emph{Lanczos} algorithm (see sec. \ref{sec:lanczos}) with the mobility in eq. \eqref{eq:pserpynear}. We can leverage here the fact that only local terms in the mobility matrix are non-zero to accelerate the matrix-vector multiplication. In \uammd, this is achieved by using a neighbour list with a \emph{Transverser} that takes the forces acting on the particles and computes the product with the mobility for each particle (see sec. \ref{sec:transverser}). The same \emph{Transverser} is then used to compute the fluctuations via the \emph{Lanczos} algorithm.
+
+The functions $F$ ang $G$ in eq. \eqref{eq:pserpynear} are evaluated in double precision to reduce numerical errors and then tabulated\footnote{\uammd provides an infrastructre for tabulating functions called \emph{TabulatedFunction}. Check it's documentation for more information.}. Both of them are truncated up to a certain distance, $r_{\textrm{cut}}^{\textrm{nf}}$. According to \cite{Lindbo2011} the real space truncation error is bounded by $E_n\approx \exp(-\xi^2r_{\textrm{cut}}^{\textrm{nf}})$. Thus, we can choose
+\begin{equation}
+r_{\textrm{cut}}^{\textrm{nf}} = \frac{\sqrt{-\log_{10}(\epsilon)}}{\xi}
+\end{equation}
+
+Although the cost of computing the near field can sometimes negate the potential gains of using \gls{PSE} over \gls{FCM}, it is important to note that if the near field cut off radius is less than the minimum distance allowed for a pair of particles this part of the algorithm can be skipped altogether. With the exception of the self terms in the mobility matrix, which amounts to. For instance, in the presence of some kind of steric repulsion (a la \gls{LJ} or WCA).
+
+Finally the optimal Hasimoto splitting parameter, $\xi$, must be tuned in a case by case basis. In general lower values of $\xi$ will work better for systems with low density (and the other way around). However, this will also depend on the specific implementation of the near and far field components besides particle configuration. In \uammd, choosing $\xi a \approx 0.6$ is usually a good default.
+
+\subsubsection*{Use in UAMMD}
+
+Usage is similar to \gls{FCM}, with the difference that now a splitting parameter ($\xi$ in eq. \eqref{eq:psehasimoto}) can be selected to shift the weight of the algorithm between the near and far field. In particular, lower values $\xi a$ give more weight to the near field, while higher values give more importance to the far field.
+
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Integrator/BDHI/BDHI_EulerMaruyama.cuh>
+#include<Integrator/BDHI/BDHI_PSE.cuh>
+using namespace uammd;
+//A function that creates and returns a BDHI integrator
+// using Positively Split Ewald
+auto createIntegratorBDHIPSE(UAMMD sim){   
+  //An strategy is mixed with an integration scheme
+  using PSE = BDHI::EulerMaruyama<BDHI::PSE>;
+  PSE::Parameters par;
+  par.temperature = sim.par.temperature;
+  par.viscosity = sim.par.viscosity;
+  par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
+  par.dt = sim.par.dt;
+  par.tolerance = sim.par.tolerance;
+  par.box = sim.par.box;
+  //The Hasimoto splitting parameter
+  par.psi = sim.par.psi;
+  auto bdhi = std::make_shared<PSE>(sim.pd, sim.pg, 
+                                    sim.sys, par);
+  return bdhi;
+}
+\end{minted}
+
+\section{The immersed Boundary Method}
+Using other kernels beyond the Gaussian in FCM
 
 \chapter{Eulerian-Lagrangian methods for Fluctuating Hydrodynamics}
 In general, \gls{BC}s in the previous methods have to be introduced via the Green's function in eq. \eqref{eq:bdhimob}. However, this Green's function might be unknown or simply non analytic. We can discretize and solve eq. \eqref{eq:bdhibdrelation} directly to have more fine control over the \gls{BC}s.
-
-\section{The Immersed Boundary method}
-
 
 
 \section{Fluctuating Immersed Boundary (FIB)}
@@ -2091,17 +2159,14 @@ In general, \gls{BC}s in the previous methods have to be introduced via the Gree
 Putting inertia into the mix
 Using the tools from the previous chapters (spectral method + immersed boundary)
 
-%\section{Periodic Boundaries}
 
-\section{Ewald splitting}
-
-
-
-\chapter{MCMC}
+\chapter{Monte Carlo}
+Monte Carlo schemes available in \uammd
 
 \section{Hard spheres}
 
-\section{MALA}
+\section{Metropolis Adjusted Langevin Algorithm (MALA)}
+Force biased, like Metropolis Monte Carlo but leveraging the forces. Amounts to performing a \gls{BD} simulation step and then use the positions, forces and energies of the old and new configurations to decide wether to accept it or not with a Metropolis-like probability.
 
 
 
@@ -2113,6 +2178,7 @@ Using the tools from the previous chapters (spectral method + immersed boundary)
 
 Describe quasi2D paper.
 
+Similar to \gls{FCM}, but with a Green's function that is integrated in Z. It is the limit of an infinite boxin Z with particles attached to z=0 via an infinitely stiff spring.
 
 
 \chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
@@ -2297,8 +2363,10 @@ Introduction.
 \cleardoublepage
 \part{New physics and applications}\label{pt:applications}
 \chapter{Measuring intracellular viscosity}
+Using \gls{PSE} to model the environment of a cell. In particular how the presence of microtubulae affects the viscosity measured by a marker.
 \chapter{Star Polymer dynamics in shear flow}
-\chapter{Optofluidic Control of nanoscale dumbbells}
+Using \gls{BDHI} via Cholesky to compute different properties of a low density solution of star polymers in shear flow.
+%\chapter{Optofluidic Control of nanoscale dumbbells}
 \chapter{Collective colloid diffusion under soft two-dimensional confinement}
 
 asdasdasdas

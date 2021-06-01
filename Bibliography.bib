@@ -849,6 +849,12 @@ year={2014},
 title={The NVIDIA cuSolver CUDA library.}
 }
 
+@Misc{cublas,
+author={NVIDIA Corporation},
+year={2014},
+title={The NVIDIA cuBLAS CUDA library.}
+}
+
 
 @article{Lindbo2011,
 title = {Spectral accuracy in fast Ewald-based methods for particle simulations},
@@ -901,35 +907,48 @@ number = {13},
 pages = {134110},
 year = {2014},
 doi = {10.1063/1.4869866},
-
-URL = { 
-        https://doi.org/10.1063/1.4869866
-    
-},
-eprint = { 
-        https://doi.org/10.1063/1.4869866
-    
-}
-
-}
-@article{Wajnryb2013,
-title={Generalization of the Rotne–Prager–Yamakawa mobility and shear disturbance tensors},
-volume={731},
-DOI={10.1017/jfm.2013.402},
-journal={Journal of Fluid Mechanics},
-publisher={Cambridge University Press},
-author={Wajnryb, Eligiusz and Mizerski, Krzysztof A. and Zuk, Pawel J. and Szymczak, Piotr},
-year={2013},
-pages={R3}
+URL = {https://doi.org/10.1063/1.4869866},
+eprint = {https://doi.org/10.1063/1.4869866}
 }
 
 @article{Hasimoto1959,
 title={On the periodic fundamental solutions of the Stokes equations and their application to viscous flow past a cubic array of spheres},
 volume={5},
-DOI={10.1017/S0022112059000222},
+doi={10.1017/S0022112059000222},
+URL={https://doi.org/10.1017/S0022112059000222},
 number={2},
-journal={Journal of Fluid Mechanics}, publisher={Cambridge University Press},
+journal={Journal of Fluid Mechanics},
+publisher={Cambridge University Press},
 author={Hasimoto, H.},
 year={1959},
-pages={317–328}
+pages={317-328}
+}
+
+@article{Wang2016,
+title = {Spectral Ewald Acceleration of Stokesian Dynamics for polydisperse suspensions},
+journal = {Journal of Computational Physics},
+volume = {306},
+pages = {443-477},
+year = {2016},
+issn = {0021-9991},
+doi = {https://doi.org/10.1016/j.jcp.2015.11.042},
+url = {https://www.sciencedirect.com/science/article/pii/S0021999115007822},
+author = {Mu Wang and John F. Brady},
+keywords = {Stokes flow, Stokesian Dynamics, Brownian Dynamics, GPU computation, Ewald summation, Colloidal suspensions},
+abstract = {In this work we develop the Spectral Ewald Accelerated Stokesian Dynamics (SEASD), a novel computational method for dynamic simulations of polydisperse colloidal suspensions with full hydrodynamic interactions. SEASD is based on the framework of Stokesian Dynamics (SD) with extension to compressible solvents, and uses the Spectral Ewald (SE) method [Lindbo and Tornberg (2010) [29]] for the wave-space mobility computation. To meet the performance requirement of dynamic simulations, we use Graphic Processing Units (GPU) to evaluate the suspension mobility, and achieve an order of magnitude speedup compared to a CPU implementation. For further speedup, we develop a novel far-field block-diagonal preconditioner to reduce the far-field evaluations in the iterative solver, and SEASD-nf, a polydisperse extension of the mean-field Brownian approximation of Banchio and Brady (2003) [39]. We extensively discuss implementation and parameter selection strategies in SEASD, and demonstrate the spectral accuracy in the mobility evaluation and the overall O(Nlog⁡N) computation scaling. We present three computational examples to further validate SEASD and SEASD-nf in monodisperse and bidisperse suspensions: the short-time transport properties, the equilibrium osmotic pressure and viscoelastic moduli, and the steady shear Brownian rheology. Our validation results show that the agreement between SEASD and SEASD-nf is satisfactory over a wide range of parameters, and also provide significant insight into the dynamics of polydisperse colloidal suspensions.}
+}
+
+@article{Lindbo2010,
+title = {Spectrally accurate fast summation for periodic Stokes potentials},
+journal = {Journal of Computational Physics},
+volume = {229},
+number = {23},
+pages = {8994-9010},
+year = {2010},
+issn = {0021-9991},
+doi = {https://doi.org/10.1016/j.jcp.2010.08.026},
+url = {https://www.sciencedirect.com/science/article/pii/S0021999110004730},
+author = {Dag Lindbo and Anna-Karin Tornberg},
+keywords = {Viscous flow, Stokes equations, Potential theory, Ewald summation, FFT, Spectral accuracy},
+abstract = {A spectrally accurate method for the fast evaluation of N-particle sums of the periodic Stokeslet is presented. Two different decomposition methods, leading to one sum in real space and one in reciprocal space, are considered. An FFT based method is applied to the reciprocal part of the sum, invoking the equivalence of multiplications in reciprocal space to convolutions in real space, thus using convolutions with a Gaussian function to place the point sources on a grid. Due to the spectral accuracy of the method, the grid size needed is low and also in practice, for a fixed domain size, independent of N. The leading cost, which is linear in N, arises from the to-grid and from-grid operations. Combining this FFT based method for the reciprocal sum with the direct evaluation of the real space sum, a spectrally accurate algorithm with a total complexity of O(NlogN) is obtained. This has been shown numerically as the system is scaled up at constant density.}
 }
