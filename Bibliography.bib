@@ -844,13 +844,19 @@ eprint = {
 }
 
 @Misc{cusolver,
-author={NVIDIA Corporation},
+author={{NVIDIA Corporation}},
 year={2014},
 title={The NVIDIA cuSolver CUDA library.}
 }
 
+@Misc{cufft,
+author={{NVIDIA Corporation}},
+year={2014},
+title={The NVIDIA cuFFT CUDA library.}
+}
+
 @Misc{cublas,
-author={NVIDIA Corporation},
+author={{NVIDIA Corporation}},
 year={2014},
 title={The NVIDIA cuBLAS CUDA library.}
 }
@@ -931,7 +937,7 @@ volume = {306},
 pages = {443-477},
 year = {2016},
 issn = {0021-9991},
-doi = {https://doi.org/10.1016/j.jcp.2015.11.042},
+doi = {10.1016/j.jcp.2015.11.042},
 url = {https://www.sciencedirect.com/science/article/pii/S0021999115007822},
 author = {Mu Wang and John F. Brady},
 keywords = {Stokes flow, Stokesian Dynamics, Brownian Dynamics, GPU computation, Ewald summation, Colloidal suspensions},
@@ -946,9 +952,34 @@ number = {23},
 pages = {8994-9010},
 year = {2010},
 issn = {0021-9991},
-doi = {https://doi.org/10.1016/j.jcp.2010.08.026},
+doi = {10.1016/j.jcp.2010.08.026},
 url = {https://www.sciencedirect.com/science/article/pii/S0021999110004730},
 author = {Dag Lindbo and Anna-Karin Tornberg},
 keywords = {Viscous flow, Stokes equations, Potential theory, Ewald summation, FFT, Spectral accuracy},
 abstract = {A spectrally accurate method for the fast evaluation of N-particle sums of the periodic Stokeslet is presented. Two different decomposition methods, leading to one sum in real space and one in reciprocal space, are considered. An FFT based method is applied to the reciprocal part of the sum, invoking the equivalence of multiplications in reciprocal space to convolutions in real space, thus using convolutions with a Gaussian function to place the point sources on a grid. Due to the spectral accuracy of the method, the grid size needed is low and also in practice, for a fixed domain size, independent of N. The leading cost, which is linear in N, arises from the to-grid and from-grid operations. Combining this FFT based method for the reciprocal sum with the direct evaluation of the real space sum, a spectrally accurate algorithm with a total complexity of O(NlogN) is obtained. This has been shown numerically as the system is scaled up at constant density.}
+}
+
+@article{Peskin1977,
+title = {Numerical analysis of blood flow in the heart},
+journal = {Journal of Computational Physics},
+volume = {25},
+number = {3},
+pages = {220-252},
+year = {1977},
+issn = {0021-9991},
+doi = {https://doi.org/10.1016/0021-9991(77)90100-0},
+url = {https://www.sciencedirect.com/science/article/pii/0021999177901000},
+author = {Charles S Peskin},
+abstract = {The flow pattern of blood in the heart is intimately connected with the performance of the heart valves. This paper extends previous work on the solution of the Navier-Stokes equations in the presence of moving immersed boundaries which interact with the fluid. The boundary representation now includes the muscular heart wall. The fixed topology of the boundary representation is exploited in the solution of the nonlinear equations which implicitly define the boundary forces. An improved numerical representation of the δ-function is introduced. A fast Laplace-solver is used. The results of calculations with a natural valve and with a prosthetic valve are presented.}
+}
+@article{Peskin2002,
+title={The immersed boundary method},
+volume={11},
+DOI={10.1017/S0962492902000077},
+url={https://doi.org/10.1017/S0962492902000077},
+journal={Acta Numerica},
+publisher={Cambridge University Press},
+author={Peskin, Charles S.},
+year={2002},
+pages={479–517}
 }
