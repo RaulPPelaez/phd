@@ -2162,8 +2162,118 @@ Furthermore, the spreading and interpolation algorithms that we are going to dev
 
 A really thorough description of the \gls{IBM} framework can be found at\cite{Peskin2002}, including the equations of motion for an arbitrary structure submerged in an incompressible fluid. However, we will only make use of the properties devised for the kernels.
 
-In particular, Peskin kernels must abide to a series of postulates that intend to maximize computational efficiency while minimizing the discretization effect of the grid.
+In particular, Peskin kernels must abide to a series of postulates that intend to maximize computational efficiency (which translates to closer support) while minimizing the discretization effect of the grid (such as translational invariance).
 
+For the sake of simplicity, the first postulate consists in assuming the kernel can be separated as
+\begin{equation}
+  \delta_a(\vec{r}=(x,y,z)) =\frac{1}{h^3}\phi\left(\frac{x}{h}\right)\phi\left(\frac{y}{h}\right)\phi\left(\frac{z}{h}\right)
+\end{equation}
+This allows to state the postulates regarding the one dimensional function, $\phi$. Additionally, this form yields $\delta_a\rightarrow\delta$ as $h\rightarrow 0$.
+The second postulate is that $\phi(r)$ must be continuous for $r\in\mathbb R$, avoiding jumps in the the quantities sprepaded to, or interpolated from, the grid. The close support postulate says that $\phi(r>r_c/h := P) = 0$. This is our main means for seeking computational efficiency, since reducing the support of the kernel by one cells reduces dramatically the required operations. In particular, spreading or interpolating require visiting $n_s^3$ nearby cells (where $n_s = 2P +1$), so a support of $n_s=5$ requires $125$ cells while a support of $3$ requires just $27$.
+The last basic postulate is required for the kernel to conserve the communicated quantities and its simply a discrete expression of the fact that the kernel must integrate to unity.
+\begin{equation}
+  \label{eq:peskinunity}
+  \sum_j \phi(r-j) = 1 \textrm{ for } r\in\mathbb R
+\end{equation}
+Where $j$ are the centers or the cells inside the support.
+The next postulate intends to enforce the translational invariance of the distributed quantities as much as possible.
+\begin{equation}
+  \label{eq:peskinsumsquares}
+  \sum_j\left(\phi(r-j)\right)^2 = C \textrm{ for any } r\in\mathbb R
+\end{equation}
+Where $C$ is some constant to be determined. Eq. \eqref{eq:peskinsumsquares} is a weaker version of the condition for exact grid translational invariance
+\begin{equation}
+  \sum_j\phi(r_1-j)\phi(r_2-j) = \Phi(r_1-r_2)
+\end{equation}
+Which states that the coupling between any two points must be a function of their distance. However, it can be shown that satisfying this condition is incompatible with a compact support\cite{Peskin2002}. Eq. \eqref{eq:peskinsumsquares} attempts to guarantee some degree of translational invariance by imposing a condition on the point with maximum coupling, $r_1 = r_2$.
+
+Finally, we can impose conditions on the conservation the first $n$ moments to get increasingly higher order accuracy interpolants (at the expense of wider support)
+\begin{equation}
+  \sum_j(r-j)^n\phi(r-j) = K_n
+\end{equation}
+Where $K_n$ are some constants. Note that the zeroth moment condition corresponds to eq. \eqref{eq:peskinunity} with $K_0 = 1$.
+By solving the system of equation given by these conditions, different kernels can be found. 
+
+\subsubsection*{3-point Peskin kernel}
+In particular, enforcing only the condition for the first moment we arrive at the so-called 3-point Peskin kernel.
+
+\begin{equation}
+  \label{eq:peskin3}
+  \phi(|r|) =  \left\{
+  \begin{aligned}
+    & \frac{1}{3}\left( 1 + \sqrt{1-3r^2}\right)& r < 0.5\\
+    & \frac{1}{6}\left(5-3r-\sqrt{1-3(1-r)^2}\right)& r < 1.5\\
+    & 0 & r>1.5 
+  \end{aligned}\right.
+\end{equation}
+Where the argument $|r|$ represents that the above expression must be evaluated for the absolute value of the separation (since the kernel is simetric).
+We can add a more restrictive condition on the integration to unity postulate
+\begin{equation}
+  \label{eq:evenodd}
+  \sum_{j \textrm{ even}} =\phi(r-j)   \sum_{j \textrm{ odd}} \phi(r-j) = \half
+\end{equation}
+Which smooths the contributions of the kernel when using a central difference discretization for the gradient operator.
+\subsubsection*{4-point Peskin kernel}
+Solving for $\phi$ in this case, with up to the first moment condition with $K_1=0$, yields the classic 4-point Peskin kernel
+
+
+\begin{equation}
+  \label{eq:peskin3}
+  \phi(|r|) =  \left\{
+  \begin{aligned}
+    & \frac{1}{8}\left( 3 - 2r + \sqrt{1+4r(1-r)}\right)& r < 1\\
+    & \frac{1}{8}\left(5-2r-\sqrt{-7+12r-4r^2}\right)& r < 2\\
+    & 0 & r>2
+  \end{aligned}\right.
+\end{equation}
+
+\subsubsection*{6-point Peskin kernel}
+Recently, a new 6-point kernel has been developed that satisfies the moment conditions up to $n=3$ for a special choice of $K_2$\cite{Bao2016}. Additionally, it also satisfies the even-odd condition in eq. \eqref{eq:evenodd}, it is three times differentiable and offers a really good translational invariance compared with similarly supported kernels.
+
+This kernel sets $K_1= K_3 = 0$ and
+\begin{equation}
+K_2 = \frac{59}{60} - \frac{\sqrt{29}}{20}
+\end{equation}
+Solving for $\phi$ using these conditions, and defining the following
+\begin{equation}
+  \begin{aligned}
+    &\alpha = 28\\
+    &\beta(r) = \frac{9}{4} - \frac{3}{2} (K_2 + r^2) + (\frac{22}{3}-7K_2)r - \frac{7}{3})r^3\\
+    &\gamma(r) = -\frac{11}{32}r^2 + \frac{3}{32}(2K_2+r^2)r^2 +
+    \frac{1}{72}\left((3K_2-1)r+r^3\right)^2 +\\
+    &\qquad+\frac{1}{18}\left((4-3K_2)r -r^3\right)^2\\
+    &\chi(r) = \frac{1}{2\alpha}\left( -\beta(r) + \textrm{sgn}(\frac{3}{2} - K_2)\sqrt{\beta(r)^2 - 4\alpha\gamma(r)}\right)
+\end{aligned}
+\end{equation}
+We get the expression for the 6-point kernel
+\begin{equation}
+  \label{eq:peskin6}
+  \phi(|r|) =  \left\{
+    \begin{aligned}
+      & 2\chi(r) + \frac{5}{8} + \frac{1}{4}(K_2 + r^2)& r < 1\\[8pt]
+      & -3\chi(r-1) + \frac{1}{4} - \frac{1}{6}\left((4-3K_2) + (r-1)^2\right)(r-1) & r < 2\\[8pt]
+      & \chi(r-2) - \frac{1}{16} + \frac{1}{8}\left(K+(r-2)^2\right) - \\
+      &\qquad-\frac{1}{12}\left((3K_w-1) - (r-2)^2\right)(r-2)& r<3\\[8pt]
+      &0 &r>3
+  \end{aligned}\right.
+\end{equation}
+
+Given its complexity it is advisable to tabulate the kernel at the start of the simulation
+
+\subsubsection*{Barnett-Magland (BM) kernel}
+
+A new kernel, called ``exponential of the semicircle''(ES) and here refered to as BM, has been recently developed to improve the efficiency of non-uniform \gls{FFT} methods\cite{Barnett2019}. This kernel has been used for electrostatics\cite{Shamshirgar2021}, but we will also apply it to the Stokes equation. This kernel has a simple mathematical expression
+\begin{equation}
+  \label{eq:bmkernel}
+  \phi(r) = \left\{
+  \begin{aligned}
+    &\exp\left[\beta(\sqrt{1-(r/w)^2}-1)\right] & |r|/w\le 1\\
+    & 0 & \textrm{otherwise}
+  \end{aligned}\right.
+\end{equation}
+Where $\beta$ and $w$ are parameters related to the shape and support (width) of the kernel.
+Several other Peskin-like kernels can be found by enforcing other conditions, see for example\cite{Yang2009}.
+A comparison of the different kernels in this section can be found in sec. \ref{sec:kernelcomp}.
 
 \chapter{Eulerian-Lagrangian methods for Fluctuating Hydrodynamics}
 In general, \gls{BC}s in the previous methods have to be introduced via the Green's function in eq. \eqref{eq:bdhimob}. However, this Green's function might be unknown or simply non analytic. We can discretize and solve eq. \eqref{eq:bdhibdrelation} directly to have more fine control over the \gls{BC}s.
@@ -2172,7 +2282,10 @@ In general, \gls{BC}s in the previous methods have to be introduced via the Gree
 \section{Fluctuating Immersed Boundary (FIB)}
 
 
+\section{Comparing the different spreading kernels for BDHI}\label{sec:kernelcomp}
 \todo{Graph comparing the different methods using several interpolation kernels}
+
+
 \section{Inertial Coupling Method (ICM)}
 
 Putting inertia into the mix
@@ -2425,9 +2538,9 @@ One particular optimization commonly employed is to take advantage of the fact t
 \begin{equation}
   \hat{s}(\vec{k}) = \hat{s}(\vec{n} - \vec{k})^*
 \end{equation}
-In particular \emph{cuFFT} will only store the first $\textrm{floor}(n/2)+1$ wavenumbers in the $x$ direction. By default, a R2C transform will take an input of size $\vec{n}$ real numbers and return a complex array of size $\hat{\vec{n}} := (\textrmfloor(n_x/2)+1, n_y, n_z)$ complex numbers\footnote{Note that since a complex number is stored as of two real numbers, the storage of both arrays is equal}. Similarly, a C2R transform will take a $\hat{\vec{n}}$ sized complex array and return a size $\vec{n}$ array with real numbers.
+In particular \emph{cuFFT} will only store the first $\textrm{floor}(n/2)+1$ wavenumbers in the $x$ direction. By default, a R2C transform will take an input of size $\vec{n}$ real numbers and return a complex array of size $\hat{\vec{n}} := (\textrm{floor}(n_x/2)+1, n_y, n_z)$ complex numbers\footnote{Note that since a complex number is stored as of two real numbers, the storage of both arrays is equal}. Similarly, a C2R transform will take a $\hat{\vec{n}}$ sized complex array and return a size $\vec{n}$ array with real numbers.
 
-In principle, \emph{cuFFT} allows to store the input and output of a C2R or R2C transform in the same array in what it's called an \emph{in-place} transform. However, in my experience this results in unexpected behavior, so I advise against it\footnote{The documentation hints that in these cases the input size in the $x$ direction for an in-place C2R transform should be $2(floor(n_x/2)+1)$ to accomodate for all necessary complex values in the output. However, this does not seem to be the same rule for a C2R transform and has caused some problems to me in the past}.
+In principle, \emph{cuFFT} allows to store the input and output of a C2R or R2C transform in the same array in what it's called an \emph{in-place} transform. However, in my experience this results in unexpected behavior, so I advise against it\footnote{The documentation hints that in these cases the input size in the $x$ direction for an in-place C2R transform should be $2(\textrm{floor}(n_x/2)+1)$ to accomodate for all necessary complex values in the output. However, this does not seem to be the same rule for a C2R transform and has caused some problems to me in the past}.
 
 \section*{Data layout}
 Since most spectral algorithms in \uammd require C2R and R2C transforms it is worth giving here some more details about the correspondence of wave numbers and elements in the data array.
