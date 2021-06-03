@@ -81,6 +81,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newcommand{\dt}{\delta t}
 \newcommand{\kT}{k_B T}
 \newcommand{\sinc}{\textrm{sinc}}
+\newcommand{\floor}{\textrm{floor}}
 \newcommand{\near}{\textrm{near}}
 \newcommand{\far}{\textrm{far}}
 \newcommand{\half}{\frac{1}{2}}
@@ -1782,7 +1783,7 @@ Where $\oper{P}  =  \mathbb{I} - \nabla\nabla^{-2}\nabla$ is called the projecti
   \vec{\fvel} = \eta^{-1}\oper{L}\tilde{\vec{f}}
 \end{equation}
 Now we have a formalism to translate between forces and velocities in the fluid. Lets connect that with a group of particles submerged in it.
-The effect of a particle is going to be mediated to the fluid through the forces acting on it, via a kernel function, $\delta_a(\vec{r})$ that integrates to unity and is localized inside a region of size $a$, refered to as the hydrodynamic radius of the particle. The symbol $\delta$ is used here to indicate that this kernel will usually be a smooth smeared delta function. We will use $\delta_a$ to communicate forces to the fluid, which we refer to as spreading
+The effect of a particle is going to be mediated to the fluid through the forces acting on it, via a kernel function, $\delta_a(\vec{r})$ that integrates to unity and is localized inside a closely supported region of space. The symbol $\delta$ is used here to indicate that this kernel will usually be a smooth smeared delta function. The subscript $a$ refers to the hydrodynamic radius of the particle, related to the typical size around which the kernel distributes the particle quantities. We will use $\delta_a$ to communicate forces to the fluid, which we refer to as spreading
 \begin{equation}
   \vec{f}(\vec{\fpos}) = \oper{S}(\vec{\fpos})\vec{F}
 \end{equation}
@@ -1803,6 +1804,8 @@ The interpolation operator, $\oper{J}=\oper{S}^*$, is the opposite operation to 
   \label{eq:interpoper}
   \oper{J}_{\vec{\ppos}_i}\vec{\fvel} = \int{\delta_a(\vec{\ppos}_i - \vec{\fpos})\vec{\fvel}(\vec{\fpos})d\vec{\fpos}}
 \end{equation}
+We will discuss spreading and interpolation in more detail in sec. \ref{sec:ibm}.
+
 We can now write an equation for the velocity of the particles
 \begin{equation}
   \label{eq:bdhibdrelation}
@@ -1860,14 +1863,15 @@ We will see in future sections how to solve the dynamics of the particles withou
 The Oseen mobility presents asymptotic behavior at short distance stemming from the point particle assumption. However, we are usually interested in simulating the dynamics of objects with a certain hydrodynamic radius.
 
 
-One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. In particular, integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator in the surface, $S$, of two spheres of radius $a$
+One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. We can compute it by integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator in the surface, $S$, of two spheres of radius $a$
 \begin{equation}
   \label{eq:rpymobfour}
   \begin{aligned}
     \tens{M}_{ij}^{\textrm{RPY}} &= \frac{\eta^{-1}}{(4\pi a^2)^2} \int_{S_1}dS_1\int_{S_2}dS_2 \int d\vec{k} \exp(i\vec{k}\vec{r})\hat{\oper{L}}(\vec{k})\\
-    &= \eta^{-1} \int \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(sinc(ka) \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)d\vec{k}
+    &= \eta^{-1} \int \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\sinc(ka) \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)d\vec{k}
 \end{aligned}
 \end{equation}
+Expressing this integral in Fourier space allows us to express it in a compact form and, as we will see later, this will facilitate its extension to periodic environments.
 A detailed solution for this integral can be found at\cite{Wajnryb2013}. It is important to note that the integral must be handled separatedly when the two particles overlap.
 Finally, the free-space \gls{RPY} mobility tensor can be written in real space as\cite{Wajnryb2013}
 \begin{equation}
@@ -1970,6 +1974,222 @@ auto createIntegratorBDHILanczos(UAMMD sim){
   return bdhi;
 }
 \end{minted}
+
+
+\section{The Immersed Boundary Method (IBM) kernels}
+If we want to directly solve eq. \eqref{eq:bdhibdrelation} instead of imposing a specific mobility (pheraps because we do not know the real space Green's function for a particular Stokes problem), we need to discretize the spreading and interpolation operators in eqs. \eqref{eq:spreadoper} and \eqref{eq:interpoper}. However, we cannot directly discretize deltas and we would like to take into account the size of the particles. We could smear the delta into a Gaussian, but the Gaussian kernels come with some inconveniences. In particular stemming from their infinite range, forcing us to truncate them at a certain length. We would like to reduce the support of our kernels as much as possible whithout hurting accuracy. We can borrow some lessons from the \gls{IBM} to help us in this regard.
+
+The \gls{IBM}\cite{Peskin1977}\cite{Peskin2002} is a mathematical framework for simulation of fluid-structure interaction. It is commonly used to discretize the spreading and interpolation operations we have seen in sec. \ref{sec:bdhi}\footnote{Which incidentally happen to be identical to the ones for electrostatics (sec. \ref{ch:tppoisson})}. In \gls{IBM} the forces acting on a certain marker (particle) are distributed (spreaded) to the nearby fluid grid points via some smeared delta function (see figure \ref{fig:ibm}). \gls{IBM} offers us a way to discretize the spreading (eq. \eqref{eq:spreadoper}) and interpolation (eq. \eqref{eq:interpoper}) operators via some sophisticated $\delta_a$ kernels often refered to as Peskin kernels\footnote{In honor of their creator\cite{Peskin1977}}.
+Furthermore, the spreading and interpolation algorithms that we are going to devise for it's implementation will also be applicable to other situations outside it's intended purpose. For instance, to spread charges and interpolate electric fields when solving the Poisson equation (see sec. \ref{ch:tppoisson} or \ref{ch:dppoisson}). In general, we can use the spreading and interpolation algortihms here for transforming between a Lagrangian (particles) and an Eulerian (grid) description.
+
+We will discretize the interpolation operator in eq. \eqref{eq:interpoper} in a grid as
+
+\begin{equation}
+  \oper{J}_{\vec{\ppos}_i}\vec{\fvel} = \sum_j{\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{\fvel}_jdV(j)}
+\end{equation}
+
+Where the sum goes over all the cells, $j$, in the grid, with centers at $\vec{fpos}_j$. The function $dV(j)$ are the quadrature weights (i.e the volume of the cell). For a regular grid with cell size $h$, the quadrature weights are simply $dV(j) := h^3$, but we will see other geometries in sec. \ref{ch:dppoisson}.
+
+
+\begin{figure}[h]
+  \centering
+  \includesvg{gfx/ibm}{0.7\columnwidth}
+  \caption{A representation of the Immersed Boundary. The blue circle represents a particle (being the green cross it's center). Some quantity (i.e. the force) acting on it will be spreaded to the grid points inside its radius of action(red crosses).}
+  \label{fig:ibm}  
+\end{figure}
+
+A thorough description of the whole \gls{IBM} framework can be found at\cite{Peskin2002}, including the equations of motion for an arbitrary structure submerged in an incompressible fluid. However, we will only make use of the properties devised for the kernels.
+
+In particular, Peskin kernels must abide to a series of postulates that intend to maximize computational efficiency (which translates to closer support) while minimizing the discretization effect of the grid (such as translational invariance).
+
+For the sake of simplicity, the first postulate consists in assuming the kernel can be separated as
+\begin{equation}
+  \delta_a(\vec{r}=(x,y,z)) =\frac{1}{h^3}\phi\left(\frac{x}{h}\right)\phi\left(\frac{y}{h}\right)\phi\left(\frac{z}{h}\right)
+\end{equation}
+This allows to state the postulates regarding the one dimensional function, $\phi$. Additionally, this form yields $\delta_a\rightarrow\delta$ as $h\rightarrow 0$.
+The second postulate is that $\phi(r)$ must be continuous for $r\in\mathbb R$, avoiding jumps in the the quantities sprepaded to, or interpolated from, the grid. The close support postulate says that $\phi(r>r_c/h := P) = 0$. This is our main means for seeking computational efficiency, since reducing the support of the kernel by one cells reduces dramatically the required operations. In particular, spreading or interpolating require visiting $n_s^3$ nearby cells (where $n_s = 2P +1$), so a support of $n_s=5$ requires $125$ cells while a support of $3$ requires just $27$.
+The last basic postulate is required for the kernel to conserve the communicated quantities and its simply a discrete expression of the fact that the kernel must integrate to unity.
+\begin{equation}
+  \label{eq:peskinunity}
+  \sum_j \phi(r-j) = 1 \textrm{ for } r\in\mathbb R
+\end{equation}
+Where $j$ are the centers or the cells inside the support.
+The next postulate intends to enforce the translational invariance of the distributed quantities as much as possible.
+\begin{equation}
+  \label{eq:peskinsumsquares}
+  \sum_j\left(\phi(r-j)\right)^2 = C \textrm{ for any } r\in\mathbb R
+\end{equation}
+Where $C$ is some constant to be determined. Eq. \eqref{eq:peskinsumsquares} is a weaker version of the condition for exact grid translational invariance
+\begin{equation}
+  \sum_j\phi(r_1-j)\phi(r_2-j) = \Phi(r_1-r_2)
+\end{equation}
+Which states that the coupling between any two points must be a function of their distance. However, it can be shown that satisfying this condition is incompatible with a compact support\cite{Peskin2002}. Eq. \eqref{eq:peskinsumsquares} attempts to guarantee some degree of translational invariance by imposing a condition on the point with maximum coupling, $r_1 = r_2$.
+
+Finally, we can impose conditions on the conservation of the first $n$ moments to get increasingly higher order accuracy interpolants (at the expense of wider support)
+\begin{equation}
+  \sum_j(r-j)^n\phi(r-j) = K_n
+\end{equation}
+Where $K_n$ are some constants. Note that the zeroth moment condition corresponds to eq. \eqref{eq:peskinunity} with $K_0 = 1$.
+By solving the system of equations given by these conditions, different kernels can be found. 
+
+\subsubsection*{3-point Peskin kernel}
+In particular, enforcing only the condition for the first moment (with $K_1=0$) we arrive at the so-called 3-point Peskin kernel.
+
+\begin{equation}
+  \label{eq:peskin3}
+  \phi_{p_3}(|r|) =  \left\{
+  \begin{aligned}
+    & \frac{1}{3}\left( 1 + \sqrt{1-3r^2}\right)& r < 0.5\\
+    & \frac{1}{6}\left(5-3r-\sqrt{1-3(1-r)^2}\right)& r < 1.5\\
+    & 0 & r>1.5 
+  \end{aligned}\right.
+\end{equation}
+Where the argument $|r|$ represents that the above expression must be evaluated for the absolute value of the separation (since the kernel is simetric).
+We can add a more restrictive condition on the integration to unity postulate
+\begin{equation}
+  \label{eq:evenodd}
+  \sum_{j \textrm{ even}} =\phi(r-j)   \sum_{j \textrm{ odd}} \phi(r-j) = \half
+\end{equation}
+Which smooths the contributions of the kernel when using a central difference discretization for the gradient operator.
+\subsubsection*{4-point Peskin kernel}
+Solving for $\phi$ with this extra condition yields the classic 4-point Peskin kernel
+
+\begin{equation}
+  \label{eq:peskin4}
+  \phi_{p_4}(|r|) =  \left\{
+  \begin{aligned}
+    & \frac{1}{8}\left( 3 - 2r + \sqrt{1+4r(1-r)}\right)& r < 1\\
+    & \frac{1}{8}\left(5-2r-\sqrt{-7+12r-4r^2}\right)& r < 2\\
+    & 0 & r>2
+  \end{aligned}\right.
+\end{equation}
+The main advantage of this kernel is that it interpolates linear functions exactly, and smooth functions are interpolated to second order accuracy.
+
+\subsubsection*{6-point Peskin kernel}
+Recently, a new 6-point kernel has been developed that satisfies the moment conditions up to $n=3$ for a special choice of $K_2$\cite{Bao2016}. Additionally, it also satisfies the even-odd condition in eq. \eqref{eq:evenodd}, it is three times differentiable and offers a really good translational invariance compared with similarly supported kernels.
+
+This kernel sets $K_1= K_3 = 0$ and
+\begin{equation}
+K_2 = \frac{59}{60} - \frac{\sqrt{29}}{20}
+\end{equation}
+Solving for $\phi$ using these conditions, and defining the following
+\begin{equation}
+  \begin{aligned}
+    &\alpha = 28\\
+    &\beta(r) = \frac{9}{4} - \frac{3}{2} (K_2 + r^2) + (\frac{22}{3}-7K_2)r - \frac{7}{3})r^3\\
+    &\gamma(r) = -\frac{11}{32}r^2 + \frac{3}{32}(2K_2+r^2)r^2 +
+    \frac{1}{72}\left((3K_2-1)r+r^3\right)^2 +\\
+    &\qquad+\frac{1}{18}\left((4-3K_2)r -r^3\right)^2\\
+    &\chi(r) = \frac{1}{2\alpha}\left( -\beta(r) + \textrm{sgn}(\frac{3}{2} - K_2)\sqrt{\beta(r)^2 - 4\alpha\gamma(r)}\right)
+\end{aligned}
+\end{equation}
+We get the expression for the 6-point kernel
+\begin{equation}
+  \label{eq:peskin6}
+  \phi_{p_6}(|r|) =  \left\{
+    \begin{aligned}
+      & 2\chi(r) + \frac{5}{8} + \frac{1}{4}(K_2 + r^2)& r < 1\\[8pt]
+      & -3\chi(r-1) + \frac{1}{4} - \frac{1}{6}\left((4-3K_2) + (r-1)^2\right)(r-1) & r < 2\\[8pt]
+      & \chi(r-2) - \frac{1}{16} + \frac{1}{8}\left(K+(r-2)^2\right) - \\
+      &\qquad-\frac{1}{12}\left((3K_2-1) - (r-2)^2\right)(r-2)& r<3\\[8pt]
+      &0 &r>3
+  \end{aligned}\right.
+\end{equation}
+
+Given its complexity it is advisable to tabulate $\phi_{p_6}$.
+\subsubsection*{Barnett-Magland (BM) kernel}
+A new kernel, called ``exponential of the semicircle''(ES) and here refered to as BM, has been recently developed to improve the efficiency of non-uniform \gls{FFT} methods\cite{Barnett2019}. This kernel has been used for electrostatics\cite{Shamshirgar2021}, but we will also apply it to the Stokes equation. This kernel has a simple mathematical expression
+\begin{equation}
+  \label{eq:bmkernel}
+  \phi_{BM}(r) = \left\{
+  \begin{aligned}
+    &\frac{1}{S}\exp\left[\beta(\sqrt{1-(r/w)^2}-1)\right] & |r|/w\le 1\\
+    & 0 & \textrm{otherwise}
+  \end{aligned}\right.
+\end{equation}
+Where $\beta$ and $w$ are parameters related to the shape and support (width) of the kernel. The parameter $S(\beta, w)$ is the necessary normalization to ensure that eq. \eqref{eq:bmkernel} integrates to unity. Since eq. \eqref{eq:bmkernel} does not have an analytic integral, this factor must be computed numerically. One advantage of BM kernel is that it decays faster than a Gaussian in Fourier space, which is benefitial in spectral methods\cite{Barnett2019}.
+
+One disadvantage of the kernels above is that we do not know their analytical Fourier transform (in the case of the BM kernel stems from it not having an analytic integral), which hinders our ability to elaborate analytical expressions for the mobility in eq. \eqref{eq:bdhimob}.\todo{chequear con Rafa este invent, por que no puedo hacerlo con el peskin 3pt en espacio real?}
+For our purposes, this means that we have to estimate numerically the relation between the width of the kernels and the hydrodynamic radius.
+On the other hand, all of them will present Oseen-like behavior at long distances and will be regularized in a similar way to the \gls{RPY} mobility at short distances.
+We will investigate this in more detail shortly.
+\subsubsection*{Gaussian kernel}
+Finally, we can include here for completeness the Gaussian kernel, which can be defined as
+\begin{equation}
+  \label{eq:gaussiankernel}
+  \phi_G(r) = \frac{1}{(2\pi\sigma)^{3/2}}\exp\left(\frac{-r^2}{2\sigma^2}\right)
+\end{equation}
+Where $\sigma$ is the width of the Gaussian.
+In this case it is possible to compute the self mobility in eq. \eqref{eq:bdhimob} analytically, which yields $\sigma = a/\sqrt{\pi}$.\todo{maybe explain further}
+
+\subsection{Spreading and interpolation algorithms}
+Lets see how to efficiently spread and interpolate in a \gpu. 
+In a serial implementation of spreading, we can simply sum, for each particle, the contribution $\delta_a(\vec{\ppos} - \vec{\fpos})\vec{F}$ to each nearby cell. And in the case of interpolation a similar strategy can be employed, where each particle sums to its quantity the values $\delta_a(\vec{\ppos} - \vec{\fpos})\vec{v}$ from nearby cells. Note that here $\vec{F}$ and $\vec{v}$ can refer to forces and velocities or in general any per particle and per cell quantities.
+We can restrict the cells to the minimum by knowing the support, $n_s$, of the kernel.
+In a regular grid, we can find the cell of a given particle with position $x \in [-L/2, L/2)$ as $c_x = \floor((x/L + 0.5)n_x)$. From there, it is straight-forward to find the $n_s$ cells in the support at cells $\vec{c} \pm P$ for odd supports (see fig. \ref{fig:ibm2} (top)). It is important to handle even supports separatedly. In this case, a particle at one side of the middle of a cell will need to visit a different set of cells that one at the other side (see fig. \ref{fig:ibm2} (bottom)).
+
+We can 
+\begin{figure}[h]
+  \centering
+  \includesvg{gfx/ibm2}{\columnwidth}
+  \caption{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($n_x=5, n_y=n_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation.}
+  \label{fig:ibm2}  
+\end{figure}
+
+
+Using the strategy in algorithm \ref{alg:visitneigh} instead of the naive three nested loops results in more (cheap) operations, but reduces the operation to a single loop, reduces the logic pressure and facilitates loop unrolling, also giving the compiler more chances for optimization.
+\begin{algorithm}[H]
+  \label{alg:visitneigh}
+  \caption{Visiting the neighbour cells of a particle, $i$, located at $\vec{\ppos}_i \in [0, L)_{\mathbb R ^3}$ }
+  \begin{algorithmic}[1]
+    \State $\vec{c}_i \gets$ cell of particle $i$
+    \If{$n_s$ is even}
+    \State $\vec{s} \gets \floor(\vec{\ppos}_i/h) - \vec{c}_i + 0.5$ \Comment{Shift for even supports}
+    \Else
+    \State $\vec{s} \gets 0$ 
+    \EndIf
+    \State $\vec{P}_s\gets n_s/2 -\vec{s}$
+    \For{ $j=0$ until $n_s^3$}
+    \State $i_x \gets \text{mod}(j, n_s)$
+    \State $i_y \gets \text{mod}(j/n_s, n_s)$
+    \State $i_z \gets j/n_s^2$
+    \State $\vec{c}_j \gets \text{fold}(\vec{c}_i + (i_x, i_y, i_z) - \vec{P}_s)$ \Comment{Neighbour cell $\in [0, \vec{n})$}
+    \State Process interaction between particle $i$ and neighbour cell $\vec{c}_j$
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+
+\subsubsection{Spreading}
+We can distinguish 
+
+\begin{algorithm}[H]
+  \label{alg:naivespread}
+  \caption{Spreading a quantity defined in a group of particles to an Eulerian grid}
+  \begin{algorithmic}[1]
+    \For{each particle $i$}
+    \For{each cell $j$}
+    \State Sum contribution of particle $i$ on cell $j$
+    \EndFor
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+\begin{algorithm}[H]
+  \label{alg:naiveinterp}
+  \caption{Interpolating a quantity defined in a group of particles to an Eulerian grid}
+  \begin{algorithmic}[1]
+    \For{each particle $i$}
+    \For{each cell $j$}
+    \State Sum contribution of particle $i$ on cell $j$
+    \EndFor
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+
+Several other Peskin-like kernels can be found by enforcing other conditions, see for example\cite{Yang2009}.
+
+A comparison of the different kernels in this section can be found in sec. \ref{sec:kernelcomp}.
 
 \subsection{Force Coupling Method (FCM)}\label{sec:fcm}
 Both \emph{Cholesky} and \emph{Lanczos} methods use the explicit form of an open boundary mobility. This makes them open boundary algorithms since they do not take into account the periodic images of the system in any way. Furthermore, the computational complexity of these methods is restrictive. Luckily, we can manage to do it in $O(N)$ operations if we consider periodic boundary conditions. In particular by solving eq. \eqref{eq:bdhibdrelation} directly in Fourier space via the Force Coupling Method\cite{Keaveny2014}. In doing so, we get the added benefit (and disadvantage) of not impossing a specific mobility tensor, which will arise naturally according to the spreading kernel.
@@ -2147,133 +2367,6 @@ auto createIntegratorBDHIPSE(UAMMD sim){
 }
 \end{minted}
 
-\section{The Immersed Boundary Method (IBM)}
-Thus far we have only considered Gaussian or delta spreading kernels. We cannot directly discretize deltas, and the Gaussian kernels come with some inconveniences. In particular stemming from their infinite range, forcing us to truncate them at a certain length. Ideally, we would like to reduce the support of our kernels as much as possible whithout reducing accuracy and conserving the most properties possible.
-
-The \gls{IBM}\cite{Peskin1977}\cite{Peskin2002} is a mathematical framework for simulation of fluid-structure interaction. It is commonly used to discretize the spreading and interpolation operations we have seen in sec. \ref{sec:bdhi}\footnote{Which incidentally happen to be identical to the ones for electrostatics (sec. \ref{ch:tppoisson})}. In \gls{IBM} the forces acting on a certain marker (particle) are distributed (spreaded) to the nearby fluid grid points via some smeared delta function (see figure \ref{fig:ibm}). \gls{IBM} offers us a way to discretize the spreading (eq. \eqref{eq:spreadoper}) and interpolation (eq. \eqref{eq:interpoper}) operators via some sophisticated $\delta_a$ kernels often refered to as Peskin kernels\footnote{In honor of their creator\cite{Peskin1977}}.
-Furthermore, the spreading and interpolation algorithms that we are going to devise for it's implementation will also be applicable to other situations outside it's intended purpose. For instance, to spread charges and interpolate electric fields when solving the Poisson equation (see sec. \ref{ch:tppoisson} or \ref{ch:dppoisson}). In general, we can use the spreading and interpolation algortihms here for transforming between a Lagrangian (particles) and an Eulerian (grid) description.
-
-\begin{figure}[h]
-  \centering
-  \includesvg{gfx/ibm}{0.7\columnwidth}
-  \caption{A representation of the Immersed Boundary. The blue circle represents a particle (being the green cross it's center). Some quantity (i.e. the force) acting on it will be spreaded to the grid points inside its radius of action(red crosses).}
-  \label{fig:ibm}  
-\end{figure}
-
-A really thorough description of the \gls{IBM} framework can be found at\cite{Peskin2002}, including the equations of motion for an arbitrary structure submerged in an incompressible fluid. However, we will only make use of the properties devised for the kernels.
-
-In particular, Peskin kernels must abide to a series of postulates that intend to maximize computational efficiency (which translates to closer support) while minimizing the discretization effect of the grid (such as translational invariance).
-
-For the sake of simplicity, the first postulate consists in assuming the kernel can be separated as
-\begin{equation}
-  \delta_a(\vec{r}=(x,y,z)) =\frac{1}{h^3}\phi\left(\frac{x}{h}\right)\phi\left(\frac{y}{h}\right)\phi\left(\frac{z}{h}\right)
-\end{equation}
-This allows to state the postulates regarding the one dimensional function, $\phi$. Additionally, this form yields $\delta_a\rightarrow\delta$ as $h\rightarrow 0$.
-The second postulate is that $\phi(r)$ must be continuous for $r\in\mathbb R$, avoiding jumps in the the quantities sprepaded to, or interpolated from, the grid. The close support postulate says that $\phi(r>r_c/h := P) = 0$. This is our main means for seeking computational efficiency, since reducing the support of the kernel by one cells reduces dramatically the required operations. In particular, spreading or interpolating require visiting $n_s^3$ nearby cells (where $n_s = 2P +1$), so a support of $n_s=5$ requires $125$ cells while a support of $3$ requires just $27$.
-The last basic postulate is required for the kernel to conserve the communicated quantities and its simply a discrete expression of the fact that the kernel must integrate to unity.
-\begin{equation}
-  \label{eq:peskinunity}
-  \sum_j \phi(r-j) = 1 \textrm{ for } r\in\mathbb R
-\end{equation}
-Where $j$ are the centers or the cells inside the support.
-The next postulate intends to enforce the translational invariance of the distributed quantities as much as possible.
-\begin{equation}
-  \label{eq:peskinsumsquares}
-  \sum_j\left(\phi(r-j)\right)^2 = C \textrm{ for any } r\in\mathbb R
-\end{equation}
-Where $C$ is some constant to be determined. Eq. \eqref{eq:peskinsumsquares} is a weaker version of the condition for exact grid translational invariance
-\begin{equation}
-  \sum_j\phi(r_1-j)\phi(r_2-j) = \Phi(r_1-r_2)
-\end{equation}
-Which states that the coupling between any two points must be a function of their distance. However, it can be shown that satisfying this condition is incompatible with a compact support\cite{Peskin2002}. Eq. \eqref{eq:peskinsumsquares} attempts to guarantee some degree of translational invariance by imposing a condition on the point with maximum coupling, $r_1 = r_2$.
-
-Finally, we can impose conditions on the conservation the first $n$ moments to get increasingly higher order accuracy interpolants (at the expense of wider support)
-\begin{equation}
-  \sum_j(r-j)^n\phi(r-j) = K_n
-\end{equation}
-Where $K_n$ are some constants. Note that the zeroth moment condition corresponds to eq. \eqref{eq:peskinunity} with $K_0 = 1$.
-By solving the system of equation given by these conditions, different kernels can be found. 
-
-\subsubsection*{3-point Peskin kernel}
-In particular, enforcing only the condition for the first moment we arrive at the so-called 3-point Peskin kernel.
-
-\begin{equation}
-  \label{eq:peskin3}
-  \phi(|r|) =  \left\{
-  \begin{aligned}
-    & \frac{1}{3}\left( 1 + \sqrt{1-3r^2}\right)& r < 0.5\\
-    & \frac{1}{6}\left(5-3r-\sqrt{1-3(1-r)^2}\right)& r < 1.5\\
-    & 0 & r>1.5 
-  \end{aligned}\right.
-\end{equation}
-Where the argument $|r|$ represents that the above expression must be evaluated for the absolute value of the separation (since the kernel is simetric).
-We can add a more restrictive condition on the integration to unity postulate
-\begin{equation}
-  \label{eq:evenodd}
-  \sum_{j \textrm{ even}} =\phi(r-j)   \sum_{j \textrm{ odd}} \phi(r-j) = \half
-\end{equation}
-Which smooths the contributions of the kernel when using a central difference discretization for the gradient operator.
-\subsubsection*{4-point Peskin kernel}
-Solving for $\phi$ in this case, with up to the first moment condition with $K_1=0$, yields the classic 4-point Peskin kernel
-
-
-\begin{equation}
-  \label{eq:peskin3}
-  \phi(|r|) =  \left\{
-  \begin{aligned}
-    & \frac{1}{8}\left( 3 - 2r + \sqrt{1+4r(1-r)}\right)& r < 1\\
-    & \frac{1}{8}\left(5-2r-\sqrt{-7+12r-4r^2}\right)& r < 2\\
-    & 0 & r>2
-  \end{aligned}\right.
-\end{equation}
-
-\subsubsection*{6-point Peskin kernel}
-Recently, a new 6-point kernel has been developed that satisfies the moment conditions up to $n=3$ for a special choice of $K_2$\cite{Bao2016}. Additionally, it also satisfies the even-odd condition in eq. \eqref{eq:evenodd}, it is three times differentiable and offers a really good translational invariance compared with similarly supported kernels.
-
-This kernel sets $K_1= K_3 = 0$ and
-\begin{equation}
-K_2 = \frac{59}{60} - \frac{\sqrt{29}}{20}
-\end{equation}
-Solving for $\phi$ using these conditions, and defining the following
-\begin{equation}
-  \begin{aligned}
-    &\alpha = 28\\
-    &\beta(r) = \frac{9}{4} - \frac{3}{2} (K_2 + r^2) + (\frac{22}{3}-7K_2)r - \frac{7}{3})r^3\\
-    &\gamma(r) = -\frac{11}{32}r^2 + \frac{3}{32}(2K_2+r^2)r^2 +
-    \frac{1}{72}\left((3K_2-1)r+r^3\right)^2 +\\
-    &\qquad+\frac{1}{18}\left((4-3K_2)r -r^3\right)^2\\
-    &\chi(r) = \frac{1}{2\alpha}\left( -\beta(r) + \textrm{sgn}(\frac{3}{2} - K_2)\sqrt{\beta(r)^2 - 4\alpha\gamma(r)}\right)
-\end{aligned}
-\end{equation}
-We get the expression for the 6-point kernel
-\begin{equation}
-  \label{eq:peskin6}
-  \phi(|r|) =  \left\{
-    \begin{aligned}
-      & 2\chi(r) + \frac{5}{8} + \frac{1}{4}(K_2 + r^2)& r < 1\\[8pt]
-      & -3\chi(r-1) + \frac{1}{4} - \frac{1}{6}\left((4-3K_2) + (r-1)^2\right)(r-1) & r < 2\\[8pt]
-      & \chi(r-2) - \frac{1}{16} + \frac{1}{8}\left(K+(r-2)^2\right) - \\
-      &\qquad-\frac{1}{12}\left((3K_w-1) - (r-2)^2\right)(r-2)& r<3\\[8pt]
-      &0 &r>3
-  \end{aligned}\right.
-\end{equation}
-
-Given its complexity it is advisable to tabulate the kernel at the start of the simulation
-
-\subsubsection*{Barnett-Magland (BM) kernel}
-
-A new kernel, called ``exponential of the semicircle''(ES) and here refered to as BM, has been recently developed to improve the efficiency of non-uniform \gls{FFT} methods\cite{Barnett2019}. This kernel has been used for electrostatics\cite{Shamshirgar2021}, but we will also apply it to the Stokes equation. This kernel has a simple mathematical expression
-\begin{equation}
-  \label{eq:bmkernel}
-  \phi(r) = \left\{
-  \begin{aligned}
-    &\exp\left[\beta(\sqrt{1-(r/w)^2}-1)\right] & |r|/w\le 1\\
-    & 0 & \textrm{otherwise}
-  \end{aligned}\right.
-\end{equation}
-Where $\beta$ and $w$ are parameters related to the shape and support (width) of the kernel.
-Several other Peskin-like kernels can be found by enforcing other conditions, see for example\cite{Yang2009}.
-A comparison of the different kernels in this section can be found in sec. \ref{sec:kernelcomp}.
 
 \chapter{Eulerian-Lagrangian methods for Fluctuating Hydrodynamics}
 In general, \gls{BC}s in the previous methods have to be introduced via the Green's function in eq. \eqref{eq:bdhimob}. However, this Green's function might be unknown or simply non analytic. We can discretize and solve eq. \eqref{eq:bdhibdrelation} directly to have more fine control over the \gls{BC}s.
