@@ -1988,7 +1988,7 @@ We will discretize the interpolation operator in eq. \eqref{eq:interpoper} in a 
   \oper{J}_{\vec{\ppos}_i}\vec{\fvel} = \sum_j{\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{\fvel}_jdV(j)}
 \end{equation}
 
-Where the sum goes over all the cells, $j$, in the grid, with centers at $\vec{fpos}_j$. The function $dV(j)$ are the quadrature weights (i.e the volume of the cell). For a regular grid with cell size $h$, the quadrature weights are simply $dV(j) := h^3$, but we will see other geometries in sec. \ref{ch:dppoisson}.
+Where the sum goes over all the cells, $j$, in the grid, with centers at $\vec{\fpos}_j$. The function $dV(j)$ are the quadrature weights (i.e the volume of the cell). For a regular grid with cell size $h$, the quadrature weights are simply $dV(j) := h^3$, but we will see other geometries in sec. \ref{ch:dppoisson}.
 
 
 \begin{figure}[h]
@@ -2004,6 +2004,7 @@ In particular, Peskin kernels must abide to a series of postulates that intend t
 
 For the sake of simplicity, the first postulate consists in assuming the kernel can be separated as
 \begin{equation}
+  \label{eq:peskinseparable}
   \delta_a(\vec{r}=(x,y,z)) =\frac{1}{h^3}\phi\left(\frac{x}{h}\right)\phi\left(\frac{y}{h}\right)\phi\left(\frac{z}{h}\right)
 \end{equation}
 This allows to state the postulates regarding the one dimensional function, $\phi$. Additionally, this form yields $\delta_a\rightarrow\delta$ as $h\rightarrow 0$.
@@ -2110,7 +2111,7 @@ A new kernel, called ``exponential of the semicircle''(ES) and here refered to a
 Where $\beta$ and $w$ are parameters related to the shape and support (width) of the kernel. The parameter $S(\beta, w)$ is the necessary normalization to ensure that eq. \eqref{eq:bmkernel} integrates to unity. Since eq. \eqref{eq:bmkernel} does not have an analytic integral, this factor must be computed numerically. One advantage of BM kernel is that it decays faster than a Gaussian in Fourier space, which is benefitial in spectral methods\cite{Barnett2019}.
 
 One disadvantage of the kernels above is that we do not know their analytical Fourier transform (in the case of the BM kernel stems from it not having an analytic integral), which hinders our ability to elaborate analytical expressions for the mobility in eq. \eqref{eq:bdhimob}.\todo{chequear con Rafa este invent, por que no puedo hacerlo con el peskin 3pt en espacio real?}
-For our purposes, this means that we have to estimate numerically the relation between the width of the kernels and the hydrodynamic radius.
+For our purposes, this means that we have to estimate numerically the relation between the width of the kernels and the hydrodynamic radius, which will sometimes subject also to the size of the grid.
 On the other hand, all of them will present Oseen-like behavior at long distances and will be regularized in a similar way to the \gls{RPY} mobility at short distances.
 We will investigate this in more detail shortly.
 \subsubsection*{Gaussian kernel}
@@ -2122,74 +2123,80 @@ Finally, we can include here for completeness the Gaussian kernel, which can be 
 Where $\sigma$ is the width of the Gaussian.
 In this case it is possible to compute the self mobility in eq. \eqref{eq:bdhimob} analytically, which yields $\sigma = a/\sqrt{\pi}$.\todo{maybe explain further}
 
+Several other Peskin-like kernels can be found by enforcing other conditions, see for example\cite{Yang2009}.
+
+A comparison of the different kernels in this section can be found in sec. \ref{sec:kernelcomp}.
+
 \subsection{Spreading and interpolation algorithms}
 Lets see how to efficiently spread and interpolate in a \gpu. 
-In a serial implementation of spreading, we can simply sum, for each particle, the contribution $\delta_a(\vec{\ppos} - \vec{\fpos})\vec{F}$ to each nearby cell. And in the case of interpolation a similar strategy can be employed, where each particle sums to its quantity the values $\delta_a(\vec{\ppos} - \vec{\fpos})\vec{v}$ from nearby cells. Note that here $\vec{F}$ and $\vec{v}$ can refer to forces and velocities or in general any per particle and per cell quantities.
-We can restrict the cells to the minimum by knowing the support, $n_s$, of the kernel.
+In a serial implementation of spreading, we can simply sum the contribution, $\delta_a(\vec{\ppos} - \vec{\fpos})\vec{F}$, of each particle to its nearby cells. And in the case of interpolation a similar strategy can be employed, where each particle accumulates quantity $\delta_a(\vec{\ppos} - \vec{\fpos})\vec{v}$ from its nearby cells. Note that here $\vec{F}$ and $\vec{v}$ can refer to forces and velocities or in general any per particle and per cell quantities.
+We can restrict the visited cells to the minimum by knowing the support, $n_s$, of the kernel.
 In a regular grid, we can find the cell of a given particle with position $x \in [-L/2, L/2)$ as $c_x = \floor((x/L + 0.5)n_x)$. From there, it is straight-forward to find the $n_s$ cells in the support at cells $\vec{c} \pm P$ for odd supports (see fig. \ref{fig:ibm2} (top)). It is important to handle even supports separatedly. In this case, a particle at one side of the middle of a cell will need to visit a different set of cells that one at the other side (see fig. \ref{fig:ibm2} (bottom)).
 
-We can 
 \begin{figure}[h]
   \centering
   \includesvg{gfx/ibm2}{\columnwidth}
   \caption{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($n_x=5, n_y=n_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation.}
   \label{fig:ibm2}  
 \end{figure}
+Algorithm \ref{alg:visitneigh} shows how to handle the case of even supports.
 
-
-Using the strategy in algorithm \ref{alg:visitneigh} instead of the naive three nested loops results in more (cheap) operations, but reduces the operation to a single loop, reduces the logic pressure and facilitates loop unrolling, also giving the compiler more chances for optimization.
+When looping through the cells inside the support of a particle, using the strategy in algorithm \ref{alg:visitneigh} instead of the naive three nested loops results in more integer operations, but reduces the operation to a single loop, reducing conditional logic pressure and facilitating loop unrolling, also giving the compiler more chances for optimization.
+\todo{Maybe a graph explaining how $n_s=P/2$ works?}
 \begin{algorithm}[H]
+  \caption{Visiting the neighbour cells of a particle, $i$, located at $\vec{\ppos}_i \in [0, L)_{\mathbb R ^3}$ for spreading or interpolation}
   \label{alg:visitneigh}
-  \caption{Visiting the neighbour cells of a particle, $i$, located at $\vec{\ppos}_i \in [0, L)_{\mathbb R ^3}$ }
   \begin{algorithmic}[1]
     \State $\vec{c}_i \gets$ cell of particle $i$
     \If{$n_s$ is even}
-    \State $\vec{s} \gets \floor(\vec{\ppos}_i/h) - \vec{c}_i + 0.5$ \Comment{Shift for even supports}
+    \LeftComment{Shift for even supports. Can be 0 or 1 in each direction}
+    \State $\vec{s} \gets \floor(\vec{\ppos}_i/h - \vec{c}_i + 0.5)$ \Comment{Valid for regular grids}
     \Else
     \State $\vec{s} \gets 0$ 
     \EndIf
     \State $\vec{P}_s\gets n_s/2 -\vec{s}$
+    \State precomputeKernel($\vec{\ppos}_i, \vec{P}_s$) \Comment{See alg. \ref{alg:precomputeKernel}}
     \For{ $j=0$ until $n_s^3$}
     \State $i_x \gets \text{mod}(j, n_s)$
     \State $i_y \gets \text{mod}(j/n_s, n_s)$
     \State $i_z \gets j/n_s^2$
     \State $\vec{c}_j \gets \text{fold}(\vec{c}_i + (i_x, i_y, i_z) - \vec{P}_s)$ \Comment{Neighbour cell $\in [0, \vec{n})$}
-    \State Process interaction between particle $i$ and neighbour cell $\vec{c}_j$
+    \State $\delta\gets$ fetchKernel($i_x, i_y, i_z$) \Comment{$\delta_a(\vec{q}_i - \vec{c}_j)$, see alg.\ref{alg:precomputeKernel}}
+    \If{Spreading}
+    \State cellQuantity[$\vec{c}_j$] += $dV\delta$ +particleQuantity[$\vec{\ppos}_i$] \label{alg:visitspread}
+    \ElsIf{Interpolating}
+    \State particleQuantity[$\vec{p}_i$] += $\delta$ cellQuantity[$\vec{c}_j$]\label{alg:visitinterp}
+    \EndIf
     \EndFor
   \end{algorithmic}
 \end{algorithm}
 
-
-\subsubsection{Spreading}
-We can distinguish 
+The interaction between a cell $j$ and a particle $i$ is mediated via the kernel $\delta_a(\vec{\ppos}_i-\vec{\fpos}_j)$, in principle, this would incur $n_s^3$ evaluations of the kernel for spreading or interpolation. However, we can reduce it to just $3n_s$ by using the first postulate in eq. \eqref{eq:peskiseparable} and storing $\phi$ for each direction before the loop. We can then just multiply the stored evaluations of $\phi$ in each direction to get $\delta_a$. Algorithm \ref{alg:precomputeKernel} contains details on how to do this.
 
 \begin{algorithm}[H]
-  \label{alg:naivespread}
-  \caption{Spreading a quantity defined in a group of particles to an Eulerian grid}
+  \caption{Precomputing the kernel and accessing it via linear indices. See alg. \ref{visitneigh}}
+  \label{alg:precomputeKernel}
   \begin{algorithmic}[1]
-    \For{each particle $i$}
-    \For{each cell $j$}
-    \State Sum contribution of particle $i$ on cell $j$
+    \Function{precomputeKernel}{$\vec{\ppos} \in [0, L)_{\mathbb R^3}$, $\vec{P}_s$}
+    \State $\vec{c} \gets$ cell of $\vec{\ppos}$
+    \For{$i=0$ until $n_s$}
+    \State $\vec{c}_s \gets \vec{c} - \vec{P}_s + (i,i,i)$
+    \State $\vec{r} \gets \text{dist}(\vec{c}_s, \vec{\ppos})$ \Comment{Distance to cell $\vec{c}_s$ in each direction}
+    \State Store $\phi_X[i] \gets \phi(\vec{r}_x/h)/h$
+    \State Store $\phi_Y[i] \gets \phi(\vec{r}_y/h)/h$
+    \State Store $\phi_Z[i] \gets \phi(\vec{r}_z/h)/h$
     \EndFor
-    \EndFor
-  \end{algorithmic}
-\end{algorithm}
-\begin{algorithm}[H]
-  \label{alg:naiveinterp}
-  \caption{Interpolating a quantity defined in a group of particles to an Eulerian grid}
-  \begin{algorithmic}[1]
-    \For{each particle $i$}
-    \For{each cell $j$}
-    \State Sum contribution of particle $i$ on cell $j$
-    \EndFor
-    \EndFor
+    \EndFunction    
+    \Function{fetchKernel}{$i_x \in [0, n_s), i_y  \in [0, n_s), i_z  \in [0, n_s)$}
+    \State \Return $\phi_X[i_x]\phi_Y[i_y]\phi_Z[i_z]$
+    \EndFunction
   \end{algorithmic}
 \end{algorithm}
 
+Note that for algorithm \ref{alg:visitneigh} we have decided to traverse, for each particle, all nearby
 
-Several other Peskin-like kernels can be found by enforcing other conditions, see for example\cite{Yang2009}.
+algorithm \ref{alg:visitneigh} works for a serial implementation as is. However, if
 
-A comparison of the different kernels in this section can be found in sec. \ref{sec:kernelcomp}.
 
 \subsection{Force Coupling Method (FCM)}\label{sec:fcm}
 Both \emph{Cholesky} and \emph{Lanczos} methods use the explicit form of an open boundary mobility. This makes them open boundary algorithms since they do not take into account the periodic images of the system in any way. Furthermore, the computational complexity of these methods is restrictive. Luckily, we can manage to do it in $O(N)$ operations if we consider periodic boundary conditions. In particular by solving eq. \eqref{eq:bdhibdrelation} directly in Fourier space via the Force Coupling Method\cite{Keaveny2014}. In doing so, we get the added benefit (and disadvantage) of not impossing a specific mobility tensor, which will arise naturally according to the spreading kernel.
