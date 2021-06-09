@@ -1,6 +1,7 @@
 OPTIONS=-shell-escape
 TOCLEAN=*aux *bbl *blg *lof *lol *out *toc *xml *lot *log *ilg *ind *acn *glo *ist main-blx.bib *acr *alg *glg *gls *pyg _minted*
 all: clean
+	(cd gfx && bash agr2eps.bash)
 	@texfot --ignore="This is" pdflatex -interaction=batchmode  -draftmode $(OPTIONS) main	
 	@texfot	--ignore="This is" bibtex main
 	@texfot	--ignore="This is" pdflatex -interaction=batchmode -draftmode $(OPTIONS)  main
@@ -8,6 +9,7 @@ all: clean
 	@texfot	--ignore="This is" pdflatex -interaction=batchmode $(OPTIONS) main
 
 verbose: clean
+	(cd gfx && bash agr2eps.bash)
 	pdflatex  -draftmode $(OPTIONS) main	
 	bibtex main
 	pdflatex -draftmode $(OPTIONS)  main

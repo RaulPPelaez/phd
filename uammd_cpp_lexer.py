@@ -72,7 +72,7 @@ class CFamilyLexer2(RegexLexer):
             (r'[~!%^&*+=|?:<>/-]', Operator),
             (r'[()\[\],.]', Punctuation),
             (r'(struct|union)(\s+)', bygroups(Keyword, Text), 'classname'),
-            (words(('asm', 'auto', 'break', 'case', 'const', 'continue',
+            (words(('asm', 'auto', 'break', 'case', 'const', 'continue','or','and','not',
                     'default', 'do', 'else', 'enum', 'extern', 'for', 'goto',
                     'if', 'register', 'restricted', 'return', 'sizeof', 'struct',
                     'static', 'switch', 'typedef', 'volatile', 'while', 'union',

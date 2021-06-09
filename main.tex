@@ -25,6 +25,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \usepackage[acronym]{glossaries}
 \usepackage[utf8]{inputenc}
 \usepackage{pgfplots}
+\usepackage{subfig}
 \graphicspath{{./gfx/}}
 
 \newcommand{\executeiffilenewer}[3]{
@@ -2131,7 +2132,7 @@ A comparison of the different kernels in this section can be found in sec. \ref{
 Lets see how to efficiently spread and interpolate in a \gpu. 
 In a serial implementation of spreading, we can simply sum the contribution, $\delta_a(\vec{\ppos} - \vec{\fpos})\vec{F}$, of each particle to its nearby cells. And in the case of interpolation a similar strategy can be employed, where each particle accumulates quantity $\delta_a(\vec{\ppos} - \vec{\fpos})\vec{v}$ from its nearby cells. Note that here $\vec{F}$ and $\vec{v}$ can refer to forces and velocities or in general any per particle and per cell quantities.
 We can restrict the visited cells to the minimum by knowing the support, $n_s$, of the kernel.
-In a regular grid, we can find the cell of a given particle with position $x \in [-L/2, L/2)$ as $c_x = \floor((x/L + 0.5)n_x)$. From there, it is straight-forward to find the $n_s$ cells in the support at cells $\vec{c} \pm P$ for odd supports (see fig. \ref{fig:ibm2} (top)). It is important to handle even supports separatedly. In this case, a particle at one side of the middle of a cell will need to visit a different set of cells that one at the other side (see fig. \ref{fig:ibm2} (bottom)).
+In a regular grid, we can find the cell of a given particle with position $x \in [-L/2, L/2)$ as $c_x = \floor((x/L + 0.5)n_x)$. From there, it is straight-forward to find the $n_s$ cells in the support at cells $\vec{c} \pm P$ for odd supports (see fig. \ref{fig:ibm2} (top)). It is important to handle even supports separatedly. In this case, a particle at one side of the middle of a cell will need to visit a different set of cells that one at the other side (see fig. \ref{fig:ibm2} (bottom)). Furthermore, if \gls{PBC} are used, it is important to fold the neighbour cells to the $[0, \vec{n})$ range.
 
 \begin{figure}[h]
   \centering
@@ -2141,29 +2142,29 @@ In a regular grid, we can find the cell of a given particle with position $x \in
 \end{figure}
 Algorithm \ref{alg:visitneigh} shows how to handle the case of even supports.
 
-When looping through the cells inside the support of a particle, using the strategy in algorithm \ref{alg:visitneigh} instead of the naive three nested loops results in more integer operations, but reduces the operation to a single loop, reducing conditional logic pressure and facilitating loop unrolling, also giving the compiler more chances for optimization.
+When looping through the cells inside the support of a particle, using the strategy in algorithm \ref{alg:visitneigh} instead of the naive three nested loops results in more integer operations, but reduces the operation to a single loop, reducing conditional logic pressure and facilitating loop unrolling, also giving the compiler more chances for optimization. Furthermore, the traversal order can be tweaked easily by modifying the relation between the linear neighbour index and the cell offsets in lines \ref{alg:visit_ix} and below from algorithm \ref{alg:visitneigh}.
 \todo{Maybe a graph explaining how $n_s=P/2$ works?}
 \begin{algorithm}[H]
   \caption{Visiting the neighbour cells of a particle, $i$, located at $\vec{\ppos}_i \in [0, L)_{\mathbb R ^3}$ for spreading or interpolation}
   \label{alg:visitneigh}
   \begin{algorithmic}[1]
-    \State $\vec{c}_i \gets$ cell of particle $i$
+    \State $\vec{c}_i \gets$ cell of particle $i$ \label{alg:visitneighgetcell}
     \If{$n_s$ is even}
     \LeftComment{Shift for even supports. Can be 0 or 1 in each direction}
     \State $\vec{s} \gets \floor(\vec{\ppos}_i/h - \vec{c}_i + 0.5)$ \Comment{Valid for regular grids}
     \Else
     \State $\vec{s} \gets 0$ 
     \EndIf
-    \State $\vec{P}_s\gets n_s/2 -\vec{s}$
+    \State $\vec{P}_s\gets n_s/2 -\vec{s}$ \label{alg:visitneighshift}
     \State precomputeKernel($\vec{\ppos}_i, \vec{P}_s$) \Comment{See alg. \ref{alg:precomputeKernel}}
     \For{ $j=0$ until $n_s^3$}
-    \State $i_x \gets \text{mod}(j, n_s)$
+    \State $i_x \gets \text{mod}(j, n_s)$\label{alg:visit_ix}
     \State $i_y \gets \text{mod}(j/n_s, n_s)$
     \State $i_z \gets j/n_s^2$
     \State $\vec{c}_j \gets \text{fold}(\vec{c}_i + (i_x, i_y, i_z) - \vec{P}_s)$ \Comment{Neighbour cell $\in [0, \vec{n})$}
     \State $\delta\gets$ fetchKernel($i_x, i_y, i_z$) \Comment{$\delta_a(\vec{q}_i - \vec{c}_j)$, see alg.\ref{alg:precomputeKernel}}
     \If{Spreading}
-    \State cellQuantity[$\vec{c}_j$] += $dV\delta$ +particleQuantity[$\vec{\ppos}_i$] \label{alg:visitspread}
+    \State cellQuantity[$\vec{c}_j$] += $dV\delta$ particleQuantity[$\vec{\ppos}_i$] \label{alg:visitspread}
     \ElsIf{Interpolating}
     \State particleQuantity[$\vec{p}_i$] += $\delta$ cellQuantity[$\vec{c}_j$]\label{alg:visitinterp}
     \EndIf
@@ -2171,7 +2172,7 @@ When looping through the cells inside the support of a particle, using the strat
   \end{algorithmic}
 \end{algorithm}
 
-The interaction between a cell $j$ and a particle $i$ is mediated via the kernel $\delta_a(\vec{\ppos}_i-\vec{\fpos}_j)$, in principle, this would incur $n_s^3$ evaluations of the kernel for spreading or interpolation. However, we can reduce it to just $3n_s$ by using the first postulate in eq. \eqref{eq:peskiseparable} and storing $\phi$ for each direction before the loop. We can then just multiply the stored evaluations of $\phi$ in each direction to get $\delta_a$. Algorithm \ref{alg:precomputeKernel} contains details on how to do this.
+The interaction between a cell $j$ and a particle $i$ is mediated via the kernel $\delta_a(\vec{\ppos}_i-\vec{\fpos}_j)$, in principle, this would incur $n_s^3$ evaluations of the kernel for spreading or interpolation. However, we can reduce it to just $3n_s$ by using the first postulate in eq. \eqref{eq:peskinseparable} and storing $\phi$ for each direction before the loop. We can then just multiply the stored evaluations of $\phi$ in each direction to get $\delta_a$. Algorithm \ref{alg:precomputeKernel} contains details on how to do this.
 
 \begin{algorithm}[H]
   \caption{Precomputing the kernel and accessing it via linear indices. See alg. \ref{visitneigh}}
@@ -2193,9 +2194,74 @@ The interaction between a cell $j$ and a particle $i$ is mediated via the kernel
   \end{algorithmic}
 \end{algorithm}
 
-Note that for algorithm \ref{alg:visitneigh} we have decided to traverse, for each particle, all nearby
+Our goal now is to devise an efficient, \gpu friendly, version of spreading/interpolation. In serial, we can simply apply \ref{alg:visitneigh} to each particle to get a fairly efficient algorithm. However, a direct paralelization of this approach by assigning a worker to each particle is not possible for spreading. In this case two particles could write at the same time to the same cell, resulting in a race condition. This can be circumvented by ensuring line \ref{alg:visitspread} in alg. \ref{alg:visitneigh} is an atomic operation.
 
-algorithm \ref{alg:visitneigh} works for a serial implementation as is. However, if
+Another solution is to traverse per cell instead of per particle, usually refered to as mesh-based approaches. Each cell is assigned to a worker, which then traverses all nearby particles. This requires to construct a cell list. While this approach is free of atomic operations (which can hurt performance if a lot of collisions happen) it makes the algorithm scale with the number of cells and will be inefficient in low density systems (or in configurations with large density disparities), where many cells are empty. On the other hand, CUDA atomic operations have come a long way, presenting almost no overhead when there are no collisions. Furthermore, a per-cell approach does not allow to take advantage of eq. \eqref{eq:peskinseparable} easily, increasing the number of kernel evaluations to $n_s^3$.
+For our typical use, the few corner cases in which the per-cell approach is more optimal are not worth enough to consider this option.
+
+There is not a best-for-all algorithm regarding spreading, a review of several mesh-based methods is available at\cite{Guo2015}.
+We usually have to spread quasi uniform configurations in 3D and we typically deal with a few million number of particles, which makes a per-particle approach the overall best option (see figure \ref{fig:ibmcomp}).
+
+Recently, a new \gpu-friendly algorithm has been developed\cite{Shih2021} that uses an hybrid approach by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken until each thread block deals with a subproblem with up to a maximum number of particles (see fig. 1 in \cite{Shih2021}) to aide with load-balancing. Subproblems are then spreaded into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems are reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Although this is a promising algorithm testing suggest, for a single \gpu, that it is best suited for large and dense systems (with more than $~2$ million particles) and 2D grids (see fig. \ref{fig:ibmcomp}).
+
+\subsubsection*{Spreading algorithm}
+We suggest a particle-based approach, presenting subtle differences with the existing ones\cite{Shih2021}\cite{Guo2015}\cite{Fiore2017}, specifically tailored for the \gpu. We assign a thread block to each particle, each thread in the block will spread to a different cell atomically. Since all threads in the block handle the same particle all the per-particle information can be stored in shared memory. This includes the $3n_s$ evaluations of the kernel, which can be precomputed into shared memory collaboratively by all threads(see algorithm \ref{alg:precomputeKernelSM}). We refer to this method as BPP (for block-per-particle)\footnote{Changing algorithm \ref{alg:visitneigh} into a block-per-particle kernel amounts to assigning different elements of the cell loop to different threads, in the same way as in passing from algorithm \ref{alg:precomputeKernel} to \ref{alg:precomputeKernelSM}.}. This is in contrast with the naive \emph{GM} algorithm in \cite{Shih2021}, where a thread is assigned to a particle and the kernel is stored in (the scarce) \emph{register} memory. We refer to this method as TPP (thread-per-particle). Given the scarcity of register memory, storing $3n_s$ values in it could easily result in register spilling, thus, we will also consider recomputing the kernel ($n_s^3$ times) when using TPP.
+\todo{improve alg so a different thread is asigned to each dir} 
+\begin{algorithm}[H]
+  \caption{Precomputing the kernel in GPU shared memory. See alg. \ref{visitneigh}}
+  \label{alg:precomputeKernelSM}
+  \begin{algorithmic}[1]
+    \Function{precomputeKernelSM}{$\vec{\ppos} \in [0, L)_{\mathbb R^3}$, $\vec{P}_s$}
+    \State $\vec{c} \gets$ cell of $\vec{\ppos}$
+    \For{$i=$threadIdx.x until $n_s$ by blockIdx.x}    
+    \State $\vec{c}_s \gets \vec{c} - \vec{P}_s + (i,i,i)$
+    \State $\vec{r} \gets \text{dist}(\vec{c}_s, \vec{\ppos})$ \Comment{Distance to cell $\vec{c}_s$ in each direction}
+    \State Store $\phi_X[i] \gets \phi(\vec{r}_x/h)/h$
+    \State Store $\phi_Y[i] \gets \phi(\vec{r}_y/h)/h$
+    \State Store $\phi_Z[i] \gets \phi(\vec{r}_z/h)/h$
+    \EndFor
+    \State \_\_syncthreads()
+    \EndFunction    
+  \end{algorithmic}
+\end{algorithm}
+
+
+In BPP, only one of the threads (tipically the first one) needs to fetch the particle position and quantity to spread and compute its information (lines \ref{alg:visitneighgetcell} to \ref{alg:visitneighshift} in alg. \ref{alg:visitneigh}).
+One benefit of assigning a block per particle is that it is guaranteed that no atomic collisions will occur for threads in the same block. Since the execution order of blocks is not guaranteed the chances of atomic collisions between blocks are reduced in average.
+In a thread-per-particle approach, if the particles are sorted randomly in memory chances of atomic collision are reduced at the expense of worse access pattern (for reading particles are writting to cells). On the other hand, particles sorted by spatial hash (close in space means close in memory) will result in faster fetching, but increased chance of atomic overlap\footnote{In \uammd, particles can be sorted using the Z-morton hash (see sec. \ref{sec:particledata}) easily.}.
+%In general there will be a battle between these two effects (coalescence vs. atomic overlap).
+Our block-per-particle algorithm hides these issues to an extent, since only one thread in each block will fetch a particle and atomic overlap is reduced by design.
+However, testing suggests that particle sorting via spatial hashing dramatically improves performance (an overall speedup of $\times 7$ for TPP and $\times 2$ for BPP\todo{graph with these claims?}). Suggesting that atomic overlap is far less important than a cache-friendly memory access pattern.
+
+The storage layout of the grid data can also influence the performance of the algorithm. In particular, using a space filling curve (as the one in sec. \ref{sec:celllist}) could improve the access pattern in both spreading and interpolation\cite{Shih2021}. However, this has not been considered in this work, were a linear index is always considered so that the data for cell with indices $(i,j,k)$ is located at element $i+(j+kn_y)n_x$ in the relevant array\footnote{Note however, that the software interface for this module allows for an arbitrary ordering of the grid data, as we will later see}. This ordering comes imposed by the usual relation between spreading/interpolation and spectral methods in fluctuating hydrodynamics, which requires using \gls{FFT} libraries that benefit from (or are restricted to) it.
+
+We compare the described TPP and BPP algorithms with the hybrid SM in \cite{Shih2021} in fig. \ref{fig:ibmcomp}, measuring the performance of spreading one number per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible.
+
+\begin{figure}[h]
+  \centering
+  \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens1_2080ti}}
+  \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens0.1_2080ti}}
+\caption{Performance comparison between the different spreading schemes considered for two different densities. Particles are distributed uniformly in a cubic grid and spreaded with a support $n_s=8$ using a Gaussian kernel. The considered algorithms are: A block-per-particle (BPP), the algorithm used in \uammd. A thread-per-particle (TPP) precomputing the kernel to register memory (register, similar to \emph{GM-sort} in Shih2021\cite{Shih2021}) and recomputing it (recompute). Finally, timing for the \emph{SM} algorithm in \cite{Shih2021} is also presented. Performance data was gathered in an RTX2080Ti \gpu using single precision. The crossover between BPP and SM happens at around $2$ million particles in both cases.}
+  \label{fig:ibmcomp}  
+\end{figure}
+
+The performance of our BPP algorithm is robust to changes in density (see fig. \ref{fig:ibmcomp})\footnote{Although not shown, we see that the time per particle remains constant even with high densities, like 10 particles per cell, which results in ~200 million particles for a grid with $n_x=n_y=n_z=256$.}, being the time per particle in both cases almost identical for all grid sizes. This supports the idea of atomic operations being far less important than it seems at first, since more particles per cell should result in more atomic overlap. Furthermore, this trend is maintained across different kernel supports (only $n_s=8$ is shown in fig. \ref{fig:ibmcomp}). In other words, we see a perfect linear scaling with the number of particles across all tested scenarios.
+Another interesting behavior in fig. \ref{fig:ibmcomp} is that the TPP algorithm is always more performant when the kernel is recomputed. This is most likely due to register spilling stemming from the $3n_s$ values that must be stored, which forces local variables to be stored and fetched from slow global memory. One strategy for reducing the cost of recomputing in TPP (in cases where the kernel evaluation is expensive) could be to tabulate the kernel into a global memory array\footnote{The \uammd utility \emph{TabulatedFunction} can be employed here. This tool mimics the old CUDA textures, allowing to tabulate a function inside a range and then interpolate it at any point in between.}.
+
+Furthermore, the BPP algorithm is optimal for ``small'' systems, our typical range of application (below 2 million particles).
+
+\subsubsection*{Interpolation algorithm}
+When traversing per particle, interpolation does not require atomic operations (see alg. \ref{alg:visitneigh}). The worker asigned to a particle can accumulate the result of the interaction with nearby particles into a local variable and then write it to the global result array. Furthermore, interpolation requires only $N$ write operations, while spreading requires to perform $n_s^3N$ atomic writes. This makes interpolation inherently more efficient.
+The same TPP vs BPP arguments from spreading can be broadly employed here, prompting for a BPP approach. In this case, each thread in the block assigned to a given particle will compute the interaction with one (or several) cells, storing the result in a thread local register.
+When all threads in the block have finished, the local results are reduced into a final result, which is then written to global memory by a single thread (usually the first one).
+A naive block reduction involves the first thread fetching the local values from the rest of the threads (via shared memory or with CUDA shuffle intrinsics) and then performing a dumb sum. However, using \emph{cub}'s\cite{cub} \emph{BlockReduce} utility proves to be a vastly superior alternative.
+\todo{Differences maybe due to block size?, should be faster I would say}
+\begin{figure}[h]
+  \centering
+\includegraphics[width=\linewidth]{gfx/ibm_comp_interp_2080ti}
+\caption{Interpolation performance for different densities. Particles are distributed uniformly in a cubic grid and one value is interpolated with a support $n_s=8$ using a Gaussian kernel. Performance data was gathered in an RTX2080Ti \gpu using single precision. All data lies near the 9ns mark.}
+  \label{fig:ibmcomp}  
+\end{figure}
 
 
 \subsection{Force Coupling Method (FCM)}\label{sec:fcm}
