@@ -1861,7 +1861,15 @@ This Green's function is known as the Oseen tensor\cite{Oseen}, the solution for
 \end{equation}
 In practice we would like to take into account the finite size of the submerged particles, which amounts to choosing a different kernel in eq. \eqref{eq:bdhimob} or, in the purely particle based description of eq. \eqref{eq:bd}, a different (pairwise) approximation to the mobility altogether.
 We will see in future sections how to solve the dynamics of the particles without the need of the explicit form for the Green's function by discretizing eq. \eqref{eq:bdhifvel} directly. This can be useful for special geometries in which the differential operators in Stokes solution operator do not commute or when eq. \eqref{eq:bdhimob} cannot be solved analytically. For the moment lets stick to imposing a mobility tensor explicitly.
-The Oseen mobility presents asymptotic behavior at short distance stemming from the point particle assumption. However, we are usually interested in simulating the dynamics of objects with a certain hydrodynamic radius.
+The Oseen mobility presents asymptotic behavior at short distance stemming from the point particle assumption. However, we are usually interested in simulating the dynamics of objects with a certain hydrodynamic radius. Figure \ref{fig:oseen} contains a visual representation of the Oseen mobility.
+\begin{figure}
+  \centering
+  \includesvg{gfx/oseen}{0.7\columnwidth}
+  \caption{Representation of the Oseen mobility in 2D. A force acting on a source particle (green) is propagated to the others via the Oseen tensor (blue lines). Particles behind the source will be dragged onto it, while particles in front will be pushed away. Although the Oseen tensor is potted here, other mobility tensors, such as the RPY one in eq. \eqref{eq:rpy} will behave similarly at long distances.}
+  \label{fig:oseen}
+\end{figure}
+
+
 
 
 One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. We can compute it by integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator in the surface, $S$, of two spheres of radius $a$
@@ -1977,7 +1985,7 @@ auto createIntegratorBDHILanczos(UAMMD sim){
 \end{minted}
 
 
-\section{The Immersed Boundary Method (IBM) kernels}
+\section{The Immersed Boundary Method (IBM) kernels}\label{sec:ibm}
 If we want to directly solve eq. \eqref{eq:bdhibdrelation} instead of imposing a specific mobility (pheraps because we do not know the real space Green's function for a particular Stokes problem), we need to discretize the spreading and interpolation operators in eqs. \eqref{eq:spreadoper} and \eqref{eq:interpoper}. However, we cannot directly discretize deltas and we would like to take into account the size of the particles. We could smear the delta into a Gaussian, but the Gaussian kernels come with some inconveniences. In particular stemming from their infinite range, forcing us to truncate them at a certain length. We would like to reduce the support of our kernels as much as possible whithout hurting accuracy. We can borrow some lessons from the \gls{IBM} to help us in this regard.
 
 The \gls{IBM}\cite{Peskin1977}\cite{Peskin2002} is a mathematical framework for simulation of fluid-structure interaction. It is commonly used to discretize the spreading and interpolation operations we have seen in sec. \ref{sec:bdhi}\footnote{Which incidentally happen to be identical to the ones for electrostatics (sec. \ref{ch:tppoisson})}. In \gls{IBM} the forces acting on a certain marker (particle) are distributed (spreaded) to the nearby fluid grid points via some smeared delta function (see figure \ref{fig:ibm}). \gls{IBM} offers us a way to discretize the spreading (eq. \eqref{eq:spreadoper}) and interpolation (eq. \eqref{eq:interpoper}) operators via some sophisticated $\delta_a$ kernels often refered to as Peskin kernels\footnote{In honor of their creator\cite{Peskin1977}}.
@@ -2103,7 +2111,7 @@ Given its complexity it is advisable to tabulate $\phi_{p_6}$.
 A new kernel, called ``exponential of the semicircle''(ES) and here refered to as BM, has been recently developed to improve the efficiency of non-uniform \gls{FFT} methods\cite{Barnett2019}. This kernel has been used for electrostatics\cite{Shamshirgar2021}, but we will also apply it to the Stokes equation. This kernel has a simple mathematical expression
 \begin{equation}
   \label{eq:bmkernel}
-  \phi_{BM}(r) = \left\{
+  \phi_{BM}(r,\{\beta, w\}) = \left\{
   \begin{aligned}
     &\frac{1}{S}\exp\left[\beta(\sqrt{1-(r/w)^2}-1)\right] & |r|/w\le 1\\
     & 0 & \textrm{otherwise}
@@ -2119,7 +2127,7 @@ We will investigate this in more detail shortly.
 Finally, we can include here for completeness the Gaussian kernel, which can be defined as
 \begin{equation}
   \label{eq:gaussiankernel}
-  \phi_G(r) = \frac{1}{(2\pi\sigma)^{3/2}}\exp\left(\frac{-r^2}{2\sigma^2}\right)
+  \phi_G(r,\{\sigma\}) = \frac{1}{(2\pi\sigma)^{3/2}}\exp\left(\frac{-r^2}{2\sigma^2}\right)
 \end{equation}
 Where $\sigma$ is the width of the Gaussian.
 In this case it is possible to compute the self mobility in eq. \eqref{eq:bdhimob} analytically, which yields $\sigma = a/\sqrt{\pi}$.\todo{maybe explain further}
@@ -2255,20 +2263,88 @@ When traversing per particle, interpolation does not require atomic operations (
 The same TPP vs BPP arguments from spreading can be broadly employed here, prompting for a BPP approach. In this case, each thread in the block assigned to a given particle will compute the interaction with one (or several) cells, storing the result in a thread local register.
 When all threads in the block have finished, the local results are reduced into a final result, which is then written to global memory by a single thread (usually the first one).
 A naive block reduction involves the first thread fetching the local values from the rest of the threads (via shared memory or with CUDA shuffle intrinsics) and then performing a dumb sum. However, using \emph{cub}'s\cite{cub} \emph{BlockReduce} utility proves to be a vastly superior alternative.
+
+Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the same situation as fig. \ref{fig:ibmcomp}. Timings present a good linearlity with the number of particles and are almost independent from the density 
 \todo{Differences maybe due to block size?, should be faster I would say}
 \begin{figure}[h]
   \centering
-\includegraphics[width=\linewidth]{gfx/ibm_comp_interp_2080ti}
+\includegraphics[width=0.7\linewidth]{gfx/ibm_comp_interp_2080ti}
 \caption{Interpolation performance for different densities. Particles are distributed uniformly in a cubic grid and one value is interpolated with a support $n_s=8$ using a Gaussian kernel. Performance data was gathered in an RTX2080Ti \gpu using single precision. All data lies near the 9ns mark.}
-  \label{fig:ibmcomp}  
+  \label{fig:ibmcompinterp}
 \end{figure}
+
+\subsection{Use in UAMMD}
+
+The \emph{IBM} module in \uammd exposes the spreading and interpolation algorithms described in the previous sections.
+
+This interface is quite generic, allowing to spread or gather in a wide variety of situations. The geometry of the grid is abstracted via the \emph{Grid} object (see sec. \ref{sec:uammdgrid}) so non regular grids can be used. By default, the module will assume that data for cell $(i,j,k)$ is located at index $i+(j+kn_y)n_x$, but any indexing can be used by providing the module with a functor whose parenthesis operator takes $(i,j,k)$ and returns the index in the grid data array.
+
+The types of the grid and particle data arrays are templated, any random access iterator can be provided as long as the value type of the grid data is convertible to the one of the particle data (and viceversa). So one can, for instance, compute the quantity to spread on the fly without storing it.
+
+The gather operation can take an additional functor whose parenthesis operator takes the coordinates of a given cell and a grid object and returns the quadrature weights for that cell.
+
+The default for each cell is tkane from the cell volume via the \emph{Grid} object (\mintinline{\ucpp}{dV=grid.getCellVolume(cell);}).
+
+The kernel can also be specified as a template argument. The kernel interface allows to set $\phi$ in each direction separatedly and can also be different depending on the particle. The support can also be set per particle.
+
+An implementation of all the kernels in sec. \ref{alg:ibm} can be found at file \emph{IBM\_kernels.cuh}.
+
+This extra functionality is documented in \uammd's online documentation, here we provide an example function that spreads and/or gathers an isotropic Gaussian kernel into a regular cartesian grid. Representing the simplest, yet most usual, use case.
+
+\todo{This interface is super big and complex, what do?}
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<misc/IBM.cuh>
+using namespace uammd;
+
+//A simple Gaussian kernel compatible with the IBM module.
+class Gaussian{
+  const real prefactor;
+  const real tau;
+  const int support;
+public:
+  Gaussian(real width, int support):
+    prefactor(pow(2.0*M_PI*width*width, -0.5)),
+    tau(-0.5/(width*width)),
+    support(support){}
+
+  __device__ int3 getSupport(real3 pos, int3 cell){
+    return {support, support, support}
+  }
+
+  __device__ real phi(real r, real3 pos) const{
+    return prefactor*exp(tau*r*r);
+  }
+};
+
+template<class Iter1, class Iter2>
+void spreadOrInterpWithIBM(Grid grid, real4* positions,
+                   Iter gridData, Iter2 particleData,
+                   int numberParticles){
+  const support = 8;//An arbitrary support
+  auto kernel = std::make_shared<Gaussian>(width, support);
+  auto ibm = IBM<Gaussian>(kernel, grid);
+  //Spreads particleData into gridData
+  ibm.spread(positions, particleData, 
+             gridData, numberParticles);
+  //Interpolates gridData into particleData
+  ibm.gather(positions, particleData,
+             gridData, numberParticles);
+  //Both functions can also accept a 
+  // CUDA stream as the last argument
+}
+\end{minted}
+
+
+
+
 
 
 \subsection{Force Coupling Method (FCM)}\label{sec:fcm}
 Both \emph{Cholesky} and \emph{Lanczos} methods use the explicit form of an open boundary mobility. This makes them open boundary algorithms since they do not take into account the periodic images of the system in any way. Furthermore, the computational complexity of these methods is restrictive. Luckily, we can manage to do it in $O(N)$ operations if we consider periodic boundary conditions. In particular by solving eq. \eqref{eq:bdhibdrelation} directly in Fourier space via the Force Coupling Method\cite{Keaveny2014}. In doing so, we get the added benefit (and disadvantage) of not impossing a specific mobility tensor, which will arise naturally according to the spreading kernel.
 
 In order to do this we first spread particle forces to the fluid ($\oper{S}\vec{F}$ in eq. \eqref{eq:bdhibdrelation}) and transform them to Fourier space. Then the Green's function (like eq. \eqref{eq:stokesoperfou} for periodic boundary conditions) is used to obtain the velocities in the fluid in Fourier space via multiplication. The fluid velocity is then transformed back to real space and eq. \eqref{eq:bdhifvel} is applied to get the particle displacements by interpolation.
-The kernel used in \gls{FCM} is a Gaussian, in particular
+The kernel used in \gls{FCM} is the Gaussian kernel in eq. \eqref{eq:gaussiankernel}, in particular
 \begin{equation}
   \label{eq:fcmkernel}
   \delta_a(r = ||\vec{\ppos}_i - \vec{\fpos}||) := \frac{1}{(2\pi\sigma_a)^{3/2}}\exp\left(\frac{-r^2}{2\sigma_a^2}\right)
@@ -2281,14 +2357,19 @@ The computation of the fluid velocities is independent on the number of particle
 Summarizing, we can express the fluid velocity in Fourier space as
 \begin{equation}
   \label{eq:fcmvel}
-  \fou{\vec{u}}(\vec{k}) = \eta^{-1}B(k)\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)\left( i\vec{k}\cdot\fou{\mathcal{Z}} + \fou{\vec{f}}\right)
+  \fou{\vec{\fvel}}(\vec{k}) = \eta^{-1}\hat{\tens{G}}\left( i\vec{k}\cdot\fou{\mathcal{Z}} + \fou{\vec{f}}\right)
 \end{equation}
-Where $B(k)$ is a factor in Fourier space, i.e $B := \frac{1}{k^2}$ for the Green's function in eq. \eqref{eq:stokesoperfou}.
+Where
+\begin{equation}
+  \fou{\tens{G}} = B(k)\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
+\end{equation}
+Is the fourier representation of the Stokes Green's function\footnote{This separation is made here to emphasize the generality of this method for any Green's function as long as its Fourier transform is available.}.
+Here $B(k)$ is a factor in Fourier space, i.e $B := \frac{1}{k^2}$ for the Green's function in eq. \eqref{eq:stokesoperfou}.
 \todo{Spectral splitting as in PSE can also be done here, which would allow to reduce the support by restricting the kernel to be a Gaussian, probably not worth it because of it.}
-Note that any smooth, closely-supported kernel can be used here instead of a Gaussian, which will regularize differently the near field hydrodynamics.
+Note tfou any smooth, closely-supported kernel can be used here instead of a Gaussian, which will regularize differently the near field hydrodynamics.
 \subsection*{Spatio-temporal discretization}
 Assuming a cubic box (the description can be then generalized to non-cubic boxes easily) we solve the velocity of the fluid in a grid with size $h$, with a number of cells in each size $N_c = L/h$.
-We use \gls{FFT} to discretize the Fourier transform, this requires us to evaluate the properties of the fluid in a grid. This grid must be fine enough to correctly describe the Gaussian interpolator in eq. \eqref{eq:fcmkernel} (similarly to the discrete description in sec. \ref{ch:tppoisson}). On the other hand, the kernel in eq. \eqref{eq:fcmkernel} has an infinte range and to make the overall spreading/interpolation have a constant cost for each particle (independent on the size of the domain) it is necessary to truncate it at a certain distance, $r_c$. In particular, the author in \cite{Keaveny2014} suggests $r_c=m \sigma_a$, with $m=3\sqrt{\pi}\approx 5.3$ being the number of standard deviations of the Gaussian that are taken into account (thus making $\delta_a(r>r_c) = 0$), and $\sigma_a/h > 1.86$, suggesting that the error is less than machine precision for $\sigma_a/h = 14.89$. We can then set a number of support cells for the kernel as $n_s = 2 \textrm{ceil}(r_c/h)+1$.
+We use \gls{FFT} to discretize the Fourier transform, this requires us to evaluate the properties of the fluid in a grid. This grid must be fine enough to correctly describe the Gaussian interpolator in eq. \eqref{eq:fcmkernel} (similarly to the discrete description in sec. \ref{ch:tppoisson}). On the other hand, the kernel in eq. \eqref{eq:fcmkernel} has an infinte range and to make the overall spreading/interpolation have a constant cost for each particle (independent on the size of the domain) it is necessary to truncate it at a certain distance, $r_c$. In particular, the author in \cite{Keaveny2014} suggests $r_c=m \sigma_a$, with $m=3\sqrt{\pi}\approx 5.3$ being the number of standard deviations of the Gaussian tfou are taken into account (thus making $\delta_a(r>r_c) = 0$), and $\sigma_a/h > 1.86$, suggesting tfou the error is less than machine precision for $\sigma_a/h = 14.89$. We can then set a number of support cells for the kernel as $n_s = 2 \textrm{ceil}(r_c/h)+1$.
 We will study later these tolerance considerations.
 
 The noise can be computed in Fourier space by generating Gaussian random numbers with zero mean and standard deviation given by
@@ -2297,7 +2378,43 @@ The noise can be computed in Fourier space by generating Gaussian random numbers
 \end{equation}
 Special care must be taken to enforce this condition, in particular by ensuring the uncoupled modes, also known as Nyquist points\cite{nyquist}, are real (equal to their conjugate).
 \todo{speficy how to deal with nyquist points, appendix with cufft format description and how to deal with wavenumbers}
-Regarding
+
+
+Making an analogy with eq. \eqref{eq:bdhibdrelation}, the whole algorithm can the be summarized as follows:
+
+\begin{enumerate}
+\item Spread particle forces to the grid: $\vec{f} = \oper{S}\vec{F}$
+\item Transform fluid forcing to Fourier space: $\fou{\vec{f}} = \mathfrak{F}\oper{S}\vec{F}$
+\item Multiply by the Greens function to get $\eta^{-1}\fou{\tens{G}}\mathfrak{F}\oper{S}\vec{F}$
+\item Sum the stochastic forcing in Fourier space: $\fou{\vec{\fvel}} = \eta^{-1}\fou{\tens{G}}(\mathfrak{F}\oper{S}\vec{F} + i\vec{k}\fou{\mathcal{Z}})$
+\item Transform back to real space: $\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\tens{G}}(\mathfrak{F}\oper{S}\vec{F} + i\vec{k}\fou{\mathcal{Z}})$
+\item Interpolate grid velocities to particle positions: $\vec{\pvel} = \oper{J}\vec{\fvel}$
+\end{enumerate}
+Here $\mathfrak{F}$ represents the Fourier transform operator.
+Spreading and interpolation can be done with the algorithms in sec. \ref{sec:ibm}.
+
+Once the particle displacements are computed, the dymamics can be integrated using the same schemes devised for \gls{BD} in sec. \ref{sec:bd} (i.e the Euler-Maruyama method)\footnote{The arguments used to arrive at eq. \eqref{eq:bdhimobns} can also be employed here to interpret $\vec{\pvel}=\oper{J}\vec{\fvel}$ as the equations of Brownian Dynamics.}.
+
+\subsubsection*{Regarding torques}
+
+Torques acting on the particles can be easily introduced in the algorithm by adding them as an external force on the fluid. We can redefine the fluid forcing to include torques
+\begin{equation}
+\vec{f} = \oper{S}\vec{F} + \half\nabla\times(\oper{S}_\tau\vec{T})
+\end{equation}
+Where $\oper{S}_\tau$ is the kernel used to spread the torques, $\vec{T}$. If a Gaussian is used (see eq. \eqref{eq:fcmkernel}), it's width is related to the hydrodynamic radius as $\sigma_\tau = a/(6\sqrt{\pi})^{1/3}$.
+
+The curl of the spreaded torques can be easily computed in Fourier space, where it is transformed into a vectorial product
+
+\begin{equation}
+\fou{\vec{f}} = \mathfrak{F}\oper{S}\vec{F} + \half i\vec{k}\times(\mathfrak{F}\oper{S}_\tau\vec{T})
+\end{equation}
+
+Similarly, once the fluid velocities are obtained in Fourier space, the angular velocities, $\vec{\omega}$ can be computed from the local fluid vorticity
+\begin{equation}
+  \vec{\omega} = \half\oper{J}_\tau\mathfrak{F}^{-1}\left(i\vec{k}\times\fou{\vec{\fvel}}\right)
+\end{equation}
+
+
 \subsubsection*{Use in UAMMD}
 Using the \gls{FCM} strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). Being an approximate algorithm, a tolerance has to be specified and since now the domain is periodic, a domain size is also needed.
 
