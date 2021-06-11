@@ -1779,7 +1779,17 @@ Replacing the pressure in eq. \eqref{eq:stokes}
 \begin{equation}
   \eta\nabla^2\vec{\fvel} = \nabla\left[\nabla^{-2}(\nabla\cdot\tilde{\vec{f}})\right] - \tilde{\vec{f}} = -\oper{P} \tilde{\vec{f}}
 \end{equation}
-Where $\oper{P}  =  \mathbb{I} - \nabla\nabla^{-2}\nabla$ is called the projection operator, since it projects onto a space of divergence-free velocities. $\mathbb{I}$ represents the identity. Finally, we can identify $\oper{L} = -\nabla^{-2}\oper{P}$ as the Stokes solution operator to arrive at
+Where the projection operator, $\oper{P}$, is defined as
+\begin{equation}
+\oper{P}  =  \mathbb{I} - \nabla\nabla^{-2}\nabla
+\end{equation}
+Projects onto a space of divergence-free velocities. $\mathbb{I}$ represents the identity. Finally, we can identify
+\begin{equation}
+  \label{eq:stokesoper}
+  \oper{L} = -\nabla^{-2}\oper{P} = -\nabla^{-2}\left(\mathbb{I} - \nabla\nabla^{-2}\nabla\right)
+\end{equation}
+
+as the Stokes solution operator to arrive at
 \begin{equation}
   \vec{\fvel} = \eta^{-1}\oper{L}\tilde{\vec{f}}
 \end{equation}
@@ -2366,7 +2376,9 @@ Where
 Is the fourier representation of the Stokes Green's function\footnote{This separation is made here to emphasize the generality of this method for any Green's function as long as its Fourier transform is available.}.
 Here $B(k)$ is a factor in Fourier space, i.e $B := \frac{1}{k^2}$ for the Green's function in eq. \eqref{eq:stokesoperfou}.
 \todo{Spectral splitting as in PSE can also be done here, which would allow to reduce the support by restricting the kernel to be a Gaussian, probably not worth it because of it.}
-Note tfou any smooth, closely-supported kernel can be used here instead of a Gaussian, which will regularize differently the near field hydrodynamics.
+
+The \gls{FCM} was originally developed for a Gaussian kernel, however, note that any smooth, closely-supported kernel can be used, which will regularize differently the near field hydrodynamics. In particular, any of the kernels described in sec. \ref{sec:ibm} are valid here.
+
 \subsection*{Spatio-temporal discretization}
 Assuming a cubic box (the description can be then generalized to non-cubic boxes easily) we solve the velocity of the fluid in a grid with size $h$, with a number of cells in each size $N_c = L/h$.
 We use \gls{FFT} to discretize the Fourier transform, this requires us to evaluate the properties of the fluid in a grid. This grid must be fine enough to correctly describe the Gaussian interpolator in eq. \eqref{eq:fcmkernel} (similarly to the discrete description in sec. \ref{ch:tppoisson}). On the other hand, the kernel in eq. \eqref{eq:fcmkernel} has an infinte range and to make the overall spreading/interpolation have a constant cost for each particle (independent on the size of the domain) it is necessary to truncate it at a certain distance, $r_c$. In particular, the author in \cite{Keaveny2014} suggests $r_c=m \sigma_a$, with $m=3\sqrt{\pi}\approx 5.3$ being the number of standard deviations of the Gaussian tfou are taken into account (thus making $\delta_a(r>r_c) = 0$), and $\sigma_a/h > 1.86$, suggesting tfou the error is less than machine precision for $\sigma_a/h = 14.89$. We can then set a number of support cells for the kernel as $n_s = 2 \textrm{ceil}(r_c/h)+1$.
@@ -2380,7 +2392,7 @@ Special care must be taken to enforce this condition, in particular by ensuring 
 \todo{speficy how to deal with nyquist points, appendix with cufft format description and how to deal with wavenumbers}
 
 
-Making an analogy with eq. \eqref{eq:bdhibdrelation}, the whole algorithm can the be summarized as follows:
+Making an analogy with eq. \eqref{eq:bdhibdrelation}, the whole process of going from forces acting on the particles to particle displacements can the be summarized as follows:
 
 \begin{enumerate}
 \item Spread particle forces to the grid: $\vec{f} = \oper{S}\vec{F}$
@@ -2557,14 +2569,74 @@ auto createIntegratorBDHIPSE(UAMMD sim){
 }
 \end{minted}
 
+\section{Spatial discretization with staggered grids}\label{sec:staggered}
+
+Thus far our spatial discretization has assumed a regular cartesian grid with all properties (fluid velocity and forcing) defined in the centers of the cell. This is known as a collocated grid. In non trivial geometries (such as in the presence of walls) the discretization of the different differential operators in eq. \eqref{eq:navierstokes} could lead to the projection operator, $\oper{P}$ not being exactly idempotent, so that $\oper{P}^2 \ne \oper{P}$. This can lead to inaccuracies in the temporal discretization and ultimately to the discrete fluctuation-dissipation balance not being satisfied. Additionally, a collocated grid can lead to numerical artifacts in the presence of boundaries (such as walls) due to the fluid properties not being defined exactly on them.\todo{A little awkward}
+
+Furthermore, when studying transport phenomena in compressible fluids, collocated grids present spurious dependences with the wave vector.\todo{some reference}
+
+An alternative is to use a so-called MAC (Marker and cell), or staggered, grid\cite{Balboa2012}.
+
+\begin{figure}[h]
+  \centering
+  \includesvg{gfx/staggered}{\columnwidth}
+  \caption{Representation of a staggered grid. Each quantity is defined on its own grid, whose origin (circles) are shifted $h/2$ between them. Crosses mark cell centers in the various grids. The $x$ coordinate of vectors are defined on the red grid, $y$ coordinates on the green. Tensors are defined in the orange one and finally, scalars are defined in the black grid.}
+  \label{fig:staggered}  
+\end{figure}
+
+Although it can be tricky to work with a staggered grid in a numerical implementation, the key is to interpret that each quantity is defined in a different grid, shifted $h/2$ with the others (see fig. \ref{fig:staggered}. When we need to work on quantities defined on different grids, we simply use linear interpolation.
+From the point of view of the ``main'' grid (in which scalars are defined in the centers), vectorial quantities are defined in cell faces, while tensors are located at cell corners. If we need to multiply, for instance, a scalar, $s$, and a vector, $\vec{v}$, we interpolate the scalar at the same location as each coordinate of the vector. For example, in the $x$ direction:
+\begin{equation}
+  g^x_{i,j} = s_{i-1/2,j} v^x_{i,j} = \half( s_{i,j} + s_{i-1,j})v^x_{i,j}
+\end{equation}
+Where $i$ represents the index in the direction of $\alpha$.
+We can use this to discretize the the different operators in eq. \eqref{eq:stokesoper} via finite differences.
+The divergence of a vector is an scalar, defined in the centers of the main grid (black in fig. \ref{fig:staggered})
+\begin{equation}
+  \label{eq:staggereddiv}
+  (\nabla\cdot\vec{v})_{\vec{i}} = \frac{1}{h}\sum_\alpha(v^\alpha_{\vec{i} + \vec{\hat{\alpha}}} - v^\alpha_{\vec{i}})
+\end{equation}
+Where $\vec{i}:=(i,j,k)$ and $\vec{\hat{\alpha}}:=(\delta_{x\alpha}, \delta_{y\alpha}, \delta_{x\alpha})$ is only non-zero in the direction $\alpha$.
+
+The gradient of an scalar is a vector, in which each component is defined at a different cell face
+\begin{equation}
+  \label{eq:staggeredgrad}
+  (\nabla s)^\alpha_{\vec{i}} = \frac{1}{h}(s_{\vec{i}} - s_{\vec{i}- \vec{\hat{\alpha}}})
+\end{equation}
+Joining these two operators we can compute the Laplacian
+\begin{equation}
+  (\nabla^2\vec{v})^\alpha_{\vec{i}} = \nabla\cdot(\nabla v_{\vec{i}}^\alpha) = \frac{1}{h^2}\sum_\beta\left(v^\alpha_{\vec{i} +\vec{\hat{\beta}}}  - 2v^\alpha_{\vec{i}} + v^\alpha_{\vec{i} -\vec{\hat{\beta}}} \right)
+\end{equation}
+And the gradient of the divergence
+\begin{equation}
+\left[\nabla(\nabla\cdot \vec{v})\right]^\alpha_{\vec{i}} = \frac{1}{h^2}\sum_\beta\left(v^\beta_{\vec{i} +\vec{\hat{\beta}}}  - v^\beta_{\vec{i}} + v^\beta_{\vec{i} -\vec{\hat{\alpha}} + \vec{\hat{\beta}}} - v^\beta_{\vec{i} -\vec{\hat{\alpha}}}\right)
+\end{equation}
+Where we recall that each component of a vector is defined on it's own grid (see fig. \ref{fig:staggered}) (so a component of a vector with index $i$ is defined at a different location from a scalar with the same index). The specific index notation here, assigning the same indices $(i,j)$ to the different quantities defined on the grid, aims to facilitate a computer implementation. With this notation everything can be stored as if it were defined on a collocated grid. Then, when applying the operators above, each element (vector or scalar) can be accesed with the same indices as in these equations.
+
+
+\todo{I do not really know why a staggered grid is better for our uses}
+
 
 \chapter{Eulerian-Lagrangian methods for Fluctuating Hydrodynamics}
 In general, \gls{BC}s in the previous methods have to be introduced via the Green's function in eq. \eqref{eq:bdhimob}. However, this Green's function might be unknown or simply non analytic. We can discretize and solve eq. \eqref{eq:bdhibdrelation} directly to have more fine control over the \gls{BC}s.
 
+\section{Fluctuating Immersed Boundary (FIB) in triply periodic systems}
+Recently, a new spatio-temporal solver for the Stokes equation has been presented, based on the \gls{IBM} and similar to the \gls{FCM}\cite{Delong2014}. This framework, refered to as \gls{FIB}, is generic for any geometry (via direct discretization of the differential operators in eq. \eqref{eq:stokesoper}). However, here we will only take a few key ideas from it to implement another triply periodic solver for equation \eqref{eq:stokes}. In particular, we will make use of the new temporal integrators introduced in\cite{Delong2014}. Another difference between this algorithm and \gls{FCM} (as presented in sec. \ref{sec:fcm}) is the use of a staggered grid (see sec. \ref{sec:staggered}).
 
-\section{Fluctuating Immersed Boundary (FIB)}
+Using \gls{PBC} greatly simplifies the algorithm in \cite{Delong2014} to something very similar to the \gls{FCM}, since, as discussed in sec. \ref{sec:bdhi} the Stokes operator has a straight-forward form in Fourier space (see eq. \eqref{eq:stokesoperfou}).
 
+Summarizing, for our purposes, we can describe the \gls{FIB} as a variation of the \gls{FCM} for staggered grids and a more sophisticated temporal integration algorithm. The authors of \cite{Delong2013} developed the \gls{FIB} for a three point Peskin kernel (see eq. \eqref{eq:peskin3}) but, similarly as discussed in sec. \ref{sec:fcm}, any of the kernels in sec. \ref{sec:ibm} can be used.
 
+The discretization of the Stokes operator in Fourier space is straight-forward for a collocated grid by using the Fourier representation of the differential operators in eq. \eqref{eq:stokesoper} (a technique known as \emph{ik} differentiation). However, for a staggered grid we have defined the differential operators using finite differences (see eqs. \eqref{eq:staggereddiv} and \eqref{eq:staggeredgrad}). It is then necessary to redefine the discretized Fourier operators. We can leverage a property of the Fourier transform for this; a shift in space results in a shift in phase in Fourier space. So from the Fourier transform of some scalar quantity (defined in the centers of the main grid in fig. \ref{fig:staggered}), we can compute the Fourier transform of the gradient by shifting the scalar to $x+h$ and then shifting the result back to $x+h/2$ (where vectors like the gradient are defined)
+
+\begin{equation}
+  \fou{\nabla s_{\vec{i}}}^\alpha = \frac{\exp(-i\pi k_{\alpha} h)}{h}(\fou{s}_{\vec{k}} - \exp(i2\pi k_\alpha h)\fou{s}_{\vec{k}}) = \frac{2i
+\end{equation}
+
+So by taking the Fourier transform of eq. \eqref{eq:staggeredgrad}
+\begin{equation}
+  (\fou{\nabla} s)^\alpha_{\vec{k}} = \frac{1}{h}(\fou{s}_{\vec{k}} - \mathfrak{F}(s_{\vec{i}- \vec{\hat{\alpha}}})) = \frac{1}{h}(s_{\vec{k}} - \exp()
+\end{equation}
 \section{Comparing the different spreading kernels for BDHI}\label{sec:kernelcomp}
 \todo{Graph comparing the different methods using several interpolation kernels}
 
