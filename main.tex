@@ -25,7 +25,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \usepackage[acronym]{glossaries}
 \usepackage[utf8]{inputenc}
 \usepackage{pgfplots}
-\usepackage{subfig}
+\usepackage{subcaption}
 \graphicspath{{./gfx/}}
 
 \newcommand{\executeiffilenewer}[3]{
@@ -2627,30 +2627,110 @@ Using \gls{PBC} greatly simplifies the algorithm in \cite{Delong2014} to somethi
 
 Summarizing, for our purposes, we can describe the \gls{FIB} as a variation of the \gls{FCM} for staggered grids and a more sophisticated temporal integration algorithm. The authors of \cite{Delong2013} developed the \gls{FIB} for a three point Peskin kernel (see eq. \eqref{eq:peskin3}) but, similarly as discussed in sec. \ref{sec:fcm}, any of the kernels in sec. \ref{sec:ibm} can be used.
 
-The discretization of the Stokes operator in Fourier space is straight-forward for a collocated grid by using the Fourier representation of the differential operators in eq. \eqref{eq:stokesoper} (a technique known as \emph{ik} differentiation). However, for a staggered grid we have defined the differential operators using finite differences (see eqs. \eqref{eq:staggereddiv} and \eqref{eq:staggeredgrad}). It is then necessary to redefine the discretized Fourier operators. We can leverage a property of the Fourier transform for this; a shift in space results in a shift in phase in Fourier space. So from the Fourier transform of some scalar quantity (defined in the centers of the main grid in fig. \ref{fig:staggered}), we can compute the Fourier transform of the gradient by shifting the scalar to $x+h$ and then shifting the result back to $x+h/2$ (where vectors like the gradient are defined)
-
-\begin{equation}
-  \fou{\nabla s_{\vec{i}}}^\alpha = \frac{\exp(-i\pi k_{\alpha} h)}{h}(\fou{s}_{\vec{k}} - \exp(i2\pi k_\alpha h)\fou{s}_{\vec{k}}) = \frac{2i
-\end{equation}
+The discretization of the Stokes operator in Fourier space is straight-forward for a collocated grid by using the Fourier representation of the differential operators in eq. \eqref{eq:stokesoper} (a technique known as \emph{ik} differentiation). However, for a staggered grid we have defined the differential operators using finite differences (see eqs. \eqref{eq:staggereddiv} and \eqref{eq:staggeredgrad}). It is then necessary to redefine the discretized Fourier operators. We can leverage a property of the Fourier transform for this; a shift in space results in a shift in phase in Fourier space. So from the Fourier transform of some scalar quantity (defined in the centers of the main grid in fig. \ref{fig:staggered}), we can compute the Fourier transform of the gradient by shifting the scalar to $x+h$ and then shifting the result back to $x+h/2$ (where vectors like the gradient are defined).
 
 So by taking the Fourier transform of eq. \eqref{eq:staggeredgrad}
 \begin{equation}
-  (\fou{\nabla} s)^\alpha_{\vec{k}} = \frac{1}{h}(\fou{s}_{\vec{k}} - \mathfrak{F}(s_{\vec{i}- \vec{\hat{\alpha}}})) = \frac{1}{h}(s_{\vec{k}} - \exp()
+  \fou{\nabla s} = \frac{\exp(-i2\pi \vec{k} h/2)}{h}\left[\fou{s}_{\vec{k}} - \exp(i2\pi \vec{k} h)\fou{s}_{\vec{k}}\right] = \frac{2i}{h}\sin\left(\frac{\vec{k} h}{2}\right)\fou{s}_{\vec{k}}
 \end{equation}
+Note that if the gradient of a vector, like the velocity, is to be computed this way, each element must first be shifted to the scalar grid (by applying a phase of $h/2$).
+
+The divergence can be computed using a similar procedure:
+
+\begin{equation}
+  \fou{\nabla\cdot\vec{v}} = \frac{2i}{h}\sum_\alpha\sin\left(\frac{k_\alpha h}{2}\right)\fou{v}_{\vec{k}}^\alpha
+\end{equation}
+
+And the Laplacian:
+
+\begin{equation}
+  \fou{\nabla^2\vec{v}} = \frac{-4}{h^2}\sum_\alpha\sin^2\left(\frac{k_\alpha h}{2}\right)\fou{v}_{\vec{k}}^\alpha
+\end{equation}
+
+
 \section{Comparing the different spreading kernels for BDHI}\label{sec:kernelcomp}
 \todo{Graph comparing the different methods using several interpolation kernels}
+
+\begin{itemize}
+\item We use the variance of the hydrodynamic radius inside a cell to determine the accuracy of the methods
+\item We need to compute numerically the relation between $h$ and $a$. Since the spatial discretization is different in \gls{FCM} and \gls{FIB} the hydrodynamic radius will be regularized differently\todo{some explanation pls}.
+  \item For FCM:
+  \begin{itemize}
+  \item In the case of BM the relation is different for each $n_s$ and $\beta$. A different support is chosen for each tolerance.
+  \item For Peskin just compute the self mobility and fix $a := a_{\text{measured}}/h$
+  \item For FCM:
+    \begin{itemize}
+    \item Peskin 3pt gives $a=h$
+    \item Peskin 4pt gives $a=1.305346476686508 h$
+    \item Peskin 6pt gives $a=1.519854 h$
+    \item Gaussian gives $a=h \sqrt{\pi} g_u$. Where we set the upsampling large enough to satisfy a given tolerance. In particular we set
+      \begin{equation}
+        g_u(\epsilon) := \text{min}\left(0.55 -0.11 \log_{10}(3\epsilon), 1.65\right)
+      \end{equation}
+      Which is just an empirical fit.
+      The Gaussian kernel is truncated at a distance $r_c$ so that $\phi_G(r_c) < \epsilon$.
+    \end{itemize}
+  \end{itemize}
+\item For FIB
+  \begin{itemize}
+  \item Peskin 3pt gives $a=(0.910\pm 0.005)h$
+  \item Peskin 4pt gives $a=(1.265\pm 0.002)h$
+  \item Peskin 6pt gives $a=(1.4830 \pm 0.0001 )h$
+  \end{itemize}
+\item In general using a staggered grid requires a smaller grid to get the same hydrodynamicRadius (with a similar translational invariance) than a collocated one.
+  
+\item All test are carried out with single precision (to measure the error in a ``real-life'' setting) in an RTX3080 \gpu.
+\end{itemize}
+
+\begin{figure}
+  \centering
+  \subcaptionbox{Gaussian 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_3pt}}\label{fig:ibm_gauss3pt}
+  \subcaptionbox{Peskin 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_peskin_3pt}}\label{fig:ibm_peskin3pt}
+  \subcaptionbox{BM 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_bm_3pt}}\label{fig:ibm_bm3pt}
+  \subcaptionbox{Gaussian 10pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_10pt}}\label{fig:ibm_gauss10pt}
+  \caption{Variance of the hydrodynamic radius inside a cell (2D slice at $z=L/2+h/2$ of a 3D system) for different kernels in \gls{FCM}. Test were carried out in a cubic box of size $L=32a$.}
+\end{figure}
+We test accuracy by measuring the accuracy of the translational invariance through the self mobility, $M_0$, of a particle being pulled. In particular, we measure the variance of the hydrodynamic radius, $a = 6\pi\eta M_{0}$, inside a grid cell.
+Error is computed as
+\begin{equation}
+  \label{hydroerr}
+  E_a(\vec{r}) = \left|1 - \frac{a(\vec{r})M_{0}}{6\pi\eta}\right|
+\end{equation}
+Where the self mobility is computed using the well known periodic for the Stokes drag of a sphere\cite{Hasimoto1959}.
+
+\begin{equation}
+  M_{0}(a,L) = \frac{1}{6\pi\eta a}\left[1-b\frac{a}{L} + \frac{4\pi}{3}\left(\frac{a}{L}\right)^3 - c \left(\frac{a}{L}\right)^6\right]
+\end{equation}
+Where the factors $b$ and $c$ are
+\begin{equation}
+  \begin{aligned}
+  b &:= 2.83729748\\
+  c &:= \frac{16\pi^2}{45} + 23.85
+  \end{aligned}
+\end{equation}
+\begin{figure}
+\label{fig:ibm_hydrovar}
+\includegraphics[width=\textwidth]{gfx/ibm_hydrodeviation}  
+  \caption{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean substracted. Since the signal is symmetric only the range $[0.5, 1]h$ is presented.}
+\end{figure}
 
 
 \section{Inertial Coupling Method (ICM)}
 
 Putting inertia into the mix
+
 Using the tools from the previous chapters (spectral method + immersed boundary)
+
+Similar to FIB, but now the inertial terms have to be considered.
+Non-linear terms need a different temporal integrator
+Non-linear terms are evaluated in real space
 
 
 \chapter{Monte Carlo}
 Monte Carlo schemes available in \uammd
 
 \section{Hard spheres}
+Just mention that it is present.
 
 \section{Metropolis Adjusted Langevin Algorithm (MALA)}
 Force biased, like Metropolis Monte Carlo but leveraging the forces. Amounts to performing a \gls{BD} simulation step and then use the positions, forces and energies of the old and new configurations to decide wether to accept it or not with a Metropolis-like probability.
