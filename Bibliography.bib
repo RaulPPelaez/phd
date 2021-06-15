@@ -1090,3 +1090,90 @@ eprint = {
     
 }
 }
+@article{Balboa2014,
+title = {Inertial coupling method for particles in an incompressible fluctuating fluid},
+journal = {Computer Methods in Applied Mechanics and Engineering},
+volume = {269},
+pages = {139-172},
+year = {2014},
+issn = {0045-7825},
+doi = {https://doi.org/10.1016/j.cma.2013.10.029},
+url = {https://www.sciencedirect.com/science/article/pii/S0045782513002818},
+author = {Florencio {Balboa Usabiaga} and Rafael Delgado-Buscalioni and Boyce E. Griffith and Aleksandar Donev},
+keywords = {Fluctuating hydrodynamics, Brownian motion, Inertial coupling, Immersed-boundary method, Minimally-resolved particulate flows},
+abstract = {We develop an inertial coupling method for modeling the dynamics of point-like “blob” particles immersed in an incompressible fluid, generalizing previous work for compressible fluids (Balboa Usabiaga et al., 2013 [42]). The coupling consistently includes excess (positive or negative) inertia of the particles relative to the displaced fluid, and accounts for thermal fluctuations in the fluid momentum equation. The coupling between the fluid and the blob is based on a no-slip constraint equating the particle velocity with the local average of the fluid velocity, and conserves momentum and energy. We demonstrate that the formulation obeys a fluctuation–dissipation balance, owing to the non-dissipative nature of the no-slip coupling. We develop a spatio-temporal discretization that preserves, as best as possible, these properties of the continuum formulation. In the spatial discretization, the local averaging and spreading operations are accomplished using compact kernels commonly used in immersed boundary methods. We find that the special properties of these kernels allow the blob to provide an effective model of a particle; specifically, the volume, mass, and hydrodynamic properties of the blob are remarkably grid-independent. We develop a second-order semi-implicit temporal integrator that maintains discrete fluctuation–dissipation balance, and is not limited in stability by viscosity. Furthermore, the temporal scheme requires only constant-coefficient Poisson and Helmholtz linear solvers, enabling a very efficient and simple FFT-based implementation on GPUs. We numerically investigate the performance of the method on several standard test problems. In the deterministic setting, we find the blob to be a remarkably robust approximation to a rigid sphere, at both low and high Reynolds numbers. In the stochastic setting, we study in detail the short and long-time behavior of the velocity autocorrelation function and observe agreement with all of the known behavior for rigid sphere immersed in a fluctuating fluid. The proposed inertial coupling method provides a low-cost coarse-grained (minimal resolution) model of particulate flows over a wide range of time-scales ranging from Brownian to convection-driven motion.}
+}
+@article{Roberts1996,
+ ISSN = {00063444},
+ URL = {http://www.jstor.org/stable/2337435},
+ abstract = {We develop results on geometric ergodicity of Markov chains and apply these and other recent results in Markov chain theory to multidimensional Hastings and Metropolis algorithms. For those based on random walk candidate distributions, we find sufficient conditions for moments and moment generating functions to converge at a geometric rate to a prescribed distribution π. By phrasing the conditions in terms of the curvature of the densities we show that the results apply to all distributions with positive densities in a large class which encompasses many commonly-used statistical forms. From these results we develop central limit theorems for the Metropolis algorithm. Converse results, showing non-geometric convergence rates for chains where the rejection rate is not bounded away from unity, are also given; these show that the negative-definiteness property is not redundant.},
+ author = {G. O. Roberts and R. L. Tweedie},
+ journal = {Biometrika},
+ number = {1},
+ pages = {95--110},
+ publisher = {[Oxford University Press, Biometrika Trust]},
+ title = {Geometric Convergence and Central Limit Theorems for Multidimensional Hastings and Metropolis Algorithms},
+ volume = {83},
+ year = {1996}
+}
+
+@article{Besag1994,
+  title={Comments on “Representations of knowledge in complex systems” by U. Grenander and MI Miller},
+  author={Besag, JE},
+  journal={J. Roy. Statist. Soc. Ser. B},
+  volume={56},
+  pages={591--592},
+  year={1994}
+}
+
+@article{Fuller2012,
+author = {Fuller, Gerald G. and Vermant, Jan},
+title = {Complex Fluid-Fluid Interfaces: Rheology and Structure},
+journal = {Annual Review of Chemical and Biomolecular Engineering},
+volume = {3},
+number = {1},
+pages = {519-543},
+year = {2012},
+doi = {10.1146/annurev-chembioeng-061010-114202},
+    note ={PMID: 22541047},
+
+URL = { 
+        https://doi.org/10.1146/annurev-chembioeng-061010-114202
+    
+},
+eprint = { 
+        https://doi.org/10.1146/annurev-chembioeng-061010-114202
+    
+}
+,
+    abstract = { Complex fluid-fluid interfaces are common to living systems, foods, personal products, and the environment. They occur wherever surface-active molecules and particles collect at fluid interfaces and render them nonlinear in their response to flow and deformation. When this occurs, the interfaces acquire a complex microstructure that must be interrogated. Interfacial rheological material properties must be measured to appreciate their role in such varied processes as lung function, cell division, and foam and emulsion stability. This review presents the methods that have been devised to determine the microstructure of complex fluid-fluid interfaces. Complex interfacial microstructure leads to rheological complexity. This behavior is often responsible for stabilizing interfacial systems such as foams and emulsions, and it can also have a profound influence on wetting/dewetting dynamics. Interfacial rheological characterization relies on the development of tools with the sensitivity to respond to small surface stresses in a way that isolates them from bulk stresses. This development is relatively recent, and reviews of methods for both shear and dilatational measurements are offered here. }
+}
+
+@article{Pelaez2018,
+	doi = {10.1088/1742-5468/aac2fb},
+	url = {https://doi.org/10.1088/1742-5468/aac2fb},
+	year = 2018,
+	month = {jun},
+	publisher = {{IOP} Publishing},
+	volume = {2018},
+	number = {6},
+	pages = {063207},
+	author = {Ra{\'{u}}l P Pel{\'{a}}ez and Florencio Balboa Usabiaga and Sergio Panzuela and Qiyu Xiao and Rafael Delgado-Buscalioni and Aleksandar Donev},
+	title = {Hydrodynamic fluctuations in quasi-two dimensional diffusion},
+	journal = {Journal of Statistical Mechanics: Theory and Experiment},
+	abstract = {We study diffusion of colloids on a fluid–fluid interface using particle simulations and fluctuating hydrodynamics. Diffusion on a two-dimensional interface with three-dimensional hydrodynamics is known to be anomalous, with the collective diffusion coefficient diverging like the inverse of the wavenumber. This unusual collective effect arises because of the compressibility of the fluid flow in the plane of the interface, and leads to a nonlinear nonlocal convolution term in the diffusion equation for the ensemble-averaged concentration. We extend the previous hydrodynamic theory to account for a species/color labeling of the particles, as necessary to model experiments based on fluorescent techniques. We study the magnitude and dynamics of density and color density fluctuations using a novel Brownian dynamics algorithm, as well as fluctuating hydrodynamics theory and simulation. We find that hydrodynamic coupling between a single tagged particle and collective density fluctuations leads to a reduction of the long-time self-diffusion coefficient, even for an ideal gas of non-interacting particles. This unexpected finding demonstrates that density functional theories that do not account for thermal fluctuations are incomplete even for ideal systems. Using linearized fluctuating hydrodynamics theory, we show that for diffusion on a fluid–fluid interface, nonequilibrium fluctuations of the total density are small compared to the equilibrium fluctuations, but fluctuations of color density are giant and exhibit a spectrum that decays as the inverse cubed power of the wavenumber. We confirm these predictions through Brownian dynamics simulations of diffusive mixing with two indistinguishable species. We also examine nonequilibrium fluctuations in systems with two-dimensional hydrodynamics, such as thin smectic films in vacuum. We find that nonequilibrium fluctuations are colossal and comparable in magnitude to the mean, and can be accurately modeled using numerical solvers for the nonlinear equations of fluctuating hydrodynamics.}
+}
+@article{Pelaez2017,
+  title = {Collective colloid diffusion under soft two-dimensional confinement},
+  author = {Panzuela, S. and Pel\'aez, Ra\'ul P. and Delgado-Buscalioni, R.},
+  journal = {Phys. Rev. E},
+  volume = {95},
+  issue = {1},
+  pages = {012602},
+  numpages = {13},
+  year = {2017},
+  month = {Jan},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevE.95.012602},
+  url = {https://link.aps.org/doi/10.1103/PhysRevE.95.012602}
+}

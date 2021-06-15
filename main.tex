@@ -1685,6 +1685,7 @@ With this discretization of the noise we can devise several strategies to numeri
 %\subsection{Euler Maruyama}
 Using eq. \eqref{eq:bddis} and \eqref{eq:itonoise2} we can write
 \begin{equation}
+  \label{eq:eulermaruyama}
   \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^n\dt + \sqrt{2D\dt}\vec{\mathcal{\noise}}^n
 \end{equation}
 It can be proved that this algorithm is weakly convergent with order $1$ and strongly convergent with order $1/2$\cite{Kloeden2011}. Thus the \gls{EM} scheme is not particularly accurate, even in the absence of fluctuations.
@@ -1746,7 +1747,7 @@ The incompressible Navier-Stokes equations can be written as
 \begin{equation}
   \label{eq:navierstokes}
   \begin{aligned}
-    \rho\dot{\vec{\fvel}} + \nabla \pi &= \eta \nabla^2\vec{\fvel} + \vec{f} + \nabla\cdot \mathcal{Z}\\
+    \overbrace{\underbrace{\rho\dot{\vec{\fvel}}}_{\text{time}} +\underbrace{\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})}_{\text{convection}}}^{\text{inertia}} + \underbrace{\nabla \pi}_{\text{internal stress}} &= \underbrace{\eta \nabla^2\vec{\fvel}}_{\text{diffusion}} + \underbrace{\vec{f} + \nabla\cdot \mathcal{Z}}_{\text{external stress}}\\
     \nabla\cdot\vec{\fvel} &= 0
   \end{aligned}
 \end{equation}
@@ -1759,7 +1760,7 @@ The fluctuating stress tensor, $\mathcal{Z}(\vec{\fpos}, t)$, must comply with t
 \end{aligned}
 \end{equation}
 In order to generalize the notation for eq. \eqref{eq:navierstokes}, we introduce the fluctuations into the fluid forcing term, making $\tilde{\vec{f}} = \vec{f} + \nabla\cdot\mathcal{Z}$.
-If we take the overdamped limit we get the so-called Stokes equations
+If we take the overdamped limit (where inertial terms are neglected) we get the so-called Stokes equations
 \begin{equation}
   \label{eq:stokes}
   \begin{aligned}
@@ -1781,6 +1782,7 @@ Replacing the pressure in eq. \eqref{eq:stokes}
 \end{equation}
 Where the projection operator, $\oper{P}$, is defined as
 \begin{equation}
+  \label{eq:projectoper}
 \oper{P}  =  \mathbb{I} - \nabla\nabla^{-2}\nabla
 \end{equation}
 Projects onto a space of divergence-free velocities. $\mathbb{I}$ represents the identity. Finally, we can identify
@@ -2027,7 +2029,7 @@ For the sake of simplicity, the first postulate consists in assuming the kernel 
   \delta_a(\vec{r}=(x,y,z)) =\frac{1}{h^3}\phi\left(\frac{x}{h}\right)\phi\left(\frac{y}{h}\right)\phi\left(\frac{z}{h}\right)
 \end{equation}
 This allows to state the postulates regarding the one dimensional function, $\phi$. Additionally, this form yields $\delta_a\rightarrow\delta$ as $h\rightarrow 0$.
-The second postulate is that $\phi(r)$ must be continuous for $r\in\mathbb R$, avoiding jumps in the the quantities sprepaded to, or interpolated from, the grid. The close support postulate says that $\phi(r>r_c/h := P) = 0$. This is our main means for seeking computational efficiency, since reducing the support of the kernel by one cells reduces dramatically the required operations. In particular, spreading or interpolating require visiting $n_s^3$ nearby cells (where $n_s = 2P +1$), so a support of $n_s=5$ requires $125$ cells while a support of $3$ requires just $27$.
+The second postulate is that $\phi(r)$ must be continuous for $r\in\mathbb R$, avoiding jumps in the the quantities sprepaded to, or interpolated from, the grid. The close support postulate says that $\phi(r>r_c := Ph) = 0$. This is our main means for seeking computational efficiency, since reducing the support of the kernel by one cells reduces dramatically the required operations. In particular, spreading or interpolating require visiting $n_s^3$ nearby cells (where $n_s = 2P +1$), so a support of $n_s=5$ requires $125$ cells while a support of $3$ requires just $27$.
 The last basic postulate is required for the kernel to conserve the communicated quantities and its simply a discrete expression of the fact that the kernel must integrate to unity.
 \begin{equation}
   \label{eq:peskinunity}
@@ -2609,10 +2611,10 @@ Joining these two operators we can compute the Laplacian
 \end{equation}
 And the gradient of the divergence
 \begin{equation}
+  \label{eq:staggeredlap}
 \left[\nabla(\nabla\cdot \vec{v})\right]^\alpha_{\vec{i}} = \frac{1}{h^2}\sum_\beta\left(v^\beta_{\vec{i} +\vec{\hat{\beta}}}  - v^\beta_{\vec{i}} + v^\beta_{\vec{i} -\vec{\hat{\alpha}} + \vec{\hat{\beta}}} - v^\beta_{\vec{i} -\vec{\hat{\alpha}}}\right)
 \end{equation}
 Where we recall that each component of a vector is defined on it's own grid (see fig. \ref{fig:staggered}) (so a component of a vector with index $i$ is defined at a different location from a scalar with the same index). The specific index notation here, assigning the same indices $(i,j)$ to the different quantities defined on the grid, aims to facilitate a computer implementation. With this notation everything can be stored as if it were defined on a collocated grid. Then, when applying the operators above, each element (vector or scalar) can be accesed with the same indices as in these equations.
-
 
 \todo{I do not really know why a staggered grid is better for our uses}
 
@@ -2631,21 +2633,86 @@ The discretization of the Stokes operator in Fourier space is straight-forward f
 
 So by taking the Fourier transform of eq. \eqref{eq:staggeredgrad}
 \begin{equation}
-  \fou{\nabla s} = \frac{\exp(-i2\pi \vec{k} h/2)}{h}\left[\fou{s}_{\vec{k}} - \exp(i2\pi \vec{k} h)\fou{s}_{\vec{k}}\right] = \frac{2i}{h}\sin\left(\frac{\vec{k} h}{2}\right)\fou{s}_{\vec{k}}
+  \label{eq:staggeredgradfou}
+  \fou{\nabla s} = \frac{\exp(-i2\pi \vec{k} h/2)}{h}\left[\fou{s}_{\vec{k}} - \exp(i2\pi \vec{k} h)\fou{s}_{\vec{k}}\right] = \frac{2i}{h}\sin\left(\frac{\vec{k} h}{2}\right)\fou{s}_{\vec{k}} = i\vec{k}_{\text{eff}}
 \end{equation}
-Note that if the gradient of a vector, like the velocity, is to be computed this way, each element must first be shifted to the scalar grid (by applying a phase of $h/2$).
+Where the effective wave vector
+\begin{equation}
+  \vec{k}_{\text{eff}} = \frac{2}{h}\sin\left(\frac{\vec{k}h}{2}\right)
+\end{equation}
+Allows to make an equivalence with the discrete differential operators for a collocated grid.
+
+Note that if the gradient of a vector, like the velocity, is to be computed this way, each element must first be shifted to the scalar grid (by applying a phase of $\pm h/2$ in Fourier space).
 
 The divergence can be computed using a similar procedure:
 
 \begin{equation}
-  \fou{\nabla\cdot\vec{v}} = \frac{2i}{h}\sum_\alpha\sin\left(\frac{k_\alpha h}{2}\right)\fou{v}_{\vec{k}}^\alpha
+  \label{eq:staggereddivfou}
+  \fou{\nabla\cdot\vec{v}} = \frac{2i}{h}\sum_\alpha\sin\left(\frac{k_\alpha h}{2}\right)\fou{v}_{\vec{k}}^\alpha = i \sum_\alpha k^\alpha_{\text{eff}}\fou{v}_{\vec{k}}^\alpha
 \end{equation}
 
-And the Laplacian:
+And finally the Laplacian:
 
 \begin{equation}
-  \fou{\nabla^2\vec{v}} = \frac{-4}{h^2}\sum_\alpha\sin^2\left(\frac{k_\alpha h}{2}\right)\fou{v}_{\vec{k}}^\alpha
+  \label{eq:staggeredlapfou}
+  \fou{\nabla^2\vec{v}} = \frac{-4}{h^2}\sum_\alpha\sin^2\left(\frac{k_\alpha h}{2}\right)\fou{v}_{\vec{k}}^\alpha = -\sum_\alpha \left(k^\alpha_{\text{eff}}\right)^2\fou{v}_{\vec{k}}^\alpha
 \end{equation}
+
+For convenience, we can now write the discrete version of the projection operator in eq. \eqref{eq:projectoper} in Fourier space for a staggered grid in a triply periodic system as
+
+\begin{equation}
+  \label{eq:staggeredprojection}
+  \fou{\oper{P}}(\vec{k}) = \left(\mathbb{I} - \frac{\vec{k}_{\text{eff}}\otimes\vec{k}_{\text{eff}}}{k_{\text{eff}}^2}\right)
+\end{equation}
+\subsection*{Temporal integration}
+\todo{Add the midpoint schemes to the section for BD integration schemes}
+\begin{itemize}
+\item Two new temporal integrators: Most useful to discretize thermal drift, but it is strictly zero for us. 
+  \begin{itemize}
+  \item Midpoint predictor-corrector: Requires a single Stokes solve but two interpolations
+    \begin{equation}
+      \begin{aligned}
+        &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\tens{G}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n})\\
+        &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}\\
+        &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \dt\oper{J}^{n+\half}\vec{\fvel}
+      \end{aligned}
+    \end{equation}
+
+  \item Improved midpoint predictor-corrector: Linearized additive noise. Requires two Stokes solves
+    \begin{equation}
+      \begin{aligned}
+        &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\tens{G}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n_1})\\
+        &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}\\
+        &\tilde{\vec{\fvel}}= \eta^{-1}\mathfrak{F}^{-1}\fou{\tens{G}}\left[\mathfrak{F}\oper{S}^{n+\half}\vec{F}^{n+\half} + \fou{\nabla\cdot}\left(\fou{\mathcal{Z}}^{n_1} +  \fou{\mathcal{Z}}^{n_2}\right)\right]\\
+        &\vec{\ppos}^{n+1}= \vec{\ppos}^n + \dt\oper{J}^{n+\half}\tilde{\vec{\fvel}}
+      \end{aligned}      
+    \end{equation}
+    \item The divergence operator is discretized according to the spatial discretization (see for instance eq. \eqref{eq:staggereddiv} in a staggered grid).
+  \end{itemize}
+  
+\end{itemize}
+\subsection*{Use in UAMMD}
+
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Integrator/BDHI/FIB.cuh>
+using namespace uammd;
+//A function that creates and returns a FIB integrator
+auto createIntegratorFIB(UAMMD sim){   
+  BDHI::FIB::Parameters par;
+  par.temperature = sim.par.temperature;
+  par.viscosity = sim.par.viscosity;
+  par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
+  par.dt = sim.par.dt;  
+  par.box = sim.par.box;
+  //The integration scheme
+  par.scheme = BDHI::FIB::IMPROVED_MIDPOINT;
+  //par.scheme = BDHI::FIB::MIDPOINT;
+  auto fib = std::make_shared<BDHI::FIB>(sim.pd, sim.pg, 
+                                         sim.sys, par);
+  return fib;
+}
+\end{minted}
 
 
 \section{Comparing the different spreading kernels for BDHI}\label{sec:kernelcomp}
@@ -2660,9 +2727,9 @@ And the Laplacian:
   \item For Peskin just compute the self mobility and fix $a := a_{\text{measured}}/h$
   \item For FCM:
     \begin{itemize}
-    \item Peskin 3pt gives $a=h$
-    \item Peskin 4pt gives $a=1.305346476686508 h$
-    \item Peskin 6pt gives $a=1.519854 h$
+    \item Peskin 3pt gives $a=(1\pm 0.01) h$
+    \item Peskin 4pt gives $a=(1.31\pm 0.001) h$
+    \item Peskin 6pt gives $a=(1.5195 \pm 0.0002) h$
     \item Gaussian gives $a=h \sqrt{\pi} g_u$. Where we set the upsampling large enough to satisfy a given tolerance. In particular we set
       \begin{equation}
         g_u(\epsilon) := \text{min}\left(0.55 -0.11 \log_{10}(3\epsilon), 1.65\right)
@@ -2677,11 +2744,11 @@ And the Laplacian:
   \item Peskin 4pt gives $a=(1.265\pm 0.002)h$
   \item Peskin 6pt gives $a=(1.4830 \pm 0.0001 )h$
   \end{itemize}
-\item In general using a staggered grid requires a smaller grid to get the same hydrodynamicRadius (with a similar translational invariance) than a collocated one.
-  
+\item In general using a staggered grid requires a smaller grid to get the same hydrodynamicRadius (with a similar translational invariance) than a collocated one. On the other hand, spreading/interpolation to an staggered grid requires to approximately triple the cost, since each component of the velocity is spreaded to a different set of cells (there is some overlap, which makes the cost slightly less than triple). So while the cost of the FFT will be slightly inferior, the potential gains will be occluded by the increased cost in spreading. In the case of a triply periodic system, using a staggered grid via the \gls{FIB} is thus not worth it in general.
 \item All test are carried out with single precision (to measure the error in a ``real-life'' setting) in an RTX3080 \gpu.
+\item Peskin kernels are always better than Gaussians with the same support. Furthermore requiring a smaller grid.
+\item PSE always uses a Gaussian, and the tolerance is chosen along with the splitting parameter so it is meaningless to talk about accuracy vs. kernel support in that case.
 \end{itemize}
-
 \begin{figure}
   \centering
   \subcaptionbox{Gaussian 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_3pt}}\label{fig:ibm_gauss3pt}
@@ -2690,13 +2757,13 @@ And the Laplacian:
   \subcaptionbox{Gaussian 10pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_10pt}}\label{fig:ibm_gauss10pt}
   \caption{Variance of the hydrodynamic radius inside a cell (2D slice at $z=L/2+h/2$ of a 3D system) for different kernels in \gls{FCM}. Test were carried out in a cubic box of size $L=32a$.}
 \end{figure}
-We test accuracy by measuring the accuracy of the translational invariance through the self mobility, $M_0$, of a particle being pulled. In particular, we measure the variance of the hydrodynamic radius, $a = 6\pi\eta M_{0}$, inside a grid cell.
+We test accuracy by measuring the translational invariance through the self mobility, $M_0$, of a particle being pulled. In particular, we measure the variance of the hydrodynamic radius (using $a = 6\pi\eta M_{0}$) inside a grid cell.
 Error is computed as
 \begin{equation}
   \label{hydroerr}
   E_a(\vec{r}) = \left|1 - \frac{a(\vec{r})M_{0}}{6\pi\eta}\right|
 \end{equation}
-Where the self mobility is computed using the well known periodic for the Stokes drag of a sphere\cite{Hasimoto1959}.
+Where the self mobility is computed using the well known periodic correction for the Stokes drag of a sphere\cite{Hasimoto1959}.
 
 \begin{equation}
   M_{0}(a,L) = \frac{1}{6\pi\eta a}\left[1-b\frac{a}{L} + \frac{4\pi}{3}\left(\frac{a}{L}\right)^3 - c \left(\frac{a}{L}\right)^6\right]
@@ -2717,14 +2784,68 @@ Where the factors $b$ and $c$ are
 
 \section{Inertial Coupling Method (ICM)}
 
-Putting inertia into the mix
+\begin{itemize}
+\item This is the algorithm described in \cite{Balboa2014}, but we neglect the excess mass of the particles.
+\item Spatial discretization is done in an staggered grid, similar to FIB.
+\item We recover the inertial terms in eq. \eqref{eq:navierstokes}. Using the projection method described in sec. \ref{sec:bdhi} we get
+  \begin{equation}
+    \dot{\vec{\fvel}} = \rho^{-1} \oper{P}\left(\vec{\mathfrak{f}} + \tilde{\vec{f}}\right)
+  \end{equation}
+  Where the new force, $\vec{\mathfrak{f}}$, includes the advective and diffusive terms
+  \begin{equation}
+    \vec{\mathfrak{f}} = -\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel}) + \eta\nabla^2\vec{\fvel}
+  \end{equation}
 
-Using the tools from the previous chapters (spectral method + immersed boundary)
+\item We apply the projection operator in Fourier space, as we did in, for instance, sec. \ref{sec:fcm}. However, since we now have to solve the temporal variation of the velocity and we have non-linear terms, the diffusive and advective terms are be evaluated in real space. In ICM, the divergence of the noise is also evaluated in real space.
+\item Temporal discretization: Second-order accuracy (since we assume there is no excess mass) mid point predictor-corrector scheme
+  \begin{equation}
+    \label{eq:icmalgo}
+    \begin{aligned}
+      &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}^n\\
+      &\rho\frac{\vec{\fvel}^{n+1} - \vec{\fvel}^n}{\dt} = \oper{P}\left(\vec{\mathfrak{f}}^{n+\half} + \tilde{\vec{f}}^{n+\half} \right)\\
+      &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^{n+\half}\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right)
+  \end{aligned}
+\end{equation}
 
-Similar to FIB, but now the inertial terms have to be considered.
-Non-linear terms need a different temporal integrator
-Non-linear terms are evaluated in real space
+\item Temporal discretization is similar to the mid point predictor-corrector schemes in FIB, but the convective term is discretized using a second order explicit Adams-Bashforth method (eq. 35 in \cite{Balboa2014}).
+  \begin{equation}
+    \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n+\half} = \frac{3}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n - \half \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n-1}
+  \end{equation}
+  Advection is therefore stored each step to be reused in the next.
+  
+  The diffusive term is discretized to second-order by
+  \begin{equation}
+    \nabla^2\vec{\fvel}^{n+\half} = \half\nabla^2\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right)
+  \end{equation}
 
+  Replacing these equations into \eqref{eq:icmalgo} and solving for the velocity at $n+1$ leads to the full form of the velocity solve, depending only on the velocity from previous time steps
+
+  \begin{equation}
+    \label{eq:icmfluidvel}
+    \begin{aligned}
+      &\vec{\fvel}^{n+1} = \tilde{\oper{P}}\vec{g}^n =\tilde{\oper{P}}\Big[    \left(\frac{\rho}{\dt}\mathbb{I} + \frac{\eta}{2}\nabla^2\right)\vec{\fvel}^n- \\
+      & \frac{3\dt}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n - \frac{\dt}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n-1}+\\
+    &\oper{S}\vec{F}^{n+\half} + \nabla\cdot\mathcal{Z}^n \Big]
+  \end{aligned}
+\end{equation}
+Where the modified projection operator is defined as
+\begin{equation}
+  \tilde{\oper{P}} :=\left(\frac{\rho}{\dt}\mathbb{I} - \frac{\eta}{2}\nabla^2\right)^{-1}\oper{P} 
+\end{equation}
+And is applied in Fourier space.
+\item The full algorithm can be summarized as follows:
+  \begin{enumerate}
+  \item Take particle positions to time $n+\half$: $\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}^n$ 
+  \item Spread particles to the staggered grid: $\oper{S}\vec{F}^{n+\half}$
+  \item Compute and store advection: $\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n$
+  \item Compute the rest of the terms in $\vec{g}$ in eq. \eqref{eq:icmfluidvel}, using the just computed advective term in addition to the one stored in the previous step.
+  \item Take $\vec{g}$ to Fourier space and apply $\tilde{\oper{P}}$: $\fou{\vec{\fvel}}^{n+1} = \fou{\tilde{\oper{P}}}\fou{\vec{g}}$
+  \item Take $\fou{\vec{\fvel}}^{n+1}$ back to real space.
+  \item Evaluate particle positions at $n+1$ by interpolating: $\vec{\ppos}^{n+1} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^{n+\half}\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right)$
+  \end{enumerate}
+Since we are describing a triply periodic algorithm, we can use the discrete form of the differential operators for a staggered grid devised in previous sections (see sec. \ref{sec:staggered} and \ref{sec:fib}). 
+\item Some test of the algorithm, maybe the MSD of a particle? or a high Reynolds plot of the fluid velocity around a sphere
+\end{itemize}
 
 \chapter{Monte Carlo}
 Monte Carlo schemes available in \uammd
@@ -2735,19 +2856,116 @@ Just mention that it is present.
 \section{Metropolis Adjusted Langevin Algorithm (MALA)}
 Force biased, like Metropolis Monte Carlo but leveraging the forces. Amounts to performing a \gls{BD} simulation step and then use the positions, forces and energies of the old and new configurations to decide wether to accept it or not with a Metropolis-like probability.
 
+We can interpret the Euler-Maruyama Brownian Dynamics scheme in eq. \eqref{eq:eulermaruyama} (with $M=1$) as a Markov chain with a transition kernel following a strictly positive probability transition density defined as\todo{De donde sale esto?}
+\begin{equation}
+  \label{eq:malakernel}
+  p( \vec{Q}^n, \vec{Q}^{n+1}) = (4\pi \kT\dt)^{3/2}\exp\left(\frac{\left|\vec{Q}^{n+1} - \vec{Q}^n + \dt\vec{F}^n\right|^2}{4\kT\dt}\right)
+\end{equation}
+Where $\vec{Q}^n:={\vec{\ppos}_1^n, \vec{\ppos}^n_2, ..., \vec{\ppos}^n_N}$ represents the positions of all particles at time step $n$.
+%This is refered to as the unadjusted Langevin algorithm\cite{Roberts1996}.
+On the other hand, the Langevin equation \eqref{eq:bd} in equilibrium presents a probability density given by
+\begin{equation}
+  \label{eq:malatarget}
+  \pi(\vec{Q}) = Z^{-1}\exp\left(-\frac{U(\vec{Q})}{kT}\right)
+\end{equation}
+Where the entropy is defined as $Z = \int\exp\left(-U(\vec{Q})/\kT\right)$ and $U(\vec{Q})$ is the internal energy (such that $\vec{F} = -\nabla U$).
+
+Once we have a proposed transition kernel (eq. \eqref{eq:malakernel}) and and a target probability density (the equilirbium one in eq. \eqref{eq:malatarget}) we can use the Metropolis-Hastings method to design an updating scheme, refered to as MALA\cite{Roberts1996}\cite{Besag1994}.
+
+Instead of sampling configurations using the Euler-Maruyama scheme (as discussed in sec. \ref{sec:bd}) we now propose a new configuration using eq. \eqref{eq:eulermaruyama} as
+\begin{equation}
+  \widetilde{\vec{Q}}^{n+1} = \vec{Q}^n + \dt\vec{F}^n + \sqrt{2\kT\dt}\vec{\widetilde{\mathcal{W}}}^n
+\end{equation}
+
+And accept it with a Metropolis probability given by
+
+\begin{equation}
+  \alpha(\vec{Q}^n, \widetilde{\vec{Q}}^{n+1}) = \text{min}\left(\frac{p(\widetilde{\vec{Q}}^{n+1},\vec{Q}^{n})\pi(\widetilde{\vec{Q}}^{n+1})}{p(\vec{Q}^{n}, \widetilde{\vec{Q}}^{n+1})\pi(\vec{Q}^{n})}\right)
+\end{equation}
+
+Numerically, this can be done by drawing an uniform random number $\xi^n \in [0,1]$ and accepting the new configuration only if $\xi^n<\alpha(\vec{Q}^n, \widetilde{\vec{Q}}^{n+1})$.
+
+In contrast with the naive Metropolis-Hasting algorithm, that blindly proposes configurations, MALA proposes configurations that always have a higher propability in $\pi$, increasing the chances of acceptance.
+
+\begin{itemize}
+\item We are not restricted to using the same value for $\dt$ in all steps, since in an MCMC algorithm it has lost its meaning as a \emph{time step} and it is now simply a parameter describing the \emph{distance} in phase space between two given configurations. As such we can tune it to get a desired configuration acceptance ratio.
+\item Although it is useful to thermalize or initialize configurations, testing suggests that hard steric repulsion between particles (like LJ) requires such a small time step to ensure a given acceptance ratio that the algorithm becomes unusable. In these cases plain BD is preferable.
+\item For tuning the jump step, we measure the acceptance ratio every once in a while, if it is lower than the target the jump step is decreased (and increased if it is larger). We increase the jump step slowly (a 2\% increase) and decrease it fast (a 10\%). this decision stems from optimization.
+\item Another disadvantage of MALA is that, for instance, in a thermalized, equilibrium configuration the energy change coming from moving all particles in the system grows, in average, with the number of particles. This results in the optimal jump step decreasing with the number of particles.
+  \begin{figure}[H]
+    \label{fig:malastep}
+    \centering    
+    \subcaptionbox{Soft potential}{\includegraphics[width=\textwidth]{gfx/malasoft}}\label{fig:malastepsoft}
+    \subcaptionbox{LJ potential}{\includegraphics[width=\textwidth]{gfx/malalj}}\label{fig:malasteplj}
+    \caption{Optimal time step in MALA for several configurations.}
+  \end{figure}
+  
+\end{itemize}
+\subsection*{Use in UAMMD}
+
+\begin{itemize}
+\item Use like any other Integrator, will query its Interactors for both force and energy.
+\item The step size will be autotuned until it reaches the target one.
+\end{itemize}
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Integrator/MonteCarlo/ForceBiased.cuh>
+using namespace uammd;
+//A function that creates and returns a MALA integrator
+auto createIntegratorMALA(UAMMD sim){   
+  MC::ForceBiased::Parameters par;
+  //Inverse of temperature
+  par.beta = 1.0/sim.par.temperature;	
+  //Initial step length.
+  //It will be optimized according to the target acceptance ratio
+  par.stepSize = sim.par.dt;
+  //Desired acceptance ratio 
+  par.acceptanceRatio = sim.par.accRatio;
+  auto mala = std::make_shared<MC::ForceBiased>(sim.pd, sim.pg, 
+                                                sim.sys, par);
+  return mala;
+}
+\end{minted}
 
 
+\
+\begin{itemize}
+\item Finishing words about methodology
+\item A word about all things implemented in UAMMD thus far
+\item Putting it all together
+\item An outline of all the phisics that can be done with the algorithms and implementations thus far
+\item Future direction and additions to the algorithms in this part
+\item Introduce next part, nobel algorithms and physics.
+
+\end{itemize}
 \cleardoublepage
-\part{Novel algorithms for complex fluids}\label{pt:algo}
+\part{Novel algorithms and physics for complex fluids}\label{pt:algo}
+
+\begin{itemize}
+\item New contributions are related to complex fluids in confined geometries
+\item Hydrodynamics in slit channels are key in several contexts of technological and biological significance.
+\item Introduce star polymers
+\item Outline of this part
+\end{itemize}
+
+\chapter{Hydrodynamics under quasi two dimensional confinement}
 
 
-\chapter{Quasi2D}
 
-Describe quasi2D paper.
+\begin{figure}[h]
+  \centering
+  \includesvg{gfx/q2d}{\columnwidth}
+  \caption{Representation of a colloidal system under soft confinement in the perpendicular ($z$) direction. Particles are confined via some external potential that distributes them near $z=0$ with a typical width $\delta$.}
+  \label{fig:staggered}  
+\end{figure}
 
-Similar to \gls{FCM}, but with a Green's function that is integrated in Z. It is the limit of an infinite boxin Z with particles attached to z=0 via an infinitely stiff spring.
 
-
+\begin{itemize}
+\item Enhanced diffusion under soft confinement\cite{Pelaez2017}
+\item Transverse diffusion of proteins embedded in lipid bilayers control their biological function\cite{Fuller2012}.
+\item Limit to infinetely stiff confinement\cite{Pelaez2018}
+\item Describe quasi2D paper. Similar to \gls{FCM}, but with a Green's function that is integrated in Z. It is the limit of an infinite boxin Z with particles attached to z=0 via an infinitely stiff spring.
+\end{itemize}
 \chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
 \section{Introduction}
 This chapter presents a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and arbitrary surface charges at the domain walls (in the open direction).
@@ -2924,8 +3142,93 @@ Introduction.
 \cleardoublepage
 \ctparttext{Collection of tools and algorithms useful in soft matter simulations.}
 \part{GPU enabled post processing}\label{pt:tools}
-\input{Chapters/Chapter11}
-\input{Chapters/Chapter12}
+
+\begin{itemize}
+\item The unreasonable convenience of an UNIX-like environment. The pipe as a connector between operations.
+\item The UNIX phylosophy of do one thing and one thing only.
+\end{itemize}
+
+\chapter{Radial Distribution Function}
+
+
+\chapter{Mean Square Displacement}
+\chapter{Fast Correlations}
+\chapter{Fast Histogram}
+\chapter{FFT}
+
+
+\chapter{Superpunto}
+\begin{figure}[H]
+  \label{fig:spunto}
+  \centering
+  \includegraphics[width=\textwidth]{gfx/shotlogo}
+  \caption{A screenshot of a \gls{LJ} fluid quenched to a low temperature made with superpunto. The simulation contains $10$ million particles, which are being rendered to the screen at about 30 frames per second in a GTX 980 \gpu.}
+\end{figure}
+
+\begin{itemize}
+\item Superpunto, a particle visualizator.
+\item Explain the need for a fast particle visualizer with a super simple format and pipe capabilities. Real time visualization using the pipe.
+  
+\end{itemize}
+
+\section{Format}
+inputfile should have the following structure:
+\begin{minted}{\ucpp}
+#Lx=X;Ly=Y;Lz=Z; Comments are used to separate frames, you can force the size of the simulation box starting the comment as in this example. All three L must be provided
+X1 Y1 Z1 r1 c1 Vx Vy Vz#You can comment here aswell! If your file has more than
+X2 ...         #8 columns, the rest will be ignored!
+.
+.
+.
+\# frame=2
+X1 Y1 Z1 r1 c1 Vx Vy Vz
+.
+.
+.
+\# frame = 3
+\end{minted}
+
+\section{Graphical Techniques}
+
+\begin{itemize}
+\item Instanced drawing with OpenGL 4.5
+\item The G-buffer technique
+\item Lighting model.
+\item Screen space ambient oclussion (SSAO).
+\end{itemize}
+
+\section{Controls}
+
+\begin{itemize}
+\item  Movement:
+  \begin{itemize}
+  \item Move with WASD, E and Q to tilt and Shift/Ctrl to go up/Down
+  \item Use +/- to increase/decrease the speed
+  \item Look around holding ALT and moving the mouse
+  \item Rotate the world in XYZ using 123/456    
+  \end{itemize}
+\item Frame control:
+  \begin{itemize}
+  \item Press Space to go to the next frame, R to the previous
+  \item Press T to go to the last frame, B takes you to the first one
+  \item Press M to play the frames at 60 FPS, M again to pause
+  \item Press C to take a screenshot in png
+  \item Press L to play and record to a mp4 until L is pressed again
+  \end{itemize}
+\end{itemize}
+\subsection*{Options}
+\begin{itemize}
+\item --record :  Makes a movie of all the frames in file and generates a .mp4
+\item --frames-between-screenshots X : Number of frames skipped between screenshots when recording (default = 2)
+\item --background R G B : Background color in RGB, default R=G=B=0.0
+\item --palette X : Change the color palette
+\item --RGB : Read colors as hex values in BGR (as integers) (0xFF=red=255). Overrides palette
+\item --nobox : Do not render the bounding box.
+\item --noaxis : Do not render axis labels.
+\item --resolution X Y : Set the resolution (AKA window size). Default is 800x800          
+\end{itemize}
+
+
 \newpage
 \cleardoublepage
 \part{New physics and applications}\label{pt:applications}
