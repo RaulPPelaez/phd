@@ -57,6 +57,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newacronym{SPH}{SPH}{Smoothed Particle Hydrodynamics}
 \newacronym{SE}{SE}{Spectral Ewald}
 \newacronym{LJ}{LJ}{Lennard-Jones}
+\newacronym{WCA}{WCA}{Weeks-Chandler-Andersen}
 \newacronym{MIC}{MIC}{Minimum Image Convention}
 \newacronym{FFT}{FFT}{Fast Fourier Transform}
 \newacronym{iFFT}{iFFT}{Inverse Fast Fourier Transform}
@@ -73,7 +74,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newacronym{AB}{AB}{Adams-Bashforth}
 \newacronym{LK}{LK}{Leimkuhler}
 \newacronym{PBC}{PBC}{Periodic Boundary Conditions}
-\newacronym{RPY}{RPY}{Rotne-Prager-Yamakawa}
+\newacronym{RPY}{RPY}{Rotne-Prager-Yamakawa}\newcommand{\rpy}{\gls{RPY}\xspace}
 \renewcommand{\vec}[1]{\bm{#1}}
 \newcommand{\tens}[1]{\bm{\mathcal{#1}}}
 \newcommand{\oper}[1]{\mathcal{#1}}
@@ -332,11 +333,12 @@ Let us go through the different numerical techniques that are used to simulate t
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{landscape}
-  \caption{The spatio-temporal landscape and its numerical techniques.}
+  %\includegraphics[width=\textwidth]{landscape}
+  \includesvg{gfx/scales}{\columnwidth}
+  \caption{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales invovled in a biological system or, in general, a complex fluid. Zooming in from the bottom-left we have the blood inside a section of a vein, the plasmic environment in a small drop of blood (where cells, platelettes, viruses, etc are present), a virus, a single protein and finally the individual atoms that compose it along the surrounding fluid particles (water).}
   \label{fig:sptime-land}
 \end{figure}
-\todo{RAFA, te he fusilado esta img que me gusta mucho. Me gustaria rehacerla solo con lo que me interesa, pero me esta costando encontrar referencias}
+%\todo{RAFA, te he fusilado esta img que me gusta mucho. Me gustaria rehacerla solo con lo que me interesa, pero me esta costando encontrar referencias}
 
 We can distinguish between two families of numerical techniques, particle and grid based methods. The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
 In some way or another, all algorithms have to take into account interactions between particles.
@@ -2672,7 +2674,7 @@ For convenience, we can now write the discrete version of the projection operato
   \item Midpoint predictor-corrector: Requires a single Stokes solve but two interpolations
     \begin{equation}
       \begin{aligned}
-        &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\tens{G}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n})\\
+        &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n})\\
         &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}\\
         &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \dt\oper{J}^{n+\half}\vec{\fvel}
       \end{aligned}
@@ -2681,9 +2683,9 @@ For convenience, we can now write the discrete version of the projection operato
   \item Improved midpoint predictor-corrector: Linearized additive noise. Requires two Stokes solves
     \begin{equation}
       \begin{aligned}
-        &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\tens{G}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n_1})\\
+        &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n_1})\\
         &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}\\
-        &\tilde{\vec{\fvel}}= \eta^{-1}\mathfrak{F}^{-1}\fou{\tens{G}}\left[\mathfrak{F}\oper{S}^{n+\half}\vec{F}^{n+\half} + \fou{\nabla\cdot}\left(\fou{\mathcal{Z}}^{n_1} +  \fou{\mathcal{Z}}^{n_2}\right)\right]\\
+        &\tilde{\vec{\fvel}}= \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}\left[\mathfrak{F}\oper{S}^{n+\half}\vec{F}^{n+\half} + \fou{\nabla\cdot}\left(\fou{\mathcal{Z}}^{n_1} +  \fou{\mathcal{Z}}^{n_2}\right)\right]\\
         &\vec{\ppos}^{n+1}= \vec{\ppos}^n + \dt\oper{J}^{n+\half}\tilde{\vec{\fvel}}
       \end{aligned}      
     \end{equation}
@@ -2949,14 +2951,36 @@ auto createIntegratorMALA(UAMMD sim){
 \end{itemize}
 
 \chapter{Hydrodynamics under quasi two dimensional confinement}
+Interfaces usually induce the formation of colloid density gradients which significantly increases their mesoscopic ordering in layers. This effect is quite general and affects macromolecules and proteins around cells and organelle membranes. The layering effect is even stronger in charged or partially charged colloids near surfaces [1].
+In other instances, colloids might be trapped in fluid-fluid interfaces and interact via capillary forces[2] and also by electrostatic forces[3].
+Nanosize colloids (proteins) frequently move in planar membranes or vesicles being exposed to relatively large spatial fluctuations. These ``sticking'' scenarios, common in subcellular biology, are also relevant for many industrial problems involving the spreading of molecules within things as disparate as food, creams, or crude oil (e.g., asphaltenes near water interfaces) and  more. Yet anotherarea of technological applications uses ultrasound forces (acoustophoresis) to manipulate and confine micron-sized colloids in layers[4–7].
+A standing pressure wave with hundreds of megahertz or more creates an ultrasound potential which moves heavy colloidal particles towards two-dimensional traps formed at the node of the pressure wave (or the valleys if particles are lighter than the fluid)[6,7]. The resulting ultrasound potential is harmonic, leading to a Gaussian colloidal dispersion around the pressure node[7].
+Similar harmonic traps can be obtained by laser tweezers[8]. Other forms of (non-Gaussian) traps can be prepared using electric fields (maybe leading to barometric-like density profiles).
+The hydrodynamic coupling between the confining force acting on each individual colloid and their collective motion leads to surprising effects, most of them detected some years ago[9] and recently theoretically and experimentally revised[10,11].
+Basically, momentum conservation implies that the confining force acting on each colloid has to propagate to the surrounding fluid. This propagation has the form of a flow field which reaches quite long distances and affects the motion of distant colloids over the plane.
+Mathematically, the constraint can be also holonomic ($z=0$ for each colloid), and the confining force can be seen to arise from the non-zero divergence of the mobility tensor, which is related to the reduction of entropy imposed across the confining plane. In the case of a point wise force in unbounded fluid such flow perturbation (Oseen) decays like the inverse of the distance and, as a consequence, the diffusion coefficient of larger and larger colloidal density fluctuations increases without bounds.
+In particular, the collective diffusion diverges like $\fou{D}_c\approx 1/k$ in Fourier space.
+Somewhat paradoxical, or at least counter intuitive, is the fact that the single-particle diffusion coefficient might be completely unaware of this anomalous enhancementof the collective diffusion. In fact, the phenomenon also takes place in ideal particles (without potential interactions), where, irrespective of the confinement, the self-diffusion coefficient is just given by the Stokes-Einstein relation (see eq. \eqref{eq:selfdiffusion}).
+Such types of hydrodynamic enhancements do not only take place when the fluid is unbounded in the three directions. The presence of distant boundaries modifies the propagation (e.g., $1/r^2$ inside a slit channel[12,13]), leading to yet-unexplained and stronger variations of this phenomena (diffusion diverging like $1/k^{1.7}$) which might also depend on the wall's slip boundary conditions.
 
+The question we pose here is how this anomalous collective diffusion becomes normal as the confinement is made softer. There are several ways to gradually transform a perfect two-dimensional (2D) confinement into an isotropic 3D distribution and,  as  illustrated  in  fig. \ref{fig:q2dsch}, here we study the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by an harmonic potential of the form
+\begin{equation}
+U(z)=\half K_sz^2
+\end{equation}
+applied to each individual colloid.
+The spring constant $K_s$ controls the width, $\delta$, of the Gaussian distribution of colloids in the $z$ direction.
+\begin{equation}
+  \delta = \left(\frac{\kT}{K_s}\right)^{1/2}
+\end{equation}
+We will see how this length scale governs the collective intermediate scattering function of colloids under harmonic confinement.
+Excluded volume and other potential interactions between colloids add another length scale to the collective diffusion, which partially masks the anomalous hydrodynamic enhancement. This masking depends on the static structure factor, $S(k)$, and here we illustrate the case of repulsive, \gls{WCA}, and attractive, \gls{LJ}, potentials. Another question which intrigues us is the transition to an inertial regime taking place at very large wavelengths. If the collective diffusion scales like $\fou{D}_c\sim k^{-1}$, below some small wavenumber, $k_c$, then collective mass diffusion will eventually become faster than vorticity diffusion. This issue, an many others related to this problem, was studied by  Dominguezet al.[14] showing that, for any colloidal system, the crossover should take place at macroscopic lengthscales $k_c\approx mm^{-1}$, being proportional to the inverse of the Schmidt number. Our computational method enables to artificially decrease the Schmidt number to observe the transition to the inertial regime and the appearance of damped (oscillatory) density fluctuations. Results are compared with theoretical predictions based on for the $k \rightarrow 0$ limit [14].
 
 
 \begin{figure}[h]
   \centering
   \includesvg{gfx/q2d}{\columnwidth}
   \caption{Representation of a colloidal system under soft confinement in the perpendicular ($z$) direction. Particles are confined via some external potential that distributes them near $z=0$ with a typical width $\delta$.}
-  \label{fig:staggered}  
+  \label{fig:q2dsch}
 \end{figure}
 
 
