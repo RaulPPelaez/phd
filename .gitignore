@@ -5,7 +5,8 @@
 *~
 *.bak
 *.orig
-
+main.*
+!main.tex
 # ignore a whole lot of latex specific tempfiles
 *-blx.bib
 *.acn
@@ -49,3 +50,5 @@ __FOR_CTAN_UPLOAD.txt
 ClassicThesis.bcf
 Bibliography.bib.bak
 Bibliography.bib.sav
+
+*eps-converted-to*

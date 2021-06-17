@@ -1883,9 +1883,6 @@ The Oseen mobility presents asymptotic behavior at short distance stemming from 
   \label{fig:oseen}
 \end{figure}
 
-
-
-
 One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. We can compute it by integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator in the surface, $S$, of two spheres of radius $a$
 \begin{equation}
   \label{eq:rpymobfour}
@@ -1919,12 +1916,16 @@ This is an expression of the fact that the mobility is usually isotropic and tra
 Making an analogy with eq. \eqref{eq:bd} we can finally write the equations of motion for a system of particles with hydrodynamic interactions
 \begin{equation}
   \label{eq:bdhi}
-  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}}
+  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}} + \kT\left(\partial_{\vec{\ppos}}\cdot\tens{M}\right)\dt
 \end{equation}
-Where the mobility is now a tensor with dimensions $3N\times 3N$. The fluctuating term involves finding the square root of the mobility, defined in eq. \eqref{eq:mobsqrt}.
+Where the mobility is now a tensor with dimensions $3N\times 3N$. 
+
+The divergence of the mobility in the last term, commonly referred to as thermal drift, is an stochastic term stemming from the Itô interpretation of the Brownian equation and its necessary for time reversibility (detailed balance) of the limiting dynamics.\todo{Referencias, me gustaria explicar mejor este termino}
+Note that the mobility tensors elucidated thus far have zero divergence (due to the incompressibility of the three dimensional flow). However, it is important to take it into account since even for this cases, certain spatio-temporal discretizations could result in the mobility having an spurious thermal drift. Furthermore, divergence will be non-zero in other geometries (like the confined systems in sec. \ref{sec:q2D}). 
 %\begin{equation}
 %  \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T
 %\end{equation}
+The fluctuating term involves finding the square root of the mobility, defined in eq. \eqref{eq:mobsqrt}.
 This requires that the mobility matrix is positive definite. Note that the \gls{RPY} tensor is positive definite for all particle configurations, whereas the Oseen tensor becomes non positive definite at short distances.
 Solving eq. \eqref{eq:bdhi} numerically by direct evaluation results in an algorithm with a complexity of at least $O(N^2)$ due to the matrix-vector multiplication of the mobility tensor and the forces. Furthermore, finding the square root of the mobility will typically dominate the cost of the algorithm. Even so, there might be situations in which such an algorithm could be the best option.
 Temporal integration can be achieved with any of the methods described in sec. \ref{sec:bd}. However, it is important to consider the extreme cost of computing and/or storing both terms in eq. \eqref{eq:bdhi} when choosing an algorithm. As such, in \uammd we usually stick to the Euler-Maruyama method.
@@ -2951,42 +2952,146 @@ auto createIntegratorMALA(UAMMD sim){
 \end{itemize}
 
 \chapter{Hydrodynamics under quasi two dimensional confinement}
-Interfaces usually induce the formation of colloid density gradients which significantly increases their mesoscopic ordering in layers. This effect is quite general and affects macromolecules and proteins around cells and organelle membranes. The layering effect is even stronger in charged or partially charged colloids near surfaces [1].
-In other instances, colloids might be trapped in fluid-fluid interfaces and interact via capillary forces[2] and also by electrostatic forces[3].
-Nanosize colloids (proteins) frequently move in planar membranes or vesicles being exposed to relatively large spatial fluctuations. These ``sticking'' scenarios, common in subcellular biology, are also relevant for many industrial problems involving the spreading of molecules within things as disparate as food, creams, or crude oil (e.g., asphaltenes near water interfaces) and  more. Yet anotherarea of technological applications uses ultrasound forces (acoustophoresis) to manipulate and confine micron-sized colloids in layers[4–7].
-A standing pressure wave with hundreds of megahertz or more creates an ultrasound potential which moves heavy colloidal particles towards two-dimensional traps formed at the node of the pressure wave (or the valleys if particles are lighter than the fluid)[6,7]. The resulting ultrasound potential is harmonic, leading to a Gaussian colloidal dispersion around the pressure node[7].
-Similar harmonic traps can be obtained by laser tweezers[8]. Other forms of (non-Gaussian) traps can be prepared using electric fields (maybe leading to barometric-like density profiles).
-The hydrodynamic coupling between the confining force acting on each individual colloid and their collective motion leads to surprising effects, most of them detected some years ago[9] and recently theoretically and experimentally revised[10,11].
-Basically, momentum conservation implies that the confining force acting on each colloid has to propagate to the surrounding fluid. This propagation has the form of a flow field which reaches quite long distances and affects the motion of distant colloids over the plane.
-Mathematically, the constraint can be also holonomic ($z=0$ for each colloid), and the confining force can be seen to arise from the non-zero divergence of the mobility tensor, which is related to the reduction of entropy imposed across the confining plane. In the case of a point wise force in unbounded fluid such flow perturbation (Oseen) decays like the inverse of the distance and, as a consequence, the diffusion coefficient of larger and larger colloidal density fluctuations increases without bounds.
-In particular, the collective diffusion diverges like $\fou{D}_c\approx 1/k$ in Fourier space.
-Somewhat paradoxical, or at least counter intuitive, is the fact that the single-particle diffusion coefficient might be completely unaware of this anomalous enhancementof the collective diffusion. In fact, the phenomenon also takes place in ideal particles (without potential interactions), where, irrespective of the confinement, the self-diffusion coefficient is just given by the Stokes-Einstein relation (see eq. \eqref{eq:selfdiffusion}).
-Such types of hydrodynamic enhancements do not only take place when the fluid is unbounded in the three directions. The presence of distant boundaries modifies the propagation (e.g., $1/r^2$ inside a slit channel[12,13]), leading to yet-unexplained and stronger variations of this phenomena (diffusion diverging like $1/k^{1.7}$) which might also depend on the wall's slip boundary conditions.
-
-The question we pose here is how this anomalous collective diffusion becomes normal as the confinement is made softer. There are several ways to gradually transform a perfect two-dimensional (2D) confinement into an isotropic 3D distribution and,  as  illustrated  in  fig. \ref{fig:q2dsch}, here we study the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by an harmonic potential of the form
-\begin{equation}
-U(z)=\half K_sz^2
-\end{equation}
-applied to each individual colloid.
-The spring constant $K_s$ controls the width, $\delta$, of the Gaussian distribution of colloids in the $z$ direction.
-\begin{equation}
-  \delta = \left(\frac{\kT}{K_s}\right)^{1/2}
-\end{equation}
-We will see how this length scale governs the collective intermediate scattering function of colloids under harmonic confinement.
-Excluded volume and other potential interactions between colloids add another length scale to the collective diffusion, which partially masks the anomalous hydrodynamic enhancement. This masking depends on the static structure factor, $S(k)$, and here we illustrate the case of repulsive, \gls{WCA}, and attractive, \gls{LJ}, potentials. Another question which intrigues us is the transition to an inertial regime taking place at very large wavelengths. If the collective diffusion scales like $\fou{D}_c\sim k^{-1}$, below some small wavenumber, $k_c$, then collective mass diffusion will eventually become faster than vorticity diffusion. This issue, an many others related to this problem, was studied by  Dominguezet al.[14] showing that, for any colloidal system, the crossover should take place at macroscopic lengthscales $k_c\approx mm^{-1}$, being proportional to the inverse of the Schmidt number. Our computational method enables to artificially decrease the Schmidt number to observe the transition to the inertial regime and the appearance of damped (oscillatory) density fluctuations. Results are compared with theoretical predictions based on for the $k \rightarrow 0$ limit [14].
-
 
 \begin{figure}[h]
   \centering
   \includesvg{gfx/q2d}{\columnwidth}
-  \caption{Representation of a colloidal system under soft confinement in the perpendicular ($z$) direction. Particles are confined via some external potential that distributes them near $z=0$ with a typical width $\delta$.}
+  \caption{Representation of a colloidal system under soft confinement in the perpendicular ($z$) direction. Particles are confined via some external potential that distributes them near $z=0$ with a typical width $\delta$. The confining forces acting on the particles are propagated to the plane via the Oseen tensor (orange lines).}
   \label{fig:q2dsch}
 \end{figure}
+
+In this section we will develop algorithms to study the dynamics of a group of colloidal particles whose movement is constraint in the $z$ direction by some external force (see fig. \ref{fig:q2dsch}) while submerged in an otherwise unbounded three dimensional fluid. We refer to this geometry as quasi 2D (q2D for short). As opposed to a situation in which both the particles \emph{and} the fluid are restricted to the plane (true 2D or t2D) or when both are unbounded in the three directions (true 3D or t3D). In the limit when the confining force is infinetly stiff, particles move in an strictly two dimensional plane. This can be used to model, for instance, the transport the properties of systems at a fluid-fluid or air-fluid interfaces. 
+
+Besides being common in subcellular biology, there are several examples of this constrained dynamics systems in a wide variety of industrial applications, like food, creams, or crude oil (e.g., asphaltenes near water interfaces).
+On the other hand, the transverse diffusion of proteins embedded in lipid bilayers controls their biological function\cite{MembraneDiffusion_Review}.
+Note that although confined to the membrane plane, these proteins will be subject to relatively large spatial fluctuations.
+
+In general, diffusion of colloidal particles confined to two-dimensional surfaces is a key transport mechanism in several contexts of technological and biological significance.
+
+As to the physical phenomena that actually constraints the particles to a plane we have, for instance the so-called Pickering emulsions, which are stabilized by the spontaneous absorption of colloidal particles to the fluid-fluid interface.
+
+Colloids might also be trapped in fluid-fluid interfaces and interact via capillary[2] or electrostatic[3] forces. By placing walls, particles can be forced to diffuse in a plane\cite{Diffusion2D_Experiments_Rice}. 
+
+A standing pressure wave with hundreds of megahertz or more creates an ultrasound potential which moves heavy colloidal particles towards two-dimensional traps formed at the node of the pressure wave (or the valleys if particles are lighter than the fluid)[6,7]. The resulting ultrasound potential is harmonic, leading to a Gaussian colloidal dispersion around the pressure node[7].
+
+Similar harmonic traps can be obtained by laser tweezers[8]. Other forms of (non-Gaussian) traps can be prepared using electric fields (maybe leading to barometric-like density profiles).
+
+In future sections, we will study the diffusive phenomena arising in this special geometry. For now, lets lay the algorithmic machinery necessary to simulate it.
+
+Lets start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three dimensional incompressible fluid. As we saw in chapter \ref{ch:bdhi}, forces acting on the particles are propagated to the whole fluid, due to the its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting hydrodynamic drag acts like a flow source which tends to expel other particles around it. This can be interpreted as the flow in the plane having a positive divergence, which makes the fluid (as seen from the plane) being effectively compressible. We will see that this effect naturally arises in a particle based description (\gls{BDHI}) through an effective plane mobility with non zero divergence\cite{Pelaez2017}.
+
+\section{The Force Coupling Method in quasi 2D}
+There are several ways to gradually transform a perfect 2D confinement into an isotropic 3D distribution and, as illustrated in fig. \ref{fig:q2dsch}, we model the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by an harmonic potential of the form
+\begin{equation}
+U(z)=\half K_sz^2
+\end{equation}
+applied to each individual particle.
+The spring constant $K_s$ controls the width, $\delta$, of the Gaussian distribution of particles in the $z$ direction.
+\begin{equation}
+  \delta = \left(\frac{\kT}{K_s}\right)^{1/2}
+\end{equation}
+\begin{itemize}
+\item Integrate Fourier form of Oseen in $k_z$.
+\item Separate between $k_\perp$ and $k$ parallel.
+\item Write expression in a general way for t2D and q2D both in Fourier and real space.
+\item Fabricate Greens function by convolving with  the Gaussian just in the z direction (since xy are incorporated via spreading+FFT). This restricts the algorithm to a Gaussian, since this shape is assumed when constructing G.
+\item A similar trick as in PSE is used to separate the noise in two terms. Proving that it is right can be done by computing the correlation of the noise and seeing it is equal to the mobility.
+\item The algorithm is now identical to FCM with a different kernel.
+  
+\end{itemize}
+
+
+\chapter{Applications: Hydrodynamics in confined geometries}
+\begin{itemize}
+\item Long time self diffussion
+\item Linear response theory for MSD
+\item Ensemble averages for color
+\item giant fluctuations comparison BD, q2D, t2D
+\item Bridging the gap to 3D, the short time collective diffusion coefficient and the hydrodynamic function
+\item Mention steric repulsion, only affects large wavenumbers (steric repulsion size), but the colective effect remains.
+\end{itemize}
+Bulk diffusion of particles in liquids is well-known to be controlled by hydrodynamics, and diffusion on interfaces is no exception. While the diffusion of colloids and polymers on a fluid-fluid interface has been studied theoretically since the 1970s \cite{FluidFluidInterface_Polymers,Diffusion2D_TwoViscosities}, \emph{collective diffusion} in a monolayer of colloidal particles confined to a fluid-fluid interface has only recently been explored in some detail both theoretically \cite{Bleibel2014,Bleibel2016,Bleibel2015} and experimentally[11].
+
+The hydrodynamic coupling between the confining force acting on each individual colloid and their collective motion leads to surprising effects.
+For instance, if the constraint is holonomic (colloids are restricted to move on a purely 2D domain), the confining force can be seen to arise from the non-zero divergence of the mobility tensor, which is related to the reduction of entropy imposed across the confining plane. In the case of a point wise force in unbounded fluid such flow perturbation (Oseen) decays like the inverse of the distance and, as a consequence, the diffusion coefficient of larger and larger colloidal density fluctuations increases without bounds. In particular, this results in the short-time collective diffusion diverging as the inverse of the wave number.
+This unexpected finding has prompted re-examination of previous experimental results \cite{Diffusion2D_Experiments_Weitz,SD_TwoWalls,Diffusion2D_Experiments_Rice}, and it is plausible that the effect may have been overlooked in a number of other prior experimental and theoretical works as well.
+
+The physical origin of the anomalous collective diffusion has already been elucidated in prior work by others\cite{Bleibel2014,Bleibel2016,Bleibel2015,Dominguez2014}. Basically, momentum conservation implies that the confining force acting on each particle has to propagate to the surrounding, incompressible, solvent. In the plane, the resulting hydrodynamic drag created by one particle acts like a flow source that induces an effective repulsive force on the other particles.
+
+This results in strong displacement correlations which are the origin of the anomalous collective diffusion.
+A new interpretation of this phenomena is obtained if one focuses on the in-plane dynamics.
+In the plane, the field of diffusive displacements appears to be compressible due to the momentum source associated with each confined particle.
+In the limit of strict confinement, the flow acts as a compressible two-dimensional cut through an incompressible three-dimensional flow field.
+Because of this apparent compressibility, the Brownian motion of the particles creates an osmotic pressure proportional to $\kT$, which propagates via the fluid inducing long-ranged repulsive interactions.
+This long-ranged repulsion decays slowly with the particle-particle distance, and dramatically accelerates collective diffusion at large scales.
+Furthermore,
+% contrary to what was previously thought \cite{Pelaez2017,Bleibel2017},
+these long-ranged correlations also appreciably modify the single-particle diffusion, as we will see in future sections.
+
+Such types of hydrodynamic enhancements do not only take place when the fluid is unbounded in the three directions. The presence of distant boundaries modifies the propagation (e.g., $1/r^2$ inside a slit channel[12,13]), leading to yet-unexplained and stronger variations of this phenomena which might also depend on the wall's slip boundary conditions.
+We will study how this anomalous collective diffusion becomes normal as the confinement is made softer.
+
+During the following chapters, we will study the collective diffusion and transport properties of a suspension of particles confined to a plane in two regimes:
+\begin{itemize}
+\item When the confinement is not strict and particles can leave the plane. For this, we can make use of the \gls{FIB} or \gls{FCM} described in previous sections and impose an external confining force on each particle. Although our implementations for these algorithms are triply periodic, we will neglect the contributions of the periodic copies of the system in the third direction by making the domain be much larger than the typical width of the suspension. We can also study the transient to the inertial regime by using \gls{ICM}.
+\item In the limit of strict confinement. Since our region of interest is the purely 2D plane in which particles diffuse, we will develop a new algorithm that takes into account the unbounded fluid in the $z$ direction implicitly.
+\end{itemize}
+Additionally, we will describe a new doubly periodic algorithm capable of solving hydrodynamics in the first scenario by directly imposing a different set of boundary conditions at the domain limits in the third direction. In particular, we can use this new framework to impose open boundaries, with the possibility of adding one or two walls at the domain limits (particles near a wall or a slit channel).
+
+
+%\chapter{Diffusion under soft confinement}\label{ch:softq2D}
+We will see how this length scale governs the collective intermediate scattering function of colloids under harmonic confinement. We will examine how the enhancement of the collective diffussion dissapears going from the limit of strict confinement with $K_s\rightarrow \infty$ to the purely open 3D hydrodynamics with $K_s\rightarrow 0$.
+Excluded volume and other potential interactions between colloids add another length scale to the collective diffusion, which partially masks the anomalous hydrodynamic enhancement. This masking depends on the static structure factor, $S(k)$, and here we illustrate the case of repulsive, \gls{WCA}, and attractive, \gls{LJ}, potentials.
+
+Later, we will take the mathematical limit of $K_s\rightarrow \infty$ to connect 
+
+%% Q2d paper intro:
+
+%Previous work on collective diffusion of colloids on fluid-fluid interfaces\cite{Bleibel2014,Bleibel2016,Bleibel2015} has focused on the \emph{ensemble average}. Our focus here is on the \emph{fluctuations} around the ensemble average, i.e., on the equations for the evolution of a particular \emph{instance} (trajectory) of diffusive processes on interfaces. We use the fluctuating DDFT-HI developed in \cite{Donev2014}, which is closely-related to \emph{fluctuating hydrodynamics} (FHD)\cite{Donev2014_2}. The (formal) nonlinear equations of FHD are challenging to interpret \cite{SPDE_Diffusion_DDFT,DDFT_Hydro}, but, at the same time, they are more physically transparent than the ensemble-averaged equations, and do not require closures for noninteracting particles\cite{DDFT_Hydro}. Furthermore, as we will see later, the fluctuating DDFT-HI equations are a very useful tool for constructing linear-time Brownian Dynamics (BD) algorithms.
+%%%%%%%
+
+
+\begin{itemize}
+\item Short time Collective diffusion
+\item Recovering 3D Hydrodynamics
+\item Color density fluctuations
+  Understanding the magnitude and the dynamics of density fluctuations is crucial for several reasons. First, in actual experiments one observes individual instances, not the ensemble average. While in many systems typical instances are quite similar to the average, i.e., the fluctuations are small compared to the mean, this is not always the case. It is well-known that nonequilibrium fluctuations in diffusive processes are, rather generally, much larger in magnitude than equilibrium fluctuations, and are also long ranged \cite{FluctHydroNonEq_Book}.
+Experiments in microgravity have measured these ``giant fluctuations'' in three dimensions, and shown that nonequilibrium diffusive fluctuations are correlated over macroscopic distances \cite{FractalDiffusion_Microgravity,GRADFLEXTransient}.
+
+For diffusion in two-dimensional systems such as thin smectic films in vacuum \cite{ThinFilms_True2D}, linearized FHD predicts that the magnitude of the nonequilibrium fluctuations becomes comparable to the mean \cite{GiantFluctuations_ThinFilms}. The appearance of such ``colossal fluctuations'' implies that the ensemble average is no longer informative, since each instance looks very different from the mean.
+It is therefore essential to understand whether individual instances of diffusive mixing processes on fluid-fluid interfaces evolve similarly to the ensemble average.
+Second, fluctuations can be measured in experiments and reveal information about the underlying microscopic mechanism of diffusion. For diffusion in bulk three-dimensional liquids or in truly two-dimensional liquids (e.g., a hard-disk fluid), the ensemble average strictly follows the familiar Fick's law \cite{DiffusionJSTAT}.
+This means that the ensemble-averaged concentration in a system where the diffusing particles are strongly correlated by hydrodynamics (e.g., two-dimensional thin smectic films \cite{ThinFilms_HIs}), will look indistinguishable from the ensemble average in a system where the diffusing particles are uncorrelated (e.g., diffusion in a solid).
+
+But if one examines the magnitude of the nonequilibrium fluctuations, the hydrodynamic correlations are revealed through an unexpected power-law dependence of the structure factor on the wavenumber \cite{GiantFluctuations_ThinFilms}.
+
+Third, collective fluctuations can couple bi-directionally to the motion of each particle and therefore \emph{renormalize} transport coefficients. For example, the fluctuating hydrodynamic theory developed in \cite{TracerDiffusion_Demery} shows that collective density fluctuations reduce the effective diffusion coefficient of a tagged particle in a dense system of uncorrelated Brownian soft spheres.
+In this paper we will show that a similar effect exists even for an ideal gas of non-interacting but hydrodynamically-correlated particles diffusing on a fluid-fluid interface.
+
+We will study the ensemble average and fluctuations of the density of spherical colloidal particles confined to diffuse on a fluid-fluid interface. We closely mimic the physical setting used in prior studies \cite{ConfinedDiffusion_2D,DDFT_Diffusion_2D,Diffusion2D_IdealGas}, and make a number of strong simplifying assumptions:
+\begin{enumerate}
+\item We assume that the interface is perfectly flat and that two fluids have the same viscosity; the case of unequal viscosity simply amounts to taking the arithmetic average of the two viscosities \cite{Diffusion2D_TwoViscosities,FluidFluidInterface_Polymers}.
+\item In order to isolate the role of hydrodynamics from the role of other direct interactions such as capillary forces or steric/electrostatic repulsion, we focus on an \emph{ideal gas} of non-interacting spherical colloids \cite{Diffusion2D_IdealGas}.
+  While such an idealized system could not be studied experimentally, it is a natural candidate for testing existing and developing new theories.
+  Furthermore, light scattering observational data for colloids at a fluid interface support predictions made for an ideal gas of particles \cite{Diffusion2D_IdealGas}.
+\item We assume that the colloids are strictly confined to the interface by a strong confining force in the $z$-direction, i.e., they cannot leave the $x-y$ plane.
+  In reality, the confinement would be partial, for example, a laser sheet may provide a harmonic confining potential in the $z$ direction. However, prior work \cite{PartiallyConfined_Quasi2D,PartiallyConfinedDiffusion_2D} has shown that partial confinement only changes the results for larger wavenumbers (i.e., for wavelengths smaller than or comparable to the range of movement in the $z$ direction), and does not affect the anomalous diffusion in the plane.
+  At the same time, we will show here that the case of strict confinement can be simulated much more efficiently using a two-dimensional Brownian dynamics algorithm.
+\item We use a minimal far-field description of the hydrodynamics, as used in prior work by others \cite{ConfinedDiffusion_2D,DDFT_Diffusion_2D,Diffusion2D_IdealGas}.
+Such a Rotne-Prager approximation is quantitatively accurate only for dilute suspensions, and we may question its usefulness in studying a \emph{collective }effect that is dominant at larger packing densities.
+Nevertheless, as already mentioned, the anomalous collective diffusion arises because of a long-ranged (far-field) repulsion $\sim k_{B}T$.
+We therefore believe that short-ranged (near-field) corrections to the hydrodynamics will not qualitatively change the phenomena studied here.
+\end{enumerate}
+While our focus is diffusion on a fluid-fluid interface, which we will refer to as Quasi2D (abbreviated q2D) diffusion, we will contrast Quasi2D diffusion to diffusion in truly two-dimensional systems such as thin films in vacuum \cite{ThinFilms_True2D}, which we will refer to as True2D (abbreviated t2D). Even though the diffusion is constrained to a two-dimensional plane in both cases, the hydrodynamics is essentially three-dimensional in Quasi2D but it is two-dimensional in True2D.
+Our computational and analytical tools can easily be extended to other types of hydrodynamics. For example, it is believed that lateral diffusion in lipid membranes \cite{MembraneDiffusion_Review} or thin smectic films in air \cite{ThinFilms_HIs} can be described using a hydrodynamic model first proposed by Saffman. The (2+1)-dimensional ((2+1)D for short) Saffman model has already been combined with linearized fluctuating hydrodynamics in \cite{GiantFluctuations_ThinFilms}, but an experimental confirmation of the predictions of the theory is still lacking.
+
+\end{itemize}
+
+
 
 
 \begin{itemize}
 \item Enhanced diffusion under soft confinement\cite{Pelaez2017}
-\item Transverse diffusion of proteins embedded in lipid bilayers control their biological function\cite{Fuller2012}.
 \item Limit to infinetely stiff confinement\cite{Pelaez2018}
 \item Describe quasi2D paper. Similar to \gls{FCM}, but with a Green's function that is integrated in Z. It is the limit of an infinite boxin Z with particles attached to z=0 via an infinitely stiff spring.
 \end{itemize}
