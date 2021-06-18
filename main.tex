@@ -1908,9 +1908,10 @@ Given its popularity a lot of works attempting to generalize or adapt the \gls{R
 
 Notice that, as revealed by eqs. \eqref{eq:oseenmob} and \eqref{eq:rpy}, the approximations for the pairwise mobility usually come under the form
 \begin{equation}
-  \tens{M}(\vec{r}) = M_0 \left(f(r)\mathbb{I} + g(r)\frac{\vec{r}\otimes\vec{r}}{r^2}\right)
+  \label{eq:bdhimobgeneral}
+  \tens{M}(\vec{r}) = (f(r)\mathbb{I} + g(r)\frac{\vec{r}\otimes\vec{r}}{r^2}
 \end{equation}
-Being $M_0 := \tens{M}(0)$ the self mobility.
+%Being $M_0 := \tens{M}(0)$ refered to as the self mobility.
 This is an expression of the fact that the mobility is usually isotropic and translationally invariant.
 %The only piece missing now is the fluctuating term. However, we already saw back in sec. \ref{sec:langevin} the relation between the noise and the drag via the fluctuation-dissipation balance.
 Making an analogy with eq. \eqref{eq:bd} we can finally write the equations of motion for a system of particles with hydrodynamic interactions
@@ -2356,15 +2357,22 @@ void spreadOrInterpWithIBM(Grid grid, real4* positions,
 
 
 \subsection{Force Coupling Method (FCM)}\label{sec:fcm}
-Both \emph{Cholesky} and \emph{Lanczos} methods use the explicit form of an open boundary mobility. This makes them open boundary algorithms since they do not take into account the periodic images of the system in any way. Furthermore, the computational complexity of these methods is restrictive. Luckily, we can manage to do it in $O(N)$ operations if we consider periodic boundary conditions. In particular by solving eq. \eqref{eq:bdhibdrelation} directly in Fourier space via the Force Coupling Method\cite{Keaveny2014}. In doing so, we get the added benefit (and disadvantage) of not impossing a specific mobility tensor, which will arise naturally according to the spreading kernel.
+Both \emph{Cholesky} and \emph{Lanczos} methods use the explicit form of an open boundary mobility. This makes them open boundary algorithms since they do not take into account the periodic images of the system in any way. Furthermore, the computational complexity of these methods is restrictive. Luckily, we can manage to do it in $O(N)$ operations if we consider periodic boundary conditions. In particular by solving eq. \eqref{eq:bdhibdrelation} directly in Fourier space via the Force Coupling Method\cite{Keaveny2014}. In doing so, we get the added benefit (and disadvantage) of not impossing a specific mobility tensor, which will arise naturally according to the convolution between the Green's function and the spreading kernel.
 
 In order to do this we first spread particle forces to the fluid ($\oper{S}\vec{F}$ in eq. \eqref{eq:bdhibdrelation}) and transform them to Fourier space. Then the Green's function (like eq. \eqref{eq:stokesoperfou} for periodic boundary conditions) is used to obtain the velocities in the fluid in Fourier space via multiplication. The fluid velocity is then transformed back to real space and eq. \eqref{eq:bdhifvel} is applied to get the particle displacements by interpolation.
-The kernel used in \gls{FCM} is the Gaussian kernel in eq. \eqref{eq:gaussiankernel}, in particular
+The kernel used in the original description of the \gls{FCM} is the Gaussian kernel in eq. \eqref{eq:gaussiankernel}, in particular
 \begin{equation}
   \label{eq:fcmkernel}
   \delta_a(r = ||\vec{\ppos}_i - \vec{\fpos}||) := \frac{1}{(2\pi\sigma_a)^{3/2}}\exp\left(\frac{-r^2}{2\sigma_a^2}\right)
 \end{equation}
-Where $\sigma_a = a/\sqrt{\pi}$. This naturally regularizes the Oseen tensor at short distances, yielding \gls{RPY}-like behavior. In fact, the mobility tensor can be computed anaytically in this case\todo{poner expresion? citar algo?}.
+Where $\sigma_a = a/\sqrt{\pi}$. This naturally regularizes the Oseen tensor at short distances, yielding \gls{RPY}-like behavior. In fact, the mobility tensor for an unbounded three dimensional domain can be computed anaytically in this case by solving the double convolution in eq. \eqref{eq:bdhimob}. In particular, we can write the real space expresions for $f(r)$ and $g(r)$ in eq. \eqref{eq:bdhimobgeneral}
+\begin{equation}
+  \label{eq:fcmmob}
+  \begin{aligned}
+f(r) & =  \frac{1}{8\pi\eta\,r}\left[\left(1+2\,\frac{a^{2}}{\pi\,r^{2}}\right){\erf}\left(\frac{r\sqrt{\pi}}{2a}\right)-2\frac{a}{\pi\,r}\exp\left(-\frac{\pi\,r^{2}}{4a^{2}}\right)\right]\\
+g(r) & =  \frac{1}{8\pi\eta\,r}\left[\left(1-6\,\frac{a^{2}}{\pi\,r^{2}}\right){\erf}\left(\frac{r\sqrt{\pi}}{2a}\right)+6\frac{a}{\pi\,r}\exp\left(-\frac{\pi\,r^{2}}{4a^{2}}\right)\right]
+  \end{aligned}
+\end{equation}
 
 The fluctuating term, $\nabla\cdot\mathcal{Z}$, is computed directly in Fourier space in the fluid via \emph{ik} differentiation. This makes evaluating the Brownian motion effectively cost free.
 The computation of the fluid velocities is independent on the number of particles (since the first step is to spread the forces to the fluid). The complexity of the spreading and interpolation operations grow linear with the number of particles. Thus the overall complexity of the algorithm is $O(N)$.
@@ -2372,7 +2380,7 @@ The computation of the fluid velocities is independent on the number of particle
 Summarizing, we can express the fluid velocity in Fourier space as
 \begin{equation}
   \label{eq:fcmvel}
-  \fou{\vec{\fvel}}(\vec{k}) = \eta^{-1}\hat{\tens{G}}\left( i\vec{k}\cdot\fou{\mathcal{Z}} + \fou{\vec{f}}\right)
+  \fou{\vec{\fvel}}(\vec{k}) = \eta^{-1}\hat{\tens{G}}\left(\vec{k}\cdot\fou{\mathcal{Z}} + \fou{\vec{f}}\right)
 \end{equation}
 Where
 \begin{equation}
@@ -2381,9 +2389,11 @@ Where
 Is the fourier representation of the Stokes Green's function\footnote{This separation is made here to emphasize the generality of this method for any Green's function as long as its Fourier transform is available.}.
 Here $B(k)$ is a factor in Fourier space, i.e $B := \frac{1}{k^2}$ for the Green's function in eq. \eqref{eq:stokesoperfou}.
 \todo{Spectral splitting as in PSE can also be done here, which would allow to reduce the support by restricting the kernel to be a Gaussian, probably not worth it because of it.}
+Note that we have defined the divergence of the noise as $\vec{k}\cdot\fou{\mathcal{Z}}$, without the complex $i$. We can do this given the fact that $\fou{\mathcal{Z}} := i\fou{\mathcal{Z}}_1$ is still white noise with identical properties.
 
 The \gls{FCM} was originally developed for a Gaussian kernel, however, note that any smooth, closely-supported kernel can be used, which will regularize differently the near field hydrodynamics. In particular, any of the kernels described in sec. \ref{sec:ibm} are valid here.
 
+I
 \subsection*{Spatio-temporal discretization}
 Assuming a cubic box (the description can be then generalized to non-cubic boxes easily) we solve the velocity of the fluid in a grid with size $h$, with a number of cells in each size $N_c = L/h$.
 We use \gls{FFT} to discretize the Fourier transform, this requires us to evaluate the properties of the fluid in a grid. This grid must be fine enough to correctly describe the Gaussian interpolator in eq. \eqref{eq:fcmkernel} (similarly to the discrete description in sec. \ref{ch:tppoisson}). On the other hand, the kernel in eq. \eqref{eq:fcmkernel} has an infinte range and to make the overall spreading/interpolation have a constant cost for each particle (independent on the size of the domain) it is necessary to truncate it at a certain distance, $r_c$. In particular, the author in \cite{Keaveny2014} suggests $r_c=m \sigma_a$, with $m=3\sqrt{\pi}\approx 5.3$ being the number of standard deviations of the Gaussian tfou are taken into account (thus making $\delta_a(r>r_c) = 0$), and $\sigma_a/h > 1.86$, suggesting tfou the error is less than machine precision for $\sigma_a/h = 14.89$. We can then set a number of support cells for the kernel as $n_s = 2 \textrm{ceil}(r_c/h)+1$.
@@ -2403,8 +2413,8 @@ Making an analogy with eq. \eqref{eq:bdhibdrelation}, the whole process of going
 \item Spread particle forces to the grid: $\vec{f} = \oper{S}\vec{F}$
 \item Transform fluid forcing to Fourier space: $\fou{\vec{f}} = \mathfrak{F}\oper{S}\vec{F}$
 \item Multiply by the Greens function to get $\eta^{-1}\fou{\tens{G}}\mathfrak{F}\oper{S}\vec{F}$
-\item Sum the stochastic forcing in Fourier space: $\fou{\vec{\fvel}} = \eta^{-1}\fou{\tens{G}}(\mathfrak{F}\oper{S}\vec{F} + i\vec{k}\fou{\mathcal{Z}})$
-\item Transform back to real space: $\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\tens{G}}(\mathfrak{F}\oper{S}\vec{F} + i\vec{k}\fou{\mathcal{Z}})$
+\item Sum the stochastic forcing in Fourier space: $\fou{\vec{\fvel}} = \eta^{-1}\fou{\tens{G}}(\mathfrak{F}\oper{S}\vec{F} + \vec{k}\fou{\mathcal{Z}})$
+\item Transform back to real space: $\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\tens{G}}(\mathfrak{F}\oper{S}\vec{F} + \vec{k}\fou{\mathcal{Z}})$
 \item Interpolate grid velocities to particle positions: $\vec{\pvel} = \oper{J}\vec{\fvel}$
 \end{enumerate}
 Here $\mathfrak{F}$ represents the Fourier transform operator.
@@ -2481,6 +2491,7 @@ We can now write the periodic \gls{RPY} tensor, which amounts to replacing the i
 In \gls{PSE}, the \gls{RPY} tensor is expressed a sum of two symmetric, positive definite, operators. The first of them is spatially local and can be evaluated exactly using the algorithm in sec. \ref{sec:lanczos} (with the added benefit that most elements in the mobility tensor will be zero). The second operator is non local and its contribution can be taken into account using the same spectral algorithm as in sec. \ref{sec:fcm}.
 Thus we are looking for a mobility tensor in the form
 \begin{equation}
+  \label{eq:psemobsep}
   \tens{M}_{ij}^{\textrm{RPY}} = \tens{M}_{ij}^{\far} + \tens{M}^{ \near}_{ij}
 \end{equation}
 We use the Ewald sum splitting of Hasimoto\cite{Hasimoto1959} for eq. \eqref{eq:pserpyfou} so that
@@ -2506,10 +2517,11 @@ This allows to use the techniques we have already used in previous sections to e
 
 The fluctuations pose more of a challenge if we want to refrain from computing and storing the square root of the mobility. In particular, we can split the fluctuating contribution in eq. \eqref{eq:bdhi} into a far and near field ones by defining
 \begin{equation}
+  \label{eq:psenoise}
   (\tens{M}^{\textrm{RPY}})^{1/2} d\vec{\noise} :=  (\tens{M}^{\near})^{1/2} d\vec{\noise}_1 + (\tens{M}^{\far})^{1/2} d\vec{\noise}_2
 \end{equation}
-Where $\vec{\noise}_{1,2}$ are independent Wiener processes.
-\todo{Why can they do this so freely??}
+Where $\vec{\noise}_{1,2}$ are independent Wiener processes. It can be easily proven that the covariance of this expression does indeed recover eq. \eqref{eq:psemobsep}, since both Wiener processes in the right hand side are uncorrelated.
+
 Lets see in more detail how to adapt our previous algorithms to solve each part of the problem
 
 \subsubsection*{The far field}
@@ -2931,7 +2943,7 @@ auto createIntegratorMALA(UAMMD sim){
 \end{minted}
 
 
-\
+
 \begin{itemize}
 \item Finishing words about methodology
 \item A word about all things implemented in UAMMD thus far
@@ -2980,7 +2992,6 @@ In future sections, we will study the diffusive phenomena arising in this specia
 
 Lets start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three dimensional incompressible fluid. As we saw in chapter \ref{ch:bdhi}, forces acting on the particles are propagated to the whole fluid, due to the its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting hydrodynamic drag acts like a flow source which tends to expel other particles around it. This can be interpreted as the flow in the plane having a positive divergence, which makes the fluid (as seen from the plane) being effectively compressible. We will see that this effect naturally arises in a particle based description (\gls{BDHI}) through an effective plane mobility with non zero divergence\cite{Pelaez2017}.
 
-\section{The Force Coupling Method in quasi 2D}
 There are several ways to gradually transform a perfect 2D confinement into an isotropic 3D distribution and, as illustrated in fig. \ref{fig:q2dsch}, we model the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by an harmonic potential of the form
 \begin{equation}
 U(z)=\half K_sz^2
@@ -2990,16 +3001,167 @@ The spring constant $K_s$ controls the width, $\delta$, of the Gaussian distribu
 \begin{equation}
   \delta = \left(\frac{\kT}{K_s}\right)^{1/2}
 \end{equation}
-\begin{itemize}
-\item Integrate Fourier form of Oseen in $k_z$.
-\item Separate between $k_\perp$ and $k$ parallel.
-\item Write expression in a general way for t2D and q2D both in Fourier and real space.
-\item Fabricate Greens function by convolving with  the Gaussian just in the z direction (since xy are incorporated via spreading+FFT). This restricts the algorithm to a Gaussian, since this shape is assumed when constructing G.
-\item A similar trick as in PSE is used to separate the noise in two terms. Proving that it is right can be done by computing the correlation of the noise and seeing it is equal to the mobility.
-\item The algorithm is now identical to FCM with a different kernel.
-  
-\end{itemize}
+We can use this as a slider to go from t3D, in the limit $K_s\rightarrow 0$, to q2D when $K_s\rightarrow\infty$.
+The dynamics of the system are then governed by eq. \eqref{eq:bdhi} with an Oseen-like mobility (like the \gls{RPY} one). Note that solvent inertial effects can also be incorporated by using the \gls{ICM} in sec. \ref{sec:icm}.
 
+Thus far, all the algorithms we have developed for solving \eqref{eq:bdhi} (or more generally eq. \eqref{eq:navierstokes}) deal with either fully open or triply periodic boundary conditions. However, now the perpendicular direction should be open while leaving the plane periodic.
+
+To be fair, our mathematical infrastructure allows to discretize the Stokes operator in any geometry to accommodate any boundary conditions. But since our implementations rely on the \gls{FFT} to be efficient and \gpu-friendly these modifications are not straight forward. 
+
+One approach to deal with this is to simply use the triply periodic algorithms with a box with width ,$L_z\gg \delta$, large enough to neglect finite-size effects. However, since hydrodynamics are long ranged in nature we will be forced to perform a full finite-size analysis to ensure the convergence of the measured properties.
+
+In future sections, we will describe a family of pseudo-spectral algorithms capable of dealing with non periodic boundary conditions. For the moment, lets adapt the already developed \gls{FCM} to the limit of strict confinement (q2D). Lets see how we can compute the Fourier expression of a Green's function specific for q2D.
+
+\section{The Force Coupling Method in quasi 2D}
+
+We want to take the mathematical limit of eq. \eqref{eq:bdhi} when $K_s\rightarrow\infty$ and hence particles move strictly in the plane $z=0$. Although it is possible to take this limit formally the general theory for it is quite complex. Luckily we can elaborate some simple arguments an assumptions to make this in a trivial way.
+
+We start with the realization that, given that the particles are restricted to a plane, the mobility tensor can be reordered in a diagonal blocked arregement 
+
+\begin{equation}
+\tens M=\left[\begin{array}{cc}
+\tens M^{\parallel} & \tens M^{\parallel,\perp}\\
+\left(\tens M^{\parallel,\perp}\right)^{T} & \tens M^{\perp}
+\end{array}\right]=\left[\begin{array}{cc}
+\tens M^{\parallel}\\
+ & \tens M^{\perp}
+\end{array}\right]
+\end{equation}
+Where the parallel mobility (in the $x,y$ plane) is decoupled from the perpendicular one (in $z$). We can see this by understanding that a perpendicular force cannot induce motion on the plane, since that would break symmetry. Equivalently, a parallel force cannot take a particle out of plane. On the other hand, the confinement does not cause a free energy gradient in the plane (since it is uniform in it).
+
+This means that we can simply remove the $z$ component in our description and write
+\begin{equation}
+  d\vec{\ppos} = \tens{M}^{\parallel}\vec{F}dt + \sqrt{2\kT \tens{M}^{\parallel}}d\vec{\widetilde{W}^{\parallel}} + \kT\left(\partial_{\vec{\ppos}}\cdot\tens{M}^{\parallel}\right)\dt
+\end{equation}
+Where the particle positions and forces, the mobility and the noise are now defined only in the plane.
+As we will soon see, in this case the thermal drift cannot be ommited.
+
+Up until now, we have not included the action of the thermal drift in the \gls{FCM}. We can use the general definition of the mobility tensor in eq. \eqref{eq:bdhimob} as the double convolution of the Green's function with the kernel to write the thermal drift in the a similar form
+
+\begin{equation}
+  \label{eq:q2Ddriftconv}
+  \begin{aligned}
+    \partial_{\vec{\ppos}}\tens{M}_{ij}=& \int\delta_a(\vec{\ppos_i} -\vec{r})\nabla\cdot\tens{G}(\vec{r},\vec{r}')\delta_a(\vec{\ppos_j} -\vec{r})d\vec{r}d\vec{r}' =\\
+     &\int\delta_a(\vec{\ppos_i} -\vec{r})\tens{G}(\vec{r},\vec{r}')\nabla\delta_a(\vec{\ppos_j} -\vec{r})d\vec{r}d\vec{r}'    
+\end{aligned}
+\end{equation}
+
+Where the second equality can be easily proven via integration by parts. A formal proof of this description can be found in\cite{Donev2014}. One simple way to see this is by computing the contribution of the thermal drift to the fluid velocity in Fourier space. Since we have periodic boundary conditions (remember that our description is now in the plane) the divergence commutes in Fourier space we can simply write
+\begin{equation}
+  i\vec{k}\cdot\fou{\tens{G}}\mathfrak{F}\left[\delta_a(\vec{\ppos}_j -\vec{r})\right] = \fou{\tens{G}}\cdot \left(i\vec{k}\mathfrak{F}\left[\delta_a(\vec{\ppos}_j -\vec{r})\right]\right)
+\end{equation}
+Which evidences that we can take the divergence in eq. \eqref{eq:q2Ddriftconv} from the Green's function to the kernel.
+Once we have this, we can include the thermal drift in the \gls{FCM} framework as an external fluid forcing by redefining the force term in eq. \eqref{eq:fcmvel} as
+
+\begin{equation}
+  \label{eq:q2Ddrifasforce}
+  \vec{f} = \oper{S}\vec{F} + \vec{\partial}\oper{S}(\kT)
+\end{equation}
+
+Where $\partial_\alpha\oper{S} = \partial\oper{S}/\partial r_\alpha$ is the derivative of the kernel, in this case a Gaussian. Note that we can either spread the quantity $\kT$ to the grid using the derivative of the kernel, or use the regular kernel and \emph{ik} differentiate the term in Fourier. However, since the second option would require to isolate the Fourier transform of the thermal drift it is in principle not worth it over the simple evaluation of the derivative of a Gaussian in real space.
+\footnote{In fact, in the case of a Gaussian, we can spread a single quantity by using $\partial\phi_G(r) = 2\sigma_ar\phi_G(r)$ and spreading $\vec{F} + 2\kT\sigma_a\vec{r}$.}
+
+Interestily enough, interpreting the thermal drift as an external force gives us some insight into the physical effects of the non zero divergence of the mobility. In particular, because the quasi 2D mobility will still be translationally invariant and isotropic in the plane, we can still assume the general form in eq. \eqref{eq:bdhimobgeneral}. In general, at long distances we have the Oseen approximation for $f(r)$ and $g(r)$\footnote{Interpreting that $M_0=1$ for the mobility written in this way.}
+\begin{equation}
+  f(r) \approx g(r) \approx \frac{1}{8\pi\eta} \text{ for } r\gg a
+\end{equation}
+Which yields a zero divergence in true 3D and true 2D. However, in quasi 2D we have
+\begin{equation}
+  \nabla\cdot\tens{M}_{\text{q2D}} \approx \frac{1}{8\pi\eta r}\frac{\vec{r}}{r^3} \text{ for } r\gg a
+\end{equation}
+Using eq. \eqref{eq:q2Ddrifasforce} we can see that this is equivalent to having the particles interact via a repulsive electrostatic potential
+\begin{equation}
+  U_{\text{eff}}(r) = \frac{3a}{4r}\kT
+\end{equation}
+It is important to keep in mind, though, that this force is stochastic in nature and is in fluctuation-dissipation balance with the thermal fluctuations. The physical origin of this effective force comes from the rapid momentum transport perpendicular to the plane, which makes the plane in the flow behave with an effective non zero compressibility. This makes the quasi 2D system inherently different from a distribution of charges. In fact, since hydrodynamics will not change the equilibrium properties, these equations still describe, in the absence of other particle interactions, an ideal gas without structure. Nevertheless, this interpretation allows us to see the dramatic (purely hydrodynamic) effect of the confining force in the plane flow and highlights the necessity of including the thermal drift into the quasi 2D description.
+
+We can now compute the Green's function in quasi 2D by simply integrating the 3D Oseen in eq. \eqref{eq:bdhioseen} tensor along the $z$ direction
+
+\begin{equation}
+  \label{eq:q2dGreenintegral}
+  \begin{aligned}
+  \fou{\tens{G}}_{\text{q2D}}(\vec{k} = (k_x, k_y)) &= \frac{1}{2\pi\eta}\int_{k_z} \frac{dk_z}{(k')^2}\exp\left(-\frac{a^2k_z^2}{\pi}\right)\left( \mathbb{I} - \frac{\vec{k}'\otimes\vec{k}'}{(k')^2}\right) \\
+  &= \eta^{-1}\left(g_k(k)\vec{k}_{\perp}\otimes\vec{k}_{\perp} + f_k(k)\vec{k}\otimes\vec{k}\right)
+\end{aligned}
+\end{equation}
+Where $\vec{k}' = (k_x, k_y, k_z)$ is the three dimensional wavenumber and we recall that unless stated otherwise, in quasi 2D vectors are defined in $\mathbb{R}^2$. Additionally $\vec{k}_\perp := \vec{k}\times\hat{z} = (k_y, -k_x)$ is a vector perpendicular to $\vec{k}$. Note that we also had to convolve with the Gaussian kernel in the $z$ direction, since it is not included in our purely 2D description. The convolution with the $(x,y)$ kernel is performed explicitly via spreading in \gls{FCM}.
+Note that this has restricted our algorithm to a Gaussian kernel, with its advantages and disadvantages. However, a different kernel can be used if it has an analytical Fourier form that allows the integral in eq. \eqref{eq:q2dGreenintegral} to be solved analytically.
+
+Solving eq. \eqref{eq:q2dGreenintegral} yields
+\begin{equation}
+  \label{eq:q2dfg}
+  \begin{aligned}
+    g_{k}\left(k\right) & = \frac{1}{2}\left[1-{\erf}\left(\frac{ka}{\sqrt{\pi}}\right)\right]\exp\left(\frac{k^2a^2}{\pi}\right)\\
+    f_{k}\left(k\right) & = \left(\frac{1}{2} - \frac{k^{2}a^2}{\pi}\right)g_k(k) - \frac{ka}{2\pi}
+  \end{aligned}  
+\end{equation}
+
+We can also write the Green's function for true 2D by redefining $f_k$ and $g_k$ (by simply not integrating in $z$ nor convolving with the kernel in $z$)
+\begin{equation}
+  \label{eq:t2dfg}
+  \begin{aligned}
+    g_{k}\left(k\right) & = 0\\
+    f_{k}\left(k\right) & = \frac{1}{k}
+  \end{aligned}  
+\end{equation}
+\todo{Rafa, aqui puedo añadir G para saffman, tienes alguna referencia por ahi?, quizas esto deberia ir mas en ``future directions''}
+
+This concludes all the modifications to the \gls{FCM} (as described in sec. \ref{sec:fcm}) required to simulate a quasi 2D system. Note that by using eq. \eqref{eq:t2dfg} instead of eq. \eqref{eq:q2dfg} our algorithm is also capable of simulating a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known\footnote{Note that the analytical expression is not actually needed and it could be, for instance, computed numerically and then tabulated}. For instance, the Saffman mobility could be used to model the diffusion of proteins in a lipid membrane\cite{Saffman}.
+
+Finally, for convenience, we can use a similar trick as we did for \gls{PSE} in eq. \eqref{eq:psenoise} to separate the contributions of the noise in eq. \eqref{eq:fcmvel} as
+
+\begin{equation}
+  \begin{aligned}
+    \fou{\tens{Z}}_k := \sqrt{\frac{2\kT}{\eta k^3}}\left(\sqrt{f_k(k)}\vec{k}_\perp\fou{\tens{Z}}^1_k + \sqrt{g_k(k)}\vec{k}\fou{\tens{Z}}^2_k\right)
+  \end{aligned}
+\end{equation}
+Where $\fou{\tens{Z}}^{1,2}_k$ are independent Wienner processes.
+% This integral can be done analitically to give
+%\begin{equation}
+%  \fou{\tens{M}}_{\text{q2D}} = \frac{1}{\eta k^3}\left( \half\vec{k}_{\perp}\otimes\vec{k}_{\perp} + \frac{1}{4}\vec{k}\otimes\vec{k}\right)
+%\end{equation}
+
+
+\subsubsection*{Use in UAMMD}
+\begin{itemize}
+\item This is used as the rest of the \emph{Integrators}
+\item A templated base class BDHI::BDHI2D can be specialized for any 2D greens function by providing $f_k$ and $g_k$, see the online documentation for more information. The aliases BDHI::True2D and BDHI::Quasi2D are provided for the hydrodynamic kernels described in the previous section.
+\item Tolerance controls the support of the Gaussian kernels and the size of the grid similarly as in \gls{FCM}.\todo{This is not actually implemented, it is just hardcoded to 1e-4}
+\end{itemize}
+\todo{I could implement the same thing for FCM, generalizing the module for any $f_k$ and $g_k$ as long as they do not have thermal drift, which is not implemented in 3D. Maybe this could be done for FIB, where thermal drift is obtained via RFD.}
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Integrator/Hydro/BDHI_quasi2D.cuh>
+using namespace uammd;
+//A function that creates and returns a quasi 2D integrator
+auto createIntegratorQ2D(UAMMD sim){
+  //Choose the hydrodynamic kernel
+  using Hydro2D = BDHI::Quasi2D;
+  //using Hydro2D = BDHI::True2D;
+  Hydro2D::Parameters par;
+  par.temperature = sim.par.temperature;
+  par.viscosity = sim.par.viscosity;
+  par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
+  par.dt = sim.par.dt;
+  par.tolerance = sim.par.tolerance;
+  par.box = sim.par.box;
+  auto q2d = std::make_shared<Hydro2D>(sim.pd, sim.pg, 
+                                       sim.sys, par);
+  return q2d;
+}
+\end{minted}
+\chapter{Hydrodynamics in doubly periodic geometries}
+\begin{itemize}
+\item We develop an algorithm to solve the Stokes equation (without fluctuations) in a doubly periodic environment.
+\item This allows to simulate systems were particles are not restricted to a plane, so $\delta>0$.
+\item More importantly, we can simulate the hydrodynamics of particles near a wall or inside a slit channel.
+\item A completely different method than \gls{FCM}.
+\item Solving the Stokes equation with Gaussian sources (basically ibm-like).
+\item Fourier transform only in XY, Chebyshev in Z
+\item BCs are incorporated into the solver via corrections. We have free and one or two walls
+\item BVP solver
+\item Particles overlapping the walls are relfected so their contribution is zero when they are exactly at a wall.
+\end{itemize}
 
 \chapter{Applications: Hydrodynamics in confined geometries}
 \begin{itemize}
@@ -3456,8 +3618,112 @@ bool isNyquistWaveNumber(int3 ik, int3 n){
 \appendix
 %%\renewcommand{\thechapter}{\alph{chapter}}
 %\cleardoublepage
-%\part{Appendix}
-%\input{Chapters/Chapter0A}
+\part{Appendix}
+
+\chapter{Boundary Value Problem (BVP) Solver} \label{sec:bvp}
+In sections \ref{sec:dpstokes} and \ref{sec:dppoisson} we laid out the basic \glspl{PDE} as \glspl{BVP} with the following generic form
+\begin{equation}
+  \label{eq:bvpmain}
+  \begin{aligned}
+    &y''(z)-k^2y(z)=f(z)\\
+    &y'(1)+ ky(1)=\alpha ,\qquad y'(-1)- ky(-1)=\beta.
+\end{aligned}
+\end{equation}
+Where the domain is here defined in the $[-1, 1]$ range for simplicity. We can later generalize to any size via a simple change in units.
+
+In this section we describe a generic, \gpu-friendly, spectral solver for the set of equations in \eqref{eq:bvpmain} based on the spectral integration method described in\cite{Greengard1991}.
+
+
+We will work with the discrete Chebyshev transform of eq. \eqref{eq:bvpmain}. In general, we will expand a given function, $g(z)$ with $z\in \mathcal{R}$ into the first $N$ terms of its Chebyshev series so that
+\begin{equation}
+\label{eq:bvpchebexp}
+g(z) = \sum_{n=0}^{N-1} \fou{g}_n T_n(z)
+\end{equation}
+Where we use the subscript $n$ to distinghuish between the Chebyshev and Fourier coefficients (since throught this manuscript we have used the subscript $k$ to denote Fourier coefficients).
+
+If we evaluate $f(z)$ in the roots of the Chebyshev polynomials, $z_i=cos(i\pi/N)$, we can leverage the \gls{FFT} to provide the coefficients of the Chebyshev transform (in what is usually refered to as a Fast Chebyshev Transform (FCT)) by using it to compute a discrete cosine transform. The proof, while straight forward, is cumbersome and beyond the scope of this work, it can be found in Chapter 8 of\cite{Trefethen2000}. In particular, the fast Chebyshev transform is carried out by taking the \gls{FFT} of the periodic extension of $f(z)$\footnote{cuFFT can be used for this, which is the approach in \uammd.} (see Appendix \ref{sec:fct}).
+
+On the other hand, we can use the well known indefinite integrals of the Chebyshev polynomials to integrate $\fou{y}''_n$ twice and get $\fou{y}_n$. First by integrating $\fou{y}''_n$:
+\begin{equation}
+  \begin{aligned}
+\fou{y}'_1&= \frac{1}{2}\left(2\fou{y}''_0-\fou{y}''_2\right)\\
+\fou{y}'_n &= \frac{1}{2n}\left(\fou{y}''_{n-1}-\fou{y}''_{n+1}\right), \quad n \geq 1.
+\end{aligned}
+\end{equation}
+%Eq. \eqref{eq:ds} is the relationship used to apply the Chebyshev differentiation matrix in linear time to compute $\displaystyle \frac{\partial \hat{f}^z}{\partial z}$ in Eq.\ \eqref{eq:bvp_p}. Specifically, we set $d_{N-1}=0$ and can then compute $a_n$ for all $n=N-1, \dots 0$ (in that order).  
+And then integrating again
+\begin{equation}
+  \begin{aligned}
+&\hat{y}_1 = \frac{1}{2}\left(2\hat{y}'_0-\hat{y}'_2\right)=\hat{y}'_0 -\frac{1}{8}\left(\hat{y}''_1-\hat{y}''_3\right)\\
+&\hat{y}_2 = \frac{1}{4}\left(\hat{y}'_1-\hat{y}'_3\right)=\frac{1}{4}\left(\frac{1}{2}\left(2\hat{y}''_0-\hat{y}''_2\right)-\frac{1}{6}\left(\hat{y}''_2-\hat{y}''_4\right) \right)\\
+&\hat{y}_n = \frac{1}{2n}\left(\hat{y}'_{n-1}-\hat{y}'_{n+1}\right)=\frac{1}{2n}\left(\frac{1}{2n-2}\left(\hat{y}''_{n-2}-\hat{y}''_n\right)-\frac{1}{2n+2}\left(\hat{y}''_n-\hat{y}''_{n+2}\right) \right), \quad n \geq 3.
+\end{aligned}
+\end{equation}
+Here we have done this in painstaking detail to point out that there are several exceptions when computing $\hat{y}_n$ from $\hat{y}''_n$. In most Chebyshev series notations, $\hat{y}_0$ is defined in a way that circumvents these exceptions (i.e., with a 1/2 in front of it). We refrain from doing so here to avoid easily (at least for me!) encountered confusion. In addition, note that there are two free parameters $\hat{y}_0$ and $\hat{y}'_0$. We also assume $\hat{y}''_n = \hat{y}'_n = 0$ for $n > N-1$ when calculating $\hat{y}_n$ using\ \eqref{eq:cs}.  
+
+Now, we can reformulate the boundary value problem using the Chebyshev series representations\ \eqref{eq:chebexp} as
+\begin{gather}
+\label{eq:bvpn0}
+\sum_{n=0}^{N-1} (\hat{y}''_n-k^2\hat{y}_n)T_n(z) = \sum_{n=0}^{N-1}\hat{f}_n T_n(z).
+\end{gather}
+Matching modes gives a system of equations for the Chebyshev coefficients
+\begin{gather}
+\label{eq:modes}
+\hat{y}''_n-k^2\hat{y}_n=\hat{f}_n \qquad n=0, \dots N-1, \\[2 pt]
+\label{eq:BCs}
+\sum_{n=0}^{N-1} (\hat{y}'_n+k\hat{y}_n) = \alpha, \qquad \sum_{n=0}^{N-1} (\hat{y}'_n-k\hat{y}_n) (-1)^n = \beta.
+\end{gather}
+with $N+2$ equations and $N+2$ unknowns $\hat{y}_0, \hat{y}'_0, \hat{y}''_0, \dots \hat{y}''_{N-1}$. We solve the algebraic system of equations\ \eqref{eq:modes} and \eqref{eq:BCs} for the second derivative coefficients $\hat{y}''_0, \dots \hat{y}''_{N-1}$ and integration constants $\hat{y}_0$ and $\hat{y}'_0$, then determine $\hat{y}_n$ by applying the double integral operation on the coefficients\ \eqref{eq:cs}.
+
+Now suppose we want to do our solves on $[0,H]$, so that the domain is enlarged by a factor $H/2$. Then each integral operator gets a factor of $H/2$. As such, the equations are
+ \begin{gather}
+\sum_{n=0}^{N-1} (\hat{y}''_n-k^2\frac{H^2}{4}\hat{y}_n)T_n\left(\frac{2z}{H}-1\right) = \sum_{n=0}^{N-1}\hat{f}_n T_n\left(\frac{2z}{H}-1\right)\\[2 pt]
+\hat{y}''_n-k^2\frac{H^2}{4}\hat{y}_n=\hat{f}_n \qquad n=0, \dots N-1, \\[2 pt]
+\sum_{n=0}^{N-1} \left(\frac{H}{2}\hat{y}'_n+k\frac{H^2}{4}\hat{y}_n\right) = \alpha, \qquad \sum_{n=0}^{N-1} \left(\frac{H}{2}\hat{y}'_n-k\frac{H^2}{4}\hat{y}_n\right) (-1)^n = \beta.
+\end{gather}
+
+For the $k=0$ mode, the system reduces to
+ \begin{gather}
+\sum_{n=0}^{N-1} \hat{y}''_n T_n\left(\frac{2z}{H}-1\right) = \sum_{n=0}^{N-1}\hat{f}_n T_n\left(\frac{2z}{H}-1\right),
+\end{gather}
+which gives the trivial system of equations
+\begin{gather}
+\label{eq:modes0}
+\hat{y}''_n=\hat{f}_n \qquad n=0, \dots N-1.
+\end{gather}
+Our solves for the $k=0$ mode will use the homogeneous boundary conditions
+\begin{gather}
+\label{eq:BCs0}
+\sum_{n=0}^{N-1} \hat{y}_n = 0, \qquad \sum_{n=0}^{N-1} \hat{y}_n (-1)^n = 0. 
+\end{gather}
+
+\subsubsection{Matrix inversion}
+\label{sec:schurc}
+We use a Schur complement approach to solve the algebraic system of equations\ \eqref{eq:modes} and \eqref{eq:BCs}. We can write the system in block form as 
+\begin{equation}
+\label{eq:blocksys}
+\begin{pmatrix} \bm{A} & \bm{B} \\[2 pt] \bm{C} & \bm{D} \end{pmatrix}
+\begin{pmatrix} \hat{\bm{y}}''\\ \hat{y}_0 \\ \hat{y}'_0 \\ \end{pmatrix}
+= \begin{pmatrix}  \hat{\bm{f}}\\ \alpha \\ \beta\\ \end{pmatrix}. 
+\end{equation}
+Here $\bm{B}$ is $N \times 2$, $\bm{C}$ is $2 \times N$, $\bm{D}$ is $2 \times 2$, and $\bm{A}$ is an $N \times N$ \textit{pentadiagonal} matrix, which can be inverted using a fast algorithm for such matrices. Therefore, we first invert $\bm{A}$, then solve the $2 \times 2$ system
+\begin{equation}
+(\bm{C}\bm{A}^{-1}\bm{B}-\bm{D})\begin{pmatrix}  \hat{y}_0 \\ \hat{y}'_0\\ \end{pmatrix} = \bm{C}\bm{A}^{-1}\bm{f}-\begin{pmatrix}  \alpha \\ \beta\\ \end{pmatrix}
+\end{equation}
+for $\hat{y}_0$ and $\hat{y}'_0$. We then obtain the coefficients $\hat{\bm{y}}''=(\hat{y}''_0, \dots \hat{y}''_{N-1})$ from back-substitution
+\begin{equation}
+\hat{\bm{y}}''=\bm{A}^{-1}\left(\bm{f}-\bm{B}\begin{pmatrix}   \hat{y}_0 \\ \hat{y}'_0\\ \end{pmatrix}\right).
+\end{equation}
+
+\chapter{The Fast Chebyshev Transform}
+
+\begin{itemize}
+\item Describe the FCT.
+\item Its the FFT of the periodic extension of the signal evaluated at the Chebyshev roots
+\item Numerical periodic extension is $F_{2N-i} = f_i$ where $i=1,2,...,N-1$.
+\item Describe the numerical indexing intricacies and the scaling factors
+\end{itemize}
+
 
 \defbibheading{bibintoc}[\bibname]{%
   \phantomsection
