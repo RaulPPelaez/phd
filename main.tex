@@ -60,6 +60,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newacronym{WCA}{WCA}{Weeks-Chandler-Andersen}
 \newacronym{MIC}{MIC}{Minimum Image Convention}
 \newacronym{FFT}{FFT}{Fast Fourier Transform}
+\newacronym{FCT}{FCT}{Fast Chebyshev Transform}
 \newacronym{iFFT}{iFFT}{Inverse Fast Fourier Transform}
 \newacronym{GPU}{GPU}{Graphical Processor Units}
 \newacronym{GPGPU}{GPGPU}{General Purpose Computing on GPU}
@@ -67,6 +68,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newacronym{API}{API}{Application Programming Interface}
 \newacronym{BVP}{BVP}{Boundary Value Problem} \newcommand{\bvp}{\gls{BVP}\xspace}
 \newacronym{BC}{BC}{Boundary Condition} \newcommand{\bc}{\gls{BC}\xspace}\newcommand{\bcs}{\gls{BC}s\xspace}
+\newacronym{DP}{DP}{Doubly Periodic}
 \newacronym{ODE}{ODE}{Ordinary Differential Equation}
 \newacronym{PDE}{PDE}{Partial Differential Equation}
 \newacronym{SDE}{SDE}{Stochastic Differential Equation}
@@ -97,6 +99,8 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newcommand{\pvel}{u}
 \newcommand{\fpos}{r}
 \newcommand{\fvel}{v}
+
+\newcommand{\corr}{\text{corr}}
 
 \addbibresource{Bibliography.bib}
 
@@ -1776,6 +1780,7 @@ We can eliminate the pressure from the description by using the projection metho
 \end{equation}
 Since the divergence of the velocity is zero the second term vanishes, so we can identify
 \begin{equation}
+  \label{eq:stokespressure}
   \pi = \nabla^{-2}(\nabla\cdot\tilde{\vec{f}})
 \end{equation}
 Replacing the pressure in eq. \eqref{eq:stokes}
@@ -2950,7 +2955,7 @@ auto createIntegratorMALA(UAMMD sim){
 \item Putting it all together
 \item An outline of all the phisics that can be done with the algorithms and implementations thus far
 \item Future direction and additions to the algorithms in this part
-\item Introduce next part, nobel algorithms and physics.
+\item Introduce next part, novel algorithms and physics.
 
 \end{itemize}
 \cleardoublepage
@@ -3151,17 +3156,136 @@ auto createIntegratorQ2D(UAMMD sim){
 }
 \end{minted}
 \chapter{Hydrodynamics in doubly periodic geometries}
-\begin{itemize}
-\item We develop an algorithm to solve the Stokes equation (without fluctuations) in a doubly periodic environment.
-\item This allows to simulate systems were particles are not restricted to a plane, so $\delta>0$.
-\item More importantly, we can simulate the hydrodynamics of particles near a wall or inside a slit channel.
-\item A completely different method than \gls{FCM}.
-\item Solving the Stokes equation with Gaussian sources (basically ibm-like).
-\item Fourier transform only in XY, Chebyshev in Z
-\item BCs are incorporated into the solver via corrections. We have free and one or two walls
-\item BVP solver
-\item Particles overlapping the walls are relfected so their contribution is zero when they are exactly at a wall.
-\end{itemize}
+We develop an algorithm to solve the incompressible Stokes equation \eqref{eq:stokes} without fluctuations in a \gls{DP} domain of size $L_{x,y}$ (we will assume $L_x=L_y$, which can then be easily generalized). Thus, we want to solve
+\begin{equation}
+  \label{eq:dpstokes}
+  \begin{aligned}
+    &\nabla p_{DP} - \eta\nabla^2\vec{\fvel}_{DP} = \vec{f}\\
+    &\nabla\cdot\vec{\fvel}_{DP} = 0
+\end{aligned}
+\end{equation}
+With $z\in(-\infty, \infty)$ and free-space \glspl{BC} in $z$, assuming that $\vec{\fvel}_{DP}$ is bounded as $|z|\rightarrow\infty$. The plane $(x,y)$ is periodic as in quasi 2D.
+
+Here $p$ is the pressure and the fluid forcing includes the particle forces and torques (similarly as with \gls{FCM} in sec. \ref{sec:fcm})
+\begin{equation}
+  \vec{f}(\vec{\fpos}) = \oper{S}\vec{F} + \half\nabla\times\oper{S}_{\tau}\vec{\tau}
+\end{equation}
+
+We assume that the fluid forcing is zero in a domain $z\in [0, H]$. In the case of an unbounded fluid this domain is arbitrary and physically meaningless, serving only to define a numerical domain for our grid-based solver. The same thing happens in the case of a bottom wall with the top limit at $z=H$. Furthermore, assuming $\vec{f}(|z|>H) = 0$ allows us to define a set of \glspl{BC} more easily.
+
+Our solver is periodic in the plane $(x,y)$ (as in quasi 2D). In the $z$ direction, by incorporating different \glspl{BC}, we distinguish between three modes:
+\begin{enumerate}
+\item Unbounded in $z$, $z\in(-\infty, \infty)$. $\vec{\fvel}_{DP}$ is bounded as $|z|\rightarrow\infty$.
+\item A no-slip  wall at the bottom of the domain, $z=0$ (unbounded at $z>0$). $z\in [0, \infty)$.
+  The no-slip \gls{BC} for the wall is simply
+  \begin{equation}
+    \vec{\fvel}_{DP}(z=0) = 0    
+  \end{equation} 
+\item A slit channel, with no-slip walls located at $z=0$ and $z=H$. $z\in [0, H]$. Besides the \gls{BC} for the bottom wall, we add a similar one for the top ones
+  \begin{equation}
+    \vec{\fvel}_{DP}(z=H) = 0
+  \end{equation}
+\end{enumerate}
+The unbounded mode allows to simulate systems were particles are not restricted to a plane, so $\delta>0$. Additionally the other modes can be used in a variety of simulations. For instance, the bottom wall mode can be used to model the hydrodynamics of a Quarts Crystal Microbalance (QCM)\todo{More about it?}.
+
+In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\in [0,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by substracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
+\begin{equation}
+  \label{eq:dpstokeskernel}
+  \widetilde{\delta_a}(\vec{\fpos}-\vec{\ppos}_i) = \delta_a(\vec{\fpos}-\vec{\ppos}_i) - \delta_a(\vec{\fpos}-\vec{\ppos}^{\text{img}}_i)
+\end{equation}
+Were $\vec{\ppos}_i^{\text{img}}$ is the particle's point of reflection about the wall, defined as
+\begin{equation}
+  \label{eq:dpstokesimg}
+  \begin{aligned}
+  &\vec{\ppos}_i^{\text{img}_b} = \vec{\ppos}_i - 2r_z\hat{\vec{e}}_z, \quad \text{For the bottom wall}\\
+  &\vec{\ppos}_i^{\text{img}_t} = \vec{\ppos}_i + 2(H-r_z)\hat{\vec{e}}_z, \quad \text{For the top wall}
+\end{aligned}
+\end{equation}
+Being $\hat{\vec{e}}_z$ a unitary vector in the $z$ direction. The no-slip condition is then imposed by the fact that a particle at the height of a wall does not affect (nor it is affected by) the fluid. A visual representation of the effect of the images is available in fig. \ref{fig:dpstokesspread}.
+\begin{figure}[h]
+  \centering
+  \includesvg{gfx/dpstokesspread}{\columnwidth}
+  \caption{Representation of the image spreading in the \gls{DP} Stokes algorithm. Forces acting on particles (blue circles) are translated to the fluid as a force density. Due to images, part of the particle's force is zero near walls. Zero fluid forcing is depicted as white. A particle located at exactly the height of a wall has no effect on the fluid.}
+  \label{fig:dpstokesspread}
+\end{figure}
+
+The \gls{DP} solver is vastly different from the \gls{FCM} family of methods we have seen thus far. The main similarity is that we also make use of \gls{IBM} spreading and interpolation to communicate the particles and a grid.
+
+Our approach consists of solving the Stokes equation in an ubounded domain, adding the effects of the wall afterwards as a correction. Thus we first solve eq. \eqref{eq:dpstokes} with free-space \glspl{BC} and $z\in (-\infty, \infty)$. Then we compute the final result in the presence of one or two walls as
+\begin{equation}
+  \begin{aligned}
+  &\vec{\fvel} =   \vec{\fvel}_{DP} +   \vec{\fvel}_{\corr}\\
+  &\vec{p} =   \vec{p}_{DP} +   \vec{p}_{\corr}
+\end{aligned}
+\end{equation}
+
+For the corrections, we solve, analytically, eq. \eqref{eq:dpstokes} in the absence of forces with one or two slip walls. In particular we have
+\begin{equation}
+  \label{eq:dpstokescorr}
+\begin{aligned}
+    &\nabla p_{\corr} - \eta\nabla^2\vec{\fvel}_{\corr} = 0\\
+    &\nabla\cdot\vec{\fvel}_{\corr} = 0  
+\end{aligned}
+\end{equation}
+Solved in a domain with $z\in [0,\infty)$ in the case of a bottom wall and $z\in [0, H]$ in the case of a slit channel. Finally, we set slip \glspl{BC} at the walls so
+
+\begin{equation}
+  \label{eq:dpstokescorrbcs}
+  \begin{aligned}
+    &\vec{\fvel}_{\corr}(z=0) = -\vec{\fvel}_{DP}(z=0)\\
+    &\vec{\fvel}_{\corr}(z=H) = -\vec{\fvel}_{DP}(z=H)    
+\end{aligned}
+\end{equation}
+Where the second condition, at $z=H$, is imposed only in the case of a slit channel geometry.
+
+In Appendix \ref{sec:bvp} we describe a fast and \gpu-friendly \gls{BVP} solver that solves one-dimensional \glspl{PDE} in the Chebyshev basis. Our strategy in the next sections will be to write equations for the velocity and pressure in a way that is compatible with this solver.
+
+We will first discuss the free-space solver ($\vec{\fvel}_{\corr} = 0$ and $p_\corr=0$) and then see how to solve the correction in each case. 
+\section{Free-space solver}
+Let us start by writing the equations for the pressure (eq. \eqref{eq:stokespressure}) in Fourier space only in the plane $(x,y)$, which makes it easier to incorporate arbitrary \glspl{BC} in the $z$ direction.
+
+\subsection*{Pressure solve}
+By taking the divergence of eq. \eqref{eq:dpstokes} we eliminate the velocity
+\begin{equation}
+  \label{eq:dpstokespressure}
+  \nabla^2 p = \nabla\cdot\vec{f}
+\end{equation}
+Transforming to Fourier space in the plane we get a one dimensional problem for each wave number
+\begin{equation}
+  \label{eq:dpstokesfreepressure}
+  \partial_z^2\fou{p}(\vec{k}, z) - k^2\fou{p}(\vec{k}, z) = ik_x\fou{f}^x + ik_y\fou{f}^y + \partial_z \fou{f}^z
+\end{equation}
+Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [0,H]$. We can use this to solve the pressure outside the domain, so that
+\begin{equation}
+  \partial_z^2\fou{p}(\vec{k}, z) - k^2\fou{p}(\vec{k}, z) = 0, \quad \text{ for } z \notin [0,H]
+\end{equation}
+Whose solution is
+\begin{equation}
+  \fou{p}(\vec{k}, z) = C_1\exp(-kz) + C_2\exp(kz)
+\end{equation}
+By using the boundness of the pressure at $|z|\rightarrow\infty$ we can write the solution outside the domain
+\begin{equation}
+  \begin{aligned}
+    &\fou{p}(\vec{k},z\le 0) = C_2\exp(kz)\\
+    &\fou{p}(\vec{k},z\ge H) = C_1\exp(-kz)    
+  \end{aligned}
+\end{equation}
+This implies
+\begin{equation}
+  \label{eq:dpstokespressurebcs}
+  \partial_z\fou{p}(\vec{k}, z=0,H) = \pm k \fou{p}(\vec{k}, z=0,H)
+\end{equation}
+For a given wave number, $k$, the system in eq. \eqref{eq:dpstokespressure} along the \glspl{BC} in eq. \eqref{eq:dpstokespressurebcs} constitute a \gls{BVP} that can be solved in Chebyshev space with the solver described in Appendix \ref{sec:bvp}.
+
+Since this solver requires to define $z$ in the Chebyshev basis, we can apply $\partial_z$ in linear time by using recurrent relations on the Chebyshev coefficients (in this case of $\fou{f}^z$) instead of via \emph{ik} differentiation. As discussed in Appendix \ref{sec:bvp} and \ref{sec:fct}, the Fourier-Chebyshev\footnote{Fourier in the plane $(x,y)$ and Chebyshev in $z$.} coefficients $\fou{p}(\vec{k}, z)$ are computed via a hybrid \gls{FFT}-\gls{FCT}. Which amounts to performing the 3D \gls{FFT} of $\vec{f}$ periodic extended in $z$.
+
+The $k=0$ mode must be handled separatedly
+\subsection*{Parallel velocity solve}
+
+\subsection*{Perpendicular velocity solve}
+
+
+
 
 \chapter{Applications: Hydrodynamics in confined geometries}
 \begin{itemize}
@@ -3258,8 +3382,11 @@ Our computational and analytical tools can easily be extended to other types of 
 \item Describe quasi2D paper. Similar to \gls{FCM}, but with a Green's function that is integrated in Z. It is the limit of an infinite boxin Z with particles attached to z=0 via an infinitely stiff spring.
 \end{itemize}
 \chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
-\section{Introduction}
-This chapter presents a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and arbitrary surface charges at the domain walls (in the open direction).
+\begin{itemize}
+\item Introduce the need for slit channel electrostatics
+\item Spectral Ewald solver
+\end{itemize}
+We present a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and arbitrary surface charges at the domain walls (in the open direction).
 
 \begin{figure}
   \centering
@@ -3272,8 +3399,8 @@ This chapter presents a novel algorithm for computing the electrostatic energies
 %Doubly periodic means periodic in XY and unbounded in Z, with the possibility of placing surface charges \sigma_(b/t) at the domain limits and having different permittivities below, inside and above the domain.  
 %A triply periodic solver is also available in UAMMD. See [3] for more info.
 %### Algorithm summary  
-A complete description of the algorithm can be found in \cite{dppoisson2021}.
-We model charges as Gaussian sources. It sounds unphysical, but things in complex fluids are not really point charges due to steric repulsions. Even so our algorithm provides spectral accuracy via Ewald splitting, which naturally decouples the width of the sources and the grid size. Using Ewald splitting we are able to choose an arbitrarily narrow Gaussian to simulate point charges if needed.
+A complete description of the algorithm can be found in \cite{Maxian2021}.
+We model charges as Gaussian sources (as opposed to point charges). Even so our algorithm provides spectral accuracy via Ewald splitting, which naturally decouples the width of the sources and the grid size. This allows to use an arbitrarily narrow Gaussian to simulate point charges if needed. By using Gaussian charges we avoid divergent self-interactions while more closely modelling electrolyte solutions, in which solvated ions are not point charges but rather have a certain characteristic charge size that we can mimic via the Gaussian width.
 Thus, we want to solve the following Poisson equation
 \begin{equation}
  \varepsilon_0\Delta\phi(\vec{x} = (x,y,z))=-f(\vec{x})=-\sum_{k=1}^Nq_kg(||\vec{x}-\vec{z}_k||)\label{eq:dppoisson}
@@ -3332,7 +3459,6 @@ In order to accurately describe the charge density $f(\vec{x})$ in the grid we m
 \subsection{Ewald splitting}\label{sec:dpewald}
 
 \section{Algorithm}
-\section{Boundary Value Problem Solver}
 %The far field poses a much more challenging problem since, contrary to the triply periodic case, the problem cannot be solved in Fourier space by simple algebraic multiplication with a Greens function. In our approach the potential is split into two pieces; one with free space boundary conditions and uniform permittivity and another that satisfies the boundary conditions as a correction. Thus  
 \begin{equation}  \phi = \phi^* + \phi^{(c)}\end{equation}  
 %The free space solution is solved by Fourier transforming in the XY directions and interpreting each wave number as a Boundary Value Problem which can be then solved independently in the Chebyshev basis.  
@@ -3629,21 +3755,35 @@ In sections \ref{sec:dpstokes} and \ref{sec:dppoisson} we laid out the basic \gl
     &y'(1)+ ky(1)=\alpha ,\qquad y'(-1)- ky(-1)=\beta.
 \end{aligned}
 \end{equation}
-Where the domain is here defined in the $[-1, 1]$ range for simplicity. We can later generalize to any size via a simple change in units.
+Where the domain is here defined in the $[-1, 1]$ range for simplicity. We can later generalize to any size via a simple change in units. In particular by defining $z = z'/H$ (with $z'\in [-H, H]$) and $k = k'H$.
 
 In this section we describe a generic, \gpu-friendly, spectral solver for the set of equations in \eqref{eq:bvpmain} based on the spectral integration method described in\cite{Greengard1991}.
 
 
-We will work with the discrete Chebyshev transform of eq. \eqref{eq:bvpmain}. In general, we will expand a given function, $g(z)$ with $z\in \mathcal{R}$ into the first $N$ terms of its Chebyshev series so that
+We will work with the discrete Chebyshev transform of eq. \eqref{eq:bvpmain}. In general, we can expand a given function, $g(z)$ with $z\in \mathcal{R}$ into the first $N$ terms of its Chebyshev series so that
 \begin{equation}
 \label{eq:bvpchebexp}
 g(z) = \sum_{n=0}^{N-1} \fou{g}_n T_n(z)
 \end{equation}
-Where we use the subscript $n$ to distinghuish between the Chebyshev and Fourier coefficients (since throught this manuscript we have used the subscript $k$ to denote Fourier coefficients).
+Where we use the subscript $n$ to distinghuish between the Chebyshev and Fourier coefficients (since throughout this manuscript we have used the subscript $k$ to denote Fourier coefficients).
 
-If we evaluate $f(z)$ in the roots of the Chebyshev polynomials, $z_i=cos(i\pi/N)$, we can leverage the \gls{FFT} to provide the coefficients of the Chebyshev transform (in what is usually refered to as a Fast Chebyshev Transform (FCT)) by using it to compute a discrete cosine transform. The proof, while straight forward, is cumbersome and beyond the scope of this work, it can be found in Chapter 8 of\cite{Trefethen2000}. In particular, the fast Chebyshev transform is carried out by taking the \gls{FFT} of the periodic extension of $f(z)$\footnote{cuFFT can be used for this, which is the approach in \uammd.} (see Appendix \ref{sec:fct}).
+In general, the Chebyshev polynomials of the first kind, $T_n$, are defined via a recurrent relation with
+\begin{equation}
+  \label{eq:bvpchebpoly}
+  \begin{aligned}
+    T_0(x) &= 1\\
+    T_1(x) &= x\\
+    T_{n+1}(x) &= 2xT_n(x) - T_{n-1}(x)
+  \end{aligned}
+\end{equation}
 
-On the other hand, we can use the well known indefinite integrals of the Chebyshev polynomials to integrate $\fou{y}''_n$ twice and get $\fou{y}_n$. First by integrating $\fou{y}''_n$:
+On the other hand, the Chebyshev polynomials can be interpreted as a cosine series under a change of variables. Given that by definition $T_n(cos(\theta))= cos(n\theta)$, evaluating the function at the extrema points $x_n = cos(n\pi/(N-1))$ transforms the expansion in eq. \eqref{eq:bvpchebexp} into a cosine series. We can then leverage the \gls{FFT} to perform a discrete cosine transform by transforming the periodic extension of a signal. This allows to obtain the Chebyshev coefficients of a signal in $O(Nlog(N))$ operations. We refer to this technique as the \gls{FCT} (see chapter 8 of \cite{Trefethen2000}). In Appendix \ref{sec:fct} we give some details about how to do this in a computer implementation.
+
+We can then leverage several interesting properties of the Chebyshev series to easily (and exactly) derivate and integrate the different quantities.
+
+%If we evaluate $f(z)$ in the roots of the Chebyshev polynomials, $z_i=cos(i\pi/N)$, we can leverage the \gls{FFT} to provide the coefficients of the Chebyshev transform (in what is usually refered to as a Fast Chebyshev Transform (FCT)) by using it to compute a discrete cosine transform. The proof, while straight forward, is cumbersome and beyond the scope of this work, it can be found in Chapter 8 of\cite{Trefethen2000}. In particular, the fast Chebyshev transform is carried out by taking the \gls{FFT} of the periodic extension of $f(z)$\footnote{cuFFT can be used for this, which is the approach in \uammd.} 
+
+In particular, we can use the well known indefinite integrals of the Chebyshev polynomials to integrate $\fou{y}''_n$ twice and get $\fou{y}_n$. First by integrating $\fou{y}''_n$:
 \begin{equation}
   \begin{aligned}
 \fou{y}'_1&= \frac{1}{2}\left(2\fou{y}''_0-\fou{y}''_2\right)\\
@@ -3653,69 +3793,68 @@ On the other hand, we can use the well known indefinite integrals of the Chebysh
 %Eq. \eqref{eq:ds} is the relationship used to apply the Chebyshev differentiation matrix in linear time to compute $\displaystyle \frac{\partial \hat{f}^z}{\partial z}$ in Eq.\ \eqref{eq:bvp_p}. Specifically, we set $d_{N-1}=0$ and can then compute $a_n$ for all $n=N-1, \dots 0$ (in that order).  
 And then integrating again
 \begin{equation}
+  \label{eq:bvpyn}
   \begin{aligned}
-&\hat{y}_1 = \frac{1}{2}\left(2\hat{y}'_0-\hat{y}'_2\right)=\hat{y}'_0 -\frac{1}{8}\left(\hat{y}''_1-\hat{y}''_3\right)\\
-&\hat{y}_2 = \frac{1}{4}\left(\hat{y}'_1-\hat{y}'_3\right)=\frac{1}{4}\left(\frac{1}{2}\left(2\hat{y}''_0-\hat{y}''_2\right)-\frac{1}{6}\left(\hat{y}''_2-\hat{y}''_4\right) \right)\\
-&\hat{y}_n = \frac{1}{2n}\left(\hat{y}'_{n-1}-\hat{y}'_{n+1}\right)=\frac{1}{2n}\left(\frac{1}{2n-2}\left(\hat{y}''_{n-2}-\hat{y}''_n\right)-\frac{1}{2n+2}\left(\hat{y}''_n-\hat{y}''_{n+2}\right) \right), \quad n \geq 3.
+&\fou{y}_1 = \frac{1}{2}\left(2\fou{y}'_0-\fou{y}'_2\right)=\fou{y}'_0 -\frac{1}{8}\left(\fou{y}''_1-\fou{y}''_3\right)\\
+&\fou{y}_2 = \frac{1}{4}\left(\fou{y}'_1-\fou{y}'_3\right)=\frac{1}{4}\left[\frac{1}{2}\left(2\fou{y}''_0-\fou{y}''_2\right)-\frac{1}{6}\left(\fou{y}''_2-\fou{y}''_4\right) \right]\\
+&\fou{y}_n = \frac{1}{2n}\left(\fou{y}'_{n-1}-\fou{y}'_{n+1}\right)=\\
+&\quad\quad\frac{1}{2n}\left[\frac{1}{2n-2}\left(\fou{y}''_{n-2}-\fou{y}''_n\right)-\frac{1}{2n+2}\left(\fou{y}''_n-\fou{y}''_{n+2}\right) \right], \quad n \geq 3.
 \end{aligned}
 \end{equation}
-Here we have done this in painstaking detail to point out that there are several exceptions when computing $\hat{y}_n$ from $\hat{y}''_n$. In most Chebyshev series notations, $\hat{y}_0$ is defined in a way that circumvents these exceptions (i.e., with a 1/2 in front of it). We refrain from doing so here to avoid easily (at least for me!) encountered confusion. In addition, note that there are two free parameters $\hat{y}_0$ and $\hat{y}'_0$. We also assume $\hat{y}''_n = \hat{y}'_n = 0$ for $n > N-1$ when calculating $\hat{y}_n$ using\ \eqref{eq:cs}.  
+This formulation gives two free parameters $\fou{y}_0$ and $\fou{y}'_0$, which are obtained using the \glspl{BC}. Additionally, we consider $\fou{y}''_n = \fou{y}'_n = 0$ for $n > N-1$ when calculating $\fou{y}_n$ using \eqref{eq:bvpyn}.
 
-Now, we can reformulate the boundary value problem using the Chebyshev series representations\ \eqref{eq:chebexp} as
-\begin{gather}
+Now, we can reformulate the boundary value problem using the Chebyshev series representations in \eqref{eq:bvpchebexp} as
+\begin{equation}
 \label{eq:bvpn0}
-\sum_{n=0}^{N-1} (\hat{y}''_n-k^2\hat{y}_n)T_n(z) = \sum_{n=0}^{N-1}\hat{f}_n T_n(z).
-\end{gather}
-Matching modes gives a system of equations for the Chebyshev coefficients
-\begin{gather}
-\label{eq:modes}
-\hat{y}''_n-k^2\hat{y}_n=\hat{f}_n \qquad n=0, \dots N-1, \\[2 pt]
-\label{eq:BCs}
-\sum_{n=0}^{N-1} (\hat{y}'_n+k\hat{y}_n) = \alpha, \qquad \sum_{n=0}^{N-1} (\hat{y}'_n-k\hat{y}_n) (-1)^n = \beta.
-\end{gather}
-with $N+2$ equations and $N+2$ unknowns $\hat{y}_0, \hat{y}'_0, \hat{y}''_0, \dots \hat{y}''_{N-1}$. We solve the algebraic system of equations\ \eqref{eq:modes} and \eqref{eq:BCs} for the second derivative coefficients $\hat{y}''_0, \dots \hat{y}''_{N-1}$ and integration constants $\hat{y}_0$ and $\hat{y}'_0$, then determine $\hat{y}_n$ by applying the double integral operation on the coefficients\ \eqref{eq:cs}.
+\sum_{n=0}^{N-1} (\fou{y}''_n-k^2\fou{y}_n)T_n(z) = \sum_{n=0}^{N-1}\fou{f}_n T_n(z).
+\end{equation}
+Matching modes gives a system of $N+2$ equations for the Chebyshev coefficients
+\begin{equation}
+\label{eq:bvpmodes}
+\begin{aligned}
+&\fou{y}''_n-k^2\fou{y}_n=\fou{f}_n \qquad n=0, \dots, N-1\\
+&\sum_{n=0}^{N-1} (\fou{y}'_n+k\fou{y}_n) = \alpha\\
+&\sum_{n=0}^{N-1} (\fou{y}'_n-k\fou{y}_n) (-1)^n = \beta
+\end{aligned}
+\end{equation}
+Where has $N+2$ unknowns $\fou{y}_0, \fou{y}'_0, \fou{y}''_0, \dots \fou{y}''_{N-1}$. We solve the algebraic system of equations\ \eqref{eq:bvpmodes} for the second derivative coefficients $\fou{y}''_0, \dots \fou{y}''_{N-1}$ and integration constants $\fou{y}_0$ and $\fou{y}'_0$, then determine $\fou{y}_n$ by integrating twice using \eqref{eq:bvpyn}.
 
-Now suppose we want to do our solves on $[0,H]$, so that the domain is enlarged by a factor $H/2$. Then each integral operator gets a factor of $H/2$. As such, the equations are
- \begin{gather}
-\sum_{n=0}^{N-1} (\hat{y}''_n-k^2\frac{H^2}{4}\hat{y}_n)T_n\left(\frac{2z}{H}-1\right) = \sum_{n=0}^{N-1}\hat{f}_n T_n\left(\frac{2z}{H}-1\right)\\[2 pt]
-\hat{y}''_n-k^2\frac{H^2}{4}\hat{y}_n=\hat{f}_n \qquad n=0, \dots N-1, \\[2 pt]
-\sum_{n=0}^{N-1} \left(\frac{H}{2}\hat{y}'_n+k\frac{H^2}{4}\hat{y}_n\right) = \alpha, \qquad \sum_{n=0}^{N-1} \left(\frac{H}{2}\hat{y}'_n-k\frac{H^2}{4}\hat{y}_n\right) (-1)^n = \beta.
-\end{gather}
+For the $k=0$ mode, the system reduces to the trivial system of equations
+\begin{equation}
+\label{eq:bvpmodes0}
+\fou{y}''_n=\fou{f}_n \qquad n=0, \dots, N-1.
+\end{equation}
+The factors $\alpha$ and $\beta$, which in general can be different for each $k$, are zero for $k=0$, so in tfou case we enforce
+\begin{equation}
+\label{eq:bvpBCs0}
+\sum_{n=0}^{N-1} \fou{y}_n = 0, \qquad \sum_{n=0}^{N-1} \fou{y}_n (-1)^n = 0.
+\end{equation}
 
-For the $k=0$ mode, the system reduces to
- \begin{gather}
-\sum_{n=0}^{N-1} \hat{y}''_n T_n\left(\frac{2z}{H}-1\right) = \sum_{n=0}^{N-1}\hat{f}_n T_n\left(\frac{2z}{H}-1\right),
-\end{gather}
-which gives the trivial system of equations
-\begin{gather}
-\label{eq:modes0}
-\hat{y}''_n=\hat{f}_n \qquad n=0, \dots N-1.
-\end{gather}
-Our solves for the $k=0$ mode will use the homogeneous boundary conditions
-\begin{gather}
-\label{eq:BCs0}
-\sum_{n=0}^{N-1} \hat{y}_n = 0, \qquad \sum_{n=0}^{N-1} \hat{y}_n (-1)^n = 0. 
-\end{gather}
-
-\subsubsection{Matrix inversion}
-\label{sec:schurc}
-We use a Schur complement approach to solve the algebraic system of equations\ \eqref{eq:modes} and \eqref{eq:BCs}. We can write the system in block form as 
+We use a Schur complement approach to solve the algebraic system of equations \eqref{eq:bvpmodes}. We can write the system in block form as 
 \begin{equation}
 \label{eq:blocksys}
 \begin{pmatrix} \bm{A} & \bm{B} \\[2 pt] \bm{C} & \bm{D} \end{pmatrix}
-\begin{pmatrix} \hat{\bm{y}}''\\ \hat{y}_0 \\ \hat{y}'_0 \\ \end{pmatrix}
-= \begin{pmatrix}  \hat{\bm{f}}\\ \alpha \\ \beta\\ \end{pmatrix}. 
+\begin{pmatrix} \fou{\bm{y}}''\\ \fou{y}_0 \\ \fou{y}'_0 \\ \end{pmatrix}
+= \begin{pmatrix}  \fou{\bm{f}}\\ \alpha \\ \beta\\ \end{pmatrix}. 
 \end{equation}
-Here $\bm{B}$ is $N \times 2$, $\bm{C}$ is $2 \times N$, $\bm{D}$ is $2 \times 2$, and $\bm{A}$ is an $N \times N$ \textit{pentadiagonal} matrix, which can be inverted using a fast algorithm for such matrices. Therefore, we first invert $\bm{A}$, then solve the $2 \times 2$ system
-\begin{equation}
-(\bm{C}\bm{A}^{-1}\bm{B}-\bm{D})\begin{pmatrix}  \hat{y}_0 \\ \hat{y}'_0\\ \end{pmatrix} = \bm{C}\bm{A}^{-1}\bm{f}-\begin{pmatrix}  \alpha \\ \beta\\ \end{pmatrix}
-\end{equation}
-for $\hat{y}_0$ and $\hat{y}'_0$. We then obtain the coefficients $\hat{\bm{y}}''=(\hat{y}''_0, \dots \hat{y}''_{N-1})$ from back-substitution
-\begin{equation}
-\hat{\bm{y}}''=\bm{A}^{-1}\left(\bm{f}-\bm{B}\begin{pmatrix}   \hat{y}_0 \\ \hat{y}'_0\\ \end{pmatrix}\right).
-\end{equation}
+Here $\bm{B}$ is $N \times 2$, $\bm{C}$ is $2 \times N$, $\bm{D}$ is $2 \times 2$, and $\bm{A}$ is an $N \times N$ \textit{pentadiagonal} matrix. In particular, the matrix $\bm{A}$, refered to as the second integral matrix, has only three non zero diagonals ($i=j$ and $i = j\pm 2$) which allows to use a specialized factorization algorithm. In \uammd we use the so-called \emph{KBPENTA} in \cite{Karawia2010}, modified for the special case of only three nonzero diagonals.\footnote{The matrix $\bm{A}$ is pre factorized (incurring an auxiliar storage of $3N$ elements for a given $k$). Using this our special pentadiagonal system can be solved in just $2N$ operations.} 
 
-\chapter{The Fast Chebyshev Transform}
+We then solve the $2 \times 2$ system
+\begin{equation}
+(\bm{C}\bm{A}^{-1}\bm{B}-\bm{D})\begin{pmatrix}  \fou{y}_0 \\ \fou{y}'_0\\ \end{pmatrix} = \bm{C}\bm{A}^{-1}\bm{f}-\begin{pmatrix}  \alpha \\ \beta\\ \end{pmatrix}
+\end{equation}
+for $\fou{y}_0$ and $\fou{y}'_0$. The $2\times 2$ matrix in the left hand side as well as $\bm{C}\bm{A}^{-1}$ ($2\times N$ size) are precomputed and stored for each $k$. Since the inverse of $\bm{A}$ is only needed at the precomputation stage no special performance considerations are required for it\footnote{In \uammd, the CPU \emph{getrf} BLAS square matrix inversion routine is used.}.
+
+Finally we obtain the coefficients $\fou{\bm{y}}''=(\fou{y}''_0, \dots \fou{y}''_{N-1})$ by solving
+\begin{equation}
+\bm{A}\fou{\bm{y}}''=\left(\bm{f}-\bm{B}\begin{pmatrix}   \fou{y}_0 \\ \fou{y}'_0\\ \end{pmatrix}\right)
+\end{equation}
+using the pre-factorized modified \emph{KBPENTA} algorithm.
+
+Note that we need to solve this system for each wave number, $k$. Our solver requires the evaluation of several recurrent relations, making it mostly a serial algorithm not worth parallelizing. In order to take advantage of the \gpu, we assign a thread to each $k$. As described above, much of the problem can be precomputed at the expense of memory storage (around $5N_kN$ values in total, being $N_k$ the number of wave vectors\footnote{Since we use R2C \gls{FFT} we will typically have $N_k=(N_x/2+1)N_y$.}
+Except for the $k=0$ wave number, every solve is identical in operations, meaning that each thread will present the same memory access pattern in the, precomputed, auxiliar arrays. We take advantage of this by storing them in a coherent (strided) way, where a given element of an auxiliar array is stored contigously (and ordered) for all wave numbers (so that the thread access pattern is cache friendly)\footnote{I wrote a special \gpu auxiliar storage handler for this that allows to switch between a strided and contigous pattern. It can be found in the file \emph{BVPMemory.cuh} in \uammd. In general a strided access provides a much better performance.}. Testing suggests that our \gls{BVP} solver yields similar performance as the \gls{FCT} for small $N_k$, becoming increasingly faster for increasing $N_k$ (as expected given that our solver has linear scaling as opposed to the $O(Nlog(N))$ operation count of the \gls{FCT}).
+
+\chapter{The Fast Chebyshev Transform}\label{sec:fct}
 
 \begin{itemize}
 \item Describe the FCT.
