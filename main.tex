@@ -223,14 +223,45 @@ State of the art in molecular simulations.
 \chapter{Design principles}\label{ch:design}
 \todo{FILL}
 Open infrastructure instead of closed ecosystem. Open source. C++, header only.
+UAMMD shpould be understood not as a stand alone code, but as a library/framework.
 \section{Universality}
-Anything goes as long as it has interacting entities. One could technically implement Chess as a module.
+% Anything goes as long as it has interacting entities. One could technically implement Chess as a module.
+\begin{itemize}
+\item Multiphysics
+\item Eulerian Lagrangian descriptions.
+\item You can use a particle-based description with interactions or add a fluid also. Or just a fluid
+\item The limit would be only classical physics
+\end{itemize}
 \section{Adaptability}
-Highly templated code and super generic interfaces. 
+Highly templated code and super generic interfaces.
+
+\begin{itemize}
+\item Modular
+\item Open/templated (logic can come from outside)
+\item UAMMD as a library (can be used as an external tool)
+\item Explain the concept of module in \uammd. An entity that has much more internal connections than external connections.
+\item Draw a box, with only two connections (an input and an output) and a lot of internal complexity.
+\item With boxes draw an skematich of a simulation (an MD box + an Interactor box gives a simulation)
+\item Include here example of createModule.
+\item Mention the System class, which gives information about the actual physical hardware.
+\end{itemize}
 \section{Mulstiscale}
 From atoms in vacuum to chunks of oceans and planetary dynamics.
+\begin{itemize}
+\item Image of multiscale
+\item Overview of going from few atoms to an ocean. w or w/o Fluctuatinos, implicit or explicit solvent... All the scales
+\end{itemize}
 \section{Molecular Dynamics}
-Using molecular in the sense of an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...)
+% Using molecular in the sense of an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...)
+\begin{itemize}
+\item Particles are the important entity. If a fluid is present it is only a medium to move the particles.
+\item molecular dynamics understood as ``dynamics of molecules'' .
+\item Interacting particles.
+\item Lagrangian or Eulerian-Lagrangian methods.
+\item Interactions in \uammd always act on particles (particle-particle, particle-fluid...). Introduce the concept of Interactor.
+\item ParticleData, basic properties of a particle (pos, vel, mass...) others can be added.
+\end{itemize}
+
 
 \chapter{Core Components}\label{ch:core}
 How the design principles are exposed in code. \todo{FILL}
@@ -282,9 +313,9 @@ return std::make_shared(Module(/*Whatever is needed*/));
 \end{minted}
 
 These examples are meant to serve both as a tutorial and an easily copy-pastable example.
-The structure \emph{UAMMD} in these examples is not part of \uammd and is meant to group the core components of a typical \uammd code. It can be defined as follows
+The structure \emph{UAMMD}\todo{Use the same format as in the code, so the reader can make the conection with the struct UAMMD in the code} in these examples is not part of \uammd and is meant to group the core components of a typical \uammd code. It can be defined as follows
 
-
+\todo{Make an appendix with basic C++ notions, like shared_ptr}
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
 //Additional includes when necessary
@@ -342,13 +373,14 @@ Let us go through the different numerical techniques that are used to simulate t
   \caption{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales invovled in a biological system or, in general, a complex fluid. Zooming in from the bottom-left we have the blood inside a section of a vein, the plasmic environment in a small drop of blood (where cells, platelettes, viruses, etc are present), a virus, a single protein and finally the individual atoms that compose it along the surrounding fluid particles (water).}
   \label{fig:sptime-land}
 \end{figure}
-%\todo{RAFA, te he fusilado esta img que me gusta mucho. Me gustaria rehacerla solo con lo que me interesa, pero me esta costando encontrar referencias}
+% \todo{RAFA, te he fusilado esta img que me gusta mucho. Me gustaria rehacerla solo con lo que me interesa, pero me esta costando encontrar referencias}
+\todo{Fusilarle la figura de la multiscala a Rafa}
 
 We can distinguish between two families of numerical techniques, particle and grid based methods. The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
 In some way or another, all algorithms have to take into account interactions between particles.
 
 \chapter{Working with particles}
-Let us interpret the word \emph{particle} as a relatively small discrete portion in a simulation. This is a vage definition on porpuse, since from an algorithmic point of view it does not really matter what a particle represents. Sometimes a particle will be an atom or molecule, other times it will make more sense that our simulation unit is a big colloid, a virus or a whole sun.
+Let us interpret the word \emph{particle} as a relatively small discrete portion in a simulation. This is a vage definition on porpuse, since from an algorithmic point of view it does not really matter what a particle represents. Sometimes a particle will be an atom or molecule, other times it will make more sense that our simulation unit is a big colloid, a virus or a whole sun.\todo{This paragraph should go to the Design principles-> molecular dynamics section}
 The important thing about particles is that when several of them are present, they more than often have a certain effect on each other.
 Stars in a galaxy attract each other over an infinetely long range of space, while two argon atoms will repell each other at close range.
 Even if particles are somehow oblivious to each other, they might interact with some other thing, like fluid particles being repelled by a wall.
@@ -362,7 +394,7 @@ Let us see how \uammd deals with interactions by introducing the \emph{Interacto
 
 \section{The Interactor interface} \label{sec:interactor}
 
-Interactor encapsulates the concept of a group of particles interacting, be it with each other or with some external influence.
+Interactor encapsulates the concept of a group of particles interacting, either with each other or with some external influence.
 An Interactor can be issued to compute, for each particle, the forces, energies and/or virial due to a certain interaction.
 To do so it can access the current state of the particles (like positions, velocities, etc).
 A minimal example of an Interactor
@@ -396,14 +428,14 @@ public:
   }
 };
 \end{minted}
-
+\todo{Mention Computables}
 See chapter \ref{ch:core} for information about how to access particle properties and using particle groups.
 
-\uammd offers a series of \emph{Interactors} with the different kinds of interactions that we will discuss in the following sections. Sometimes exposing a general algorithm that can be specialized (like \emph{PairForces} for particle pair interactions, see sec. \ref{sec:pairforces}) and others exposing particular potentials (like \emph{SpectralEwaldPoisson} for electrostatics, see sec. \ref{sec:tppoisson}).
+\uammd offers a series of \emph{Interactors} (discused in the following sections) sometimes exposing a general algorithm that can be specialized (like \emph{PairForces} for particle pair interactions, see sec. \ref{sec:pairforces}) and others exposing particular potentials (like \emph{SpectralEwaldPoisson} for electrostatics, see sec. \ref{sec:tppoisson}).
 
-It is also worth introducing here two other interfaces that \uammd uses to work with particles, \emph{Transverser} and \emph{Potential}.
-
-\section{The Transverser Interface} \label{sec:transverser}
+It is also worth introducing here two other interfaces that \uammd uses to work with particles, \emph{Transverser} and \emph{Potential}.\todo{These should go when they are needed, after explaining some force module}
+\todo{Transverser should go to an Appendix}
+\section{The Transverser Interface} \label{sec:transverser} 
 A Transverser is a concept that refers to the action of going through each element of something.  
 
 For example, for each particle, we want to perform some computation for particles that are closer than a certain distance in a custom way. Or more generally, we want to perform some kind of operation equivalent to a matrix-vector multiplication, for which in order to compute one element of the result, the vector needs to go through a row of the matrix.
@@ -413,7 +445,7 @@ A Transverser holds information about what to do with a pair of particles, what 
 
 Being such a general concept, a \emph{Transverser} is used as a template argument, and therefore cannot be a base virtual class that can be inherited. This is why it is a "concept". No assumption can be made about the return types of each function, or the input parameters, the only things general are the function names.  
 
-For each particle to be processed the \emph{Transverser} will be called for:  
+For each particle to be processed the \emph{Transverser} will be called for: \todo{Draw this in a skematik}
 \begin{itemize}
 \item Setting the initial value of the interaction result (function \emph{zero})
 \item Fetching the necesary data to process a pair of particles  (function \emph{getInfo})
@@ -530,7 +562,7 @@ We are now ready to start exploring the different types of particle interactions
 Let us go through each of them and describe the different algorithms used to solve each case and how \uammd exposes them.
 
 
-\section{Periodic Boundary Conditions}
+\section{Periodic Boundary Conditions} \todo{This goes in a section called Domain in UAMMD. Explain periodic vs open etc.}
 In order to conserve the total volume of the system we use the \gls{MIC}, where a particle that leaves the simulation domain though one side appears on the other.
 Numerically we can express this algorithm as follows:
 
@@ -638,6 +670,7 @@ void tranverseWithNBody(UAMMD sim, Transverser tr){
   nb.transverse(tr, st);
 }
 \end{minted}
+\todo{Mention the NeighbourCountar examples, gives N for every particle}
 The next one is to use it as an \emph{Interactor} to compute forces, energies and/or virials. This is done by providing the \emph{PairForces} module with a \emph{Potential} with an infinite cut off distance.
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
@@ -3171,24 +3204,24 @@ Here $p$ is the pressure and the fluid forcing includes the particle forces and 
   \vec{f}(\vec{\fpos}) = \oper{S}\vec{F} + \half\nabla\times\oper{S}_{\tau}\vec{\tau}
 \end{equation}
 
-We assume that the fluid forcing is zero in a domain $z\in [0, H]$. In the case of an unbounded fluid this domain is arbitrary and physically meaningless, serving only to define a numerical domain for our grid-based solver. The same thing happens in the case of a bottom wall with the top limit at $z=H$. Furthermore, assuming $\vec{f}(|z|>H) = 0$ allows us to define a set of \glspl{BC} more easily.
+We assume that the fluid forcing is zero in a domain $z\in [-H, H]$. In the case of an unbounded fluid this domain is arbitrary and physically meaningless, serving only to define a numerical domain for our grid-based solver. The same thing happens in the case of a bottom wall with the top limit at $z=H$. Furthermore, assuming $\vec{f}(|z|>H) = 0$ allows us to define a set of \glspl{BC} more easily.
 
 Our solver is periodic in the plane $(x,y)$ (as in quasi 2D). In the $z$ direction, by incorporating different \glspl{BC}, we distinguish between three modes:
 \begin{enumerate}
 \item Unbounded in $z$, $z\in(-\infty, \infty)$. $\vec{\fvel}_{DP}$ is bounded as $|z|\rightarrow\infty$.
-\item A no-slip  wall at the bottom of the domain, $z=0$ (unbounded at $z>0$). $z\in [0, \infty)$.
+\item A no-slip  wall at the bottom of the domain, $z=-H$ (unbounded at $z>-H$). $z\in [-H, \infty)$.
   The no-slip \gls{BC} for the wall is simply
   \begin{equation}
     \vec{\fvel}_{DP}(z=0) = 0    
   \end{equation} 
-\item A slit channel, with no-slip walls located at $z=0$ and $z=H$. $z\in [0, H]$. Besides the \gls{BC} for the bottom wall, we add a similar one for the top ones
+\item A slit channel, with no-slip walls located at $z=-H$ and $z=H$. $z\in [-H, H]$. Besides the \gls{BC} for the bottom wall, we add a similar one for the top ones
   \begin{equation}
     \vec{\fvel}_{DP}(z=H) = 0
   \end{equation}
 \end{enumerate}
 The unbounded mode allows to simulate systems were particles are not restricted to a plane, so $\delta>0$. Additionally the other modes can be used in a variety of simulations. For instance, the bottom wall mode can be used to model the hydrodynamics of a Quarts Crystal Microbalance (QCM)\todo{More about it?}.
 
-In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\in [0,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by substracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
+In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\in [-H,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by substracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
 \begin{equation}
   \label{eq:dpstokeskernel}
   \widetilde{\delta_a}(\vec{\fpos}-\vec{\ppos}_i) = \delta_a(\vec{\fpos}-\vec{\ppos}_i) - \delta_a(\vec{\fpos}-\vec{\ppos}^{\text{img}}_i)
@@ -3197,7 +3230,7 @@ Were $\vec{\ppos}_i^{\text{img}}$ is the particle's point of reflection about th
 \begin{equation}
   \label{eq:dpstokesimg}
   \begin{aligned}
-  &\vec{\ppos}_i^{\text{img}_b} = \vec{\ppos}_i - 2r_z\hat{\vec{e}}_z, \quad \text{For the bottom wall}\\
+  &\vec{\ppos}_i^{\text{img}_b} = \vec{\ppos}_i - 2(H+r_z)\hat{\vec{e}}_z, \quad \text{For the bottom wall}\\
   &\vec{\ppos}_i^{\text{img}_t} = \vec{\ppos}_i + 2(H-r_z)\hat{\vec{e}}_z, \quad \text{For the top wall}
 \end{aligned}
 \end{equation}
@@ -3227,12 +3260,12 @@ For the corrections, we solve, analytically, eq. \eqref{eq:dpstokes} in the abse
     &\nabla\cdot\vec{\fvel}_{\corr} = 0  
 \end{aligned}
 \end{equation}
-Solved in a domain with $z\in [0,\infty)$ in the case of a bottom wall and $z\in [0, H]$ in the case of a slit channel. Finally, we set slip \glspl{BC} at the walls so
+Solved in a domain with $z\in [-H,\infty)$ in the case of a bottom wall and $z\in [-H, H]$ in the case of a slit channel. Finally, we set slip \glspl{BC} at the walls so
 
 \begin{equation}
   \label{eq:dpstokescorrbcs}
   \begin{aligned}
-    &\vec{\fvel}_{\corr}(z=0) = -\vec{\fvel}_{DP}(z=0)\\
+    &\vec{\fvel}_{\corr}(z=-H) = -\vec{\fvel}_{DP}(z=-H)\\
     &\vec{\fvel}_{\corr}(z=H) = -\vec{\fvel}_{DP}(z=H)    
 \end{aligned}
 \end{equation}
@@ -3253,34 +3286,53 @@ By taking the divergence of eq. \eqref{eq:dpstokes} we eliminate the velocity
 Transforming to Fourier space in the plane we get a one dimensional problem for each wave number
 \begin{equation}
   \label{eq:dpstokesfreepressure}
-  \partial_z^2\fou{p}(\vec{k}, z) - k^2\fou{p}(\vec{k}, z) = ik_x\fou{f}^x + ik_y\fou{f}^y + \partial_z \fou{f}^z
+  (\partial_{zz}-k^2)\fou{p} =
+  \begin{bmatrix}
+    i\vec{k}\\
+    \partial_z
+  \end{bmatrix}
+\fou{\vec{f}}
 \end{equation}
-Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [0,H]$. We can use this to solve the pressure outside the domain, so that
+Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. We can use this to solve the pressure outside the domain, so that
 \begin{equation}
-  \partial_z^2\fou{p}(\vec{k}, z) - k^2\fou{p}(\vec{k}, z) = 0, \quad \text{ for } z \notin [0,H]
+    (\partial_{zz}-k^2)\fou{p} = 0, \quad \text{ for } z \notin [-H,H]
 \end{equation}
 Whose solution is
 \begin{equation}
-  \fou{p}(\vec{k}, z) = C_1\exp(-kz) + C_2\exp(kz)
+  \fou{p}(k, z) = C_1\exp(-kz) + C_2\exp(kz)
 \end{equation}
 By using the boundness of the pressure at $|z|\rightarrow\infty$ we can write the solution outside the domain
 \begin{equation}
   \begin{aligned}
-    &\fou{p}(\vec{k},z\le 0) = C_2\exp(kz)\\
-    &\fou{p}(\vec{k},z\ge H) = C_1\exp(-kz)    
+    &\fou{p}(k,z\le -H) = C_2\exp(kz)\\
+    &\fou{p}(k,z\ge H) = C_1\exp(-kz)    
   \end{aligned}
 \end{equation}
 This implies
 \begin{equation}
   \label{eq:dpstokespressurebcs}
-  \partial_z\fou{p}(\vec{k}, z=0,H) = \pm k \fou{p}(\vec{k}, z=0,H)
+  (\partial_z\pm k)\fou{p}(k, z=\pm H) = 0
 \end{equation}
-For a given wave number, $k$, the system in eq. \eqref{eq:dpstokespressure} along the \glspl{BC} in eq. \eqref{eq:dpstokespressurebcs} constitute a \gls{BVP} that can be solved in Chebyshev space with the solver described in Appendix \ref{sec:bvp}.
+For a given wave number, $k$, the system in eq. \eqref{eq:dpstokesfreepressure} along the \glspl{BC} in eq. \eqref{eq:dpstokespressurebcs} constitute a \gls{BVP} that can be solved in Chebyshev space with the solver described in Appendix \ref{sec:bvp}.
 
 Since this solver requires to define $z$ in the Chebyshev basis, we can apply $\partial_z$ in linear time by using recurrent relations on the Chebyshev coefficients (in this case of $\fou{f}^z$) instead of via \emph{ik} differentiation. As discussed in Appendix \ref{sec:bvp} and \ref{sec:fct}, the Fourier-Chebyshev\footnote{Fourier in the plane $(x,y)$ and Chebyshev in $z$.} coefficients $\fou{p}(\vec{k}, z)$ are computed via a hybrid \gls{FFT}-\gls{FCT}. Which amounts to performing the 3D \gls{FFT} of $\vec{f}$ periodic extended in $z$.
 
-The $k=0$ mode must be handled separatedly
+\subsection*{Velocity solve}
+Once the pressure is known we can write the plane Fourier transformed equations for the three components of the velocity as
+
+\begin{equation}
+  \eta\left(-k^2 + \partial_{zz}\right)\fou{\vec{\fvel}} = 
+  \begin{bmatrix}
+    i\vec{k}\\
+    \partial_z
+  \end{bmatrix}
+  \fou{p} -\fou{\vec{f}}
+\end{equation}
+
+Where the derivative of the pressure, $\partial_z\fou{p}$, can be computed via the Chebyshev coefficients of the pressure.
 \subsection*{Parallel velocity solve}
+
+
 
 \subsection*{Perpendicular velocity solve}
 
@@ -3751,11 +3803,24 @@ In sections \ref{sec:dpstokes} and \ref{sec:dppoisson} we laid out the basic \gl
 \begin{equation}
   \label{eq:bvpmain}
   \begin{aligned}
-    &y''(z)-k^2y(z)=f(z)\\
-    &y'(1)+ ky(1)=\alpha ,\qquad y'(-1)- ky(-1)=\beta.
+    &(\partial_{zz}-k^2)y(z)=f(z)\\
+    &(\partial_{z}\pm k)y(\pm 1)=
+    \begin{bmatrix}
+      \alpha\\
+      \beta
+    \end{bmatrix}
 \end{aligned}
 \end{equation}
-Where the domain is here defined in the $[-1, 1]$ range for simplicity. We can later generalize to any size via a simple change in units. In particular by defining $z = z'/H$ (with $z'\in [-H, H]$) and $k = k'H$.
+Where $\partial_z y:= \frac{\partial y}{\partial z} := y'(z)$ and $\partial_{zz} y:= \frac{\partial^2 y}{\partial z^2} := y''(z)$
+%\begin{equation}
+%  \label{eq:bvpmain}
+%  \begin{aligned}
+%    &y''(z)-k^2y(z)=f(z)\\
+%    &y'(1)+ ky(1)=\alpha ,\qquad y'(-1)- ky(-1)=\beta.
+%\end{aligned}
+% \end{equation}
+
+The domain is here defined in the $[-1, 1]$ range for simplicity. We can later generalize to any size via a simple change in units. In particular by defining $z = z'/H$ (with $z'\in [-H, H]$) and $k = k'H$.
 
 In this section we describe a generic, \gpu-friendly, spectral solver for the set of equations in \eqref{eq:bvpmain} based on the spectral integration method described in\cite{Greengard1991}.
 
