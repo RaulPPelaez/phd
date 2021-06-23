@@ -219,11 +219,35 @@ State of the art in molecular simulations.
 \cleardoublepage
 \ctparttext{Description of the UAMMD infrastructure. Importance of fundamentally GPU-driven design.}
 \part{UAMMD: Design and components}\label{pt:uammd}
-%*****************************************
-\chapter{Design principles}\label{ch:design}
-\todo{FILL}
-Open infrastructure instead of closed ecosystem. Open source. C++, header only.
-UAMMD shpould be understood not as a stand alone code, but as a library/framework.
+
+\chapter{The Fermation of subproblems}
+Consider the development of a software capable of reproducing the dynamics of an ionic solution in a cellular membrane channel. This would be a really convoluted simulation, involving electrostatics, fluctuating hydrodynamics, steric interactions, bonded ligatures, etcetera\footnote{A simulation easily handled by \uammd, by the way.}. As we will see during this manuscript, some of these algorithms are quite complex on their own, depending on a lot of moving parts. The mathematical and theoretical machinery required to model something like that appears to be in the realms of a theory of everything. It surely seems like an intractable feat!. We could still try to design, from the ground up, a software that can perform this hypothetical simulation. The result would even be somewhat flexible. For instance, we could turn off electrostatics by setting the charges of all particles to zero.
+This top-down approach is fundamentally flawed, we are trying to build the house starting by the roof and losing sight of the forest in the process. The final product will probably have a lot of internal dependencies, many of which are probably unnecesary. In software this means that the code will be hard to adapt or extend.
+We humans are not good with complex things (which is probably the reason why we call them complex) and, as it can be glimpsed throughout \uammd, my solution to this problem is often to remove the problem altogether.
+
+This approach starts by dividing the original problem into subproblems in a hierarchical fashion (see fig. \ref{fig:uammdsketch}). So instead of designing our framework with an ionic solution in a membrane channel in mind, we start at the base and then hierarchically especialize.
+We can do this by removing assumptions until we get to the root of the problem. Therefore, we do not design in terms of ``ions'', ``cells'' or ``molecules'', rather in terms of ``particles''.
+
+Of course, this is not an original idea, coming, in part, from the underlying mindset of the famous Fermi estimates by embracing the (redundant) complexity of complex fluids instead of trying to fight it.
+
+The \uammd framework takes this KISS\footnote{Keep It Simple, Sir} philosophy very seriously. It is supported on a handful of vague assumptions which can be summarize in four:
+\begin{enumerate}
+\item The code will run primarily on a \gpu (the most limiting assumption).
+\item Simulations are based on the state of ``particles'' (whatever a particle means).
+\item The state of these particles changes in time.
+\item Particles can interact between them and with an external influence.
+\end{enumerate}
+These are the four pilars depicted in fig. \ref{fig:uammdsketch}. The software framework exposes these assumptions through four foundational classes (i.e objects in programming), which are, in order; \emph{System}, \emph{ParticleData}, \emph{Integrator} and \emph{Interactor}.
+
+Excluding the first assumption, which is unrelated to physics, it is straight forward to see that our initial ionic solution simulation fits in this criteria. As a bonus, we have ended up with a basis that also describes things like ``a gas of argon atoms'', ``a group of planets orbiting a star'' or ``a virus filled with proteins exploding due to the force exerted on it by an AFM tip''\footnote{An oddly specific example describing a real study that is being carried out with \uammd at the moment of writing by a collaborator group.}.
+
+Then, we can focus on each of the last three asumptions and apply this separation again. For instance, instead of grouping all interactions (fourth assumption) into a single entity (class) that deals with all possible interactions, we can split the concept between general things like short ranged, bonded or long ranged interactions.
+
+During the following chapters, we will discuss in detail this conceptual and programmatic hierarchy and follow its branches until the leafs. This final objects will encapsulate the actual algorithms and physics in the form of separated, individual modules that will in general communicate only upwards in the hierarchy.
+
+\chapter{It's in the name}\label{ch:design}
+
+It is standard knowledge that a good software starts with a good acronym. \uammd stands for Universally Adaptable Multiscale Molecular Dynamics, lets see what each of these words stands for.
 \section{Universality}
 % Anything goes as long as it has interacting entities. One could technically implement Chess as a module.
 \begin{itemize}
@@ -234,9 +258,17 @@ UAMMD shpould be understood not as a stand alone code, but as a library/framewor
 \end{itemize}
 \section{Adaptability}
 Highly templated code and super generic interfaces.
+\begin{figure}
+  \centering
+  %\includegraphics[width=\textwidth]{landscape}
+  \includesvg{gfx/sketchUAMMD}{\columnwidth}
+  \caption{The basic hierarchy of concepts (and code) in \uammd. \emph{System} holds information about the actual physical hardware, and all the entities below rely on it to interact with the environment. \emph{ParticleData} stores all the information about the particles in the simulation, such as positions ($\vec{r}$), velocities ($\vec{v}$), mass, etc. And other properties like the current forces acting on it ($\vec{F}$), energy ($E$) or virial ($T$). The modules below it can request, at their leisure, a list with any of the particles properties. Finally, \emph{Integrators} and \emph{Interactors} are interfaces, called virtual classes in programming terms, that are in charge of, respectively, forwarding the simulation one step in time and computing the forces, energies and/or virials acting on each particle. Interfaces, drawn in red, are abstract objects that cannot be instanced on their own but rather must be inherited. For instance, Brownian Dynamics (section. \ref{sec:bd}) would be an \emph{Integrator}, while a module that computes gravitational forces would be an \emph{Interactor}.}
+  \label{fig:uammdsketch}
+\end{figure}
 
 \begin{itemize}
 \item Modular
+
 \item Open/templated (logic can come from outside)
 \item UAMMD as a library (can be used as an external tool)
 \item Explain the concept of module in \uammd. An entity that has much more internal connections than external connections.
@@ -244,6 +276,9 @@ Highly templated code and super generic interfaces.
 \item With boxes draw an skematich of a simulation (an MD box + an Interactor box gives a simulation)
 \item Include here example of createModule.
 \item Mention the System class, which gives information about the actual physical hardware.
+\item Open infrastructure instead of closed ecosystem. Open source. C++, header only.
+\item UAMMD shpould be understood not as a stand alone code, but as a library/framework.
+
 \end{itemize}
 \section{Mulstiscale}
 From atoms in vacuum to chunks of oceans and planetary dynamics.
@@ -315,7 +350,7 @@ return std::make_shared(Module(/*Whatever is needed*/));
 These examples are meant to serve both as a tutorial and an easily copy-pastable example.
 The structure \emph{UAMMD}\todo{Use the same format as in the code, so the reader can make the conection with the struct UAMMD in the code} in these examples is not part of \uammd and is meant to group the core components of a typical \uammd code. It can be defined as follows
 
-\todo{Make an appendix with basic C++ notions, like shared_ptr}
+\todo{Make an appendix with basic cpp notions, like shared\_ptr}
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
 //Additional includes when necessary
