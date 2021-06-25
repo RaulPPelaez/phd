@@ -13,7 +13,17 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \def\ucpp{uammd_cpp_lexer.py:UAMMDCppLexer -x}
 
 \usepackage[newfloat=true]{minted}
+\usepackage[framemethod=TikZ]{mdframed}
 
+\setminted[\ucpp]{ %
+  linenos=false,             % Line numbers
+  autogobble=true,          % Automatically remove common white space
+  fontsize=\small
+}
+
+\newenvironment{code}{\begin{listing}}{\end{listing}}
+\SetupFloatingEnvironment{listing}{name=Source Code}
+\surroundwithmdframed[linewidth=1pt]{minted}
 \input{classicthesis-config}
 \usepackage{amsmath}
 \usepackage{algorithm}
@@ -29,20 +39,21 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \usepackage{enumitem}
 \graphicspath{{./gfx/}}
 
-\newcommand{\executeiffilenewer}[3]{
-  \ifnum
-  \pdfstrcmp{\pdffilemoddate{#1}}{\pdffilemoddate{#2}}>0
-  {\immediate\write18{#3}}
-  \fi
-}
-\newcommand{\includesvg}[2]{
-  \executeiffilenewer{#1.svg}{#1.pdf}
-  {inkscape -D #1.svg --export-type=pdf } %  --export-latex}
-  %\def\svgwidth{#2}
-  % \input{#1.pdf_tex}
-  \includegraphics[width=#2]{#1.pdf}
-}
-
+\usepackage{svg}
+%\newcommand{\executeiffilenewer}[3]{
+%  \ifnum
+%  \pdfstrcmp{\pdffilemoddate{#1}}{\pdffilemoddate{#2}}>0
+%  {\immediate\write18{#3}}
+%  \fi
+%}
+%\newcommand{\includesvg}[2]{
+%  \executeiffilenewer{#1.svg}{#1.pdf}
+%  {inkscape -D #1.svg --export-type=pdf } %  --export-latex}
+%  %\def\svgwidth{#2}
+%  % \input{#1.pdf_tex}
+%  \includegraphics[width=#2]{#1.pdf}
+%}
+%
 \makeglossaries
 \newacronym{UAMMD}{UAMMD}{Universaly Adaptable Multiscale Molecular Dynamics}
 \newacronym{MD}{MD}{Molecular Dynamics}
@@ -152,26 +163,6 @@ Another example of this kind of simulations is the one described in \cite{fullat
 
 Recently, a new paradigm of supercomputing has arisen. The \gpu, a massively parallel copocressor. So powerful that it requires to straight-up rethink our algorithms to take advantage of it.
 \todo{continue}
-%\begin{figure}
-%  \label{fig:landscape}
-%  \centering
-%%  \begin{tikzpicture}
-%%    \begin{loglogaxis}[
-%%      width=\textwidth,
-%%      height=\axisdefaultheight,
-%%      xmin=1e-11,xmax=100,
-%%      xtick={1e-10, 10e-9, 1e-6, 1e-3, 1, 100},
-%%      xticklabels={0.1 nm, 10 nm, 1 $\mu$m, 1 mm, 1 m, 100 m},
-%%      ymin=1e-15,ymax=86400,
-%%      ytick={1e-15, 1e-12, 1e-9, 1e-6, 1e-3, 1, 3600, 86400},
-%%      yticklabels={1 fs, 1 ps, 1 ns, 1 $\mu$s, 1 ms, 1 s, 1 h, 1 day}
-%%      ]
-%%      \addplot[color=red, domain=1e-11:100 ]{1000000*x^2.5};
-%%    \end{loglogaxis}
-%%  \end{tikzpicture}
-%  \includegraphics[width=\textwidth]{landscape}
-%  \caption{A landscape of numerical techniques}
-%\end{figure}
 
 \section{The Graphical Processor Unit}
 
@@ -246,30 +237,36 @@ These are the four pilars depicted in fig. \ref{fig:uammdsketch}. The software f
 
 \begin{figure}[h]
   \centering
-  \includesvg{gfx/sketchUAMMD}{\columnwidth}
+  \includesvg[width=\columnwidth]{gfx/sketchUAMMD}
   \caption{The basic hierarchy of concepts (and code) in \uammd. \emph{System} holds information about the actual physical hardware, and all the entities below rely on it to interact with the environment. \emph{ParticleData} stores all the information about the particles in the simulation, such as positions ($\vec{r}$), velocities ($\vec{v}$), mass, etc. And other properties like the current forces acting on it ($\vec{F}$), energy ($E$) or virial ($T$). The modules below it can request, at their leisure, a list with any of the particles properties. Finally, \emph{Integrators} and \emph{Interactors} are interfaces, called virtual classes in programming terms, that are in charge of, respectively, forwarding the simulation one step in time and computing the forces, energies and/or virials acting on each particle. Interfaces, drawn in red, are abstract objects that cannot be instanced on their own but rather must be inherited. For instance, Brownian Dynamics (section. \ref{sec:bd}) would be an \emph{Integrator}, while a module that computes gravitational forces would be an \emph{Interactor}.}
   \label{fig:uammdsketch}
 \end{figure}
 
 Excluding the first assumption, which is unrelated to physics, it is straight forward to see that our initial ionic solution simulation fits in this criteria. As a bonus, we have ended up with a basis that also describes things like ``a gas of argon atoms'', ``a group of planets orbiting a star'' or ``a virus filled with proteins exploding due to the force exerted on it by an AFM tip''\footnote{An oddly specific example describing a real study that is being carried out with \uammd at the moment of writing by a collaborator group.}.
 
+At the top of the tree in fig. \ref{fig:uammdsketch} we find the \emph{System} object which takes care of setting up the computational environment for the rest of players. We discuss \emph{System} in mode detail in sec. \ref{sec:system}.
 
-Then, we can focus on each of the last three asumptions and apply this separation again. For instance, instead of grouping all interactions (fourth assumption) into a single entity (class) that deals with all possible interactions, we can split the concept between general things like short ranged, bonded or long ranged interactions. In section \ref{sec:interactions} we explore deeper along the \emph{Interactor} branch to discuss the different algorithms and programming interfaces related with particle interactions (see fig. \ref{fig:uammdsketch_interactors}.
+The second assumption is represented in the code base via the \emph{ParticleData} object, which we discuss in \ref{sec:dynmol}.
+
+Then, we can focus on each of the last two asumptions and apply this separation again. For instance, instead of grouping all interactions (fourth assumption) into a single entity (class) that deals with all possible interactions, we can split the concept between general things like short ranged, bonded or long ranged interactions. In section \ref{sec:interactions} we explore deeper along the \emph{Interactor} branch to discuss the different algorithms and programming interfaces related with particle interactions (see fig. \ref{fig:uammdsketch_interactors}.
 
 Similarly, in section \ref{sec:dynamics} we break down the \emph{Integrator} branch (bottom left of fig. \ref{fig:uammdsketch}) into the several ways the state of the particles can evolve (see fig. \ref{fig:uammdsketch_integrators}).
 
 During the following chapters, we will discuss in detail this conceptual and programmatic hierarchy and follow its branches until the leafs. This final objects will encapsulate the actual algorithms and physics in the form of isolated, individual modules. In general, these modules will communicate only via the closed loop described by \emph{ParticleData}-\emph{Integrator}-\emph{Interactor} in fig. \ref{fig:uammdsketch}.
 
+One of the main unwritten lessons we will glimpse at while descending the tree is that it is never a good idea to introduce dependencies that climb up through the tree. This is what makes \uammd so modular and extensible. Just to give some examples of this:
 \begin{itemize}
-\item Nunca es buena idea que las asunciones se introduzcan en el sentido contrario a las flechas. Por ejemplo, si FCM fuerza un cambio en Integrator, esto tiene consecuencias en MD, NVT, PSE,... En tu caso, FCM ha introducido una dependencia conceptual llamada "torque" sobre IBM (en particular con una funcion que hace cross(kern, quantity) en vez de quantity*kern).
-
-En otras palabras, la complejidad conceptual y lo específicos que son los problemas que resuelves tienen que crecer siempre hacia abajo en esta pirámide, no hacia arriba.
-
-El mensaje es que si tocas IBM, debería ser para generalizarlo, no para hacerlo más específico. Por ejemplo, si decidimos que merece la pena hacer así el spreading del torque, podemos generalizar el módulo para que la aportación de la particula i en la celda j no sea simplemente kern*quantity, si no compute(kernx, kerny, kernz, quantityi). Para que puedas hacer cross(kern, quantity) en vez de kern*quantity. Y pondríamos que por defecto compute sea kernx*kerny*kernz*quantityi (lo que está ahora).
+\item A neighbour list should not assume it is going to be used to
+  compute the forces of a group of repulsive particles.
+\item The existence
+  of an hydrodynamics integrator module should not incur in the
+  modification of the \emph{Integrator} interface.
 \end{itemize}
+In other words, conceptual complexity and problem specificity should increase only downwards through the tree. This forces us as developers to modify a certain module only to generalize it, and never to especialize it. If a module appears to require being especialized, it is almost always a sign that either it should be actually generalized or exist as a separate entity beneath the initial one. See figures \ref{fig:uammdsketch_interactors} or \ref{fig:uammdsketch_integrators}, the next lower branches.
+
 \chapter{It's in the name}\label{ch:design}
 
-It is common knowledge that a good software starts with a good acronym. \uammd stands for Universally Adaptable Multiscale Molecular Dynamics in an attempt to abridge the simple-yet-powerful four assumptions in the previous chapter\footnote{Naturally, the fact that the acronym for the Universidad Autonoma de Madrid is there is merely a coincidence}. Each of the words carries describes a different aspect of the framework's philosophy. In this chapter, we will discuss each of them.
+It is common knowledge that a good software starts with a good acronym. \uammd stands for Universally Adaptable Multiscale Molecular Dynamics in an attempt to abridge the simple-yet-powerful four assumptions in the previous chapter\footnote{Naturally, the fact that the acronym for the Universidad Autonoma de Madrid is there is merely a coincidence}. Each of the words carries a different aspect of the framework's philosophy. In this chapter, we will discuss each of them.
 \section{Universality}
 
 Complex fluids are one of the prime examples of a multiphysics system. As such, multiphysics are deeply ingrained part of \uammd. Our framework can potentially take into account physical phenomena emerging from fields like electrostatics, thermodynamics, hydrodynamics and more.
@@ -286,7 +283,7 @@ Note, however, that quantum physics have not been mentioned yet and, although ou
 \begin{figure}[h]
   \centering
   %\includegraphics[width=\textwidth]{landscape}
-  \includesvg{gfx/modular}{0.8\columnwidth}
+  \includesvg[width=0.8\columnwidth]{gfx/modular}
   \caption{A simulation is constructed by putting together several modules. In this instance, the simulation of a virus submerged in water could be constructed by joining an hydrodynamics \emph{Integrator} module with several \emph{Interactors} describing the interactions between particles, such as sterics, bonds, electrostatics,...}
   \label{fig:modular}
 \end{figure}
@@ -298,20 +295,57 @@ On the other hand, this makes \uammd extremely adaptable, since new modules can 
 
 This does not imply that each module should exist in a completely isolated environment, since a plethora of utilities are available in \uammd to aid with the typical problems that arise in complex fluids. For instace, a module in need of a neighbour list does not need to write one, rather can simply make use of one of the already implemented ones (see chapter \ref{sec:nlist}).
 
-Adaptability also means that, when it makes sense, a module can be specialized from the outside. For instance, the \emph{Interactor} that computes bonded forces (particles joined by springs or similar ligatures) is not specific to a particular potential. As users, we can specialize it, via the use of C++ templates, to work with a harmonic\cite{harmonic}, FENE\cite{fene}, Morse\cite{morse}, or an arbitrarily complex potential.
+Adaptability also means that, when it makes sense, a module can be specialized from the outside. For instance, the \emph{Interactor} module that computes bonded forces (particles joined by springs or similar ligatures) is not specific to a particular potential. As users, we can specialize it, via the use of C++ templates, to work with a harmonic\cite{harmonic}, FENE\cite{fene}, Morse\cite{morse}, or an arbitrarily complex potential.
 
-The use of metaprogramming (in the C++ sense) reaches every corner of the code base, in many cases allowing customize (or hack) an utility or module beyond its intended scope without having to modify a single line of it.
+The use of metaprogramming (in the C++ sense) reaches every corner of the code base, in many cases allowing to customize (or hack) an utility or module beyond its intended scope without having to modify a single line of it.
 
 \uammd is presented as a CUDA/C++ header-only library and it is mostly self-contained in terms of dependencies. The use of the word library is not chosen lightly here. We have discussed how an \emph{Integrator} is joined with a collection of \emph{Interactors}, maybe suggesting that the latter cannot function without the former. This is not the case since our framework provides a completely open ecosystem, facilitating (and actually encouraging) the incorporation of \uammd modules outside their \emph{normal} environment.
 All the utilities in \uammd, including \emph{Interactors}, \emph{Integrators}, neighbour lists, linear solvers and many more\todo{Maybe include here an actual list of things like nlists, ibm, fft, bvp solver,... it is quite the long list...} can be used in an isolated way from ouside the code base. This means that parts of \uammd can be used as accelerators in already stablished codes. For instance, an already written simulation code can include one of our fast \gpu hydrodynamics implementations into their description with just a few lines of code.
 
 In the past, we have explored this facet of the project by providing to collaborators some of our utilities and solvers as stand alone Python interfaces.
 
-\begin{itemize}
-\item Include here example of createModule.
-\item Mention the System class, which gives information about the actual physical hardware.
-\end{itemize}
-\section{Mulstiscale}
+The modularity of \uammd is reflected directly in the code, where modules can be created independently of each other as in the example below.
+Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Interactor} (short range, bonded,...), all modules in \uammd can be created and stored as individual shared pointers\footnote{A C++ specific kind of reference. See Appendix \ref{sec:cpp} for basic notions of C++.}. For instance, throughout this manuscript, we will typically create a module named ``Module'' using the following piece of code
+\begin{code}
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+//Additional includes when necessary
+//A module named "Module" is created and returned.
+auto createModule(UAMMD sim){
+  //Some parameter preparations...
+  return std::make_shared(Module(/*Required parameters*/));
+}
+\end{minted}
+  \label{code:module}
+  \caption{Template code for the creation of a module.}
+\end{code}
+Where ``Module'' will be called, for instance, \emph{VerletNVE} if it is \gls{MD} \emph{Integrator} (see sec. \ref{sec:velocityverlet}) or \emph{BondedForces} if it is a ligature \emph{Interactor} (see sec. \ref{sec:bonds}).
+
+The argument of this function, of type \emph{UAMMD}, is simply an aggregate (a \emph{struct} in C++) of recurrent parameters. In particular, this structure can be defined as follows
+\begin{code}
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+//This line allows to ommit writting "uammd::"
+// when accessing an uammd-specific type,
+// such as real or ParticleData.
+using namespace uammd; 
+//An aggregate of parameters required 
+// by the relevant modules in the code
+struct Parameters{
+  //real dt;
+  //...
+};
+struct UAMMD{
+  std::shared_ptr<ParticleData> pd;
+  Parameters par;
+};
+\end{minted}
+  \caption{Definition of the UAMMD auxiliar structure created for this manuscript.}
+  \label{code:uammdstruct}
+\end{code}
+The \emph{ParticleData} object here, which is the direct expression in code of the second assumption, will be described in detail in sec. \ref{sec:particledata}.
+
+\section{Multiscale}
 From atoms in vacuum to chunks of oceans and planetary dynamics.
 \begin{figure}[h]
   \centering
@@ -321,15 +355,54 @@ From atoms in vacuum to chunks of oceans and planetary dynamics.
 \begin{itemize}
 \item Overview of going from few atoms to an ocean. w or w/o Fluctuatinos, implicit or explicit solvent... All the scales
 \end{itemize}
-\section{Molecular Dynamics}
-Thus far we have used the term ``particle'' without explicitly defining it. We interpret a particle as an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...). In this sense, the term molecular dynamics is not refered to the numerical simulation technique (described in sec. \ref{sec:md}) rather should be interpreted as in dynamics-of-molecules, or more appropriately, particles.
+\section{Molecular Dynamics}\label{sec:dynmol}
+Thus far we have used the term ``particle'' without explicitly defining it. We interpret a particle as an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...). In this sense, the term molecular dynamics is not refered to the numerical simulation technique (described in sec. \ref{sec:md}) rather should be interpreted as \emph{dynamics-of-molecules}, or more appropriately, particles.
 
-In \uammd particles are the relevant simulation entity. When a fluid is present (either implicit or explicitly) it is only as a medium to move the particles. As such, \emph{Integrators} move the particles that interact via \emph{Interactors}.
+In \uammd particles are the relevant simulation entity. When a fluid is present (either implicit or explicitly) it is only as a medium to move the particles. As such, \emph{Integrators} evolve the particles dynamics that interact via \emph{Interactors}. However, our loose description of a particle allows asigning to them any kind of properties. For instance, in the simulation of an ideal gas of atoms, desribing the positions, velocities and masses of the atoms might be enough. But in a more sophisticated situation, like a solution of charged colloidal particles, we can include forces, energies, charges, torques, angular velocities, radius, etc.
+
+Adding new particle properties in \uammd amounts to include them in a special list (in the source code \emph{ParticleData.cuh}, to be precise). It is worth to describe the \emph{ParticleData} class in more detail here.
+
+\subsection{ParticleData}\label{sec:particledata}
+\uammd is a \gpu centric software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu.
+
+\emph{ParticleData} attempts to mitigate this by handling this memory space internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and an usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up to date reference to the data in the correct memory space.
+
+In C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see sec. \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the code crashing.
+
+\begin{code}
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+using namespace uammd; 
+int main(){
+  //Creation requires a number of particles
+  int numberParticles = 1e6;
+  auto pd = std::make_shared<ParticleData>(numberParticles);
+  //An arbitrary particle index
+  int someIndex = rand()%numberParticles;
+  //A handle to any existing 
+  // property can be requested like this
+  auto positions = pd->getPos(access::cpu, access::write);
+  //The fourth element of the position represents a "type"
+  // and it is largely ignored by uammd
+  positions[someIndex] = {1,2,3,0}; //Legal access
+  auto masses = pd->getMass(access::gpu, access::write);
+  //Illegal access, not a GPU function!
+  masses[someIndex] = 1.0;
+  auto charges = pd->getCharge(access::cpu, access::read);
+  //Illegal access, intended for reading!
+  charges[someIndex] = -1.0;
+  return 0;
+}
+\end{minted}
+  \caption{Creating an using an instance of \emph{ParticleData}.}
+  \label{code:pd}
+\end{code}
+
+When requesting a handle to a property from \emph{ParticleData} with the intention of writing, the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData} issued handles (for example as members of a class), requesting them just before use and destroying when they are no longer needed.
 
 
-\begin{itemize}
-\item ParticleData, basic properties of a particle (pos, vel, mass...) others can be added.
-\end{itemize}
+
+
 
 
 %\chapter{Core Components}\label{ch:core}
@@ -340,20 +413,7 @@ In \uammd particles are the relevant simulation entity. When a fluid is present 
 %\todo{FILL}
 %\section{ParticleGroup} 
 %
-%\todo{FILL}
-%
-
-%\chapter{Algorithms}\label{ch:algorithms}
-%Algorithms in the basic \gls{UAMMD} infrastructure. 
-%\section{Cell List}
-%No need to really construct a neighbour list, reference  to Transverser
-%\section{Verlet List}
-%mostly obsolete thanks to cell list
-%\section{Bonded Forces}
-%Bonded Forces as a kind of neighbour list
-%\section{IBM}\label{ch:ibm}
-%Change to something more meaningful that conveys spreading+interpolation
-%
+%\todo{FILL}%
 
 %\chapter{Interfaces}\label{ch:interfaces}
 %This stuff should go organically in the text
@@ -366,105 +426,87 @@ In \uammd particles are the relevant simulation entity. When a fluid is present 
 %An interface to communicate changes in parameters
 %
 
-\chapter{Usage examples throughout this document}\label{sec:uammd_struct}
-Every time an algorithm available in \uammd is presented it will be acompanied by a section describing how to use it in the codebase.
-Often this will consist of a function creating and returning an instance of the related module in the following form
+%\chapter{Usage examples throughout this document}\label{sec:uammd_struct}
+%Every time an algorithm available in \uammd is presented it will be acompanied by a section describing how to use it in the codebase.
+%Often this will consist of a function creating and returning an instance of the related module in the following form
+%
+%
+%These examples are meant to serve both as a tutorial and an easily copy-pastable example.
+%The structure \emph{UAMMD}\todo{Use the same format as in the code, so the reader can make the conection with the struct UAMMD in the code} in these examples is not part of \uammd and is meant to group the core components of a typical \uammd code. It can be defined as follows
+%
+%\todo{Make an appendix with basic cpp notions, like shared\_ptr}
+%\begin{minted}{\ucpp}
+%#include<uammd.cuh>
+%//Additional includes when necessary
+%using namespace uammd;
+%//An aggregate of parameters required by the relevant modules in the code
+%struct Parameters{
+%  //real dt;
+%  //...
+%};
+%struct UAMMD{
+%  std::shared_ptr<ParticleData> pd;
+%  std::shared_ptr<ParticleGroup> pg;
+%  Parameters par;
+%};
+%
+%//A function creating an instance of the UAMMD structure
+%UAMMD initializeUAMMD(){
+%  UAMMD sim;
+%  Parameters par;
+%  //Fill out parameters somehow
+%  //par.dt = 0.1;
+%  sim.par = par;
+%  //Set the number of particles some how.
+%  int numberParticles = 1e6;
+%  sim.pd  = std::make_shared<ParticleData>(numberParticles);
+%  //A group with all the particles.
+%  sim.pg = std::make_shared<ParticleGroup>(pd, "All");
+%  return sim;
+%}
+%\end{minted}
 
-
-\begin{minted}{\ucpp}
-#include<uammd.cuh>
-//Additional includes when necessary
-using namespace uammd;
-auto createModule(UAMMD sim){
-//Some preparation...
-return std::make_shared(Module(/*Whatever is needed*/));
-}
-\end{minted}
-
-These examples are meant to serve both as a tutorial and an easily copy-pastable example.
-The structure \emph{UAMMD}\todo{Use the same format as in the code, so the reader can make the conection with the struct UAMMD in the code} in these examples is not part of \uammd and is meant to group the core components of a typical \uammd code. It can be defined as follows
-
-\todo{Make an appendix with basic cpp notions, like shared\_ptr}
-\begin{minted}{\ucpp}
-#include<uammd.cuh>
-//Additional includes when necessary
-using namespace uammd;
-//An aggregate of parameters required by the relevant modules in the code
-struct Parameters{
-  //real dt;
-  //...
-};
-struct UAMMD{
-  std::shared_ptr<System> sys;
-  std::shared_ptr<ParticleData> pd;
-  std::shared_ptr<ParticleGroup> pg;
-  Parameters par;
-};
-
-//A function creating an instance of the UAMMD structure
-UAMMD initializeUAMMD(){
-  UAMMD sim;
-  Parameters par;
-  //Fill out parameters somehow
-  //par.dt = 0.1;
-  sim.par = par;
-  sim.sys = std::make_shared<System>();
-  //Set the number of particles some how.
-  int numberParticles = 1e6;
-  sim.pd  = std::make_shared<ParticleData>(sys, numberParticles);
-  //A group with all the particles.
-  sim.pg = std::make_shared<ParticleGroup>(pg, sys, "All");
-  return sim;
-}
-\end{minted}
-
-\section{Error handling in UAMMD}\label{sec:uammd_errors}
-Errors are communicated via C++ exceptions.
-
-Examples
-
-\todo{FILL}
-
-\section{Basic concepts of GPU programming}
-\todo{FILL}
-Things to explain here:
-
-Different memories; Separation between CPU and GPU RAM, global memory, register memory, shared memory, constant memory.
+%\todo{If at all, this should go to an Appendix}
+%\section{Error handling in UAMMD}\label{sec:uammd_errors}
+%Errors are communicated via C++ exceptions.
+%
+%Examples
 
 \part{A voyage through numerical space-time}
 
 Let us go through the different numerical techniques that are used to simulate the different sections of the spatio-temporal landscape.
 
-\begin{figure}
+\begin{figure}[h]
   \centering
-  %\includegraphics[width=\textwidth]{landscape}
-  \includesvg{gfx/scales}{\columnwidth}
+  \includesvg[width=\columnwidth]{gfx/scales}
   \caption{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales invovled in a biological system or, in general, a complex fluid. Zooming in from the bottom-left we have the blood inside a section of a vein, the plasmic environment in a small drop of blood (where cells, platelettes, viruses, etc are present), a virus, a single protein and finally the individual atoms that compose it along the surrounding fluid particles (water).}
   \label{fig:sptime-land}
 \end{figure}
-% \todo{RAFA, te he fusilado esta img que me gusta mucho. Me gustaria rehacerla solo con lo que me interesa, pero me esta costando encontrar referencias}
-\todo{Fusilarle la figura de la multiscala a Rafa}
+
 
 We can distinguish between two families of numerical techniques, particle and grid based methods. The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
 In some way or another, all algorithms have to take into account interactions between particles.
 
-\chapter{Working with particles}
-Let us interpret the word \emph{particle} as a relatively small discrete portion in a simulation. This is a vage definition on porpuse, since from an algorithmic point of view it does not really matter what a particle represents. Sometimes a particle will be an atom or molecule, other times it will make more sense that our simulation unit is a big colloid, a virus or a whole sun.\todo{This paragraph should go to the Design principles-> molecular dynamics section}
+In chapter \ref{ch:design} we discussed the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned to specialized it in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch. In particular, we start with the case of all particles interacting with every other in chapter \ref{sec:nbody}. Then we discuss the optimization opportunities that arise when this interaction has a short range (compared to the typical particle size) in chapter \ref{sec:shortrange}. After that we explore the case of particles being joined by spring-like ligatures (be it in pairs, triplets, cuadruplets, etc) in chapter \ref{sec:bonded}. Finally, in chapter \ref{sec:external} we briefly discuss the simple case of particles interacting with an unespecified external influence that does not depend on the rest of the particles.
+\begin{figure}[h]
+  \centering
+  \includesvg[width=\columnwidth]{gfx/sketchUAMMD_interactors}
+  \caption{The next level in the \emph{Interactor} branch of the tree presented at fig. \ref{fig:uammdsketch}. Names in blue represent \uammd modules that can be espacialized with outside logic. For instance, the bonded interactions module is general to any arbitrarily complex potential, which can be provided to the module via the use of metaprogramming.}
+  \label{fig:uammdsketch_interactors}
+\end{figure}
+
+\todo{Maybe reference to the different chapters in fig. \ref{fig:uammdsketch_interactors}?}
+The Poisson leaf in fig. \ref{fig:uammdsketch_interactors} deals with electrostatics and involves a series of numerical techniques that will not be discussed until much later in this manuscript. Thus, we simply mention it here and defer its description to chapter \ref{ch:tppoisson}.
+
+\chapter{Particle interactions}\label{sec:interactions}
+
+One of the motivations of our vague definition of particles is that often, from an algorithmic point of view, it does not really matter what a particle represents. Sometimes a particle will be an atom or molecule, other times it will make more sense that our simulation unit is a big colloid, a virus or a whole star.
+
 The important thing about particles is that when several of them are present, they more than often have a certain effect on each other.
 Stars in a galaxy attract each other over an infinetely long range of space, while two argon atoms will repell each other at close range.
 Even if particles are somehow oblivious to each other, they might interact with some other thing, like fluid particles being repelled by a wall.
 Each kind of interaction requires a different approach, and figuring out how to efficiently compute it in a \gpu is a field on itself. 
 In this chapter we will see some of the strategies that can be employed and how they are implemented in \uammd.
-
-\chapter{Particle interactions}\label{sec:interactions}
-
-\begin{figure}
-  \centering
-  %\includegraphics[width=\textwidth]{landscape}
-  \includesvg{gfx/sketchUAMMD_interactors}{\columnwidth}
-  \caption{The next level in the \emph{Interactor} branch of the tree presented at fig. \ref{fig:uammdsketch}.}
-  \label{fig:uammdsketch_interactors}
-\end{figure}
 
 
 
@@ -472,30 +514,38 @@ Let us see how \uammd deals with interactions by introducing the \emph{Interacto
 
 \section{The Interactor interface} \label{sec:interactor}
 
-Interactor encapsulates the concept of a group of particles interacting, either with each other or with some external influence.
-An Interactor can be issued to compute, for each particle, the forces, energies and/or virial due to a certain interaction.
-To do so it can access the current state of the particles (like positions, velocities, etc).
-A minimal example of an Interactor
-
+\emph{Interactor} encapsulates the concept of a group of particles interacting, either with each other or with some external influence.
+An \emph{Interactor} can be issued to compute, for each particle, the forces, energies and/or virial due to a certain interaction.
+To do so it can access the current state of the particles (like positions, velocities, etc) via \emph{ParticleData}.
+A minimal example of an Interactor can be found in code \ref{code:interactor}.
+\begin{code}
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Interactor/Interactor.cuh>
 using namespace uammd;
 
 //A class that needs to behave as 
-//an UAMMD Interactor must inherit from it
+// an UAMMD Interactor must inherit from it
 class MyInteractor: public Interactor{
 public:
-  MyInteractor(shared_ptr<ParticleData> pd,
-               shared_ptr<ParticleGroup> pg,
-               shared_ptr<System> sys):
-          Interactor(pd, pg, sys, "MyInteractor"){
+  MyInteractor(std::shared_ptr<ParticleData> pd):
+          Interactor(pd, "MyInteractor"){
     //Any required initialization 
   }
 
-  virtual void sum(Computables comp, cudaStream_t st){
+  //An Interactor can be issued, mainly
+  // by Integrators, to sum
+  // forces, energies and/or virial
+  // on the particles
+  virtual void sum(Computables comp, 
+                   cudaStream_t st) override{
     if(comp.force){
       //Sum forces to each particle
+      //For instance, adding a force to the x coordinate
+      // of the first particle
+      auto forces = pd->getForces(access::cpu,
+                                  access::write);
+      forces[0].x += 1;
     }
     if(comp.energy){
       //Sum energies to each particle
@@ -506,138 +556,16 @@ public:
   }
 };
 \end{minted}
-\todo{Mention Computables}
-See chapter \ref{ch:core} for information about how to access particle properties and using particle groups.
+  \caption{The basic outline of a new \emph{Interactor}. A lot of advanced functionality has been omitted here for simplicity, refer to Appendix \ref{ch:online} for more information.}
+  \label{code:interactor}
+\end{code}
 
-\uammd offers a series of \emph{Interactors} (discused in the following sections) sometimes exposing a general algorithm that can be specialized (like \emph{PairForces} for particle pair interactions, see sec. \ref{sec:pairforces}) and others exposing particular potentials (like \emph{SpectralEwaldPoisson} for electrostatics, see sec. \ref{sec:tppoisson}).
+The \emph{Computables} type in the \emph{sum} function simply contains a list of boolean values describing the needs of the caller (which will typically be an \emph{Integrator}). As of today, an \emph{Interactor} can be asked to compute only forces, energies and or virials acting on the particles. The \emph{Computables} structure exists also to facilitate the future inclusion of additional quantities to the \emph{Interactor} responsibilities.
 
-It is also worth introducing here two other interfaces that \uammd uses to work with particles, \emph{Transverser} and \emph{Potential}.\todo{These should go when they are needed, after explaining some force module}
-\todo{Transverser should go to an Appendix}
-\section{The Transverser Interface} \label{sec:transverser} 
-A Transverser is a concept that refers to the action of going through each element of something.  
+See chapter \ref{sec:pd} for more information about how to access particle properties.
 
-For example, for each particle, we want to perform some computation for particles that are closer than a certain distance in a custom way. Or more generally, we want to perform some kind of operation equivalent to a matrix-vector multiplication, for which in order to compute one element of the result, the vector needs to go through a row of the matrix.
-In these cases, a Transverser is used.
+%\uammd offers a series of \emph{Interactors} (discused in the following sections) sometimes exposing a general algorithm that can be specialized (like \emph{PairForces} for particle pair interactions, see sec. \ref{sec:pairforces}) and others exposing particular potentials (like \emph{SpectralEwaldPoisson} for electrostatics, see sec. \ref{sec:tppoisson}).
 
-A Transverser holds information about what to do with a pair of particles, what information is needed to compute this interaction, or what to do when a particle has interacted with all pairs it is involved in.  
-
-Being such a general concept, a \emph{Transverser} is used as a template argument, and therefore cannot be a base virtual class that can be inherited. This is why it is a "concept". No assumption can be made about the return types of each function, or the input parameters, the only things general are the function names.  
-
-For each particle to be processed the \emph{Transverser} will be called for: \todo{Draw this in a skematik}
-\begin{itemize}
-\item Setting the initial value of the interaction result (function \emph{zero})
-\item Fetching the necesary data to process a pair of particles  (function \emph{getInfo})
-\item Compute the interaction between the particle  and each of its neighbours (function \emph{compute})
-\item Accumulate/reduce  the result for each neighbour (function \emph{accumulate})
-\item  Set/write/handle the accumulated result for all neighbours (function \emph{set})
- \end{itemize}
-The same Transverser instance will be used to process every particle in an arbitrary order. Therefore, the Transverser must not assume it is bound to a specific particle.
-
-The \emph{Transverser} interface requires a given class/struct to provide the following public device (unless prepare that must be a host function) member functions:
-
-\begin{itemize}
-\item \mintinline[breaklines]{\ucpp}{Compute compute(real4 position_i, real4 position_j,Info info_i, Info info_j);}
-
-  
-  For a pair of particles
-  characterized by position and info this function must return the
-  result of the interaction for that pair of particles. The last
-  two arguments must be present only when \emph{getInfo} is defined.The
-  returning type, \emph{Compute}, must be a POD type (just an aggregate of
-  plain types), for example a real when computing energy.
-
-\item \mintinline{\ucpp}{void set(int particle_index, Compute &total);}
-
-  
-   After calling compute for all neighbours this function will be called with the contents of "total" after the last call to "accumulate".
-   Can be used to, for example, write the final result to main memory.
-
- \item \mintinline{\ucpp}{Compute zero();}
-
-   
-   This function returns the initial value of the computation, for example {0,0,0} when computing the force. 
-   The returning type, \emph{Compute}, must be a POD type (just an aggregate of plain types), for example a real when computing energy. Furthemore it must be the same type returned by the "compute" member.
-   This function is optional and defaults to zero initialization (it will return Compute() which works even for POD types).
-    
- \item \mintinline{\ucpp}{Info getInfo(int particle_index);}
-
-   
-   Will be called for each particle to be processed and returns the per-particle data necessary for the interaction with another particle (except the position which is always available). For example the mass in a gravitational interaction or the particle index for some custom interaction.
-   The returning type, Info, must be a POD type (just an aggregate of plain types), for example a real for gravitation.
-   This function is optional and if not present it is assumed the only per-particle data required is the position. 
-   In this case the function "compute" must only have the first two arguments.
-
- \item \mintinline{\ucpp}{void accumulate(Compute &total, const Compute &current);}
-
-   
-  This function will be called after "compute" for each neighbour with its result and the accumulated result.
-  It is expected that this function modifies "total" as necessary given the new data in "current".
-  The first time it is called "total" will be have the value as given by the "zero" function.
-  This function is optional and defaults to summation: total = total + current. Notice that this will fail for non trivial types.
-     
-\item \mintinline{\ucpp}{void prepare(std::shared_ptr<ParticleData> pd);}
-
-  
-  This function will be called one time in the CPU side just before processing the particles.
-  This function is optional and defaults to simply nothing.
- \end{itemize}
-
-Lets see a trivial example.
-This \emph{Transverser} can be used with a neighbour list to count the number of neighbours of each particle:
-\begin{listing}
-\begin{minted}{\ucpp}
-struct NeighbourCounter{
-  int *nneigh;
-  real rc;
-  Box box;
-  NeighbourCounter(Box i_box, real i_rc,int *nneigh):
-    rc(i_rc),box(i_box),
-    nneigh(nneigh){}
-
-  //There is no "zero" function so the total result starts being 0.
-  
-  //For each pair computes counts a neighbour 
-  //if the particle is closer than rcut
-  __device__ int compute(real4 pi, real4 pj){
-    const real3 rij = box.apply_pbc(make_real3(pj)-make_real3(pi));
-    const real r2 = dot(rij, rij);
-    if(r2>0 and r2< rc*rc){
-      return 1;
-    }
-    return 0;
-  }
-  //There is no "accumulate"
-  // the result of "compute" is added every time.
-  //The "set" function will be called with the accumulation
-  // of the result of "compute" for all neighbours. 
-  __device__ void set(int index, int total){
-    nneigh[index] = total;
-  }
-};
-\end{minted}
-\caption{A \emph{Transverser} that counts the number of neighbours of each particle}
-\label{code:ncounter}
-\end{listing}
-In the following sections, we will see how to use \emph{Transversers} to compute forces, energies and more between particles.
-But in order to do that, we need yet another interface in order connecting the general concept of a \emph{Transverser} with something that computes forces, energies or virial of an interaction. In \uammd, we use the \emph{Potential} interface for that.
-
-\section{The Potential Interface} \label{sec:potential}
-
-This interface is just a connection between the \emph{Transverser} and \emph{Interactor} concepts. Additionally, \emph{Potential} aids with one limitation of the CUDA programming language and \gls{GPU} programming in general. On one hand, register memory in a \gpu is quite limited, so it is not a good idea to use large objects in a kernel. On the other hand there are some technical details that prevents certain objects from existing in a \gpu kernel. For example, objects are passed by value to a kernel, which can incurr in undesired copies and/or destructors being called. Thus, its some times worth it to make a conceptual and programmatic separation between CPU and \gpu objects.
-In this regard, \emph{Transversers} are \gpu objects, while \emph{Interactors} or \emph{Potentials} are meant to be used in the CPU.
-Furthermore, while \emph{Transverser} describes a very general computation, \emph{Potential} only holds the logic on how to compute forces, energies and/or virials.
-\emph{Potential} serves as a way to serve \emph{Transversers} to \emph{Interactors}.
-
-\todo{DESCRIBE INTERFACE}
-
-We are now ready to start exploring the different types of particle interactions, mainly:
-\begin{itemize}
-\item Long range interactions
-\item Short range interactions
-\item Bonded interactions
-\end{itemize}
-
-Let us go through each of them and describe the different algorithms used to solve each case and how \uammd exposes them.
 
 
 \section{Periodic Boundary Conditions} \todo{This goes in a section called Domain in UAMMD. Explain periodic vs open etc.}
@@ -655,7 +583,7 @@ Numerically we can express this algorithm as follows:
 We can also use this algorithm to get the minimum distance between two points, so particles near opposite walls interact.
 \subsection*{Use in UAMMD}
 In \uammd, \gls{MIC} can be accesed via the \emph{Box} class.
-\begin{listing}[H]
+\begin{code}[H]
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
 using namespace uammd;
@@ -671,13 +599,13 @@ int main(){
 \end{minted}
 \caption{Using the Box class.}
 \label{code:box}
-\end{listing}
+\end{code}
 In \uammd the \emph{Box} object handles the domain details, including \gls{PBC}.
 \todo{code example}
 
 
 
-\chapter{Long range interactions}
+\chapter{Long range interactions}\label{sec:nbody}
 Say we are set to simulate a galaxy, so far away from others that it can be safely assumed their action is negligible. Say we want to simulate the dynamics of each of the $N$ stars in this galaxy. Gravity is the dominating interaction between each star, sadly it decays slowly enough to be considered an infinitely ranged one. The gravity potential can be written as follows
 \begin{equation}
   \label{eq:gravity}
@@ -733,231 +661,52 @@ The algorithm is summarized in algorithm \ref{alg:nbody}-
 Note that the computation as described here is not restricted to computing forces or energies between particles, it might be used for widely different computations that can be encoded as an nbody operation.
 \uammd acknowledges this generality via the \emph{Transverser} interface (see sec. \ref{sec:transverser}), that can be used to specialize these algorithms. 
 \subsection*{Use in UAMMD}
-There are three ways to access this algorithm depending on the final usage.
-The first is to use it to process a \emph{Transverser} acting on a group of particles:
+There are three ways to access this algorithm depending on the usage:
+\begin{enumerate}
+\item Processing a group of particles using a \emph{Transverser} outside the \uammd ecosystem (without \emph{ParticleData}).
+\item Applying a \emph{Transverser} to the particles in \emph{ParticleData}.
+\item As an \emph{Interactor} to compute forces, energies and/or virials. This is done by providing the \emph{PairForces} module with a  \emph{Potential} with an infinite cut off distance. We will come back to \emph{PairForces} in the chapter for short ranged interactions, as it can also work with short ranged potentials.
+\end{enumerate}
+The \emph{Transverser} and \emph{Potential} interfaces are described in detail in Appendix \ref{ch:transverser}.
+An example of each one is available in code \ref{code:nbody}.
+\begin{code}
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
-#include<Interactor/NBody.cuh>
 using namespace uammd;
-//For each particle, applies a Transverser with all other particles.
-template<class Transverser>
-void tranverseWithNBody(UAMMD sim, Transverser tr){
-  NBody nb(sim.pd, sim.pg, sim.sys);
-  //Optionally, the function can run on a cuda stream
-  cudaStream_t st = 0;
-  nb.transverse(tr, st);
-}
-\end{minted}
-\todo{Mention the NeighbourCountar examples, gives N for every particle}
-The next one is to use it as an \emph{Interactor} to compute forces, energies and/or virials. This is done by providing the \emph{PairForces} module with a \emph{Potential} with an infinite cut off distance.
-\begin{minted}{\ucpp}
-#include<uammd.cuh>
-#include<Interactor/PairForces.cuh>
-using namespace uammd;
-template<class Potential>
-auto createLongRangedForcesWithPotential(UAMMD sim, Potential tr){
-  using PairForces = PairForces<Potential>;
-  return std::make_shared<PairForces> pf(sim.pd, sim.pg, sim.sys, potential);
-}
-\end{minted}
-We will come back to \emph{PairForces} in the following chapters, as it can also work with short ranged potentials.
-Finally, we can access \emph{NBody} outside the \uammd ecosystem (without \emph{ParticleData}, \emph{System}, etc).
-\begin{minted}{\ucpp}
-#include<uammd.cuh>
+
 #include<Interactor/NBodyBase.cuh>
-using namespace uammd;
 template<class Transverser>
-void transverseWithoutUAMMD(real4* positions, int numberParticles,
+void transverseWithoutUAMMD(real4* gpupositions, 
+                            int numberParticles,
                             Transverser tr){
   NBodyBase nb;
-  //Optionally, the function can run on a cuda stream
-  cudaStream_t st = 0;
-  nb.transverse(positions, tr, numberParticles, st);
+  nb.transverse(gpupositions, tr, numberParticles);
+}
+
+#include<Interactor/NBody.cuh>
+//For each particle, applies a Transverser
+// with all other particles.
+template<class Transverser>
+void tranverseWithNBody(UAMMD sim, Transverser tr){
+  NBody nb(sim.pd);
+  nb.transverse(tr, st);
+}
+
+#include<Interactor/PairForces.cuh>
+template<class Potential>
+auto createPairForcesWithPotential(UAMMD sim, Potential tr){
+  using PF = PairForces<Potential>;
+  return std::make_shared<PF> pf(sim.pd, potential);
 }
 \end{minted}
+  \caption{Usage examples of the three different ways the NBody algorithm is exposed in \uammd. The \emph{Transverser} and \emph{Potential} interfaces are described in Appendix \ref{ch:transverser}.}
+  \label{code:nbody}
+\end{code}
+If the \emph{NeighbourCounter} example given in Appendix \ref{ch:transverser} is given as a \emph{Transverser}, the number of particles will be stored in the result of each particle.
 
 
-Long range interactions in a periodic domain pose a special challenge. Direct summation would require to take into account the periodic copies of the system. On the other hand, this summation might not even be convergent, as is the case with electrostatics. It is necessary to elaborate special algorithms for these cases. In \uammd, and algorithm to solve the Poisson equation for electrostatics in a triply periodic environment is available.
+Long range interactions in a periodic domain pose a special challenge. Direct summation would require to take into account the periodic copies of the system. On the other hand, this summation might not even be convergent, as is the case with electrostatics. It is necessary to elaborate special algorithms for these cases. In \uammd, algorithms to solve the Poisson equation for electrostatics with triple and double  periodicity are available. However, these algorithms rely on a mathematical machinery that will be discussed later on in this manuscript and thus, we have delayed their description to chapter \ref{ch:tppoisson}.
 
-\section{Triply Periodic Electrostatics} \label{ch:tppoisson}
-%\section{Theory} \label{sec:tppoisson_theory}
-We are going to describe a fast spectral solver for this equation with periodic boundary conditions and Gaussian sources of arbitrary widths at the charges' locations. This approach is similar to the ones presented at \cite{Lindbo2011,Tornberg2015}.
-We want to solve the Poisson equation in a periodic domain in the presence of a charge density $f(\vec{\fpos}=(x,y,z))$.
-\begin{equation}
-  \label{eq:ttpoisson}
- \varepsilon\Delta\phi=-f
-\end{equation}
-Here $\varepsilon$ represents the permittivity of the medium and $f$ accounts for $N$ Gaussian charges of strenght $Q_i$ located at $\vec{z}_i$
-\begin{equation}
-  \label{eq:tppoisson_cdens}
-  f(\vec{\fpos})= \oper{S}(\vec{\fpos})Q = \sum_iQ_ig(||\vec{\fpos}-\vec{\ppos}_i||)
-\end{equation}
-Where $\oper{S}$ represents the spreading operator which transforms the charges around the particles to a smooth charge density field. The charges have a Gaussian shape
-\begin{equation}
-  \label{eq:tpppoisson_gaussiansource}
- g(r)=\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2g_w^2}\right)}
-\end{equation}
-Where $g_w$ represents the width of the Gaussian charges (notice that the case $g_w\rightarrow 0$ corresponds to point charges).
-Once eq. \eqref{eq:ttpoisson} is solved we have the value of the potential in every point in space and can be evaluated at the charges locations via the interpolation operator
-\begin{equation}  
-  \oper{J}_{\vec{\ppos}_i}\phi = \int Q_ig(\vec{\ppos}_i - \vec{\fpos})\phi(\vec{\fpos})d\vec{\fpos}
-\end{equation}
-Here $\oper{J}$ represents the interpolation operator, that averages a quantity defined in space to a charge's location. This is the inverse operation to spreading, $\oper{J} = \oper{S}^*$.
-%In this case $J$ is the convolution with a Gaussian centered at $\vec{\ppos}_i$.
-
-The electrostatic energy can be computed as
-\begin{equation}
-  \label{tppoisson_avgpot}
-  U =  \frac{1}{2}\sum_i{\oper{J}_{\vec{\ppos}_i}\phi} 
-\end{equation}
-% Where $\bar{\phi}(\vec{z}_i)=\bar{\phi}_i$ is the convolution of the potential with a Gaussian centered at the charge's location and can also be interpreted as the average potential at that point.
-
-In a similar way we compute the electrostatic force $\vec{F}_i = -\nabla_i{\fvel}$ acting on each charge from the electric field
-\begin{equation}
-  \vec{E} = -\nabla{\phi}
-\end{equation}
-By interpolating again
-\begin{equation}
-  \label{tppoisson_avgfield}
-\vec{E}_i = \oper{J}_{\vec{\ppos}_i}\vec{E}(\vec{\fpos})
-\end{equation}
-So that the electrostatic force acting on particle $i$ is
-\begin{equation}
-\vec{F}_i = Q_i\oper{J}_{\vec{\ppos}_i}\vec{E}
-\end{equation}
-
-% Where the sum in eq. \ref{eq:tpppoisson_gaussiansource} goes through every point $\vec{z}_k$ in the domain.
-Given that eq. \eqref{eq:tpppoisson_gaussiansource} has in principle an infinite support evaluating eq. \eqref{eq:tppoisson_cdens} at every point in space, as well as computing the averages of the electric potential and field in eqs. \eqref{tppoisson_avgpot} and \eqref{tppoisson_avgfield} can be highly ineficient. In practice we overcome this limitation by truncating eq. \eqref{eq:tpppoisson_gaussiansource} at a certain distance according to a desired tolerance.
-\subsection*{Basic Algorithm}
-Eq. \eqref{eq:ttpoisson} can be easily solved in Fourier space by convolution with the Poisson's Greens function 
-\begin{equation}
-  \label{tppoisson_phihat}
- \hat\phi(\vec{k}) = \frac{\hat f(\vec{k})}{\varepsilon k^2}
-\end{equation}   
-The electric field can be derived from the potential in fourier space via \emph{ik} differenciation \cite{ikdiff}.
-\begin{equation}
-    \label{tppoisson_ehat}
-  \hat{\vec{E}} = i\vec{k}\hat{\phi}
-\end{equation}
-
-Eq. \eqref{tppoisson_phihat} can be discretized using 3D \gls{FFT} in a grid with spacing fine enough to resolve the Gaussian charges in eq. \eqref{eq:tppoisson_cdens}.
-
-The whole algorithm, going from particle charges to forces, can be summarized as follows
-\begin{itemize}
-\item Spread charges to the grid, eq. \eqref{eq:tppoisson_cdens}
-\item Fourier transform $f\rightarrow \hat{f}$
-\item Multiply by the Poisson's Greens function to obtain the potential, eq. \eqref{tppoisson_phihat}
-\item Compute field via \emph{ik} differentiation, eq. \eqref{tppoisson_ehat}
-\item Transform potential and field back to real space $\hat{\phi} \rightarrow \phi$; $\hat{\vec{E}} \rightarrow \vec{E}$
-\item Interpolate energy and/or force to charge locations, eqs. \eqref{tppoisson_avgpot} and \eqref{tppoisson_avgfield}.
-\end{itemize}
-Using operator notation
-\begin{equation}
-  \label{eq:tppoison_alg}
-  \vec{F}_i = Q_i\oper{J}_{\vec{\ppos}}\textrm{FFT}^{-1} \left[\frac{i\vec{K}}{\varepsilon K^2} \cdot \textrm{FFT}\left( \oper{S} Q\right)\right]
-\end{equation}
-Where $\textrm{FFT}$ represents the Fourier transform, $\vec{K}$ is the tensor with of all wave vectors (being $K$ their modulus).
-%\begin{equation}
-%  \label{eq:tppoison_alg_u}
-%  U_i = q_iJ_iF^{-1} \frac{1}{\epsilon K^2}F Sq
-%\end{equation}
-
-The main problem with this approach is that the grid needs to be fine enough to correctly describe the Gaussian sources. Thus a small width results in a high number of grid cells. This hinders the ability to simulate large domains (in terms of $g_w$) or narrow (or even point) sources. In order to overcome this limitation we use an Ewald splitting technique\cite{ewaldsplit}.
-
-We can write the potential as
-\begin{equation}
- \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{\near} + \phi^{\far}
-\end{equation}
-Where $\star$ represents convolution and the intermediate solution $\psi$ satisfies
- \begin{equation}
- \varepsilon\Delta\psi=-f\star\gamma^{1/2}
-\end{equation}   
-The splitting function $\gamma$ is defined as
- \begin{equation}
- \gamma^{1/2} = \frac{8\xi^3}{(2\pi)^{3/2}}\exp\left(-2r^2\xi^2\right)
-\end{equation}
-Here the splitting parameter, $\xi$, is an arbitrary factor that is chosen to optimize performance. 
-Given that the Laplacian commutes with the convolution we can divide the problem in two separate parts, denoted as near and far field  
- \begin{equation}
- \varepsilon\Delta\phi^{\far}=-f\star\gamma
-\end{equation}   
-\begin{equation}
- \label{tppoisson_ewald_near}
- \varepsilon\Delta\phi^{\near}=-f\star(1-\gamma)
-\end{equation}   
-The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case by effectively modifying the width of the Gaussian sources from $g_w$ to
-\begin{equation}
-  g_t = \sqrt{\frac{1}{4\xi^2} + g_w^2}
-\end{equation}
-Notice that this overcomes the difficulties for the case of point sources, since we can arbitrarily increase $\xi$ to work with an arbitrarily large Gaussian source.
-
-In contrast the near field effective charges are sharply peaked and narrower than the originals, rapidly decaying to zero. We can compute the Green's function for eq. \eqref{tppoisson_ewald_near} analytically by convolving the original Poisson Green's function with the effective charges in eq. \eqref{tppoisson_ewald_near} in Fourier space
-\begin{equation}
-  \hat{G}^{\near}(k) = \frac{(1-\hat{\gamma})\hat{g}}{\varepsilon k^2}
-\end{equation}
-The inverse transform of this kernel gives us the potential at any point of the grid 
-\begin{equation}
-  \phi^{\near}(\vec{\fpos}) = \sum_i{Q_iG^{\near}(||\vec{\fpos}-\vec{\ppos}_i||)}
-\end{equation}
-However, we are only interested in the potential averaged at the charges locations. Instead of storing and computing the potential in a grid and then interpolating as in the far field we can compute this analytically. Given that $\oper{J} \phi^{\near} = g\star \phi^{\near}$ we can define a pre-interpolated interaction kernel as
-\begin{equation}
-  \hat{G}_{\oper{J}}^{\near}(k) = \hat{g}\hat{G}^{\near} = \frac{(1-\hat{\gamma})\hat{g}^2}{\varepsilon k^2}
-\end{equation}
-This expression is radially symmetric, which allows to compute the inverse Fourier transform as
-\begin{equation}
-  \label{tppoisson_gnear}
-  \begin{aligned}
-    G_{\oper{J}}^{\near}(r) &= \frac{1}{2\pi^2r}\int{\hat{G}^{\near}_{\oper{J}}k \sin(kr)dk} \\
-            &= \frac{1}{4\pi\epsilon r}\left(\erf\left(\frac{r}{2g_w}\right) - \erf\left(\frac{r}{2g_t}\right)\right)
-  \end{aligned}
-\end{equation}
-Which decays exponentially and thus can be truncated at a certain cut off radius $r_c$. Furthermore this expression requires special consideration at short distances where numerical issues could arise. In this cases the Taylor expansion of eq. \eqref{tppoisson_gnear} can be used instead.
-We can use this expression to compute the potential or energy at the charges locations
-\begin{equation}
-  U_i = Q_i\oper{J}_{\vec{\ppos}}\phi^{\near}(\vec{\fpos}) = Q_i\sum_j{Q_jG_{\oper{J}}^{\near}(||\vec{\ppos}_i - \vec{\ppos}_j||)}
-\end{equation}
-Similarly we compute the electric field or force acting on each charge 
-\begin{equation}
-  \vec{F}_i = Q_i \oper{J}_{\vec{\ppos}} \vec{E}^{\near}_i = Q_i\sum_j{Q_j\frac{\partial G_{\oper{J}}^{\near}({r_{ij}})}{\partial r}\frac{\vec{r}_{ij}}{r_{ij}}}
-\end{equation}
-Where $\vec{r}_{ij} = \vec{\ppos}_i - \vec{\ppos}_j$ and $r_{ij} = ||\vec{r}_{ij}||$. The derivative of eq. \eqref{tppoisson_gnear} can be computed analytically.
-
-\subsection*{Accuracy}
-There are several parameters than can be tweaked to control the overall accuracy of the algorithm:
-The grid cell size $h$ or the number of grid cells $n$ control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
-\begin{equation}
-h = L/n = g_w/\alpha
-\end{equation}
-Where $L$ is the domain size (a cubic box is considered, but the arguments can be extended easily to any domain dimensions) and $\alpha$ is a proportionality factor. Note that $n$ should be chosen to be an \gls{FFT}-friendly number.
-
-
-\subsection*{Use in UAMMD}
-
-This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
-
-\begin{minted}{\ucpp}
-#include<uammd.cuh>
-#include<Interactor/SpectralEwaldPoisson.cuh>
-using namespace uammd;
-//Creates and returns a triply periodic Poisson solver Interactor
-auto createTPPoissonInteractor(UAMMD sim){
-  Poisson::Parameters par;
-  par.box = sim.par.box;
-  //Permittivity
-  par.epsilon = sim.par.epsilon;
-  //Gaussian width of the sources
-  par.gw = sim.par.gw; 
-  //Overall tolerance of the algorithm
-  par.tolerance = sim.par.tolerance;
-  //If a splitting parameter is passed
-  // the code will run in Ewald split mode
-  //Otherwise, the non Ewald version will be used
-  //par.split = 1.0;
-  //The charges and positions will be requested from sim.pd
-  return std::make_shared<Poisson>(sim.pd, sim.pg, sim.sys, par);
-}
-\end{minted}
-The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for $L\rightarrow\infty$ is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance.
 
 
 \chapter{Short range interactions}
@@ -1032,20 +781,22 @@ The \emph{NeighbourContainer} interface comes works the assumption that the unde
 It loosely behaves as a C++ standard container, providing \emph{begin} and \emph{end} methods returning forward input iterators to the first and last neighbours. This means that the neighbour container of a certain particle can only be advanced in sequential order starting from the first neighbour.
 By using this interface we can write code that will work for any neighbour list algorithm.
 
-\begin{listing}
+\begin{code}
 \begin{minted}{\ucpp}
-//The actual type name of the container will be different for each
-// type of list
+//The actual type name of the container
+//  will be different for each type of list
 template<class NeighbourContainer>
-__global__ void traverseNeighbours(NeighbourContainer &nc, int N){
+__global__ void traverseNeighbours(NeighbourContainer &nc,
+                                   int N){
   const int tid = blockIdx.x*blockDim.x + threadIdx.x;
-  //Set the container to provide the list of neighbours of particle tid.
+  //Set the container to provide the list 
+  // of neighbours of particle tid.
   //Note that tid is the internal indexing of the container
   ni.set(tid);
   //Get the group index of the particle:
   const int i = nc.getGroupIndexes()[tid];
   //Get the position of a particle given its internal index
-  const real3 pos_i = make_real3(nc.getSortedPositions()[tid]);  
+  real3 pos_i = make_real3(nc.getSortedPositions()[tid]);
   //Loop through neighbours
   for(auto neigh: nc){
     const int j = neigh.getGroupIndex();
@@ -1059,7 +810,7 @@ __global__ void traverseNeighbours(NeighbourContainer &nc, int N){
 \end{minted}
 \caption{A CUDA kernel that uses a \emph{NeighbourContainer} to go though al lthe neighbours of each particle.}
 \label{code:ncontainer}
-\end{listing}
+\end{code}
 
 We are now ready to explore the different neighbour list algorithms, including construction and traversal. Although the latter can be solved via \emph{Transversers} and/or \emph{NeighbourContainers} we will see how each algorithm deals with it. This can be useful for more specialized computations that can leverage the internal workings of the different lists.
 
@@ -1087,7 +838,7 @@ We are going to describe the algorithm for a rectangular box of side $\vec{L}=(L
 It is possible to reduce the cell size in exchange for visiting more neighbouring cells ($126$ if $l=r_{cut}/2$), which will also reduce the number of false positives neighbour checks. However, testing suggests that this is in general not worth doing\cite{Anderson2008}.
 \begin{figure}
   \centering
-  \includesvg{gfx/celllist1}{\columnwidth}
+  \includesvg[width=\columnwidth]{gfx/celllist1}
   \caption{Representation of the spatial binning for a 2D distribution of particles. The particle demarked as $i$ lies in the cell with coordinates $(1,2)$, this coordinates will then be used to assign a hash to particle $i$. The dotted red line represents the order given by the space-filling curve, starting in the (0,0) cell.}
   \label{fig:cl1}
 \end{figure}
@@ -1165,14 +916,13 @@ There are two main ways to construct a Cell List in \uammd (and the other neighb
 \item Outside the ecosystem.
   Some use cases might benefit from a way to access the algorithm as less intrusively as possible. In particular a user might be interested in constructing the cell list while being in control of the list of position required to do so (without \emph{ParticleData}).
 \end{itemize}
-The following example shows how to construct and traverse a cell list using both methods
+The example code \ref{code:cellist} shows how to construct and traverse a cell list using both methods.
 
-%\begin{uammdminted}
+\begin{code}
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Interactor/NeighbourList/CellList.cuh>
 using namespace uammd;
-
 //Construct a CellList using the UAMMD ecosystem
 void constructListWithUAMMD(UAMMD sim){
   //Create the list object
@@ -1207,12 +957,16 @@ void constructListWithPositions(Iterator positions,
   Grid grid(Box(boxSize), numberCells);
   //Update the list using the positions
   cl.update(positions, numberParticles, grid, stream);
-  //Now the internal structure of the Cell List can be requested
+  //Now the internal structure of the Cell List
+  // can be requested
   auto cldata = cl.getCellList();
   //And a NeighbourContainer can be constructed from it
   auto nc = CellList_ns::NeighbourContainer(cldata);
 }
 \end{minted}
+  \caption{The different ways of using a Cell List in \uammd. The \emph{Transverser} interface, already used in chapter \ref{sec:nbody}, is described in detail in Appendix \ref{ch:transverser}.}
+  \label{code:cellist}
+\end{code}
 
 In both cases the internal structure of the cell list can be requested to facilitate any usage outside the proposed interfaces for neighbour traversing. In the case of the cell list, this means having access to an ordered list containing the indices of the particle s in each cell. Remembering that the cell list works by binning the domain, assigning a hash to each position according to the bin they are in and then sorting this hash list.
 As explained in sec. \ref{sec:celllist}, the cell list algorithm mainly stores two arrays containing the indices of the particles for each cell.
@@ -1277,8 +1031,7 @@ The special type of bond that involves a single particle is called a fixed point
 \end{itemize}
 \begin{figure}
   \centering
-  %\includegraphics[width=\textwidth]{landscape}
-  \includesvg{gfx/sketchUAMMD_integrators}{0.7\columnwidth}
+  \includesvg[width=0.7\columnwidth]{gfx/sketchUAMMD_integrators}
   \caption{The next level in the \emph{Integrator} branch of the tree presented at fig. \ref{fig:uammdsketch}. The names of the familie sof methods are depicted in green, while actual methods (available as \uammd modules) are in black.}
   \label{fig:uammdsketch_integrators}
 \end{figure}
@@ -2006,7 +1759,7 @@ We will see in future sections how to solve the dynamics of the particles withou
 The Oseen mobility presents asymptotic behavior at short distance stemming from the point particle assumption. However, we are usually interested in simulating the dynamics of objects with a certain hydrodynamic radius. Figure \ref{fig:oseen} contains a visual representation of the Oseen mobility.
 \begin{figure}
   \centering
-  \includesvg{gfx/oseen}{0.7\columnwidth}
+  \includesvg[width=0.7\columnwidth]{gfx/oseen}
   \caption{Representation of the Oseen mobility in 2D. A force acting on a source particle (green) is propagated to the others via the Oseen tensor (blue lines). Particles behind the source will be dragged onto it, while particles in front will be pushed away. Although the Oseen tensor is potted here, other mobility tensors, such as the RPY one in eq. \eqref{eq:rpy} will behave similarly at long distances.}
   \label{fig:oseen}
 \end{figure}
@@ -2146,7 +1899,7 @@ Where the sum goes over all the cells, $j$, in the grid, with centers at $\vec{\
 
 \begin{figure}[h]
   \centering
-  \includesvg{gfx/ibm}{0.7\columnwidth}
+  \includesvg[width=0.7\columnwidth]{gfx/ibm}
   \caption{A representation of the Immersed Boundary. The blue circle represents a particle (being the green cross it's center). Some quantity (i.e. the force) acting on it will be spreaded to the grid points inside its radius of action(red crosses).}
   \label{fig:ibm}  
 \end{figure}
@@ -2288,7 +2041,7 @@ In a regular grid, we can find the cell of a given particle with position $x \in
 
 \begin{figure}[h]
   \centering
-  \includesvg{gfx/ibm2}{\columnwidth}
+  \includesvg[width=\columnwidth]{gfx/ibm2}
   \caption{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($n_x=5, n_y=n_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation.}
   \label{fig:ibm2}  
 \end{figure}
@@ -2724,7 +2477,7 @@ An alternative is to use a so-called MAC (Marker and cell), or staggered, grid\c
 
 \begin{figure}[h]
   \centering
-  \includesvg{gfx/staggered}{\columnwidth}
+  \includesvg[width=\columnwidth]{gfx/staggered}
   \caption{Representation of a staggered grid. Each quantity is defined on its own grid, whose origin (circles) are shifted $h/2$ between them. Crosses mark cell centers in the various grids. The $x$ coordinate of vectors are defined on the red grid, $y$ coordinates on the green. Tensors are defined in the orange one and finally, scalars are defined in the black grid.}
   \label{fig:staggered}  
 \end{figure}
@@ -3095,7 +2848,7 @@ auto createIntegratorMALA(UAMMD sim){
 
 \begin{figure}[h]
   \centering
-  \includesvg{gfx/q2d}{\columnwidth}
+  \includesvg[width=\columnwidth]{gfx/q2d}
   \caption{Representation of a colloidal system under soft confinement in the perpendicular ($z$) direction. Particles are confined via some external potential that distributes them near $z=0$ with a typical width $\delta$. The confining forces acting on the particles are propagated to the plane via the Oseen tensor (orange lines).}
   \label{fig:q2dsch}
 \end{figure}
@@ -3327,7 +3080,7 @@ Were $\vec{\ppos}_i^{\text{img}}$ is the particle's point of reflection about th
 Being $\hat{\vec{e}}_z$ a unitary vector in the $z$ direction. The no-slip condition is then imposed by the fact that a particle at the height of a wall does not affect (nor it is affected by) the fluid. A visual representation of the effect of the images is available in fig. \ref{fig:dpstokesspread}.
 \begin{figure}[h]
   \centering
-  \includesvg{gfx/dpstokesspread}{\columnwidth}
+  \includesvg[width=\columnwidth]{gfx/dpstokesspread}
   \caption{Representation of the image spreading in the \gls{DP} Stokes algorithm. Forces acting on particles (blue circles) are translated to the fluid as a force density. Due to images, part of the particle's force is zero near walls. Zero fluid forcing is depicted as white. A particle located at exactly the height of a wall has no effect on the fluid.}
   \label{fig:dpstokesspread}
 \end{figure}
@@ -3523,6 +3276,192 @@ Our computational and analytical tools can easily be extended to other types of 
 \item Limit to infinetely stiff confinement\cite{Pelaez2018}
 \item Describe quasi2D paper. Similar to \gls{FCM}, but with a Green's function that is integrated in Z. It is the limit of an infinite boxin Z with particles attached to z=0 via an infinitely stiff spring.
 \end{itemize}
+
+\chapter{Triply Periodic Electrostatics} \label{ch:tppoisson}
+% \section{Theory} \label{sec:tppoisson_theory}
+\begin{itemize}
+\item Not really new
+\item Basically identical to FCM by a reinterpretation of each term
+\item Ewald splitting similar to PSE.
+\end{itemize}
+We are going to describe a fast spectral solver for this equation with periodic boundary conditions and Gaussian sources of arbitrary widths at the charges' locations. This approach is similar to the ones presented at \cite{Lindbo2011,Tornberg2015}.
+We want to solve the Poisson equation in a periodic domain in the presence of a charge density $f(\vec{\fpos}=(x,y,z))$.
+\begin{equation}
+  \label{eq:ttpoisson}
+ \varepsilon\Delta\phi=-f
+\end{equation}
+Here $\varepsilon$ represents the permittivity of the medium and $f$ accounts for $N$ Gaussian charges of strenght $Q_i$ located at $\vec{z}_i$
+\begin{equation}
+  \label{eq:tppoisson_cdens}
+  f(\vec{\fpos})= \oper{S}(\vec{\fpos})Q = \sum_iQ_ig(||\vec{\fpos}-\vec{\ppos}_i||)
+\end{equation}
+Where $\oper{S}$ represents the spreading operator which transforms the charges around the particles to a smooth charge density field. The charges have a Gaussian shape
+\begin{equation}
+  \label{eq:tpppoisson_gaussiansource}
+ g(r)=\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2g_w^2}\right)}
+\end{equation}
+Where $g_w$ represents the width of the Gaussian charges (notice that the case $g_w\rightarrow 0$ corresponds to point charges).
+Once eq. \eqref{eq:ttpoisson} is solved we have the value of the potential in every point in space and can be evaluated at the charges locations via the interpolation operator
+\begin{equation}  
+  \oper{J}_{\vec{\ppos}_i}\phi = \int Q_ig(\vec{\ppos}_i - \vec{\fpos})\phi(\vec{\fpos})d\vec{\fpos}
+\end{equation}
+Here $\oper{J}$ represents the interpolation operator, that averages a quantity defined in space to a charge's location. This is the inverse operation to spreading, $\oper{J} = \oper{S}^*$.
+%In this case $J$ is the convolution with a Gaussian centered at $\vec{\ppos}_i$.
+
+The electrostatic energy can be computed as
+\begin{equation}
+  \label{tppoisson_avgpot}
+  U =  \frac{1}{2}\sum_i{\oper{J}_{\vec{\ppos}_i}\phi} 
+\end{equation}
+% Where $\bar{\phi}(\vec{z}_i)=\bar{\phi}_i$ is the convolution of the potential with a Gaussian centered at the charge's location and can also be interpreted as the average potential at that point.
+
+In a similar way we compute the electrostatic force $\vec{F}_i = -\nabla_i{\fvel}$ acting on each charge from the electric field
+\begin{equation}
+  \vec{E} = -\nabla{\phi}
+\end{equation}
+By interpolating again
+\begin{equation}
+  \label{tppoisson_avgfield}
+\vec{E}_i = \oper{J}_{\vec{\ppos}_i}\vec{E}(\vec{\fpos})
+\end{equation}
+So that the electrostatic force acting on particle $i$ is
+\begin{equation}
+\vec{F}_i = Q_i\oper{J}_{\vec{\ppos}_i}\vec{E}
+\end{equation}
+
+% Where the sum in eq. \ref{eq:tpppoisson_gaussiansource} goes through every point $\vec{z}_k$ in the domain.
+Given that eq. \eqref{eq:tpppoisson_gaussiansource} has in principle an infinite support evaluating eq. \eqref{eq:tppoisson_cdens} at every point in space, as well as computing the averages of the electric potential and field in eqs. \eqref{tppoisson_avgpot} and \eqref{tppoisson_avgfield} can be highly ineficient. In practice we overcome this limitation by truncating eq. \eqref{eq:tpppoisson_gaussiansource} at a certain distance according to a desired tolerance.
+\subsection*{Basic Algorithm}
+Eq. \eqref{eq:ttpoisson} can be easily solved in Fourier space by convolution with the Poisson's Greens function 
+\begin{equation}
+  \label{tppoisson_phihat}
+ \hat\phi(\vec{k}) = \frac{\hat f(\vec{k})}{\varepsilon k^2}
+\end{equation}   
+The electric field can be derived from the potential in fourier space via \emph{ik} differenciation \cite{ikdiff}.
+\begin{equation}
+    \label{tppoisson_ehat}
+  \hat{\vec{E}} = i\vec{k}\hat{\phi}
+\end{equation}
+
+Eq. \eqref{tppoisson_phihat} can be discretized using 3D \gls{FFT} in a grid with spacing fine enough to resolve the Gaussian charges in eq. \eqref{eq:tppoisson_cdens}.
+
+The whole algorithm, going from particle charges to forces, can be summarized as follows
+\begin{itemize}
+\item Spread charges to the grid, eq. \eqref{eq:tppoisson_cdens}
+\item Fourier transform $f\rightarrow \hat{f}$
+\item Multiply by the Poisson's Greens function to obtain the potential, eq. \eqref{tppoisson_phihat}
+\item Compute field via \emph{ik} differentiation, eq. \eqref{tppoisson_ehat}
+\item Transform potential and field back to real space $\hat{\phi} \rightarrow \phi$; $\hat{\vec{E}} \rightarrow \vec{E}$
+\item Interpolate energy and/or force to charge locations, eqs. \eqref{tppoisson_avgpot} and \eqref{tppoisson_avgfield}.
+\end{itemize}
+Using operator notation
+\begin{equation}
+  \label{eq:tppoison_alg}
+  \vec{F}_i = Q_i\oper{J}_{\vec{\ppos}}\textrm{FFT}^{-1} \left[\frac{i\vec{K}}{\varepsilon K^2} \cdot \textrm{FFT}\left( \oper{S} Q\right)\right]
+\end{equation}
+Where $\textrm{FFT}$ represents the Fourier transform, $\vec{K}$ is the tensor with of all wave vectors (being $K$ their modulus).
+%\begin{equation}
+%  \label{eq:tppoison_alg_u}
+%  U_i = q_iJ_iF^{-1} \frac{1}{\epsilon K^2}F Sq
+%\end{equation}
+
+The main problem with this approach is that the grid needs to be fine enough to correctly describe the Gaussian sources. Thus a small width results in a high number of grid cells. This hinders the ability to simulate large domains (in terms of $g_w$) or narrow (or even point) sources. In order to overcome this limitation we use an Ewald splitting technique\cite{ewaldsplit}.
+
+We can write the potential as
+\begin{equation}
+ \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{\near} + \phi^{\far}
+\end{equation}
+Where $\star$ represents convolution and the intermediate solution $\psi$ satisfies
+ \begin{equation}
+ \varepsilon\Delta\psi=-f\star\gamma^{1/2}
+\end{equation}   
+The splitting function $\gamma$ is defined as
+ \begin{equation}
+ \gamma^{1/2} = \frac{8\xi^3}{(2\pi)^{3/2}}\exp\left(-2r^2\xi^2\right)
+\end{equation}
+Here the splitting parameter, $\xi$, is an arbitrary factor that is chosen to optimize performance. 
+Given that the Laplacian commutes with the convolution we can divide the problem in two separate parts, denoted as near and far field  
+ \begin{equation}
+ \varepsilon\Delta\phi^{\far}=-f\star\gamma
+\end{equation}   
+\begin{equation}
+ \label{tppoisson_ewald_near}
+ \varepsilon\Delta\phi^{\near}=-f\star(1-\gamma)
+\end{equation}   
+The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case by effectively modifying the width of the Gaussian sources from $g_w$ to
+\begin{equation}
+  g_t = \sqrt{\frac{1}{4\xi^2} + g_w^2}
+\end{equation}
+Notice that this overcomes the difficulties for the case of point sources, since we can arbitrarily increase $\xi$ to work with an arbitrarily large Gaussian source.
+
+In contrast the near field effective charges are sharply peaked and narrower than the originals, rapidly decaying to zero. We can compute the Green's function for eq. \eqref{tppoisson_ewald_near} analytically by convolving the original Poisson Green's function with the effective charges in eq. \eqref{tppoisson_ewald_near} in Fourier space
+\begin{equation}
+  \hat{G}^{\near}(k) = \frac{(1-\hat{\gamma})\hat{g}}{\varepsilon k^2}
+\end{equation}
+The inverse transform of this kernel gives us the potential at any point of the grid 
+\begin{equation}
+  \phi^{\near}(\vec{\fpos}) = \sum_i{Q_iG^{\near}(||\vec{\fpos}-\vec{\ppos}_i||)}
+\end{equation}
+However, we are only interested in the potential averaged at the charges locations. Instead of storing and computing the potential in a grid and then interpolating as in the far field we can compute this analytically. Given that $\oper{J} \phi^{\near} = g\star \phi^{\near}$ we can define a pre-interpolated interaction kernel as
+\begin{equation}
+  \hat{G}_{\oper{J}}^{\near}(k) = \hat{g}\hat{G}^{\near} = \frac{(1-\hat{\gamma})\hat{g}^2}{\varepsilon k^2}
+\end{equation}
+This expression is radially symmetric, which allows to compute the inverse Fourier transform as
+\begin{equation}
+  \label{tppoisson_gnear}
+  \begin{aligned}
+    G_{\oper{J}}^{\near}(r) &= \frac{1}{2\pi^2r}\int{\hat{G}^{\near}_{\oper{J}}k \sin(kr)dk} \\
+            &= \frac{1}{4\pi\epsilon r}\left(\erf\left(\frac{r}{2g_w}\right) - \erf\left(\frac{r}{2g_t}\right)\right)
+  \end{aligned}
+\end{equation}
+Which decays exponentially and thus can be truncated at a certain cut off radius $r_c$. Furthermore this expression requires special consideration at short distances where numerical issues could arise. In this cases the Taylor expansion of eq. \eqref{tppoisson_gnear} can be used instead.
+We can use this expression to compute the potential or energy at the charges locations
+\begin{equation}
+  U_i = Q_i\oper{J}_{\vec{\ppos}}\phi^{\near}(\vec{\fpos}) = Q_i\sum_j{Q_jG_{\oper{J}}^{\near}(||\vec{\ppos}_i - \vec{\ppos}_j||)}
+\end{equation}
+Similarly we compute the electric field or force acting on each charge 
+\begin{equation}
+  \vec{F}_i = Q_i \oper{J}_{\vec{\ppos}} \vec{E}^{\near}_i = Q_i\sum_j{Q_j\frac{\partial G_{\oper{J}}^{\near}({r_{ij}})}{\partial r}\frac{\vec{r}_{ij}}{r_{ij}}}
+\end{equation}
+Where $\vec{r}_{ij} = \vec{\ppos}_i - \vec{\ppos}_j$ and $r_{ij} = ||\vec{r}_{ij}||$. The derivative of eq. \eqref{tppoisson_gnear} can be computed analytically.
+
+\subsection*{Accuracy}
+There are several parameters than can be tweaked to control the overall accuracy of the algorithm:
+The grid cell size $h$ or the number of grid cells $n$ control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
+\begin{equation}
+h = L/n = g_w/\alpha
+\end{equation}
+Where $L$ is the domain size (a cubic box is considered, but the arguments can be extended easily to any domain dimensions) and $\alpha$ is a proportionality factor. Note that $n$ should be chosen to be an \gls{FFT}-friendly number.
+
+
+\subsection*{Use in UAMMD}
+
+This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
+
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Interactor/SpectralEwaldPoisson.cuh>
+using namespace uammd;
+//Creates and returns a triply periodic Poisson solver Interactor
+auto createTPPoissonInteractor(UAMMD sim){
+  Poisson::Parameters par;
+  par.box = sim.par.box;
+  //Permittivity
+  par.epsilon = sim.par.epsilon;
+  //Gaussian width of the sources
+  par.gw = sim.par.gw; 
+  //Overall tolerance of the algorithm
+  par.tolerance = sim.par.tolerance;
+  //If a splitting parameter is passed
+  // the code will run in Ewald split mode
+  //Otherwise, the non Ewald version will be used
+  //par.split = 1.0;
+  //The charges and positions will be requested from sim.pd
+  return std::make_shared<Poisson>(sim.pd, sim.pg, sim.sys, par);
+}
+\end{minted}
+The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for $L\rightarrow\infty$ is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance.
+
 \chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
 \begin{itemize}
 \item Introduce the need for slit channel electrostatics
@@ -3532,7 +3471,7 @@ We present a novel algorithm for computing the electrostatic energies and forces
 
 \begin{figure}
   \centering
-  \includesvg{gfx/dppoisson_sketch}{\columnwidth}
+  \includesvg[width=\columnwidth]{gfx/dppoisson_sketch}
   \caption{Schematic representation of the doubly periodic domain described by eqs. \ref{eq:dppoisson} and \ref{eq:dppoissonbcs1}-\ref{eq:dppoissonbcs4}. Each domain wall is represented with a different color. Blue clouds represent Gaussian charge sources.}
   \label{fig:dppoisson_sketch}
 \end{figure}
@@ -3888,6 +3827,27 @@ bool isNyquistWaveNumber(int3 ik, int3 n){
 %\cleardoublepage
 \part{Appendix}
 
+\chapter{Basic notions of CUDA/C++ programming}\label{sec:cpp}
+\begin{itemize}
+\item The main function
+\item The using keyword, using namespace
+\item struct and class
+\item Inheritance 
+\item Describe shared pointer
+\item Importance of modern C++
+\item Concept of metaprogramming
+\end{itemize}
+
+\section{Basic concepts of GPU programming}
+Things to explain here:
+
+\begin{itemize}
+\item Separation between CPU and GPU RAM
+\item Different memories in the GPU; global memory, register memory, shared memory, constant memory.
+\item Threading model; blocks and threads per block
+\item Execution order of threads (threads execute in lock-step inside a warp), blocks are async between them.
+\item Concurrent threads like to access concurrent elements in memory.
+\end{itemize}
 \chapter{Boundary Value Problem (BVP) Solver} \label{sec:bvp}
 In sections \ref{sec:dpstokes} and \ref{sec:dppoisson} we laid out the basic \glspl{PDE} as \glspl{BVP} with the following generic form
 \begin{equation}
@@ -4027,6 +3987,141 @@ Except for the $k=0$ wave number, every solve is identical in operations, meanin
   \addcontentsline{toc}{chapter}{\tocEntry{#1}}%
   \chapter*{#1}%
 }
+
+\chapter{UAMMD's online documentation}\label{ch:online}
+
+\begin{itemize}
+\item References to the repository
+\item Description of the wiki
+\item Marc's book
+\item Tutorials included in the repo
+\end{itemize}
+
+
+\chapter{The Transverser and Potential interfaces}\label{ch:transverser}
+\section{The Transverser Interface} \label{sec:transverser} 
+A Transverser is a concept that refers to the action of going through each element of something.  
+
+For example, for each particle, we want to perform some computation for particles that are closer than a certain distance in a custom way. Or more generally, we want to perform some kind of operation equivalent to a matrix-vector multiplication, for which in order to compute one element of the result, the vector needs to go through a row of the matrix.
+In these cases, a Transverser is used.
+
+A Transverser holds information about what to do with a pair of particles, what information is needed to compute this interaction, or what to do when a particle has interacted with all pairs it is involved in.  
+
+Being such a general concept, a \emph{Transverser} is used as a template argument, and therefore cannot be a base virtual class that can be inherited. This is why it is a "concept". No assumption can be made about the return types of each function, or the input parameters, the only things general are the function names.  
+
+For each particle to be processed the \emph{Transverser} will be called for: \todo{Draw this in a skematik}
+\begin{itemize}
+\item Setting the initial value of the interaction result (function \emph{zero})
+\item Fetching the necesary data to process a pair of particles  (function \emph{getInfo})
+\item Compute the interaction between the particle  and each of its neighbours (function \emph{compute})
+\item Accumulate/reduce  the result for each neighbour (function \emph{accumulate})
+\item  Set/write/handle the accumulated result for all neighbours (function \emph{set})
+ \end{itemize}
+The same Transverser instance will be used to process every particle in an arbitrary order. Therefore, the Transverser must not assume it is bound to a specific particle.
+
+The \emph{Transverser} interface requires a given class/struct to provide the following public device (unless prepare that must be a host function) member functions:
+
+\begin{itemize}
+\item \mintinline[breaklines]{\ucpp}{Compute compute(real4 position_i, real4 position_j,Info info_i, Info info_j);}
+
+  
+  For a pair of particles
+  characterized by position and info this function must return the
+  result of the interaction for that pair of particles. The last
+  two arguments must be present only when \emph{getInfo} is defined.The
+  returning type, \emph{Compute}, must be a POD type (just an aggregate of
+  plain types), for example a real when computing energy.
+
+\item \mintinline{\ucpp}{void set(int particle_index, Compute &total);}
+
+  
+   After calling compute for all neighbours this function will be called with the contents of "total" after the last call to "accumulate".
+   Can be used to, for example, write the final result to main memory.
+
+ \item \mintinline{\ucpp}{Compute zero();}
+
+   
+   This function returns the initial value of the computation, for example {0,0,0} when computing the force. 
+   The returning type, \emph{Compute}, must be a POD type (just an aggregate of plain types), for example a real when computing energy. Furthemore it must be the same type returned by the "compute" member.
+   This function is optional and defaults to zero initialization (it will return Compute() which works even for POD types).
+    
+ \item \mintinline{\ucpp}{Info getInfo(int particle_index);}
+
+   
+   Will be called for each particle to be processed and returns the per-particle data necessary for the interaction with another particle (except the position which is always available). For example the mass in a gravitational interaction or the particle index for some custom interaction.
+   The returning type, Info, must be a POD type (just an aggregate of plain types), for example a real for gravitation.
+   This function is optional and if not present it is assumed the only per-particle data required is the position. 
+   In this case the function "compute" must only have the first two arguments.
+
+ \item \mintinline{\ucpp}{void accumulate(Compute &total, const Compute &current);}
+
+   
+  This function will be called after "compute" for each neighbour with its result and the accumulated result.
+  It is expected that this function modifies "total" as necessary given the new data in "current".
+  The first time it is called "total" will be have the value as given by the "zero" function.
+  This function is optional and defaults to summation: total = total + current. Notice that this will fail for non trivial types.
+     
+\item \mintinline{\ucpp}{void prepare(std::shared_ptr<ParticleData> pd);}
+
+  
+  This function will be called one time in the CPU side just before processing the particles.
+  This function is optional and defaults to simply nothing.
+ \end{itemize}
+
+Lets see a trivial example.
+This \emph{Transverser} can be used with a neighbour list to count the number of neighbours of each particle:
+\begin{code}
+\begin{minted}{\ucpp}
+struct NeighbourCounter{
+  int *nneigh;
+  real rc;
+  Box box;
+  NeighbourCounter(Box i_box, real i_rc,int *nneigh):
+    rc(i_rc),box(i_box),
+    nneigh(nneigh){}
+
+  //There is no "zero" function so the total result starts being 0.
+  
+  //For each pair computes counts a neighbour 
+  //if the particle is closer than rcut
+  __device__ int compute(real4 pi, real4 pj){
+    const real3 rij = box.apply_pbc(make_real3(pj)-make_real3(pi));
+    const real r2 = dot(rij, rij);
+    if(r2>0 and r2< rc*rc){
+      return 1;
+    }
+    return 0;
+  }
+  //There is no "accumulate"
+  // the result of "compute" is added every time.
+  //The "set" function will be called with the accumulation
+  // of the result of "compute" for all neighbours. 
+  __device__ void set(int index, int total){
+    nneigh[index] = total;
+  }
+};
+\end{minted}
+\caption{A \emph{Transverser} that counts the number of neighbours of each particle}
+\label{code:ncounter}
+\end{code}
+In the following sections, we will see how to use \emph{Transversers} to compute forces, energies and more between particles.
+But in order to do that, we need yet another interface in order connecting the general concept of a \emph{Transverser} with something that computes forces, energies or virial of an interaction. In \uammd, we use the \emph{Potential} interface for that.
+
+\section{The Potential Interface} \label{sec:potential}
+
+This interface is just a connection between the \emph{Transverser} and \emph{Interactor} concepts. Additionally, \emph{Potential} aids with one limitation of the CUDA programming language and \gls{GPU} programming in general. On one hand, register memory in a \gpu is quite limited, so it is not a good idea to use large objects in a kernel. On the other hand there are some technical details that prevents certain objects from existing in a \gpu kernel. For example, objects are passed by value to a kernel, which can incurr in undesired copies and/or destructors being called. Thus, its some times worth it to make a conceptual and programmatic separation between CPU and \gpu objects.
+In this regard, \emph{Transversers} are \gpu objects, while \emph{Interactors} or \emph{Potentials} are meant to be used in the CPU.
+Furthermore, while \emph{Transverser} describes a very general computation, \emph{Potential} only holds the logic on how to compute forces, energies and/or virials.
+\emph{Potential} serves as a way to serve \emph{Transversers} to \emph{Interactors}.
+
+\todo{DESCRIBE INTERFACE}
+
+We are now ready to start exploring the different types of particle interactions, mainly:
+\begin{itemize}
+\item Long range interactions
+\item Short range interactions
+\item Bonded interactions
+\end{itemize}
 
 
 \printbibliography[heading=bibintoc]
