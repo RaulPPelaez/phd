@@ -39,21 +39,21 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \usepackage{enumitem}
 \graphicspath{{./gfx/}}
 
-\usepackage{svg}
-%\newcommand{\executeiffilenewer}[3]{
-%  \ifnum
-%  \pdfstrcmp{\pdffilemoddate{#1}}{\pdffilemoddate{#2}}>0
-%  {\immediate\write18{#3}}
-%  \fi
-%}
-%\newcommand{\includesvg}[2]{
-%  \executeiffilenewer{#1.svg}{#1.pdf}
-%  {inkscape -D #1.svg --export-type=pdf } %  --export-latex}
-%  %\def\svgwidth{#2}
-%  % \input{#1.pdf_tex}
-%  \includegraphics[width=#2]{#1.pdf}
-%}
-%
+%\usepackage{svg}
+\newcommand{\executeiffilenewer}[3]{
+  \ifnum
+  \pdfstrcmp{\pdffilemoddate{#1}}{\pdffilemoddate{#2}}>0
+  {\immediate\write18{#3}}
+  \fi
+}
+\newcommand{\includesvg}[2][width=\columnwidth]{
+  \executeiffilenewer{#2.svg}{#2.pdf}
+  {inkscape -D #2.svg --export-type=pdf } %  --export-latex}
+  %\def\svgwidth{#2}
+  % \input{#1.pdf_tex}
+  \includegraphics[#1]{#2.pdf}
+}
+
 \makeglossaries
 \newacronym{UAMMD}{UAMMD}{Universaly Adaptable Multiscale Molecular Dynamics}
 \newacronym{MD}{MD}{Molecular Dynamics}
@@ -305,7 +305,7 @@ All the utilities in \uammd, including \emph{Interactors}, \emph{Integrators}, n
 In the past, we have explored this facet of the project by providing to collaborators some of our utilities and solvers as stand alone Python interfaces.
 
 The modularity of \uammd is reflected directly in the code, where modules can be created independently of each other as in the example below.
-Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Interactor} (short range, bonded,...), all modules in \uammd can be created and stored as individual shared pointers\footnote{A C++ specific kind of reference. See Appendix \ref{sec:cpp} for basic notions of C++.}. For instance, throughout this manuscript, we will typically create a module named ``Module'' using the following piece of code
+Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Interactor} (short range, bonded,...), all modules in \uammd can be created and stored as individual shared pointers\footnote{A C++ specific kind of reference. See Appendix \ref{sec:cpp} for basic notions of C++.}. For instance, throughout this manuscript, we will typically create a module named ``Module'' a code similar to the one in code \ref{code:module}.
 \begin{code}
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
@@ -316,8 +316,8 @@ auto createModule(UAMMD sim){
   return std::make_shared(Module(/*Required parameters*/));
 }
 \end{minted}
-  \label{code:module}
   \caption{Template code for the creation of a module.}
+  \label{code:module}
 \end{code}
 Where ``Module'' will be called, for instance, \emph{VerletNVE} if it is \gls{MD} \emph{Integrator} (see sec. \ref{sec:velocityverlet}) or \emph{BondedForces} if it is a ligature \emph{Interactor} (see sec. \ref{sec:bonds}).
 
@@ -401,7 +401,7 @@ int main(){
 When requesting a handle to a property from \emph{ParticleData} with the intention of writing, the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData} issued handles (for example as members of a class), requesting them just before use and destroying when they are no longer needed.
 
 
-
+\newpage
 
 
 
@@ -487,7 +487,7 @@ Let us go through the different numerical techniques that are used to simulate t
 We can distinguish between two families of numerical techniques, particle and grid based methods. The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
 In some way or another, all algorithms have to take into account interactions between particles.
 
-In chapter \ref{ch:design} we discussed the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned to specialized it in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch. In particular, we start with the case of all particles interacting with every other in chapter \ref{sec:nbody}. Then we discuss the optimization opportunities that arise when this interaction has a short range (compared to the typical particle size) in chapter \ref{sec:shortrange}. After that we explore the case of particles being joined by spring-like ligatures (be it in pairs, triplets, cuadruplets, etc) in chapter \ref{sec:bonded}. Finally, in chapter \ref{sec:external} we briefly discuss the simple case of particles interacting with an unespecified external influence that does not depend on the rest of the particles.
+In chapter \ref{ch:design} we discussed the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned and specialized in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch. In particular, we start with the case of all particles interacting with every other in chapter \ref{sec:nbody}. Then we discuss the optimization opportunities that arise when this interaction has a short range (compared to the typical particle size) in chapter \ref{sec:shortrange}. After that we explore the case of particles being joined by spring-like ligatures (be it in pairs, triplets, cuadruplets, etc) in chapter \ref{sec:bonded}. Finally, in chapter \ref{sec:external} we briefly discuss the simple case of particles interacting with an unespecified external influence that does not depend on the rest of the particles.
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/sketchUAMMD_interactors}
@@ -500,7 +500,7 @@ The Poisson leaf in fig. \ref{fig:uammdsketch_interactors} deals with electrosta
 
 \chapter{Particle interactions}\label{sec:interactions}
 
-One of the motivations of our vague definition of particles is that often, from an algorithmic point of view, it does not really matter what a particle represents. Sometimes a particle will be an atom or molecule, other times it will make more sense that our simulation unit is a big colloid, a virus or a whole star.
+One of the reasons for our vague definition of particles is that often, from an algorithmic point of view, it does not really matter what a particle represents. Sometimes a particle will be an atom or molecule, other times it will make more sense that our simulation unit is a big colloid, a virus or a whole star.
 
 The important thing about particles is that when several of them are present, they more than often have a certain effect on each other.
 Stars in a galaxy attract each other over an infinetely long range of space, while two argon atoms will repell each other at close range.
@@ -510,7 +510,7 @@ In this chapter we will see some of the strategies that can be employed and how 
 
 
 
-Let us see how \uammd deals with interactions by introducing the \emph{Interactor} module.
+Let start by describing \uammd's \emph{Interactor} interface in detail.
 
 \section{The Interactor interface} \label{sec:interactor}
 
@@ -556,13 +556,13 @@ public:
   }
 };
 \end{minted}
-  \caption{The basic outline of a new \emph{Interactor}. A lot of advanced functionality has been omitted here for simplicity, refer to Appendix \ref{ch:online} for more information.}
+  \caption{The basic outline of a new \emph{Interactor}. A lot of advanced functionality has been omitted here for simplicity, refer to Appendix \ref{ch:online} for more information. See chapter \ref{sec:particledata} for more information about how to access particle properties.}
   \label{code:interactor}
 \end{code}
 
 The \emph{Computables} type in the \emph{sum} function simply contains a list of boolean values describing the needs of the caller (which will typically be an \emph{Integrator}). As of today, an \emph{Interactor} can be asked to compute only forces, energies and or virials acting on the particles. The \emph{Computables} structure exists also to facilitate the future inclusion of additional quantities to the \emph{Interactor} responsibilities.
 
-See chapter \ref{sec:pd} for more information about how to access particle properties.
+Note that \emph{Interactor} is what is called a \emph{pure-virtual} class in C++ (and programming in general). This means that \emph{Interactor} is not a class that can be used by itself (such as, for instance, \emph{ParticleData}). It is a conceptual base class that must be inherited, as in the code \ref{code:interactor}. The same way a \emph{dog} is a type of \emph{animal}, \emph{MyInteractor} in code \ref{code:interactor} is a type of \emph{Interactor}. We will see other examples shortly.
 
 %\uammd offers a series of \emph{Interactors} (discused in the following sections) sometimes exposing a general algorithm that can be specialized (like \emph{PairForces} for particle pair interactions, see sec. \ref{sec:pairforces}) and others exposing particular potentials (like \emph{SpectralEwaldPoisson} for electrostatics, see sec. \ref{sec:tppoisson}).
 
@@ -606,6 +606,14 @@ In \uammd the \emph{Box} object handles the domain details, including \gls{PBC}.
 
 
 \chapter{Long range interactions}\label{sec:nbody}
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.7\columnwidth]{gfx/sketchUAMMD_interactor_slr}
+  \caption{Overview of the concepts in the following chapters. Green text represent template arguments, while purple are generic algorithms. Long and short ranged interactions can be specialized from the outside via the \emph{Potential} interface (see Appendix \ref{sec:transverser}).}
+  \label{fig:uammdsketch_interactors_slr}
+\end{figure}
+
 Say we are set to simulate a galaxy, so far away from others that it can be safely assumed their action is negligible. Say we want to simulate the dynamics of each of the $N$ stars in this galaxy. Gravity is the dominating interaction between each star, sadly it decays slowly enough to be considered an infinitely ranged one. The gravity potential can be written as follows
 \begin{equation}
   \label{eq:gravity}
@@ -628,29 +636,37 @@ The naive parallel algorithm that checks, for each particle, every other would s
   \end{algorithmic}
 \end{algorithm}
 This is an embarrasingly parallel operation in which, in principle, a thread can work without collaborating with the others. However the naive algorithm is missing an oportunity in doing so. We can leverage that all threads have to access the same segments of memory. Instead of letting each thread diverge we can enforce that all threads access the same particles at the same time. This can effectively reduce the number of global memory acceses to a certain particle from $N$ to, potentially, just one.
-This algorithm is based on the \emph{nbody} algorithm originally devised by NVIDIA\cite{nbody1,gpugems3,cudahandbook}. It leverages the shared memory capabilities of the \gpu by assigning a thread to a particle and then collaboratively loading groups of particles (called tiles) into shared memory. Then each thread processes this tile loaded into shared memory. This is repeated until all tiles have been loaded and processed.
+This algorithm is based on the \emph{nbody} algorithm originally devised by NVIDIA\cite{Nguyen2008,Wilt2013}. It leverages the shared memory capabilities of the \gpu\footnote{See Appendix \ref{sec:cpp} for information about the different memory spaces in the \gpu.}.
+Each thread is assigned to a particle, with threads inside a block having consecutive particles.
+Groups of particles (called tiles) are then loaded collaboratively by the threads in the block into shared memory.
+The number of particles per tile is restricted by the amount of shared memory available\footnote{Thus far, are CUDA-capable cards above architecture 3.0 provide 48KB of shared memory per thread block. In single precision, the 3D coordinates of a particle take $12$ bytes, limiting the tile size to 4096 particles. In practice, we set the tile size equal to the number of threads per block (typically 128) and allow the possibility of storing other particle properties into shared memory (mass, velocity,...).}.
+
+Then the tile is processed by the thread block, in principle, with all threads accessing the same shared memory elements in lock-step.
+This is highly benefitial, since global memory accesses incur a high latency (in the order of hundreds of clock cycles). In contrast, loading a value from shared memory yields a near register-memory performance ($\sim 4$ cycles for shared memory and $\sim 1$ cycle for register memory). Since each thread's global memory acceses are reused by the rest, the latency of the former is hidden. In particular, if the tile size is equal to the number of threads in a block, $N_{th}$, (so each threads loads only one particle), the global memory latency is effectively reduced $N_{th}$-fold.
+
+Once the tile has been processed, the next one is loaded. This process is repeated until no particles remain (note that the last tile can potentially be smaller than the rest).
 The optimal size of a tile will be an optimization parameter also depending on the required shared memory per particle, being the number of threads in a block (or a multiple of it) a good default.
-This results in an overall speedup of 30 compared with the naive algorithm \todo{Maybe a figure comparing here?}
-The algorithm is summarized in algorithm \ref{alg:nbody}-
+This results in an overall speedup of 30 compared with the naive algorithm. \todo{Maybe a figure comparing here?}
+The algorithm is summarized in algorithm \ref{alg:nbody}.
 \begin{algorithm}
   \caption{Shared memory NBody algorithm GPU kernel. Although the number of particles per tile is unconstrained, for simplicity this pseudocode assumes a tile has a size equal to the number of threads per block, with a number of tiles equal to the number of thread blocks.} \label{alg:nbody}
   \Input{A list of $N$ particles}
   \begin{algorithmic}[1]
     \Require
     \Statex A group of $N_b$ thread blocks with $N_{th}$ threads per block is launched.
-    \Statex At least a thread per particle.
-    \Statex Enough shared memory per block to to store $N_{th}$ particles.
+    \Statex $N_bN_{th}\ge N$.
+    \Statex A shared memory array with $N_{th}$ size.
     \Ensure
     \Statex Threads with index larger than $N$ do not participate.
     \State i $\gets$ thread ID \Comment{The index of the particle asigned to this thread.}
     \State tid $\gets$ mod($i$, $N_{th}$) \Comment{Index of thread in the block.}
     \For{tile $=0$ until $N_b$}
-    \State iload $\gets \text{tile } N_{th}+$tid
-    \State Load particle \emph{iload} into shared memory at index \emph{tid}.
+    \State iload $\gets \text{tile}\cdot N_{th}+$tid
+    \State shared$[$tid$]\gets$ particles$[$iload$]$
     \State Synchronize threads in block. \Comment{Ensures the entire tile is loaded.}
     \For{counter $ =0$ until $N_{th}$}
-    \State $j \gets \text{tile }N_{th} + \text{counter}$
-    \State Read particle $j$ from shared memory index \emph{counter}.
+    \State $j \gets \text{tile}\cdot N_{th} + \text{counter}$
+    \State pj $\gets$ shared$[$counter$]$\Comment{Read particle $j$ from shared memory.}
     \State{Process $i$-$j$ pair}
     \EndFor
     \State Synchronize threads in block. \Comment{Ensures shared memory can be rewritten}
@@ -658,8 +674,9 @@ The algorithm is summarized in algorithm \ref{alg:nbody}-
   \end{algorithmic}
 \end{algorithm}
 
-Note that the computation as described here is not restricted to computing forces or energies between particles, it might be used for widely different computations that can be encoded as an nbody operation.
-\uammd acknowledges this generality via the \emph{Transverser} interface (see sec. \ref{sec:transverser}), that can be used to specialize these algorithms. 
+Note that the computation as described here is not restricted to computing forces or energies between particles, it might be used for widely different computations that can be encoded as an nbody operation (like a dense matrix-vector product).
+
+\uammd acknowledges this generality via the \emph{Transverser} interface (see Appendix \ref{sec:transverser}), that can be used to specialize these algorithms.
 \subsection*{Use in UAMMD}
 There are three ways to access this algorithm depending on the usage:
 \begin{enumerate}
@@ -694,9 +711,9 @@ void tranverseWithNBody(UAMMD sim, Transverser tr){
 
 #include<Interactor/PairForces.cuh>
 template<class Potential>
-auto createPairForcesWithPotential(UAMMD sim, Potential tr){
+auto createPairForcesWithPotential(UAMMD sim, Potential pot){
   using PF = PairForces<Potential>;
-  return std::make_shared<PF> pf(sim.pd, potential);
+  return std::make_shared<PF> pf(sim.pd, pot);
 }
 \end{minted}
   \caption{Usage examples of the three different ways the NBody algorithm is exposed in \uammd. The \emph{Transverser} and \emph{Potential} interfaces are described in Appendix \ref{ch:transverser}.}
@@ -705,16 +722,18 @@ auto createPairForcesWithPotential(UAMMD sim, Potential tr){
 If the \emph{NeighbourCounter} example given in Appendix \ref{ch:transverser} is given as a \emph{Transverser}, the number of particles will be stored in the result of each particle.
 
 
-Long range interactions in a periodic domain pose a special challenge. Direct summation would require to take into account the periodic copies of the system. On the other hand, this summation might not even be convergent, as is the case with electrostatics. It is necessary to elaborate special algorithms for these cases. In \uammd, algorithms to solve the Poisson equation for electrostatics with triple and double  periodicity are available. However, these algorithms rely on a mathematical machinery that will be discussed later on in this manuscript and thus, we have delayed their description to chapter \ref{ch:tppoisson}.
+Long range interactions in a periodic domain pose a special challenge. Direct summation would require to take into account the periodic copies of the system. On the other hand, this summation might even be conditionally convergent, as is the case with electrostatics. It is necessary to elaborate special algorithms for these cases. In \uammd, algorithms to solve the Poisson equation for electrostatics with triple and double periodicity are available. However, these algorithms rely on a mathematical machinery that will be discussed later on in this manuscript and thus we have delayed their description to chapter \ref{ch:tppoisson}.
 
 
 
 \chapter{Short range interactions}
 Particles interacting closely, a.i. there is less information to share between them, allow for specific optimizations abusing the locality of the required computation.
-In reality it can happen that the effect of one particle on another is short ranged in nature, as could be the case for interactions stemming directly from quantum effects such as Van-der-Walls forces. It can also happen that a combination of several long ranged interactions result in an effective short ranged one, such as a screened electrostatic interaction (like the DLVO potential). Other times when the interaction cannot be made to decay rapidly using natural arguments we can still transform it into a short range one with techniques such as Ewald splitting, which will be discussed in section \ref{sec:ewald}.
+In reality it can happen that the effect of one particle on another is short ranged in nature, as could be the case for interactions stemming directly from quantum effects such as Van-der-Walls forces. It can also happen that a combination of several long ranged interactions result in an effective short ranged one, such as a screened electrostatic interaction (like the DLVO potential). Other times when the interaction cannot be made to decay rapidly using natural arguments we can still partially transform it into a short range one with techniques such as Ewald splitting, which will be discussed in future sections.
+
 The reason for giving short range interactions so much credit is simple: Imagine a system with $N$ uniformly distributed particles inside a given domain. If we let each particle interact with every other we need to check $N^2$ pairs of particles as we already saw. On the other hand, restricting the interaction to a certain distance, such that each particle has a number of neighbours $k<<N$ reduces the number of checks to $kN$.
 
-\subsection{The Lennard-Jones potential}
+The traiditonal example of a short range interaction is the Lennard-Jones potential.
+\section{The Lennard-Jones potential}\label{sec:lj}
 A standard potential employed to model the short range Van-der-Waals interactions is the Lennard-Jones potential \cite{lj} (\gls{LJ} for short). A rapidly decaying repulsive radial potential with an attractive tail.
 \begin{equation}
   \label{eq:lj}
@@ -723,9 +742,9 @@ A standard potential employed to model the short range Van-der-Waals interaction
 Which results in this expression for the force at a certain distance $\vec{r}$ between two points
 \begin{equation}
   \label{eq:ljf}
-  \vec{F}_{LJ}(\vec{r}) = -\nabla_{\vec{r}} U_{LJ} = 24 \epsilon \left[ \left(\frac{\sigma}{r}\right)^{7} - 2\left( \frac{\sigma}{r}\right)^{13} \right] \hat{\vec{r}}
+  \vec{F}_{LJ}(\vec{r}) = -\nabla U_{LJ} = 24 \epsilon \left[ \left(\frac{\sigma}{r}\right)^{7} - 2\left( \frac{\sigma}{r}\right)^{13} \right] \frac{\vec{r}}{r}
 \end{equation}
-Where $r = ||\vec{r}||$ is the modulus of the distance vector and $\hat{\vec{r}}$ is an unit vector in the direcion of $\vec{r}$.
+Where $r = ||\vec{r}||$ is the modulus of the distance vector. The characteristic length, $\sigma$, and energy, $\epsilon$, are typically used as natural units in simulations.
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{lj}
@@ -734,7 +753,7 @@ Where $r = ||\vec{r}||$ is the modulus of the distance vector and $\hat{\vec{r}}
 \end{figure}
 
 Given the rapidly decaying nature of this otherwise infinite range potential it is standard to truncate it at a certain distance, usually $r_{cut} = 2.5\sigma$. At this distance the potential has a value of $U_{LJ}(r = r_{cut}) = -0.0615\epsilon$.
-Ignoring the long range effects of this potential changes the equation of state of a \gls{LJ} fluid in a way that is well understood and tabulated\cite{ljtrunc}. By doing this we can devise more efficient algorithms that only need to take into account short range interactions.
+Ignoring the long range effects of this potential changes the equation of state of a \gls{LJ} fluid in a way that is well understood and tabulated\cite{Thol2015}. Doing this allows to devise more efficient algorithms that only need to take into account short range interactions.
 Finally, in order to avoid jumps in the energy it is also standard to shift the potential in addition to this truncation. This is refered as the truncated and shifted Lennard-Jones potential
 \begin{equation}
   \label{eq:ljts}
@@ -747,9 +766,63 @@ Finally, in order to avoid jumps in the energy it is also standard to shift the 
 The expression for the force remains as in eq. \eqref{eq:ljf}, simply truncated at $r=r_{cut}$.
 
 Sometimes we are only interested in the repulsive part of the LJ potential, as a way of modelling hard spheres. In order to do so we truncate eq. \eqref{eq:lj} at its minimum, located at a distance $r_m = 2^{1/6}\sigma$, where $U_{LJ} = 0$. The resulting potential is called Weeks-Chandler-Andersen, or WCA, potential. We will refer to to it as $U_{WCA}$.
-Often the parameters in eq. \eqref{eq:lj} will be used as natural units of energy, $\epsilon$ and length $\sigma$.
-\subsection{Neighbour Lists}\ref{sec:nlist}
-Imagine a system composed of an uniform distribution of argon atoms, whose interaction can be qualitatively modeled via the \gls{LJ} potential. When we talked about computing the gravitational interaction between stars, it made sense to devise an efficient algorithm that checks all star pairs in the system. However, in this new system governed by eq. \eqref{eq:ljts}, checking all pairs becomes pointless given that the vast mayority of them will contribute zero to the final result. We would like to skip all these pairs that lie beyond a certain cut off distance, $r_{cut}$, beforehand. A neighbour list contains, for each particle, a list of other particles that are closer than $r_{cut}$ to it. There are many approaches, wildly different between them, to constructing neighbour list, and \uammd implements several of them as we will shortly see.
+
+\section*{Use in UAMMD}
+
+A short range \emph{Interactor} is available in \uammd under the name \emph{PairForces}. We have already seen this \emph{Interactor} module when discussing long ranged interactions in example code \ref{code:nbody}. For an user of this module, the only difference between a long range or short range interaction is the cut off distance. If it is large enough, the \emph{PairForces} module will decide to use the NBody algorithm instead of a neighbour list. An example of the creation of a \emph{PairForces} module is available in code \ref{code:pf}.
+
+The \emph{PairForces} module can be specialized for a certain \emph{Potential} (see Appendix \ref{sec:potential}) and \emph{NeighbourList} (see chapter \ref{sec:nlist}).
+
+In the following chapters, we will discuss in detail the different neighbour list strategies.
+\begin{code}
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+using namespace uammd;
+#include<Interactor/PairForces.cuh>
+template<class Potential>
+auto createPairForcesWithPotential(UAMMD sim, Potential pot){
+  //Any neighbour list can be used
+  using NeighbourList = CellList;
+  //using NeighbourList = VerletList;
+  //using NeighbourList = LBVHList;
+  using PF = PairForces<Potential, NeighbourList>;
+  PF::Parameters par;
+  //A box can be specified here.
+  //Note that periodicity can be set independently 
+  // in any direction.
+  par.box = sim.par.box;
+  //If the box is omited, it is considered 
+  // aperiodic and infinite in the three directions
+  //Optionally, an instance of a neighbour list
+  // can also be passed as a parameter
+  //par.nl = std::make_shared<NeighbourList>(sim.pd);
+  return std::make_shared<PF> pf(sim.pd, par, pot);
+}
+\end{minted}
+  \caption{Creating and returning a short range interaction module. The \emph{Potential} interface are described in Appendix \ref{ch:transverser}.}
+  \label{code:pf}
+\end{code}
+
+
+
+\chapter{Neighbour Lists}\label{sec:nlist}
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.5\columnwidth]{gfx/nlist}
+  \caption{A depiction of a neighbour list in a section of a particle distribution. Particles inside the blue circle (of radius $r_c$) are neighbours of the red particle. The Verlet list strategy (section \ref{sec:verletlist}) defines a second safety radius, $r_s$, that can be leveraged to reuse the list even after particles have moved.}
+  \label{fig:nlist}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.7\columnwidth]{gfx/sketchUAMMD_nlist}
+  \caption{The three types of neighbour lists in \uammd. All of them can be used via the same unifying interfaces; \emph{Transverser} (described in Appendix \ref{sec:transverser}) and \emph{NeighbourContainer} (described in sec \ref{sec:ncontainer}). Additionally, te internal structures of each list can be requested for custom use.}
+  \label{fig:uammdsketch_nlist}
+\end{figure}
+
+Imagine a system composed of an uniform distribution of argon atoms, whose interaction can be qualitatively modeled via the \gls{LJ} potential. When we discussed the gravitational interaction between stars, it made sense to use an efficient algorithm that checks all star pairs in the system. However, in this new system governed by eq. \eqref{eq:ljts}, checking all pairs becomes pointless given that the vast mayority of them will contribute zero to the final result. We would like to skip all these pairs that lie beyond a certain cut off distance, $r_{cut}$, beforehand. A neighbour list contains, for each particle, a list of other particles that are closer than $r_{cut}$ to it. There are many approaches, wildly different between them, to constructing neighbour list, and \uammd implements several of them as we will shortly see.
+
 Once a list is constructed, the traversal algorithm depends on the type of neighbour list. However, the logic behind traversal will always be the same (see algorithm \ref{alg:nlist}) and compatible with the \emph{Transverser} interface (which is actually the main reason for its existence). In \uammd neighbour lists can always be used by providing them with a \emph{Transverser}.
 
 \begin{algorithm}
@@ -766,16 +839,16 @@ Once a list is constructed, the traversal algorithm depends on the type of neigh
 \end{algorithm}
 
 This allows to unify any neighbour algorithm into a common interface. However, some times we would rather have access to an actual neighbour list. In these cases we generally have three options:
-\begin{itemize}
+\begin{enumerate}
+\item Use the \emph{NeighbourContainer} interface, which provides a pseudo-container mimicking a neighbour list.
 \item Use a \emph{Transverser} to construct one with whatever format is needed.
-  This is always valid and can be crafted with slight modifications to the neighbour counter example in \ref{code:ncounter}
-\item Use the interal structures that the particular neighbour list construction algorithm.
+  This is always valid and can be crafted with slight modifications to the neighbour counter example in \ref{code:ncounter} in Appendix \ref{ch:transverser}.
+\item Use the interal structures the particular neighbour list construction algorithm provides.
   We will see how to do this case by case in the following sections.
-\item Use the \emph{NeighbourContainer} interface.
-\end{itemize}
+\end{enumerate}
 
-\subsubsection{The NeighbourContainer interface}\label{sec:ncontainer}
-A \emph{NeighbourContainer} is an interface that can provide for each particle each of its neighbours. It does not provide any guarantees besides this, which means that as long as it provides the neighbours using the common interface, it does not have to actually construct a list. This can be thought of as the inverse of using a \emph{Transverser}, instead of providing the neighbour list with a certain logic, a \emph{NeighbourContainer} allows to request the traversal information \emph{from} the list. A summary of the usage of a \emph{NeighbourContainer} can be found in code \ref{code:ncontainer}.
+\section{The NeighbourContainer interface}\label{sec:ncontainer}
+A \emph{NeighbourContainer} is an interface that can provide, for each particle, each of its neighbours. It does not provide any guarantees besides this, which means that as long as it provides the neighbours using the common interface, it does not have to actually construct a list\footnote{The CellList in sec. \ref{sec:celllist} actually exploits this by traversing the $27$ cells around a given particle without actually constructing a neighbour list}. Contrary to a \emph{Transverser}, instead of providing the neighbour list with a certain logic, a \emph{NeighbourContainer} allows to request the traversal information \emph{from} the list. A summary of the usage of a \emph{NeighbourContainer} can be found in code \ref{code:ncontainer}.
 
 The \emph{NeighbourContainer} interface comes works the assumption that the underlying neighbour list can have an internal indexing of the particles and an internal copy of the positions in this order. We will see the origin of this assumption shortly.
 It loosely behaves as a C++ standard container, providing \emph{begin} and \emph{end} methods returning forward input iterators to the first and last neighbours. This means that the neighbour container of a certain particle can only be advanced in sequential order starting from the first neighbour.
@@ -792,7 +865,7 @@ __global__ void traverseNeighbours(NeighbourContainer &nc,
   //Set the container to provide the list 
   // of neighbours of particle tid.
   //Note that tid is the internal indexing of the container
-  ni.set(tid);
+  nc.set(tid);
   //Get the group index of the particle:
   const int i = nc.getGroupIndexes()[tid];
   //Get the position of a particle given its internal index
@@ -805,16 +878,16 @@ __global__ void traverseNeighbours(NeighbourContainer &nc,
     ...
   }
   //Do something with result
-   ...
+  //output[i] = result;
   }
 \end{minted}
-\caption{A CUDA kernel that uses a \emph{NeighbourContainer} to go though al lthe neighbours of each particle.}
+\caption{A CUDA kernel that uses a \emph{NeighbourContainer} to go though all the neighbours of each particle. This code is a manifestation of the pseudo code in Algorithm \ref{alg:nlist}.}
 \label{code:ncontainer}
 \end{code}
 
 We are now ready to explore the different neighbour list algorithms, including construction and traversal. Although the latter can be solved via \emph{Transversers} and/or \emph{NeighbourContainers} we will see how each algorithm deals with it. This can be useful for more specialized computations that can leverage the internal workings of the different lists.
 
-Lets start with the naive way to construct a neighbour list; Using algorithm \ref{alg:nbody} to fill a list of particles closer than $r_{cut}$ to each other. 
+Lets start with the naive way to construct a neighbour list; Using algorithm \ref{alg:nbody} to fill a list of particles closer than $r_{c}$ to each other. 
 If for some reason we ought to traverse all neighbour pairs several times before the particles change positions this tactic is already a win over simply using algorithm \ref{alg:nbody}. However, it negates one of the reasons for using a neighbour list, reducing the complexity of the overall operation from $O(N^2)$ to $O(kN)$ (with $k<<N$). We can now traverse the list in $O(kN)$ operations, but construction still requires going through every pair anyway.
 Still, it is worth to go through the data format of this list since we can make use of it in the future. When it comes to the data format of a neighbour list we can typically find three ways of storing the neighbours of each particle:
 \begin{enumerate}
@@ -824,18 +897,19 @@ Still, it is worth to go through the data format of this list since we can make 
   This format has the same storage requirements as the previous one. The only difference is that instead of storing the neighbours for each particle contigously, we store contigously one single neighbour for all particles. Starting at the $N$ element we find the next neighbour for every particle and so on until the $n_{max}$ neighbour is reached. The same storage waste concerns are present for this format. In a \gpu, if the traversal is carried out assigning a thread per particle, this is the most cache friendly strategy, since contigous threads will fetch contigous elements. In \uammd this is the chosen format when a neighbour list is constructed. 
   As before, the number of neighbours per particle can be stored in an auxiliar array.
 \item Compact any of the above lists.\todo{Who does this?}
-  With the first \gpu architectures the thread access patterns (the so-called coherence in CUDA) described in the previous points made a crucial difference. Nowadays the latest architectures are more forgiving about this, furthermore we might need to reduce the memory footprint of the list to the minimum. It is possible to compact any of the above lists so there are no ``empty'' spaces. This can be benefitial when the list has to be downloaded into the CPU, in which case the size of the memory transfer has to be optimized.\todo{citar algo}
+  With the first \gpu architectures the thread access patterns (the so-called coherence in CUDA) described in the previous points made a crucial difference. Nowadays the latest architectures are more forgiving about this, furthermore we might need to reduce the memory footprint of the list to the minimum. It is possible to compact any of the above lists so there are no ``empty'' spaces. This can be benefitial when the list has to be downloaded into the CPU, in which case the size of the memory transfer has to be optimized (and will probably dominate the cost of the overall operation).
 \end{enumerate}
 
 Lets now see the different \gpu algorithms implemented in \uammd.
 
-\subsubsection{Cell list}\label{sec:celllist}
+\section{Cell list}\label{sec:celllist}
 
-This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA and published in the famous book, GPU Gems 3\cite{Nguyen2008}. It is reminiscent of the classic CPU linked cells algorithm\cite{AllenTildesley} and in some ways and adaptation of it to the \gpu architecture. This algorithm is the standard in \gls{GPU} cell list generation and lot of works can be found describing it or variations from it\cite{Anderson2008}\cite{Dominguez2011}\cite{Howard2016}\cite{Brown2011}. In particular, our approach to building a cell list shares a lot of similarities with the one described in\cite{Tang2014}.
-The main idea behind the cell list is to perform a spatial binning and asign a hash to each particle according to the bin it is in. If we then sort these hashes we get a list in which all the particles in a given cell are contiguous. By accessing, for a certain particle, the particles in the $27$ surrounding cells we can find its neighbours without checking too many false positives. Ideally, for a given particle, we would want to check the distance only with the $N_{neigh}$ particles that lie at a distance closer (or equal) than the cut off distance, $r_{cut}$. Thus requiring to check a volume of $V_{min}=\frac{4}{3}\pi r_{cut}^3$. However, as the cell list partitions space in cubes of side $r_{cut}$, a volume of $V_{cl} = 27r_{cut}^3$ around each particle is visited.
-Assuming the particles are uniformly distributed, the cell list will, in average, check a number of innecesary particles that scales as $N_{cl}/N_{neigh} = V_{cl}/V_{min} \approx 6$. Although the cell list requires to, potentially, visit more than $6$ times the number of particles as strictly required its construction and traversal is so efficient that it is usually worth it.
-We are going to describe the algorithm for a rectangular box of side $\vec{L}=(L_x, L_y, L_z)$ with a cut off distance $r_{cut}$. This requires to partition the domain into a number of cells $\vec{n}=\textrm{floor}(\vec{L}/r_{cut}) = (n_x, n_y, n_z)$. Where \emph{floor} represents the integer part of the argument. It is important to ensure the resulting cell size is at least the cut off radius, so that $\vec{l} = \vec{L}/\vec{n} \ge r_{cut}$.
-It is possible to reduce the cell size in exchange for visiting more neighbouring cells ($126$ if $l=r_{cut}/2$), which will also reduce the number of false positives neighbour checks. However, testing suggests that this is in general not worth doing\cite{Anderson2008}.
+This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA and published in the acclaimed book GPU Gems 3\cite{Nguyen2008}. It is reminiscent of the classic CPU linked cells algorithm\cite{Allen2017} and in some ways and adaptation of it to the \gpu architecture. This algorithm is the standard in \gls{GPU} cell list generation and lot of works can be found describing it or variations from it\cite{Anderson2008}\cite{Dominguez2011}\cite{Howard2016}\cite{Brown2011}. In particular, our approach to building a cell list shares a lot of similarities with the one described in\cite{Tang2014}.
+The main idea behind the cell list is to perform a spatial binning and asign a hash to each particle according to the bin it is in. If we then sort these hashes we get a list in which all the particles in a given cell are contiguous. By accessing, for a certain particle, the particles in the $27$ surrounding cells we can find its neighbours without checking too many false positives. Ideally, for a given particle, we would want to check the distance only with the $N_{neigh}$ particles that lie at a distance closer (or equal) than the cut off distance, $r_{c}$. Thus requiring to check a volume of $V_{min}=\frac{4}{3}\pi r_{c}^3$. However, as the cell list partitions space in cubes of side $r_{c}$, a volume of $V_{cl} = 27r_{c}^3$ around each particle is visited.
+Assuming the particles are uniformly distributed, the cell list will, in average, check a number of innecesary particles that scales as $N_{cl}/N_{neigh} = V_{cl}/V_{min} \approx 6$. Although the cell list requires to, potentially, visit more than $6$ times the number of particles as strictly required its construction and traversal are so efficient that it is usually worth it.
+We are going to describe the algorithm for a rectangular box of side $\vec{L}=(L_x, L_y, L_z)$ with a cut off distance $r_{c}$. This requires to partition the domain into a number of cells $\vec{n}=\textrm{floor}(\vec{L}/r_{c}) = (n_x, n_y, n_z)$. Where \emph{floor} represents the integer part of the argument. It is important to ensure the resulting cell size is at least the cut off radius, so that $\vec{l} = \vec{L}/\vec{n} \ge r_{c}$.
+
+It is possible to reduce the cell size in exchange for visiting more neighbouring cells ($126$ if $l=r_{c}/2$), which will also reduce the number of false positives neighbour checks. However, testing suggests that this is in general not worth doing\cite{Anderson2008}.
 \begin{figure}
   \centering
   \includesvg[width=\columnwidth]{gfx/celllist1}
@@ -844,24 +918,26 @@ It is possible to reduce the cell size in exchange for visiting more neighbourin
 \end{figure}
 
 The algorithm for the cell list construction can be summarized in three separated steps
-\begin{itemize}
+\begin{enumerate}
 \item Hash the positions according to the cell (bin) they lie in
 \item Sort the positions and hashes using the hashes as key
 \item Identify where each cell starts and ends in the sorted positions array
-\end{itemize}
+\end{enumerate}
 After these steps we end up with enough information to visit the $27$ neighbour cells of a given particle.
 We have to compute the assigned cell of a given position at several points during the algorithm. Doing this is straight forward; For a position inside the domain, $x \in [0, L)$, the bin asigned to it is $i = \textrm{floor}(x/n_x) \in [0, n_x- 1]$. It is important to notice that a particle located at exactly $x = L$ will be asigned the cell with index $n_x$, special consideration must be taken into account to avoid this situation. In particular, in a periodic domain, a particle at $x=L$ should be assigned to the cell $i=0$\footnote{Although this might sound evident, it is an easy to miss detail and the consequences resulting from its omission will haunt a naive developer for weeks (or so I am told).}.
 Figure \ref{fig:cl1} contains a representation of the binning.
 Lets describe now each step in detail
-\subsubsection*{Hashing the particles}
+\subsection*{Hashing the particles}
 
 We want to assign to each position a hash that is unique to the cell in the grid in which it lies (see fig. \ref{fig:cl1}).
-These are stored an auxiliar array in which the hashes for each index in the position array.
+These are stored in an auxiliar array holding the hashes for each index in the position array.
+
 One possibility is to simply use the linear cell index as a hash, i.e $\textrm{hash}(i,j,k) := i + (j + kn_y)n_x$.
-However, we can leverage the fact that the positions will be sorted according to this hash to improve the data locality for traversal. Using the cell index as hash will place particles with the same $x$ coordinate close in the final array, but this is not optimal, since we will have to also explore contigous cells in $y$ and $z$ which will end up far away.
+However, we can leverage that the positions will be sorted according to this hash to improve the data locality for traversal later on. Using the cell index as hash will place particles with the same $x$ coordinate close in the final array, but this is not optimal, since we will have to also explore contigous cells in $y$ and $z$ which will end up far away.
 The usual solution is to use as hash some kind of space-filling curve that tends to assign similar values to cells that are spatially close. The key idea is to find a function that maps the three dimensional cell index to one dimension while preserving their locality. Any space filling curve, like Peano\cite{Peano1890} or Hilbert\cite{Hilbert1935} curves, can be used.
-We are going to use the Morton hash\cite{Morton1966}, a popular Z-order curve. Construction is fairly straight forward, although the implementation can be challenging to understand.
-By assigning to each cell coordinate it's binary representation and interleaving the three resulting patterns we get a hash that follows the path depicted in fig. \ref{fig:cl1}. In particular, we interleave three $10$ bit coordinates in a $32$ bit Morton hash (leaving 2 bits unused), which allows us to encode up to $1024$ cells per direction, enough for most applications. We can achieve this with algorithm\ref{alg:mortonhash}.
+We are going to use the Morton hash\cite{Morton1966}, a popular Z-order curve (see fig. \ref{fig:cl1}). Construction is fairly straight forward, although the implementation can be challenging to understand.
+
+By assigning to each cell coordinate it's binary representation and interleaving the three resulting patterns we get a hash that follows the path depicted in fig. \ref{fig:cl1}. In particular, we interleave three $10$ bit coordinates in a $32$ bit Morton hash (leaving 2 bits unused), which allows us to encode up to $1024$ cells per direction, enough for most applications. We can achieve this with algorithm \ref{alg:mortonhash}.
 
 This algorithm is comprised of two functions; First a \emph{mask} function that uses a series of bit masks to encode the bits of a number between $0$ and $1023$ in every third bit of a $32$ bit unsigned integer. Then a \emph{mortonhash} function that takes three numbers masked by the first function and interleaves them bit by bit by shifting them accordingly.
 
@@ -899,20 +975,47 @@ As an example, lets say we want to compute a $6$ bit Morton hash from two $3$ bi
 
 
 
-\subsubsection*{Sorting the hashes}
+\subsection*{Sorting the hashes}
 Once each particle position has been assigned a hash we sort them. For our use case, we need to sort the positions according to the values in the auxiliar array with the hashes, this operation is known as sort by key. Since all particles in a given cell are assigned the same, unique, hash this operation results in a list of positions such that contigous elements are guaranteed to correspond to the same cell.
 The most efficient way to perform this sorting operation in a \gpu (as far as the author is aware) is the radix sort algorithm\cite{Ha2009}\cite{Singh2018}\cite{Merrill2011}. This algorithm is capable of sorting with an $O(n)$ complexity and its implementation happens to be quite a good fit for a \gpu. In particular, \uammd uses the radix sort implementation in the CUDA library \emph{cub}\cite{cub}. Radix sort needs to traverse the input a number of times that increases with the number of bits in the keys. Our hashes are encoded in $30$ bit numbers and, depending on the geometry of the grid, the rightmost bit set in the largest hash might be even lower. This allows us to further optimize the sorting process. With our implementation of the Morton hash we can find the largest possible hash simply by evaluating the hash of cell $(n_x-1, n_y-1, n_1-1)$. We can leverage the C function \emph{ffs} (find first set) or \emph{clz} (count leading zero) to find the most significant bit set in an integer.
 
 
-\subsubsection*{Constructing the cell list}
+\subsection*{Constructing the cell list}
+By construction, positions lying in the same cell are contigous in the array of positions sorted by hash. We can construct a cell list by finding the indices such that the cell of that index is different from the previous one. If we store the indices for the first and last particle in each cell, we can later use them to access the range of particles in it.
+This is an easily parallelizable operation, we can simply assign a thread to each particle and ask wheter its cell is different from the cell of the previous particle in the list. If this is the case, we know that this particle is the first in its cell (and store it in the \emph{cellStart} array) and also the last of the previous one\footnote{Not actually the last but the next one, we can either make the convention that particles in cell $c_i$ go from \emph{cellStart}$[c_i]$ to \emph{cellEnd}$[c_i]$ or to \emph{cellEnd}$[c_i]-1$, in \uammd we choose the later.} (and store it in the \emph{cellEnd} array). The procedure is listed in algorithm \ref{alg:fillcl}.
+\begin{algorithm}
+  \caption{Constructing a cell list from a list of sorted-by-hash positions.} \label{alg:fillcl}
+  \textbf{Input:} Grid information, a list of $N$ postions sorted by hash\\
+  \textbf{Output:} Arrays cellStart and cellEnd containing the indices (in the positions array) of the first and last particles in each cell.\\
+  \textbf{Requires:} A thread per particle
+  \begin{algorithmic}[1]
+    \State $i\gets$ thread ID \Comment{Index of a particle}
+    \If{id$<$N}
+    \State $c_i\gets$ cellIndex(pos$[i]$)
+    \State $c_{i-1}\gets$ cellIndex(pos$[i-1]$)
+    \EndIf
+    \If{$c_i\neq c_{i-1}$ \textbf{or} $i=0$}\Comment{Particle $i$ is the last of it's cell}
+    \State cellStart$[c_i]\gets$ id
+    \If{$i>0$}
+    \State cellEnd$[c_{i-1}]\gets$ id;
+    \EndIf
+    \EndIf
+    \If{$i== N-1$}
+    \State cellEnd$[c_i]\gets N$;
+    \EndIf
+  \end{algorithmic}
+\end{algorithm}
 
+The cost of the whole construction operation grows linear with the number of particles and its quite inferior to the cost of traversing. On the other hand, this algorithm partitions the system into equal sized bins independent of the particle distribution or sizes. The resulting neighbour list is therefore best suited for uniform distributions of particles with equal, or similar, sizes (interaction ranges).
 
-Inefficient for large size disparities.
-\subsubsection*{Use in UAMMD}
+When large range disparities are present (for instance, a big sphere interacting with a solvent made up by much smaller ones) the cell list requires to choose as cut off distance the largest interaction range, which will yield many false positives for the smaller particles. This can be alliviated by constructing a list for each interaction range. Then each particle traverses all lists, thus reducing the number of checks. Similar approaches (like stenciled lists) can be found in the literature\cite{Howard2016}.
+
+Another option is to use a different strategy altogether, as we will see in sec \ref{sec:lbvh}.
+\subsection*{Use in UAMMD}
 There are two main ways to construct a Cell List in \uammd (and the other neighbour lists behave in a similar way):
 \begin{itemize}
 \item Through the \uammd ecosystem.
-  We can provide a \emph{CellList} with a \emph{ParticleData} and a \emph{ParticleGroup} and let it take care of when rebuilding is needed and deal with details like the indexes of the particle sin the group.
+  We can provide a \emph{CellList} with a \emph{ParticleData} and let it take care of when rebuilding is needed.
 \item Outside the ecosystem.
   Some use cases might benefit from a way to access the algorithm as less intrusively as possible. In particular a user might be interested in constructing the cell list while being in control of the list of position required to do so (without \emph{ParticleData}).
 \end{itemize}
@@ -923,19 +1026,18 @@ The example code \ref{code:cellist} shows how to construct and traverse a cell l
 #include<uammd.cuh>
 #include<Interactor/NeighbourList/CellList.cuh>
 using namespace uammd;
-//Construct a CellList using the UAMMD ecosystem
+
+//Construct a list using the UAMMD ecosystem
 void constructListWithUAMMD(UAMMD sim){
   //Create the list object
   //It is wise to create once and store it
-  CellList cl(sim.pd, sim.pg, sim.sys);
-  //Optionally, a CUDA stream can be used
-  cudaStream_t stream = 0;
+  CellList cl(sim.pd);
   //Update the list using the current positions in sim.pd
-  cl.update(sim.par.box, sim.par.rcut, stream);
+  cl.update(sim.par.box, sim.par.rcut);
   //Now the list can be used via the
   //  various common interfaces
   //-With a Transverser:
-  //cl.transverseList(some_transverser, stream);
+  //cl.transverseList(some_transverser);
   //-Requesting a NeighbourContainer
   auto nc = cl.getNeighbourContainer();
   //Or by getting the internal structure of the Cell List
@@ -950,13 +1052,11 @@ void constructListWithPositions(Iterator positions,
   //Create the list object
   //It is wise to create once and store it
   CellListBase cl;
-  //A CUDA stream can be optionally used
-  cudaStream_t stream = 0;
   //CellListBase requires specific cell 
   // dimensions for its construction
   Grid grid(Box(boxSize), numberCells);
   //Update the list using the positions
-  cl.update(positions, numberParticles, grid, stream);
+  cl.update(positions, numberParticles, grid);
   //Now the internal structure of the Cell List
   // can be requested
   auto cldata = cl.getCellList();
@@ -971,9 +1071,10 @@ void constructListWithPositions(Iterator positions,
 In both cases the internal structure of the cell list can be requested to facilitate any usage outside the proposed interfaces for neighbour traversing. In the case of the cell list, this means having access to an ordered list containing the indices of the particle s in each cell. Remembering that the cell list works by binning the domain, assigning a hash to each position according to the bin they are in and then sorting this hash list.
 As explained in sec. \ref{sec:celllist}, the cell list algorithm mainly stores two arrays containing the indices of the particles for each cell.
 However, there are some technical implementation details that we will discuss now.
-As part of the construction algorithm we need to sort the hashed positions into a, potentially, different order than the input positions. This allows us to easily identify the particles in each cell. Furthermore this has the side fortunate side effect of providing us with a sorted positions array with the interesting property that particles that are close in space happen to be close (in average) in memory. In order to take advantage of this \emph{CellList} constructs the list based on the indices in this auxiliar array and provides it along the rest of the arrays.
+As part of the construction algorithm we need to sort the hashed positions into a, potentially, different order than the input positions. This allows us to easily identify the particles in each cell. Furthermore this has the fortunate side effect of providing us with a sorted positions array with the interesting property that particles that are close in space happen to be close (in average) in memory. In order to take advantage of this \emph{CellList} constructs the list based on the indices in this auxiliar array and provides it along the rest of the arrays.
 A really good vidual representation of the data locality benefits of using this sorted positions for traversal can be found in fig. 6 in \cite{Tang2014}.
-Additionally, if the total number of cells is too large in particle configurations that result in a lot of empty cells, cleaning up the \emph{cellStart} array can become a large part of the total runtime. In order to overcome this, instead of cleaning the array which incurs visiting each element in the array and setting it to a certain value), \emph{CellList} simply invalidates all the list in $O(1)$ time by interpreting any value lower than a certain threshold (called \emph{VALID\_CELL}) as the cell being empty.
+
+Additionally, if the total number of cells is too large in particle configurations that result in a lot of empty cells, cleaning up the \emph{cellStart} array can become a large part of the total runtime. In order to overcome this, instead of cleaning the array (which incurs visiting each element in the array and setting it to a certain value), \emph{CellList} simply invalidates all the list in $O(1)$ time by interpreting any value lower than a certain threshold (called \emph{VALID\_CELL}) as the cell being empty.
 This value starts being $0$ in the first update and is increased by the number of particle in each following update. When \emph{VALID\_CELL} is close to overload the maximum value representable by a C++ unsigned integer \emph{cellStart} is then cleaned and \emph{VALID\_CELL} goes back to $0$.
 Lets describe the full contents of the \emph{struct} returned by the \emph{CellList} method \mintinline{\ucpp}{CellList::getCellListData()}.
 \begin{itemize}
@@ -993,26 +1094,109 @@ Lets describe the full contents of the \emph{struct} returned by the \emph{CellL
 \end{itemize}
 
 
+\section{Verlet list}\label{sec:verletlist}
 
-\subsubsection{Verlet list}
+This list uses \emph{CellList} to construct a neighbour list up to a distance $r_{s} > r_{cut}$, in this case the list only has to be reconstructed when any given particle has travelled more than a threshold distance,
+\begin{equation}
+r_t = \frac{r_{s}-r_{c}}{2}.
+\end{equation}
+See fig. \ref{fig:nlist}.
 
-This list stores neighbours up to a distance $r_{nf} > r_{cut}$, in this case the list only has to be reconstructed when any given particle has travelled more than $r_{nf}-r_{cut}$.
-Optimization parameter
-Uses a basic neighbour list constructed via a cell list 
+Constructing the list has therefore a cost given by the cost of traversing the cell list (but larger due to the extra memory writes). Once it is constructed, the number of false positives will depend on the safety radius, $r_s$. In particular, assuming an uniform distribution of particles, the number of false positives will be given by $N_s/N_{\text{neigh}} = V_s/V_{\text{neigh}} = r_s^3/r_c^3$. In order to get a number of false positives similar to the ones checked by the cell list (in which $N_{cl}/N_{\text{neigh}} \approx 6$) we would need to set $r_s > 1.8r_c$, which results in a threshold distance of $r_t = 0.4r_c$. Assuming the cut off radius is the typical one for the \gls{LJ} potential (see sec. \ref{sec:lj}) this means that the list does not have to be reconstructed until one particle has diffused more than $r_t = \sigma$ from its starting position. Assuming each position update typically moves a particle less than $1\%\sigma$ this means that the list is rebuilt only every several hundred steps.
+
+On the other hand, the cost of constructing the neighbour list from the cell list also increases with $r_s$. There is therefore a trade-off between the compensated cost of list construction over many steps and the artificially inflated traversal cost. The optimal safety radius should be tuned for each type of simulation by inspecting how the timing depends on it. For instance, in a really dense system where particles are mostly still the optimal safety radius will be wildly different from a gas of rapidly diffusing particles. A good default is usually around $r_s\approx 1.1r_c$. 
+
+In the special case of $r_s=r_c$, which yields $r_t = 0$, the Verlet list can be used as a regular neighbour list.
+
+\subsection*{Use in UAMMD}
+
+As with the \emph{CellList}, \uammd exposes the Verlet list algorithm as part of the ecosystem and as an external accelerator. If the internal option is used the safety factor is automatically autotuned. Regardless, the safety radius can be modified via a member function call (see code \ref{code:verletlist}).
+
+In both cases, accessing the \emph{VerletList} via the common \uammd interfaces (\emph{Transverser} and \emph{NeighbourContainer}) makes it interchangeable with a \emph{CellList}, as evidenced in the example code \ref{code:verletlist}.
+
+On the other hand, we can request \emph{VerletList} to provide its internal structures for manual traversal. In this case, the format of the returned structure is as follows.
+\begin{itemize}
+\item\mintinline{\ucpp}{real4* sortPos}:
+  Positions sorted to be contiguous if they fall into the same cell. Same as with \emph{CellList}.
+\item\mintinline{\ucpp}{int* groupIndex}
+  Given the index of a particle in \emph{sortPos}, this array returns the index of that particle in \emph{ParticleData} (or the original positions array if the lis tis used outside the ecosystem).
+  This indirection is necessary when something other than the positions is needed (like the forces). Same as with \emph{CellList}.
+\item\mintinline{\ucpp}{int* numberNeighbours}:
+  The number of neighbours for each particle in sortPos.
+\item\mintinline{\ucpp}{StrideIterator particleStride}:
+  For a given index, returns the index of its first neighbour in the list.
+\item\mintinline{\ucpp}{int* neighbourList}:
+  The actual neighbour list. The neighbour $j$ for particle with index $i$ (of a maximum of \mintinline{\ucpp}{j=numberNeighbours[i]}) is located at \mintinline{\ucpp}{neighbourList[particleStride[i] + j];}.
+\end{itemize}
+
+Note that the particle stride (or offset) is not necessarily a full fledged array. The reason for this is that the offset might just be the same for all particles. In \uammd's current implementation, the particle stride is simply the maximum number of neighbours per particle (see the initial discussion in chapter \ref{sec:nlist}). However, this interface allows for the possibility of compacting the list in the future, with a similar behavior as the \emph{cellStart} array in \emph{CellList}.
+
+\begin{code}
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Interactor/NeighbourList/VerletList.cuh>
+using namespace uammd;
+
+//Construct a list using the UAMMD ecosystem
+void constructListWithUAMMD(UAMMD sim){
+  //Create the list object
+  //It is wise to create once and store it
+  VerletList vl(sim.pd);
+  //Update the list using the current positions in sim.pd
+  vl.update(sim.par.box, sim.par.rcut);
+  //Now the list can be used via the
+  //  various common interfaces
+  //-With a Transverser:
+  //vl.transverseList(some_transverser);
+  //-Requesting a NeighbourContainer
+  auto nc = vl.getNeighbourContainer();
+  //Or by getting the internal structure of the Verlet List
+  auto vldata = vl.getVerletList();
+  //The safety radius can be specified
+  vl.setCutOffMultiplier(sim.par.rsafe/sim.par.rcut);
+  //The number of update calls since the last time
+  // it was necessary to rebuild the list can be 
+  // obtained
+  int nbuild = vl.getNumberOfStepsSinceLastUpdate();
+}
+//Construct a VerletList without UAMMD
+template<class Iterator>
+void constructListWithPositions(Iterator positions, 
+                                int numberPartivles,
+                                real3 boxSize, 
+                                int3 numberParticles){
+  //Create the list object
+  //It is wise to create once and store it
+  VerletListBase vl;
+  //The safety radius can be specified
+  vl.setCutOffMultiplier(sim.par.rsafe/sim.par.rcut);
+  //Update the list using the positions
+  vl.update(positions, numberParticles, 
+            sim.par.box, sim.par.rcut);
+  //Now the internal structure of the Verlet List
+  // can be requested
+  auto vldata = vl.getVerletList();
+  //And a NeighbourContainer can be constructed from it
+  auto nc = VerletList_ns::NeighbourContainer(vldata);
+  //The number of update calls since the last time
+  // it was necessary to rebuild the list can be 
+  // obtained
+  int nbuild = vl.getNumberOfStepsSinceLastUpdate();
+}
+\end{minted}
+  \caption{The different ways of using a Verlet List in \uammd. The \emph{Transverser} interface, already used in chapter \ref{sec:nbody}, is described in detail in Appendix \ref{ch:transverser}. Note that the \emph{Transverer} and \emph{NeighbourContainer} options are identical to the case of a \emph{CellList}.}
+  \label{code:verletlist}
+\end{code}
 
 
-\subsubsection{How to use in UAMMD}
-
-EXAMPLE CODE
-
-\subsubsection{LBVH list}
+\section{LBVH list}\label{sec:lbvh}
 Explain LBVH list \cite{lbvh}, quantized list \cite{quantizedlbvh}. Great for large size disparities.
 
-\subsubsection{How to use in UAMMD}
+\subsection*{Use in UAMMD}
 
 EXAMPLE CODE
 
-\section{Bonded Interactions}
+\chapter{Bonded Interactions}\label{sec:bonded}
 
 As bonds can be expected to present great disparity in the number of bonds per particle, instead of using the same strategy as with the neighbour list, for the bonded interactions \uammd generates a compacted list of bonds per particle. Similar to the cell list.
 For each particle, a list of all the bonds it is involved in is stored. Note that this means that the information for a given bond is stored several times (two times for pair bonds, three for angular bonds and so on).
@@ -1022,6 +1206,23 @@ Regarding traversal, as explained in sec. \ref{sec:nlist}, for a compacted list 
 Note that it is not necessary to store information about particles that are not involved in any bond. Another auxiliar array can be used storing the indexes of particles that have at least one bond.
 The special type of bond that involves a single particle is called a fixed point bond, usually attaching a particle to a certain point in space. This can be encoded by storing this position as part of the bond information.
 
+
+\section*{Use in UAMMD}
+
+\begin{code}
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Interactor/NeighbourList/VerletList.cuh>
+using namespace uammd;
+
+//Construct a Bond Interactor using the UAMMD ecosystem
+void constructListWithUAMMD(UAMMD sim){
+
+}
+\end{minted}
+  \caption{Constructing and returning a Bonded interaction module.}
+  \label{code:bonded}
+\end{code}
 
 \chapter{Particle-based methods for simulating complex fluids}\label{sec:dynamics}
 \begin{itemize}
@@ -2459,7 +2660,7 @@ auto createIntegratorBDHIPSE(UAMMD sim){
   par.dt = sim.par.dt;
   par.tolerance = sim.par.tolerance;
   par.box = sim.par.box;
-  //The Hasimoto splitting parameter
+  //The Ewald splitting parameter
   par.psi = sim.par.psi;
   auto bdhi = std::make_shared<PSE>(sim.pd, sim.pg, 
                                     sim.sys, par);
@@ -2956,7 +3157,7 @@ Using eq. \eqref{eq:q2Ddrifasforce} we can see that this is equivalent to having
 \end{equation}
 It is important to keep in mind, though, that this force is stochastic in nature and is in fluctuation-dissipation balance with the thermal fluctuations. The physical origin of this effective force comes from the rapid momentum transport perpendicular to the plane, which makes the plane in the flow behave with an effective non zero compressibility. This makes the quasi 2D system inherently different from a distribution of charges. In fact, since hydrodynamics will not change the equilibrium properties, these equations still describe, in the absence of other particle interactions, an ideal gas without structure. Nevertheless, this interpretation allows us to see the dramatic (purely hydrodynamic) effect of the confining force in the plane flow and highlights the necessity of including the thermal drift into the quasi 2D description.
 
-We can now compute the Green's function in quasi 2D by simply integrating the 3D Oseen in eq. \eqref{eq:bdhioseen} tensor along the $z$ direction
+We can now compute the Green's function in quasi 2D by convolving the 3D Oseen tensor in eq. \eqref{eq:bdhioseen} with a Gaussian and integrating it analytically along the $z$ direction
 
 \begin{equation}
   \label{eq:q2dGreenintegral}
@@ -2966,7 +3167,7 @@ We can now compute the Green's function in quasi 2D by simply integrating the 3D
 \end{aligned}
 \end{equation}
 Where $\vec{k}' = (k_x, k_y, k_z)$ is the three dimensional wavenumber and we recall that unless stated otherwise, in quasi 2D vectors are defined in $\mathbb{R}^2$. Additionally $\vec{k}_\perp := \vec{k}\times\hat{z} = (k_y, -k_x)$ is a vector perpendicular to $\vec{k}$. Note that we also had to convolve with the Gaussian kernel in the $z$ direction, since it is not included in our purely 2D description. The convolution with the $(x,y)$ kernel is performed explicitly via spreading in \gls{FCM}.
-Note that this has restricted our algorithm to a Gaussian kernel, with its advantages and disadvantages. However, a different kernel can be used if it has an analytical Fourier form that allows the integral in eq. \eqref{eq:q2dGreenintegral} to be solved analytically.
+Note that this has restricted our algorithm to a Gaussian kernel, with its advantages and disadvantages. However, a different kernel can be used if it has an analytical Fourier form that allows the integral in eq. \eqref{eq:q2dGreenintegral} to be solved analytically\footnote{The anaylical form of eq. \eqref{eq:q2dGreenintegral} is not actually needed if somehow $f_k$ and $g_k$ are tabulated.}.
 
 Solving eq. \eqref{eq:q2dGreenintegral} yields
 \begin{equation}
@@ -2996,7 +3197,7 @@ Finally, for convenience, we can use a similar trick as we did for \gls{PSE} in 
     \fou{\tens{Z}}_k := \sqrt{\frac{2\kT}{\eta k^3}}\left(\sqrt{f_k(k)}\vec{k}_\perp\fou{\tens{Z}}^1_k + \sqrt{g_k(k)}\vec{k}\fou{\tens{Z}}^2_k\right)
   \end{aligned}
 \end{equation}
-Where $\fou{\tens{Z}}^{1,2}_k$ are independent Wienner processes.
+Where $\fou{\tens{Z}}^{1,2}_k$ are independent Wienner processes. The same concerns about the delicate conjugacy properties of the noise we discussed in sec. \ref{sec:fcm} are applicable here.
 % This integral can be done analitically to give
 %\begin{equation}
 %  \fou{\tens{M}}_{\text{q2D}} = \frac{1}{\eta k^3}\left( \half\vec{k}_{\perp}\otimes\vec{k}_{\perp} + \frac{1}{4}\vec{k}\otimes\vec{k}\right)
@@ -3010,6 +3211,7 @@ Where $\fou{\tens{Z}}^{1,2}_k$ are independent Wienner processes.
 \item Tolerance controls the support of the Gaussian kernels and the size of the grid similarly as in \gls{FCM}.\todo{This is not actually implemented, it is just hardcoded to 1e-4}
 \end{itemize}
 \todo{I could implement the same thing for FCM, generalizing the module for any $f_k$ and $g_k$ as long as they do not have thermal drift, which is not implemented in 3D. Maybe this could be done for FIB, where thermal drift is obtained via RFD.}
+\begin{code}
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Integrator/Hydro/BDHI_quasi2D.cuh>
@@ -3031,6 +3233,12 @@ auto createIntegratorQ2D(UAMMD sim){
   return q2d;
 }
 \end{minted}
+  \caption{Example of the creation of a quasi 2D \emph{Integrator}.}
+  \label{code:q2D}
+\end{code}
+
+\newpage
+
 \chapter{Hydrodynamics in doubly periodic geometries}
 We develop an algorithm to solve the incompressible Stokes equation \eqref{eq:stokes} without fluctuations in a \gls{DP} domain of size $L_{x,y}$ (we will assume $L_x=L_y$, which can then be easily generalized). Thus, we want to solve
 \begin{equation}
@@ -3047,7 +3255,7 @@ Here $p$ is the pressure and the fluid forcing includes the particle forces and 
   \vec{f}(\vec{\fpos}) = \oper{S}\vec{F} + \half\nabla\times\oper{S}_{\tau}\vec{\tau}
 \end{equation}
 
-We assume that the fluid forcing is zero in a domain $z\in [-H, H]$. In the case of an unbounded fluid this domain is arbitrary and physically meaningless, serving only to define a numerical domain for our grid-based solver. The same thing happens in the case of a bottom wall with the top limit at $z=H$. Furthermore, assuming $\vec{f}(|z|>H) = 0$ allows us to define a set of \glspl{BC} more easily.
+We assume that the fluid forcing is zero outside a domain $z\in [-H, H]$. In the case of an unbounded fluid this domain is arbitrary and physically meaningless, serving only to define a numerical domain for our grid-based solver. The same thing happens in the case of a bottom wall with the top limit at $z=H$. Furthermore, assuming $\vec{f}(|z|>H) = 0$ allows us to define a set of \glspl{BC} more easily.
 
 Our solver is periodic in the plane $(x,y)$ (as in quasi 2D). In the $z$ direction, by incorporating different \glspl{BC}, we distinguish between three modes:
 \begin{enumerate}
