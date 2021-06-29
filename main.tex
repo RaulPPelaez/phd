@@ -152,19 +152,29 @@ Choosing the right lens for a problem requires understanding of its characterist
 Say, for instance, that you want to study the caudal of a waterfall throughout the next thousand years. It would be a bad decision to employ quantum mechanics for such a feat, a theoretical framework best suited for events that take femtoseconds and are measured in angstroms.
 A lot of mathematical frameworks and numerical techniques are known for the exploration of different spatio-temporal scales. However, some times the need arises to tackle a phenomenon that unravels between their scope.
 On the other hand, the advent of supercomputing in the last two decades has presented the field with new powerful tools to leverage. For the first time we have more computing power than what our techniques are capable of handling. 
-Developing new techniques (numerical and theoretical) directly aimed to these new techonologies will allow to explore regimes previously unreachable, opening the doors to a world of secrets waiting to be found.
+Developing new techniques (numerical and theoretical) directly aimed to these new technologies will enable the exploration of regimes previously unreachable, opening the doors to a world of secrets waiting to be found.
 The fields that can take advantage of more computing power the most are those that mix several spatio-temporal regimes.
-For instance, when we need to simulate every molecule of a virus capsid submerged in water for a very long time\cite{virusfullatom2018}. In this article, the authors simulate the dynamics of $6$ million atoms (explicitly) in the span of $1\mu s$, requiring $5 10^8$ simulation steps.
+For instance, when we need to simulate every molecule of a virus capsid submerged in water for a very long time\cite{virusfullatom2018}. In this article, the authors simulate the dynamics of $6$ million atoms (explicitly) in the span of $1\mu s$, requiring $5\cdot10^8$ simulation steps.
+In another example of this kind of simulations, the authors of \cite{fullatombacteria2016} use $100$ million particles to model a chunk of the interior environment of a bacteria for some tens of nanoseconds (around $10^7$ steps).
+
 Of course, this kind of simulation would be impossible without the aid of a super computer and a family of software tools to take advantage of it.
-This thesis is devoted to the development of new algorithms and software tools for the study of complex fluids and biological systemsin high performance computing environments. It just so happens that the interesting physics of these processes often lie in this intermediate regime, called the \emph{mesoscale}.
+This thesis is devoted to the development of new algorithms and software tools for the study of complex fluids and biological systems in high performance computing environments.
+
+It just so happens that the interesting physics of these processes often lie in this intermediate regime, called the \emph{mesoscale}.
 The definition of mesoscale is kind of fuzzy, but mesoscopic physics normally deal with entities ranging from $50-100nm$ (a typical virus) to $~10\mu m$ (the size of a HeLa cell), with characteristic times going from a few micro seconds to even minutes.
 The mesoscale poses a series of theoretical and numerical challenges, stemming from the wide range of spatio-temporal scales that influence them. A perfect fit for a super computer.
-Another example of this kind of simulations is the one described in \cite{fullatombacteria2016}. In this article the authors employ $100$ million particles to simulate a chunk of the interior environment of a bacteria for some tens of nanoseconds (around $10^7$ steps).
 
 Recently, a new paradigm of supercomputing has arisen. The \gpu, a massively parallel copocressor. So powerful that it requires to straight-up rethink our algorithms to take advantage of it.
 \todo{continue}
 
 \section{The Graphical Processor Unit}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{gpu_and_me}
+  \caption{A picture of the author with a GPU (a NVIDIA's RTX 2080Ti). This card will grant its owner the computing power of a small CPU cluster a price of around 1000€.}
+  \label{fig:gpuandme}
+\end{figure}
 
 The \gpu technology, interpreted as some kind of specialized graphic circuit or co-processor, can be tracked back to the 1970s. Once electronic devices started having screens attached to them, it made sense to have some kind of chip translating the CPU information into the analogic signal of the display. It was then only a matter of time before more functionality was put into them. It started as a way to accelerate the display process in early video game hardware, such as arcade systems.
 Storing the data that goes into the screen takes a lot of space and, at the time, RAM memory was expensive (still is, by the way!).
@@ -185,18 +195,32 @@ Jumping again to the year 2000 the quality and complexity of computer graphics h
 
 Shaders were enough for the community to realize that drawing polygons was far from the only thing they could do with a \gpu\cite{gpgpu2002}. Applications exploting shaders arise everywhere in a variety fields like scientific image processing \cite{gpuimage2003, gpuimage2006}, lineal algebra \cite{gpulinalg2001, gpulinalg2003a, gpulinalg2003b}, physics \cite{gpulbm2004} and even machine learning\cite{gpuml2005, gpuml1998}. One can even find a molecular dynamics code running on the \gpu of a Sony PlayStation 3 \cite{ps3md2009}.
 
-The next natural step took place in 2007, when the NVIDIA Corporation released CUDA\cite{cuda}.
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{gpu_and_me}
-  \caption{A picture of the author with a GPU ( a NVIDIA's RTX 2080Ti ).}
-  \label{fig:gpuandme}
-\end{figure}
+The next natural step took place in 2007, when the NVIDIA Corporation released CUDA\cite{cuda}\footnote{Although the original accronym for CUDA was Compute Unified Device Architecture, the platform quickly out evolved beyond this definition. However, the term CUDA was already stablished and thus it has remained as the name of the platform.} along its flagship card, the GeForce 8800.
+
+CUDA is programming model and an extension of the C++ programming language that allows to exploit CUDA-enabled \glspl{GPU} for general-purpose computing. It can be considered as a conceptual generalization of the aforementioned graphic shaders that acknowleges the \gpu as a general-purpose processor. Via the inclusion of a small set of keywords and extensions to C++, CUDA exposes the massively parallel architecture of the \gpu under the ecosystem of an already stablished high performance programming language.
+Now developers aiming for the \gpu did not have to be experts in hacking a certain graphics \gls{API} and could just focus on parallelizing the algorithms for its particular architecture.
+
+The birth of CUDA became a pivotal moment in high performance computing, opening the doors to a revolution in several fields such as medical analysis, bioinformatics, machine learning, economic market analysis, molecular dynamics and more.
+
+In this thesis, we will push the boundaries of \gpu computing by developing and implementing old and new algorithms for the modelling of soft matter systems.
+
+
 \todo{continue}
 \section{Software for soft matter simulations}
+
+Particle based computer modelling of soft matter systems has been around since the advent of computers. The use of computers for physical simulation can be tracked back as far as to the 1940's when researches at the Los Alamos national laboratory described the use of the ENIAC\footnote{The first programmable, electronic, generalpurpose digital computer.} for simulating some stochastic physical process\cite{Hurd1985} (the origins of the Monte Carlo method\cite{Johansen2010}). Shortly after, in the 1950's, computational molecular dynamics was born\cite{DeTullio2016}.
+
+One of the first examples of a software package for molecular dynamics is CHARMM, whose initial release dates back to 1983\cite{Brooks1983}. To put thi in perspective, Windows 1.0 was released in 1985, the UNIX operating system was disclosed to the public in 1973 and Linux originated in 1991.
+
+It is important to also mention that MPI, one of the first parallel \glspl{API}, was not available until 1994. Up to that point, sequencial computing was the norm.
+
+Another famous molecular dynamics package is GROMACS, which was released in 1991, with the first version using MPI
+
+
+
 Problems with porting CPU centric \gls{MD} packages to \gpu. Scalability in software.
 
-Many \gls{MD} software projects started at a time when the \gpu was not a widespread tool for general computing (or did not even existed as hardware). Take for example GROMACS \cite{gromacs}, which was born in 1991
+
 
 The present and future of high performance computing.
 CUDA vs alternatives.
@@ -283,7 +307,8 @@ Note, however, that quantum physics have not been mentioned yet and, although ou
 \begin{figure}[h]
   \centering
   %\includegraphics[width=\textwidth]{landscape}
-  \includesvg[width=0.8\columnwidth]{gfx/modular}
+  %\includesvg[width=0.8\columnwidth]{gfx/modular}
+  \includesvg[width=0.8\columnwidth]{gfx/virus}
   \caption{A simulation is constructed by putting together several modules. In this instance, the simulation of a virus submerged in water could be constructed by joining an hydrodynamics \emph{Integrator} module with several \emph{Interactors} describing the interactions between particles, such as sterics, bonds, electrostatics,...}
   \label{fig:modular}
 \end{figure}
@@ -1631,8 +1656,9 @@ All of these methods improve the accuracy of the predicted transport properties 
 One popular approach is to simply use velocity Verlet as described in sec. \ref{sec:velocityverlet} with the forces in eq. \eqref{eq:dpdforces}. This yields ``poor'' stability and presents certain artifacts\cite{Besold2000} due to the mistreatment of the derivative of the noise term incurred by treating eq. \eqref{eq:dpddyn} as an \gls{ODE} instead of a proper \gls{SDE}. However, it is often good enough and while it might require a smaller time step to recover measurables to an acceptable tolerance it is the fastest approach and trivial to implement in a code already providing the velocity Verlet algorithm.
 \todo{Preguntar a Rafa sobre integradores DPD. Por que nadie lo trata como una SDE y evalua v en $t+1/2$?}
 \subsection*{Use in UAMMD}
-In \uammd \gls{DPD} is interpreted as a \emph{Potential} that can be added to a \emph{VerletNVE} \emph{Integrator}.
+In \uammd, \gls{DPD} is encoded as a \emph{Potential} that can be used to specialize the \emph{PairForces} module in sec. \ref{sec:shortrange}, the resulting \emph{Interactor} can then be coupled to a \emph{VerletNVE} \emph{Integrator} (described in sec. \ref{sec:velocityverlet}).
 
+\begin{code}
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
 #include<Integrator/VerletNVE.cuh>
@@ -1650,9 +1676,9 @@ auto createIntegratorDPD(UAMMD sim){
   //The strength of the weight function
   par.A = sim.par.strength; 
   par.dt = sim.par.dt;  
-  auto dpd = make_shared<Potential::DPD>(sim.sys, dpd_params);
+  auto dpd = make_shared<Potential::DPD>(dpd_params);
   //From the example in PairForces
-  auto interactor = createShortRangedForceWithPotential(sim, dpd);
+  auto interactor = createPairForcesWithPotential(sim, dpd);
   //From the example in the MD section
   // particle velocities should not be initialized
   // by VerletNVE (initVelocities=false)
@@ -1661,8 +1687,10 @@ auto createIntegratorDPD(UAMMD sim){
   return verlet;
 }
 \end{minted}
-
-
+  \caption{Creation of an instance of a \gls{DPD} integrator. In \uammd, \gls{DPD} is encoded as a Verlet integrator coupled with a short range interaction.}
+  \label{code:dpd}
+\end{code}
+\newpage
 \section{Smoothed Particle Hydrodynamics}
 \todo{Describe SPH}
 
@@ -2042,7 +2070,7 @@ auto createIntegratorBDHICholesky(UAMMD sim){
   //  radius of each particle.
   //par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
   par.dt = sim.par.dt;
-  auto bdhi = std::make_shared<Cholesky>(sim.pd, sim.pg, sim.sys, par);
+  auto bdhi = std::make_shared<Cholesky>(sim.pd, par);
   return bdhi;
 }
 \end{minted}
@@ -2077,7 +2105,7 @@ auto createIntegratorBDHILanczos(UAMMD sim){
   par.dt = sim.par.dt;
   //The tolerance for the stochastic term computation
   par.tolerance = sim.par.tolerance;
-  auto bdhi = std::make_shared<Lanczos>(sim.pd, sim.pg, sim.sys, par);
+  auto bdhi = std::make_shared<Lanczos>(sim.pd, par);
   return bdhi;
 }
 \end{minted}
@@ -2485,9 +2513,7 @@ The noise can be computed in Fourier space by generating Gaussian random numbers
 \begin{equation}
   \langle \fou{\mathcal{Z}}_{ik}(\vec{k})\fou{\mathcal{Z}}^*_{jm} (-\vec{k})\rangle = \frac{2\kT\eta N_c^3}{ h^3 \dt}(\delta_{ij}\delta_{km} + \delta_{im}\delta_{kj})
 \end{equation}
-Special care must be taken to enforce this condition, in particular by ensuring the uncoupled modes, also known as Nyquist points\cite{nyquist}, are real (equal to their conjugate).
-\todo{speficy how to deal with nyquist points, appendix with cufft format description and how to deal with wavenumbers}
-
+Special care must be taken to enforce this condition, in particular by ensuring the uncoupled modes, also known as Nyquist points, are real (equal to their conjugate). Appendix \ref{ch:appendixa} provides a summary of dealing with spectral methods in numerical implementations, including these details.
 
 Making an analogy with eq. \eqref{eq:bdhibdrelation}, the whole process of going from forces acting on the particles to particle displacements can the be summarized as follows:
 
@@ -4207,10 +4233,10 @@ Except for the $k=0$ wave number, every solve is identical in operations, meanin
 
 
 \chapter{The Transverser and Potential interfaces}\label{ch:transverser}
-\section{The Transverser Interface} \label{sec:transverser} 
-A Transverser is a concept that refers to the action of going through each element of something.  
-
-For example, for each particle, we want to perform some computation for particles that are closer than a certain distance in a custom way. Or more generally, we want to perform some kind of operation equivalent to a matrix-vector multiplication, for which in order to compute one element of the result, the vector needs to go through a row of the matrix.
+\section{The Transverser Interface} \label{sec:transverser}
+Many of the algorithms described in this manuscript require some kind of particle traversal.
+%A Transverser is a concept that refers to the action of going through each element of something.  
+Say, for instance, that for each particle we want to visit the rest of the particles that are closer than a certain distance. Or simply all of the other particles. More generally, we mght want to perform some kind of operation equivalent to a matrix-vector multiplication, for which in order to compute one element of the result, the vector needs to go through a row of the matrix.
 In these cases, a Transverser is used.
 
 A Transverser holds information about what to do with a pair of particles, what information is needed to compute this interaction, or what to do when a particle has interacted with all pairs it is involved in.  
