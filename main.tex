@@ -262,10 +262,10 @@ These are the four pilars depicted in fig. \ref{fig:uammdsketch}. The software f
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/sketchUAMMD}
-  \caption{The basic hierarchy of concepts (and code) in \uammd. \emph{System} holds information about the actual physical hardware, and all the entities below rely on it to interact with the environment. \emph{ParticleData} stores all the information about the particles in the simulation, such as positions ($\vec{r}$), velocities ($\vec{v}$), mass, etc. And other properties like the current forces acting on it ($\vec{F}$), energy ($E$) or virial ($T$). The modules below it can request, at their leisure, a list with any of the particles properties. Finally, \emph{Integrators} and \emph{Interactors} are interfaces, called virtual classes in programming terms, that are in charge of, respectively, forwarding the simulation one step in time and computing the forces, energies and/or virials acting on each particle. Interfaces, drawn in red, are abstract objects that cannot be instanced on their own but rather must be inherited. For instance, Brownian Dynamics (section. \ref{sec:bd}) would be an \emph{Integrator}, while a module that computes gravitational forces would be an \emph{Interactor}.}
+  \caption{The basic hierarchy of concepts (and code) in \uammd, represented by a series of modules connected by arrows that convey the direction of the data flow. \emph{System} holds information about the actual physical hardware, and all the entities below rely on it to interact with the environment. \emph{ParticleData} stores all the information about the particles in the simulation, such as positions ($\vec{r}$), velocities ($\vec{v}$), mass, etc. And other properties like the current forces acting on it ($\vec{F}$), energy ($E$) or virial ($T$). The modules below it can request, at their leisure, a list with any of the particles properties. Finally, \emph{Integrators} and \emph{Interactors} are interfaces, called virtual classes in programming terms, that are in charge of, respectively, forwarding the simulation one step in time and computing the forces, energies and/or virials acting on each particle. Interfaces, drawn in red, are abstract objects that cannot be instanced on their own but rather must be inherited. For instance, Brownian Dynamics (section. \ref{sec:bd}) would be an \emph{Integrator}, while a module that computes gravitational forces would be an \emph{Interactor}.}
   \label{fig:uammdsketch}
 \end{figure}
-
+\todo{Add something about gpu arch in System in the fig, gpu arch, ncores,...}
 Excluding the first assumption, which is unrelated to physics, it is straight forward to see that our initial ionic solution simulation fits in this criteria. As a bonus, we have ended up with a basis that also describes things like ``a gas of argon atoms'', ``a group of planets orbiting a star'' or ``a virus filled with proteins exploding due to the force exerted on it by an AFM tip''\footnote{An oddly specific example describing a real study that is being carried out with \uammd at the moment of writing by a collaborator group.}.
 
 At the top of the tree in fig. \ref{fig:uammdsketch} we find the \emph{System} object which takes care of setting up the computational environment for the rest of players. We discuss \emph{System} in mode detail in sec. \ref{sec:system}.
@@ -276,9 +276,9 @@ Then, we can focus on each of the last two asumptions and apply this separation 
 
 Similarly, in section \ref{sec:dynamics} we break down the \emph{Integrator} branch (bottom left of fig. \ref{fig:uammdsketch}) into the several ways the state of the particles can evolve (see fig. \ref{fig:uammdsketch_integrators}).
 
-During the following chapters, we will discuss in detail this conceptual and programmatic hierarchy and follow its branches until the leafs. This final objects will encapsulate the actual algorithms and physics in the form of isolated, individual modules. In general, these modules will communicate only via the closed loop described by \emph{ParticleData}-\emph{Integrator}-\emph{Interactor} in fig. \ref{fig:uammdsketch}.
+During the following chapters, we will discuss in detail this conceptual and programmatic hierarchy and follow its branches down to the leaves. This final objects will encapsulate the actual algorithms and physics in the form of isolated, individual modules. In general, these modules will communicate only via the closed loop described by \emph{ParticleData}-\emph{Integrator}-\emph{Interactor} in fig. \ref{fig:uammdsketch}.
 
-One of the main unwritten lessons we will glimpse at while descending the tree is that it is never a good idea to introduce dependencies that climb up through the tree. This is what makes \uammd so modular and extensible. Just to give some examples of this:
+One of the main unwritten lessons we will glimpse at while descending the tree is that it is never a good idea to introduce dependencies that climb up through the tree. Just to give some examples of this:
 \begin{itemize}
 \item A neighbour list should not assume it is going to be used to
   compute the forces of a group of repulsive particles.
@@ -287,6 +287,8 @@ One of the main unwritten lessons we will glimpse at while descending the tree i
   modification of the \emph{Integrator} interface.
 \end{itemize}
 In other words, conceptual complexity and problem specificity should increase only downwards through the tree. This forces us as developers to modify a certain module only to generalize it, and never to especialize it. If a module appears to require being especialized, it is almost always a sign that either it should be actually generalized or exist as a separate entity beneath the initial one. See figures \ref{fig:uammdsketch_interactors} or \ref{fig:uammdsketch_integrators}, the next lower branches.
+
+\uammd carefully avoids these kind of inter dependencies.
 
 \chapter{It's in the name}\label{ch:design}
 
@@ -297,7 +299,7 @@ Complex fluids are one of the prime examples of a multiphysics system. As such, 
   
 The fourth assumption in chapter \ref{pt:uammd} states that particles are expected to interact between them or via an external influence. When particles are submerged in a fluid, its effect on the former can be considered an external influence. Even when the fluid itself is also affected by the presence particles, as is the case with hydrodynamics.
   
-Although we focus on the dynamics of particles, which have a Lagrangian description, using an intermediate Eulerian description is a possible in these situations. In chapter \ref{sec:bdhi}, we will describe a series of Eulerian-Lagrangian algorithms that incorporate the effect of a solvent in a group of submerged particles (hydrodynamics) by describing it explicitly. On the other hand, we will adapt these techniques to compute electrostatics in chapter \ref{ch:tppoisson} by describing an explicit \emph{charge-density field}.
+Although we focus on the dynamics of particles, which have a Lagrangian description, using an intermediate Eulerian description is a possibility in these situations. In chapter \ref{sec:bdhi}, we will describe a series of Eulerian-Lagrangian algorithms that incorporate the effect of a solvent in a group of submerged particles (hydrodynamics) by describing it explicitly. On the other hand, we will adapt these techniques to compute electrostatics in chapter \ref{ch:tppoisson} by describing an explicit \emph{charge-density field}.
 
 Note, however, that quantum physics have not been mentioned yet and, although our assumptions do not prevent us from doing it, for the time being we have limited our toolset to the classical world. Thus, staying in the realm of classical physics could be consider a fifth (soft) assumption.
 
@@ -313,10 +315,14 @@ Note, however, that quantum physics have not been mentioned yet and, although ou
   \label{fig:modular}
 \end{figure}
 
-Modularity is another central philosophy in \uammd. A simulation is described by connecting a series of \emph{Integrators} with an \emph{Integrator}. In fig. \ref{fig:modular} we can see an example of this, in which a hydrodynamics \emph{Integrator} (such as the ones described in sec. \ref{sec:bdhi}) is connected with an \emph{Interactor} that deals with sterics (see sec. \ref{alg:shortrange}), another one that computes electrostatics (see sec. \ref{ch:tppoisson}), and so on and so forth. The communication between these modules is minimal, being mostly restricted to the closed loop in fig. \ref{fig:uammdsketch}. Although nothing prevents two \emph{Interactors} from explicitly sharing information, this never happens in \uammd. 
+Modularity is another central philosophy in \uammd. We understand a module as a piece of code whose internal complexity is much larger than the information it shares with other modules.
 
-Even when the internal complexity of each separate module can be quite great it never bleeds into the rest of the modules, which can remain oblivious to each other. In a way, a module will have a lot of internal complexity but rather few external conections. This allows each module to worry only about solving one specific problem (hydrodynamics, electrostatics,...).
+Even when the internal complexity of each separate module can be quite great it never bleeds into the rest of the modules, which can remain oblivious to each other. This allows each module to only worry about solving one specific problem (hydrodynamics, electrostatics,...).
+
 On the other hand, this makes \uammd extremely adaptable, since new modules can be added without disturbing the ecosystem.
+
+In \uammd a simulation is described by connecting a series of \emph{Integrators} with an \emph{Integrator}. In fig. \ref{fig:modular} we can see an example of a simulation which connects a hydrodynamics \emph{Integrator} (such as the ones described in sec. \ref{sec:bdhi}) is connected with an \emph{Interactor} that deals with sterics (see sec. \ref{sec:shortrange}), another one that computes electrostatics (see sec. \ref{ch:tppoisson}), and so on and so forth. The communication between these modules is minimal, being mostly restricted to the closed loop in fig. \ref{fig:uammdsketch}. Although nothing prevents two \emph{Interactors} from explicitly sharing information, this never happens in \uammd. 
+
 
 This does not imply that each module should exist in a completely isolated environment, since a plethora of utilities are available in \uammd to aid with the typical problems that arise in complex fluids. For instace, a module in need of a neighbour list does not need to write one, rather can simply make use of one of the already implemented ones (see chapter \ref{sec:nlist}).
 
@@ -329,8 +335,8 @@ All the utilities in \uammd, including \emph{Interactors}, \emph{Integrators}, n
 
 In the past, we have explored this facet of the project by providing to collaborators some of our utilities and solvers as stand alone Python interfaces.
 
-The modularity of \uammd is reflected directly in the code, where modules can be created independently of each other as in the example below.
-Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Interactor} (short range, bonded,...), all modules in \uammd can be created and stored as individual shared pointers\footnote{A C++ specific kind of reference. See Appendix \ref{sec:cpp} for basic notions of C++.}. For instance, throughout this manuscript, we will typically create a module named ``Module'' a code similar to the one in code \ref{code:module}.
+The modularity of \uammd is reflected directly in the code, where modules can be created independently of each other as in the example code \ref{code:module}.
+Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Interactor} (short range, bonded,...), all modules in \uammd can be created and stored as individual shared pointers\footnote{A C++ specific kind of reference. See Appendix \ref{sec:cpp} for basic notions of C++.}. For instance, throughout this manuscript, we will typically create a module named ``Module'' using a code similar to the one in code \ref{code:module}.
 \begin{code}
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
@@ -346,7 +352,7 @@ auto createModule(UAMMD sim){
 \end{code}
 Where ``Module'' will be called, for instance, \emph{VerletNVE} if it is \gls{MD} \emph{Integrator} (see sec. \ref{sec:velocityverlet}) or \emph{BondedForces} if it is a ligature \emph{Interactor} (see sec. \ref{sec:bonds}).
 
-The argument of this function, of type \emph{UAMMD}, is simply an aggregate (a \emph{struct} in C++) of recurrent parameters. In particular, this structure can be defined as follows
+The argument of the function \emph{createModule} in example code \ref{code:module}, of type \emph{UAMMD}, is simply an aggregate (a \emph{struct} in C++) of recurrent parameters . In particular, this structure can be defined as in code example \ref{code:uammdstruct}.
 \begin{code}
 \begin{minted}{\ucpp}
 #include<uammd.cuh>
@@ -369,7 +375,7 @@ struct UAMMD{
   \label{code:uammdstruct}
 \end{code}
 The \emph{ParticleData} object here, which is the direct expression in code of the second assumption, will be described in detail in sec. \ref{sec:particledata}.
-
+\todo{Maybe switch the order of the code examples here. In fact, join them both and say that the preamble is going to be omited. Take both code examples below ParticleData. Specify ``Module'' is an Integrator or an Interactor.}
 \section{Multiscale}
 From atoms in vacuum to chunks of oceans and planetary dynamics.
 \begin{figure}[h]
@@ -379,6 +385,10 @@ From atoms in vacuum to chunks of oceans and planetary dynamics.
 \end{figure}
 \begin{itemize}
 \item Overview of going from few atoms to an ocean. w or w/o Fluctuatinos, implicit or explicit solvent... All the scales
+\item coarse graining
+\item fluctuations allow to introduce lost degrees of freedom
+\item overview of the spatio-temporal scale of every method in the thesis, remove relevant variables and replace them with fluct.
+  
 \end{itemize}
 \section{Molecular Dynamics}\label{sec:dynmol}
 Thus far we have used the term ``particle'' without explicitly defining it. We interpret a particle as an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...). In this sense, the term molecular dynamics is not refered to the numerical simulation technique (described in sec. \ref{sec:md}) rather should be interpreted as \emph{dynamics-of-molecules}, or more appropriately, particles.
@@ -387,12 +397,13 @@ In \uammd particles are the relevant simulation entity. When a fluid is present 
 
 Adding new particle properties in \uammd amounts to include them in a special list (in the source code \emph{ParticleData.cuh}, to be precise). It is worth to describe the \emph{ParticleData} class in more detail here.
 
-\subsection{ParticleData}\label{sec:particledata}
-\uammd is a \gpu centric software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu.
+\chapter{Building a module}
+\section{ParticleData}\label{sec:particledata}
+\uammd is a \gpu software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu.
 
-\emph{ParticleData} attempts to mitigate this by handling this memory space internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and an usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up to date reference to the data in the correct memory space.
+\emph{ParticleData} attempts to mitigate this by handling this memory space internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and an usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up-to-date reference to the data in the correct memory space.
 
-In C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see sec. \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the code crashing.
+In C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the code crashing.
 
 \begin{code}
 \begin{minted}{\ucpp}
@@ -422,8 +433,9 @@ int main(){
   \caption{Creating an using an instance of \emph{ParticleData}.}
   \label{code:pd}
 \end{code}
-
-When requesting a handle to a property from \emph{ParticleData} with the intention of writing, the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData} issued handles (for example as members of a class), requesting them just before use and destroying when they are no longer needed.
+\emph{ParticleData} can provide handles which give access the different particle properties.
+\todo{Put here examples of createModule}
+When requesting a handle to a property from \emph{ParticleData} with the intention of writing, the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed.
 
 
 \newpage
@@ -509,10 +521,14 @@ Let us go through the different numerical techniques that are used to simulate t
 \end{figure}
 
 
-We can distinguish between two families of numerical techniques, particle and grid based methods. The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
-In some way or another, all algorithms have to take into account interactions between particles.
-
-In chapter \ref{ch:design} we discussed the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned and specialized in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch. In particular, we start with the case of all particles interacting with every other in chapter \ref{sec:nbody}. Then we discuss the optimization opportunities that arise when this interaction has a short range (compared to the typical particle size) in chapter \ref{sec:shortrange}. After that we explore the case of particles being joined by spring-like ligatures (be it in pairs, triplets, cuadruplets, etc) in chapter \ref{sec:bonded}. Finally, in chapter \ref{sec:external} we briefly discuss the simple case of particles interacting with an unespecified external influence that does not depend on the rest of the particles.
+We can distinguish between two families of numerical techniques, particle (Lagrangian) and grid (Eulerian-Lagrangian) based methods.
+%The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
+%In some way require another, all algorithms have to take into account interactions between particles.
+\begin{itemize}
+  \item In chapter \ref{ch:design} we introduced the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned and specialized in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch.
+\item As stated in chapter *3* (see Fig.**) the central work-piece in UAMMD are the particles. The Integrator solves the time-evolution of the particles and to that end, it requires the driving interactions (e.g. forces) which are, in turn, provided by the Interactors. For this reason, from the code perspective ``forces'' and ``velocities'' respectively pertain to Interactor and Integrator concepts. Grid-based methods generally consist on solving partial differential equations for some spatio-temporal field in a mesh, i.e. in an Eulerian framework. UAMMD deploys Eulerian solvers for several purposes: i) to obtain the velocity field of the solvent in Eulerian-Lagrangian hydrodynamics and ii) to solve the force field generated by a distribution of source charges. Both schemes are based on pseudo-spectral methods, which shall be first introduced when explaining hydrodynamic Integrators in Chapter *. The Interactor dealing with electrostatics in UAMMD (pseudospectral Poisson solver) is explained later, in Chapter \ref{sec:tppoisson}. In this Chapter we will explain the remaining Interactors, which are generic (i.e. which can be externally specialized), indicated in Fig.**  in blue.
+\end{itemize}
+In particular, we start with the case of all particles interacting with every other in chapter \ref{sec:nbody}. In chapter \ref{sec:shortrange} we discuss the optimization opportunities that arise when this interaction has a short range (compared to the typical particle size). After, in Chapter \ref{sec:bonded} we explore the case of particles being joined by spring-like ligatures (be it in pairs, triplets, cuadruplets, etc). Finally, in chapter \ref{sec:external} we briefly discuss the simple case of particles interacting with an unespecified external influence that does not depend on the rest of the particles.
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/sketchUAMMD_interactors}
@@ -520,8 +536,8 @@ In chapter \ref{ch:design} we discussed the \emph{Interactor} interface, the con
   \label{fig:uammdsketch_interactors}
 \end{figure}
 
-\todo{Maybe reference to the different chapters in fig. \ref{fig:uammdsketch_interactors}?}
-The Poisson leaf in fig. \ref{fig:uammdsketch_interactors} deals with electrostatics and involves a series of numerical techniques that will not be discussed until much later in this manuscript. Thus, we simply mention it here and defer its description to chapter \ref{ch:tppoisson}.
+%\todo{Maybe reference to the different chapters in fig. \ref{fig:uammdsketch_interactors}?}
+%The Poisson leaf in fig. \ref{fig:uammdsketch_interactors} deals with electrostatics and involves a series of numerical techniques that will not be discussed until much later in this manuscript. Thus, we simply mention it here and defer its description to chapter \ref{ch:tppoisson}.
 
 \chapter{Particle interactions}\label{sec:interactions}
 
@@ -593,7 +609,9 @@ Note that \emph{Interactor} is what is called a \emph{pure-virtual} class in C++
 
 
 
-\section{Periodic Boundary Conditions} \todo{This goes in a section called Domain in UAMMD. Explain periodic vs open etc.}
+\section{Periodic Boundary Conditions}
+%\todo{This goes in a section called Domain in UAMMD. Explain periodic vs open etc.}
+\todo{This goes to ParticleData chapter, as part of an example}
 In order to conserve the total volume of the system we use the \gls{MIC}, where a particle that leaves the simulation domain though one side appears on the other.
 Numerically we can express this algorithm as follows:
 
@@ -1261,8 +1279,9 @@ void constructListWithUAMMD(UAMMD sim){
   \caption{The next level in the \emph{Integrator} branch of the tree presented at fig. \ref{fig:uammdsketch}. The names of the familie sof methods are depicted in green, while actual methods (available as \uammd modules) are in black.}
   \label{fig:uammdsketch_integrators}
 \end{figure}
+\todo{Change with Rafa's figure with circles.}
 
-\section{The Integrator interface}\label{sec:integrator}
+  \section{The Integrator interface}\label{sec:integrator}
 Handles the time evolution of a group of particles.
 Interactors can be added to it.
 
@@ -3978,6 +3997,98 @@ asdasdasdas
 
 \part{Appendix}
 
+\appendix
+
+\chapter{Basic notions of CUDA/C++ programming}\label{sec:cpp}
+
+\uammd uses the C++14 standard\footnote{The only restriction in adopting more modern standards, like C++20, is the adoption rate of CUDA. To the date of writing, the latest CUDA toolkit supports up to C++17.}, which presents subtle but sometimes important differences with the previous iteration of the language (C++11). Note however, that this standard is wildly different to ``classic'' C++98, which could be considered another language altogether. Furthermore, \uammd uses the CUDA extensions to the language, which introduce some new keywords and subtle rules.
+
+In this chapter, we will give a few hints to ease the interpretation of the code examples throughout this manuscript for the uninitiated. Note that this is not intended to be a thorough description or tutorial of the language. For that the reader is redirected to the plethora of resources available online regarding CUDA and modern C++. This chapter summarizes the bare minimum necessary for a reader to follow the logic in the examples scattered throughout this manuscript.
+
+CUDA/C++ is a compiled language, meaning that before executing a source code, it must be transformed into an executable binary by an external program called the \emph{compiler}. We will also refrain from discussing the compilation of CUDA codes\footnote{\uammds online resources shed light into this process, which might change over time for reasons outside of the author control.}.
+
+Lets start with some basic concepts in C++ and then go to the \gpu. The entry point for execution in all C++ codes starts with a function called ``main''. This function must be defined by the user with the name ``main'' and a returning type int (see example code \ref{code:minimal}).
+
+\begin{code}
+\begin{minted}{\ucpp}
+//This is a comment, which is ignored by the compiler
+//The main function must be present in all C++ programs
+int main(){
+  //main must return an integer, encoded as 0 if the
+  // program terminated sucessfully, and 1 otherwise.
+  return 0;
+}
+\end{minted}
+  \caption{A C++ program that does nothing.}
+  \label{code:minimal}
+\end{code}
+
+We can define functions with the syntax in code \ref{code:function}
+
+\begin{code}
+\begin{minted}{\ucpp}
+
+//We can define a function with the syntax below
+//The returning type, in this case int, can be replaced 
+// by the keyword auto.
+int foo(int a){
+  //This function takes an integer, refered to as "a"
+  // and returns its value multiplied by 2
+  return a*2;
+}
+//The main function will simply call the foo function with an
+// arbitrary number and store the result in a variable
+int main(){
+  int value = foo(12);
+  //value holds the integer 24
+  //The type of the variable, int, can be replaced by auto
+  return 0;
+}
+\end{minted}
+  \caption{The classic Hello World program in C++. Once executed, it will print ``Hello world'' to the terminal.}
+  \label{code:hello}
+\end{code}
+
+
+By default, a C++ code will have access only to the basic rules of the languages. 
+
+
+\begin{code}
+\begin{minted}{\ucpp}
+#include<iostream> //Includes std::cout and std::endl
+int main(){
+  std::cout<<"Hello world"<<std::endl;
+  return 0;
+}
+\end{minted}
+  \caption{The classic Hello World program in C++. Once executed, it will print ``Hello world'' to the terminal.}
+  \label{code:hello}
+\end{code}
+
+
+\begin{itemize}
+\item The main function
+\item The using keyword, using namespace
+\item struct and class
+\item Inheritance 
+\item Describe shared pointer
+\item Importance of modern C++
+\item Concept of metaprogramming
+\end{itemize}
+
+\section{Basic concepts of GPU programming}
+Things to explain here:
+
+\begin{itemize}
+\item Separation between CPU and GPU RAM
+\item Different memories in the GPU; global memory, register memory, shared memory, constant memory.
+\item Threading model; blocks and threads per block
+\item Execution order of threads (threads execute in lock-step inside a warp), blocks are async between them.
+\item Concurrent threads like to access concurrent elements in memory.
+\end{itemize}
+
+
+
 \chapter{Appendix A: Dealing with the FFT in the GPU} \label{ch:appendixa}
 
 Many of the numerical techniques in this manuscript make use of the \gls{FFT}, mostly in order to easily compute convolutions. The \gpu is a very powerful hardware for \gls{FFT}, but using the available \glspl{API} can become a real nuisance. In this chapter we will see how \uammd makes use of the CUDA library \emph{cuFFT}\cite{cufft} and how to work with data in Fourier space. While the information hereafter is centric to the \emph{cuFFT} library, most lessons are applicable to other popular \gls{FFT} libraries (such as \emph{FFTW}).
@@ -4034,6 +4145,7 @@ For example, if we want to transform the three coordinates for the forces in an 
 In a complex to real transform (and thus also in a real to complex transform) the corresponding Fourier data points meet the conditoin $data(\vec{k}) = data(\vec{k} - \vec{n_k})^*$. A consequence of this is that, in a transformation with an even number of points in some direction, there are some points that are the conjugates of themselves. We call this uncoupled modes Nyquist points.
 There are $8$ nyquist points at most (including the $\vec{k} = (0,0,0)$ mode), corresponding to the vertices of the inferior left cuadrant.
 A function to determine if a certain wave number is a Nyquist point:
+\begin{code}
 \begin{minted}{\ucpp}
 bool isNyquistWaveNumber(int3 ik, int3 n){
   //Is the current wave number a nyquist point?
@@ -4051,37 +4163,9 @@ bool isNyquistWaveNumber(int3 ik, int3 n){
   return nyquist;
 }
 \end{minted}
+\end{code}
 
 
-\newpage
-
-
-\appendix
-%%\renewcommand{\thechapter}{\alph{chapter}}
-%\cleardoublepage
-\part{Appendix}
-
-\chapter{Basic notions of CUDA/C++ programming}\label{sec:cpp}
-\begin{itemize}
-\item The main function
-\item The using keyword, using namespace
-\item struct and class
-\item Inheritance 
-\item Describe shared pointer
-\item Importance of modern C++
-\item Concept of metaprogramming
-\end{itemize}
-
-\section{Basic concepts of GPU programming}
-Things to explain here:
-
-\begin{itemize}
-\item Separation between CPU and GPU RAM
-\item Different memories in the GPU; global memory, register memory, shared memory, constant memory.
-\item Threading model; blocks and threads per block
-\item Execution order of threads (threads execute in lock-step inside a warp), blocks are async between them.
-\item Concurrent threads like to access concurrent elements in memory.
-\end{itemize}
 \chapter{Boundary Value Problem (BVP) Solver} \label{sec:bvp}
 In sections \ref{sec:dpstokes} and \ref{sec:dppoisson} we laid out the basic \glspl{PDE} as \glspl{BVP} with the following generic form
 \begin{equation}
