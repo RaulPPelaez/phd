@@ -87,6 +87,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newacronym{EM}{EM}{Euler-Maruyama}
 \newacronym{AB}{AB}{Adams-Bashforth}
 \newacronym{LK}{LK}{Leimkuhler}
+\newacronym{FPE}{FPE}{Fokker-Plank Equation}
 \newacronym{PBC}{PBC}{Periodic Boundary Conditions}
 \newacronym{RPY}{RPY}{Rotne-Prager-Yamakawa}\newcommand{\rpy}{\gls{RPY}\xspace}
 \renewcommand{\vec}[1]{\bm{#1}}
@@ -346,7 +347,6 @@ Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Inte
 %The \emph{ParticleData} object here, which is the direct expression in code of the second assumption, will be described in detail in sec. \ref{sec:particledata}.
 \todo{Maybe switch the order of the code examples here. In fact, join them both and say that the preamble is going to be omited. Take both code examples below ParticleData. Specify ``Module'' is an Integrator or an Interactor.}
 \section{Multiscale}
-From atoms in vacuum to chunks of oceans and planetary dynamics.
 \begin{figure}[h]
   \centering
   \includegraphics[width=\textwidth]{landscape}
@@ -357,8 +357,59 @@ From atoms in vacuum to chunks of oceans and planetary dynamics.
 \item coarse graining
 \item fluctuations allow to introduce lost degrees of freedom
 \item overview of the spatio-temporal scale of every method in the thesis, remove relevant variables and replace them with fluct.
-  
+\end{itemize}  
+\subsection{The Fokker-Plank Equation}
+We will focus on a certain relevant, slow, degree of freedom that interacts, in a \emph{random} way, with many other, fast, degrees of freedom. In general, we will eliminate fast variables from our description and reintroduce them as fluctuations. We can make use the \gls{FPE}, which describes the evolution of the probability distribution, $P(\vec{x},t)$, of a set of relevant or slow variables, $\vec{x} = \{x_1, x_2,\dots, x_N\}$ in a quite general way:
+  \begin{equation}
+    \label{eq:fpe}
+    \partial_t P = -\vec{\partial}_{\vec{x}}\cdot \vec{J}
+  \end{equation}
+
+Here $\vec{\partial}_{\vec{x}} := \{\partial/\partial_{x_1}, \dots, \partial/\partial_{x_N}\}$ represents the divergence.
+The probability flux vector, $\vec{J}$ is defined as
+\begin{equation}
+  \label{eq:fpeflux}
+  \vec{J}(\vec{x}, t) := \vec{D}^{(1)}(\vec{x},t)P - \vec{\partial}_{\vec{x}}\cdot\left[\vec{D}^{(2)}(\vec{x}, t) P\right]
+\end{equation}
+The first term is called the drift or transport term (being $\vec{D}^{(1)}$ the drift coefficients) and the second one the diffusion term (being $\vec{D}^{(2)}$ the diffusion coefficients). It is useful to write eq. \eqref{eq:fpeflux} in its kinetic form
+\begin{equation}
+  \label{eq:fpeflux}
+  \vec{J} = \widetilde{\vec{D}}^{(1)}P - \vec{D}^{(2)}\vec{\partial}_{\vec{x}} P
+\end{equation}
+By redefining the drift term as $\widetilde{\vec{D}}^{(1)} := \vec{D}^{(1)} - \vec{\partial}_{\vec{x}}\cdot\vec{D}^{(2)}$.
+
+The \gls{FPE} in eq. \eqref{eq:fpe} simply represents the conservation of the conditional probability $P(\vec{x},t)d\vec{x}$ of finding a set of variables $\vec{x}$ in the range $[\vec{x}, \vec{x} + d\vec{x}]$. The generality of eq. \eqref{eq:fpe} makes it applicable in a wide range of situations (a suspension of colloidal particles, fluctuations in electrical circuits, mechanical oscillators and chemical reactions just to name a few).
+
+We can use the probability distribution $P$ to compute the average of a certain function $f(\vec{x}(t))$
+
+\begin{equation}
+  \left\langle f\right\rangle(t) = \int {P(\vec{x},t) f(\vec{x}) d\vec{x}}.
+\end{equation}
+Its time evolution can be then expressed as
+\begin{equation}
+  \begin{aligned}
+    \frac{d\left\langle f\right\rangle}{dt} &= \int{f\partial_tPd\vec{x}}\\
+    &= \left\langle \widetilde{\vec{D}}^{(1)} \vec{\partial}_{\vec{x}}f\right\rangle + \left\langle \vec{D}^{(2)}\vec\partial_{\vec{x}}^2f\right\rangle.
+  \end{aligned}
+\end{equation}
+The chose of names for the coefficients becomes evident if we now study the first moments of the relevant variables. The first one yields
+\begin{equation}
+  \frac{d\langle\vec{x}\rangle}{dt} = \left\langle \vec{D}^{(1)}\right\rangle = \underbrace{\left\langle \widetilde{\vec{D}}^{(1)}\right\rangle}_{\text{Drift}} + \overbrace{\left\langle \vec{\partial}_{\vec{x}}\cdot\vec{D}^{(2)}\right\rangle}^{\text{Thermal drift}}
+\end{equation}
+And the second
+\begin{equation}
+  \frac{d\langle\vec{x}^2\rangle}{dt} = \left\langle 2\vec{D}^{(1)}\vec{x}\right\rangle + 2\underbrace{\left\langle\vec{D}^{(2)}\right\rangle}_{\text{Diffusion}}.
+\end{equation}
+
+In section \ref{sec:langevin} we will study the Langevin equation, a case in which the relevant variables are the velocities of the particles (which are surrounded by a bath of fast moving water molecules). On the other hand, in section \ref{sec:bd} we will see that in Brownian Dynamics (the overdamped limit of the Langevin equation), the relevant variables are the positions of the particles).
+
+\subsection{Fluctuation-Dissipation balance}
+\begin{itemize}
+\item Linearize around equilibrium state.
+  \item define variance and eq for covariance
+\item In equilibirum drift and diffusion must be in balance, $J=0$. covariance is zero.
 \end{itemize}
+
 \section{Molecular Dynamics}\label{sec:dynmol}
 Thus far we have used the term ``particle'' without explicitly defining it. We interpret a particle as an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...). In this sense, the term molecular dynamics is not refered to the numerical simulation technique (described in sec. \ref{sec:md}) rather should be interpreted as \emph{dynamics-of-molecules}, or more appropriately, particles.
 
