@@ -367,37 +367,41 @@ Although \uammd is not restricted to it, this work is mainly devoted to the stud
 \begin{enumerate}
 \item Microscopic: The relevant variables are the positions and moments of every particle in the system, including the solvent and solute particles. This level is dominated by the mean collision time between the particles, in the order of $\tau \sim 10^{-12} s$. The (purely Lagrangian) Newton equations of motion describe the dynamics of the system and \gls{MD} can be used to solve them. We explore this description in chapter \ref{sec:md}.
 \item Hydrodynamic: The degrees of freedom of the solvent particles are omitted and turned into hydrodynamic fields. The Newton equations for the solute particles are coupled with the (fluctuating) Navier-Stokes equations that describe the solvent in what constitutes an Eulerian-Langrangian description. An infinitesimal region of space represents a group of solvent particles, whose individual degrees of freedom are lost. The characteristic time is now controlled by the speed of sound of the solvent ($\tau \sim 10^{-9}s$) and the vorticity ($\tau \sim 10^{-6}s$). We study the hydrodynamic level in chapter \ref{sec:bdhi}.
-\item Fokker-Planck: Particles move so slowly compared to the solvent characteristic times that hydrodynamic interactions are effectively instantaneous. Only the positions and momentum of the particles remain as relevant variables (Lagrangian description once again), which are described by a Langevin equation (the \gls{SDE} equivalent of a \gls{FPE}). The characteristic decorrelation time of the particle's velocities governs this scale with $\tau\sim 10^{-5}$. We explore this inertial level of detail in chapter \ref{sec:langevin}.
+\item Langevin: Particles move so slowly compared to the solvent characteristic times that hydrodynamic interactions are effectively instantaneous. Only the positions and momentum of the particles remain as relevant variables (Lagrangian description once again), which are described by a Langevin equation. The characteristic decorrelation time of the particle's velocities governs this scale with $\tau\sim 10^{-5}s$. We explore this inertial level of detail in chapter \ref{sec:langevin}.
 \item Smoluchowski: Particle positions change slowly enough that their velocity decorrelates effectively instantenously, inertia can be disregarded and positions are the only relevant variable. The dynamics are described by the \gls{BD} equations of motion (an overdamped Langevin equation). The diffusion time of the particles, $\tau \sim 10^{-3} s$, dominates this level. We study this limit in chapter \ref{sec:bd}.
 \end{enumerate}
-Above this level of description particles are no longer relevant. Here we have the Fick level, in which a continuum particle concentration field is the relevant variable, and the thermodynamic level, in which the relevant variables are the macroscopic dynamical invariants of the system (mass, energy, volume, temperature,...). We can use these descriptions to study time scales of seconds (Fick) up to infinity (thermodynamics). However, given that \uammd is a particle-centric framework, these descriptions will not be considered in this manuscript.
-
-Going from one level to the next incurs losing information (AKA degrees of freedom, e.g the hydrodynamic level cannot track the positions/momenta of the microscopic solvent particles). These eliminated, fast, degrees of freedom are modeled (reintroduced) as a drag coupled with thermal noise. In future sections, we will see how dissipation is intimately related with thermal noise via the fluctuation-dissipation theorem.
+Above these levels of description particles are no longer relevant. Here we have the Fick level, in which a continuum particle concentration field is the relevant variable, and the thermodynamic level, in which the relevant variables are the macroscopic dynamical invariants of the system (mass, energy, volume, temperature,...). We can use these descriptions to study time scales of seconds (Fick) up to infinity (thermodynamics). However, given that \uammd is a particle-centric framework, these descriptions will not be considered in this manuscript.
 
 
-\subsection{The Fokker-Planck Equation}
+With the exception of the microscopic level, in which particles experience effective interactions that come directly from quantum effects, every other level emerges as a coarse grained description of the previous one. 
+
+Going from one level to the next incurs losing information (AKA degrees of freedom, e.g the hydrodynamic level cannot track the positions/momenta of the microscopic solvent particles). These eliminated, fast, degrees of freedom are modeled (reintroduced) as a drag coupled with thermal noise. In the following sections, we will see how dissipation is intimately related with thermal noise via the fluctuation-dissipation theorem. 
+
+
+\subsection{The Fokker-Planck Formalism}
 We will focus on a certain relevant, slow, degree of freedom that interacts, in a \emph{random} way, with many other, fast, degrees of freedom. In general, we will eliminate fast variables from our description and reintroduce them as fluctuations. We can make use the \gls{FPE}, which describes the evolution of the probability distribution, $P(\vec{x},t)$, of a set of relevant or slow variables, $\vec{x} = \{x_1, x_2,\dots, x_N\}$ in a quite general way:
   \begin{equation}
     \label{eq:fpe}
     \partial_t P = -\vec{\partial}_{\vec{x}}\cdot \vec{J}
   \end{equation}
-
 Here $\vec{\partial}_{\vec{x}}\cdot \vec{J} := \nabla_{\vec{x}}\cdot\vec{J} = \sum_i\partial J_i/\partial_{x_i}  $ represents the divergence.
 The probability flux vector, $\vec{J}$ is defined as
 \begin{equation}
   \label{eq:fpeflux}
-  \vec{J}(\vec{x}, t) := \vec{D}^{(1)}(\vec{x},t)P - \vec{\partial}_{\vec{x}}\cdot\left[\vec{D}^{(2)}(\vec{x}, t) P\right]
+  \vec{J}(\vec{x}, t) := \vec{D}^{(1)}(\vec{x},t)P - \vec{\partial}_{\vec{x}}\cdot\left[\tens{D}^{(2)}(\vec{x}, t) P\right]
 \end{equation}
-The first term is called the drift or transport term (being $\vec{D}^{(1)}$ the drift coefficients) and the second one the diffusion term (being $\vec{D}^{(2)}$ the diffusion coefficients). It is useful to write eq. \eqref{eq:fpeflux} in its kinetic form
+The first term is called the drift or transport term (being $\vec{D}^{(1)}$ the drift coefficients) and the second one the diffusion term (being $\tens{D}^{(2)}$ the diffusion coefficients). The \gls{FPE} \eqref{eq:fpe} comes from truncating the Kramers-Moyal equation at the second term\cite{Risken2012}\todo{RAFA: argumento para truncar solo a $n=2$?}.
+
+It is useful to write eq. \eqref{eq:fpeflux} in its kinetic form
 \begin{equation}
   \label{eq:fpeflux}
-  \vec{J} = \widetilde{\vec{D}}^{(1)}P - \vec{D}^{(2)}\vec{\partial}_{\vec{x}} P
+  \vec{J} = \widetilde{\vec{D}}^{(1)}P - \tens{D}^{(2)}\vec{\partial}_{\vec{x}} P
 \end{equation}
-By redefining the drift term as $\widetilde{\vec{D}}^{(1)} := \vec{D}^{(1)} - \vec{\partial}_{\vec{x}}\cdot\vec{D}^{(2)}$.
+By redefining the drift term as $\widetilde{\vec{D}}^{(1)} := \vec{D}^{(1)} - \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}$.
 
 The \gls{FPE} in eq. \eqref{eq:fpe} simply represents the conservation of the conditional probability $P(\vec{x},t)d\vec{x}$ of finding a set of variables $\vec{x}$ in the range $[\vec{x}, \vec{x} + d\vec{x}]$. The generality of eq. \eqref{eq:fpe} makes it applicable in a wide range of situations (a suspension of colloidal particles, fluctuations in electrical circuits, mechanical oscillators and chemical reactions just to name a few).
 
-We can use the probability distribution $P$ to compute the time evolution of the average of a certain function $f(\vec{x}(t))$
+We can use the probability distribution $P$ to compute the the average of a certain function $f(\vec{x}(t))$
 
 \begin{equation}
   \left\langle f\right\rangle(t) = \int {P(\vec{x},t) f(\vec{x}) d\vec{x}}.
@@ -406,43 +410,43 @@ Its time evolution can be then expressed as
 \begin{equation}
   \begin{aligned}
     \frac{d\left\langle f\right\rangle}{dt} &= \int{f\partial_tPd\vec{x}}\\
-    &= \left\langle \widetilde{\vec{D}}^{(1)} \vec{\partial}_{\vec{x}}f\right\rangle + \left\langle \vec{D}^{(2)}\vec\partial_{\vec{x}}^2f\right\rangle.
+    &= \left\langle \widetilde{\vec{D}}^{(1)} \vec{\partial}_{\vec{x}}f\right\rangle + \left\langle \tens{D}^{(2)}\vec\partial_{\vec{x}}^2f\right\rangle.
   \end{aligned}
 \end{equation}
 The choice of names for the coefficients becomes evident if we now study the first moments of the relevant variables. The first one (the mean) yields
 \begin{equation}
   \label{eq:fpemean}
-  \frac{d\langle\vec{x}\rangle}{dt} = \left\langle \vec{D}^{(1)}\right\rangle = \underbrace{\left\langle \widetilde{\vec{D}}^{(1)}\right\rangle}_{\text{Drift}} + \overbrace{\left\langle \vec{\partial}_{\vec{x}}\cdot\vec{D}^{(2)}\right\rangle}^{\text{Thermal drift}}
+  \frac{d\langle\vec{x}\rangle}{dt} = \left\langle \vec{D}^{(1)}\right\rangle = \underbrace{\left\langle \widetilde{\vec{D}}^{(1)}\right\rangle}_{\text{Drift}} + \overbrace{\left\langle \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}\right\rangle}^{\text{Thermal drift}}
 \end{equation}
-And the second (the variance)
+In the next section, we will see that the second moment, the variance of the relevant variables, is closely related with the diffusion coefficients, $\tens{D}^{(2)}$. It is however straight-forward to study the variance in the case of a single dimension with a variable $x$, where the variance can be written as
 \begin{equation}
   \label{eq:fpevar}
-  \frac{d\langle\vec{x}^2\rangle}{dt} = \left\langle 2\vec{D}^{(1)}\vec{x}\right\rangle + 2\underbrace{\left\langle\vec{D}^{(2)}\right\rangle}_{\text{Diffusion}}.
+  \frac{d\langle x^2\rangle}{dt} = \left\langle 2 D^{(1)}x\right\rangle + 2\underbrace{\left\langle D^{(2)}\right\rangle}_{\text{Diffusion}}.
 \end{equation}
 
-In section \ref{sec:langevin} we will study the Langevin equation, a case in which the relevant variables are the velocities (and positions) of the particles (which are surrounded by a bath of fast moving water molecules). On the other hand, in section \ref{sec:bd} we will see that in Brownian Dynamics (the overdamped limit of the Langevin equation), the relevant variables are the positions of the particles (being their velocities the fast, eliminated, degree of freedom).
+In section \ref{sec:langevin} we will study the Langevin equation, a case in which the relevant variables are the velocities (and positions) of the particles (which are surrounded by a bath of fast moving water molecules). On the other hand, in section \ref{sec:bd} we will see that in Brownian Dynamics (the overdamped limit of the Langevin equation), the relevant variables are the positions of the particles (being their velocities the fast, eliminated, degree of freedom). Finally, the applicability of the Fokker-Planck formalism at the hydrodynamic level will be briefly discussed in chapter \ref{sec:bdhi}.
 
 \subsection{Fluctuation-Dissipation balance}
-A system in contact with a heat bath will exprience both friction and fluctuations stemming from the elimination of a series of fast degrees-of-freedom. Both magnitudes are directly related to each other in equilibrium, as the equipartition theorem states that every degree-of-freedom has $\kT/2$ kinetic energy. If fluctuation and dissipation are not in a certain specific balance, the system would either heat or freeze.
-
-Let us start by defining the variables and dynamic coefficients as fluctuations around their equilibrium mean, such that $\delta\vec{x} = \vec{x} - \langle\vec{x}\rangle_{\text{eq}}$ and $\delta\vec{D} := \vec{D} - \langle\vec{D}\rangle_{\text{eq}}$.
+A system in contact with a heat bath will exprience both friction and fluctuations stemming from the elimination of a series of fast degrees-of-freedom. Both magnitudes are directly related to each other in equilibrium, as the equipartition theorem states that every degree-of-freedom has $\kT/2$ kinetic energy, which requires that fluctuation and dissipation are in a certain specific balance.
 
 We will see what the \gls{FPE} tells us about the fluctuation-dissipation balance by studying the covariance matrix,
 \begin{equation}
 \tens{\sigma} :=\left\langle \delta\vec{x}\otimes\delta\vec{x}\right\rangle,
 \end{equation}
-of the relevant variables. Here $\otimes$ represents the tensor product.
+of the relevant variables. Here $\otimes$ represents the tensor product and $\delta\vec{x} = \vec{x} - \langle\vec{x}\rangle_{\text{eq}}$ is a fluctuation of the relevant variables around their equilibrium averages.
 
-With this notation, using eqs. \eqref{eq:fpemean} and \eqref{eq:fpevar}, it can be shown that the time evolution of the covariance is given by
+Let us also define the transport coefficients as fluctuations around their equilibrium mean, such that and $\delta\vec{D} := \vec{D} - \langle\vec{D}\rangle_{\text{eq}}$.
+Using eqs. \eqref{eq:fpemean} and \eqref{eq:fpevar}, it can be shown that the time evolution of the covariance is then given by
 %\begin{equation}
 %  \label{eq:fpesigma}
-%  \partial_t\tens{\sigma} = 2\left\langle\vec{D}^{(2)} \right\rangle + \left\langle \vec{x}\otimes\vec{D}^{(1)} \right\rangle - \left\langle \vec{x} \right\rangle\otimes\left\langle \vec{D}^{(1)}\right\rangle
+%  \partial_t\tens{\sigma} = 2\left\langle\tens{D}^{(2)} \right\rangle + \left\langle \vec{x}\otimes\vec{D}^{(1)} \right\rangle - \left\langle \vec{x} \right\rangle\otimes\left\langle \vec{D}^{(1)}\right\rangle
 %\end{equation}
 %This allows to rewrite eq. \eqref{eq:fpesigma} as  %, where  $\bar{\vec{x}} := \langle \vec{x} \rangle$.
 \begin{equation}
- \partial_t\tens{\sigma} = 2\left\langle\vec{D}^{(2)} \right\rangle + \left\langle \delta\vec{x}\otimes\delta\vec{D}^{(1)} \right\rangle
+  \label{eq:fpefdsigma}
+ \partial_t\tens{\sigma} = 2\left\langle\tens{D}^{(2)} \right\rangle + \left\langle \delta\vec{x}\otimes\delta\vec{D}^{(1)} \right\rangle + \left\langle \delta\vec{D}^{(1)}\otimes\delta\vec{x} \right\rangle.
 \end{equation}
-For convenience, let us define $\bar{\vec{x}}:=\left\langle\vec{x}_{\text{eq}}\right\rangle$.
+For convenience, let us define $\bar{\vec{x}}:=\left\langle\vec{x}\right\rangle_{\text{eq}}$.
 The transport coefficients can then be decomposed as
 \begin{equation}
   \label{eq:fpefdcoeff}
@@ -451,20 +455,42 @@ The transport coefficients can then be decomposed as
 Where $i$ can refer to the drift or diffusion coefficients.
 Eq. \eqref{eq:fpefdcoeff} allows to approximate
 \begin{equation}
-  \delta\vec{D}^{(1)} \approx \vec{partial}_\vec{
+  \delta\vec{D}^{(1)} = \left.\vec{\partial}_{\vec{x}}\vec{D}^{(1)}\right|_{\text{eq}}\delta\vec{x} + O\left(\delta\vec{x}^2\right)
 \end{equation}
 Let us now define the dynamic matrix, $\tens{H}$ as
 \begin{equation}
   \tens{H} := -\vec{\partial}_{\vec{x}}\vec{D}^{(1)}(\bar{\vec{x}},t)
 \end{equation}
+So that
+\begin{equation}
+  \label{eq:fpefdhd}
+  \delta\vec{x}\otimes\delta\vec{D}^{(1)} = -\tens{H}\left(\delta\vec{x}\otimes\delta\vec{x}\right) + O\left(\delta\vec{x}^3\right)
+\end{equation}
+In a stationary or equilibrium state we have $\partial_t\tens{\sigma} = 0$. Replacing eq. \eqref{eq:fpefdhd} into \eqref{eq:fpefdsigma} in equilibrium yields
+\begin{equation}
+  \label{eq:fpefdbal}
+  2\left\langle\tens{D}^{(2)}\right\rangle = \tens{H}\tens{\sigma}_{\text{eq}} + \tens{\sigma}_{\text{eq}}\tens{H}^T
+\end{equation}
+This key relation is known as the Fluctuation-Dissipation Balance.
 
-%Similarly, we can define $\delta\vec{D}^{(i)} = \vec{D}^{(i)} - \langle \vec{D}^{(i)} \rangle_{\text{eq}}$ for any of the transport coefficients.
-\begin{itemize}
-\item Linearize around equilibrium state.
-  
-  \item define variance and eq for covariance
-\item In equilibirum drift and diffusion must be in balance, $J=0$. covariance is zero.
-\end{itemize}
+We can now go a little bit further and investigate the evolution of the relevant variables during a small time internal, $dt$, which will allow us to derive an \gls{SDE}.
+Let us assume that we know the values of the relevant variables at some initial point in time, $t_0 = 0$, so that $P(\vec{x}, t_0) = \delta(\vec{x}-\vec{x}_0)$ (where $\vec{x}_0 :=\vec{x}(t_0)$).
+
+If the time interval is small enough, we can safely assume that the transport coefficients remain mostly constant ($\left\langle\vec{D}^{(i)}(\vec{x}) \right\rangle = \vec{D}^{(i)}(\vec{x}_0)$). Furthermore, we can neglect any terms beyond $dt$. 
+Making use of the definition of derivative, we can now write eqs. \eqref{eq:fpefdsigma} and \eqref{eq:fpemean} as
+
+\begin{align}
+    \left\langle\vec{x}\right\rangle(dt) &= \vec{x}_0 + \vec{D}^{(1)}(\vec{x}_0)dt\label{eq:fpesdemean}\\
+    \tens{\sigma}(dt) &= \left\langle \delta\vec{x}\otimes\delta\vec{x}\right\rangle = 2\tens{D}^{(2)}(\vec{x}_0)dt + O(dt^2)\label{eq:fpesdefluc}
+\end{align}
+
+Note that $\tens{\sigma}(t_0) = 0$ since que know $\vec{x}_0$ exactly. Finally, we can decompose any function into its average and a fluctuation, so that $\vec{x} = \left\langle\vec{x}\right\rangle + \delta\vec{x}$. We can then write an \gls{SDE} for the relevant variables
+\begin{equation}
+  d\vec{x} = \vec{x}(dt) - \vec{x}_0 = \vec{D}^{(1)}dt + \delta\vec{x}
+\end{equation}
+Where the fluctuating part must satisfy eq. \eqref{eq:fpesdefluc}. Furthermore, the diffusion and drag terms are related via the fluctuation-dissipation balance in eq. \eqref{eq:fpefdbal}.
+
+In future chapters, we will apply the Fokker-Planck formalism to the different levels of detail described in fig. \ref{fig:multiscale} and its related discussion.
 
 \section{Molecular Dynamics}\label{sec:dynmol}
 Thus far we have used the term ``particle'' without explicitly defining it. We interpret a particle as an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...). In this sense, the term molecular dynamics is not refered to the numerical simulation technique (described in sec. \ref{sec:md}) rather should be interpreted as \emph{dynamics-of-molecules}, or more appropriately, particles.
