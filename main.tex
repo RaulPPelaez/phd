@@ -292,7 +292,7 @@ One of the main unwritten lessons we will glimpse is that it is never a good ide
 \end{itemize}
 In other words, conceptual complexity and problem specificity should increase only downwards through the tree. This forces us as developers to modify a certain module only to generalize it, and never to especialize it. If a module appears to require being especialized, it is almost always a sign that either it should be actually generalized or exist as a separate entity beneath the initial one. This is what makes \uammd so modular and extensible. See figures \ref{fig:uammdsketch_interactors} or \ref{fig:uammdsketch_integrators}, the next lower branches.
 
-\uammd carefully avoids these kind of inter dependencies.
+\uammd carefully avoids these kind of inter-dependencies.
 
 \chapter{It's in the name}\label{ch:design}
 
@@ -375,30 +375,30 @@ Above these levels of description particles are no longer relevant. Here we have
 
 With the exception of the microscopic level, in which particles experience effective interactions that come directly from quantum effects, every other level emerges as a coarse grained description of the previous one. 
 
-Going from one level to the next incurs losing information (AKA degrees of freedom, e.g the hydrodynamic level cannot track the positions/momenta of the microscopic solvent particles). These eliminated, fast, degrees of freedom are modeled (reintroduced) as a drag coupled with thermal noise. In the following sections, we will see how dissipation is intimately related with thermal noise via the fluctuation-dissipation theorem. 
+Going from one level to the next incurs losing information (AKA degrees of freedom, e.g the hydrodynamic level cannot track the positions/momenta of the microscopic solvent particles). These eliminated, fast, degrees of freedom are modeled (reintroduced) as a drag coupled with thermal noise. In the following sections, we will see how dissipation is intimately related with thermal noise via the fluctuation-dissipation theorem, such relations ensure that the coarse-grained system attains the correct equilibrium distribution.
 
 
-\subsection{The Fokker-Planck Formalism}
-We will focus on a certain relevant, slow, degree of freedom that interacts, in a \emph{random} way, with many other, fast, degrees of freedom. In general, we will eliminate fast variables from our description and reintroduce them as fluctuations. We can make use the \gls{FPE}, which describes the evolution of the probability distribution, $P(\vec{x},t)$, of a set of relevant or slow variables, $\vec{x} = \{x_1, x_2,\dots, x_N\}$ in a quite general way:
+\subsection{The Fokker-Planck Formalism}\label{sec:fpe}
+One of the basic theories for coarse graining is embeded in the Fokker-Planck formalism. Let us focus on a certain relevant slow, degree of freedom (variable) that interacts, in a \emph{random} way, with many other, fast, degrees of freedom. In general, we will eliminate fast variables from our description and reintroduce them as fluctuations. The \gls{FPE} describes the evolution of the probability distribution, $P(\vec{x},t)$, of a set of relevant or slow variables, $\vec{x} = \{x_1, x_2,\dots, x_N\}$ in a quite general way:
   \begin{equation}
     \label{eq:fpe}
     \partial_t P = -\vec{\partial}_{\vec{x}}\cdot \vec{J}
   \end{equation}
-Here $\vec{\partial}_{\vec{x}}\cdot \vec{J} := \nabla_{\vec{x}}\cdot\vec{J} = \sum_i\partial J_i/\partial_{x_i}  $ represents the divergence.
+Where $P_0 := P(\vec{x}_0, t_0)$ is known and $\vec{\partial}_{\vec{x}}\cdot \vec{J} := \nabla_{\vec{x}}\cdot\vec{J} = \sum_i\partial J_i/\partial_{x_i}  $ represents the divergence (note that the derivation is made with respect to the slow variables in general vectors\todo{What does this mean??}).
 The probability flux vector, $\vec{J}$ is defined as
 \begin{equation}
   \label{eq:fpeflux}
-  \vec{J}(\vec{x}, t) := \vec{D}^{(1)}(\vec{x},t)P - \vec{\partial}_{\vec{x}}\cdot\left[\tens{D}^{(2)}(\vec{x}, t) P\right]
+  \vec{J}(\vec{x}, t) := \vec{D}^{(1)}(\vec{x},t)P - \tens{D}^{(2)}(\vec{x}, t) \vec{\partial}_{\vec{x}}\cdot P
 \end{equation}
-The first term is called the drift or transport term (being $\vec{D}^{(1)}$ the drift coefficients) and the second one the diffusion term (being $\tens{D}^{(2)}$ the diffusion coefficients). The \gls{FPE} \eqref{eq:fpe} comes from truncating the Kramers-Moyal equation at the second term\cite{Risken2012}\todo{RAFA: argumento para truncar solo a $n=2$?}.
+The first term is called the drift or transport term (being $\vec{D}^{(1)}$ the drift coefficients) and the second one the diffusion term (being $\tens{D}^{(2)}$ the diffusion coefficients). The \gls{FPE} \eqref{eq:fpe} is written in the so-called ``kinetic form'' and comes from truncating the Kramers-Moyal equation at the second term (via the Pawula theorem)\cite{Risken2012}.
 
-It is useful to write eq. \eqref{eq:fpeflux} in its kinetic form
-\begin{equation}
-  \label{eq:fpeflux}
-  \vec{J} = \widetilde{\vec{D}}^{(1)}P - \tens{D}^{(2)}\vec{\partial}_{\vec{x}} P
-\end{equation}
-By redefining the drift term as $\widetilde{\vec{D}}^{(1)} := \vec{D}^{(1)} - \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}$.
-
+%It is useful to write eq. \eqref{eq:fpeflux} in its kinetic form
+%\begin{equation}
+%  \label{eq:fpeflux}
+%  \vec{J} = \widetilde{\vec{D}}^{(1)}P - \tens{D}^{(2)}\vec{\partial}_{\vec{x}} P
+%\end{equation}
+%By redefining the drift term as $\widetilde{\vec{D}}^{(1)} := \vec{D}^{(1)} - \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}$.
+%
 The \gls{FPE} in eq. \eqref{eq:fpe} simply represents the conservation of the conditional probability $P(\vec{x},t)d\vec{x}$ of finding a set of variables $\vec{x}$ in the range $[\vec{x}, \vec{x} + d\vec{x}]$. The generality of eq. \eqref{eq:fpe} makes it applicable in a wide range of situations (a suspension of colloidal particles, fluctuations in electrical circuits, mechanical oscillators and chemical reactions just to name a few).
 
 We can use the probability distribution $P$ to compute the the average of a certain function $f(\vec{x}(t))$
@@ -410,14 +410,15 @@ Its time evolution can be then expressed as
 \begin{equation}
   \begin{aligned}
     \frac{d\left\langle f\right\rangle}{dt} &= \int{f\partial_tPd\vec{x}}\\
-    &= \left\langle \widetilde{\vec{D}}^{(1)} \vec{\partial}_{\vec{x}}f\right\rangle + \left\langle \tens{D}^{(2)}\vec\partial_{\vec{x}}^2f\right\rangle.
+    &= \left\langle \vec{D}^{(1)} \vec{\partial}_{\vec{x}}f\right\rangle + \left\langle \tens{D}^{(2)}\vec\partial_{\vec{x}}^2f\right\rangle.
   \end{aligned}
 \end{equation}
 The choice of names for the coefficients becomes evident if we now study the first moments of the relevant variables. The first one (the mean) yields
 \begin{equation}
-  \label{eq:fpemean}
-  \frac{d\langle\vec{x}\rangle}{dt} = \left\langle \vec{D}^{(1)}\right\rangle = \underbrace{\left\langle \widetilde{\vec{D}}^{(1)}\right\rangle}_{\text{Drift}} + \overbrace{\left\langle \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}\right\rangle}^{\text{Thermal drift}}
+  \label{eq:fpemean}  
+  \frac{d\langle\vec{x}\rangle}{dt} = \underbrace{\left\langle \widetilde{\vec{D}}^{(1)}\right\rangle}_{\text{Drift}} = \overbrace{\left\langle \vec{D}^{(1)}\right\rangle}^{\text{Systematic drift}} + \underbrace{\left\langle \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}\right\rangle}_{\text{Thermal drift}}
 \end{equation}
+Where $\widetilde{\vec{D}}^{(1)} := \vec{D}^{(1)} + \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}$.
 In the next section, we will see that the second moment, the variance of the relevant variables, is closely related with the diffusion coefficients, $\tens{D}^{(2)}$. It is however straight-forward to study the variance in the case of a single dimension with a variable $x$, where the variance can be written as
 \begin{equation}
   \label{eq:fpevar}
@@ -426,7 +427,7 @@ In the next section, we will see that the second moment, the variance of the rel
 
 In section \ref{sec:langevin} we will study the Langevin equation, a case in which the relevant variables are the velocities (and positions) of the particles (which are surrounded by a bath of fast moving water molecules). On the other hand, in section \ref{sec:bd} we will see that in Brownian Dynamics (the overdamped limit of the Langevin equation), the relevant variables are the positions of the particles (being their velocities the fast, eliminated, degree of freedom). Finally, the applicability of the Fokker-Planck formalism at the hydrodynamic level will be briefly discussed in chapter \ref{sec:bdhi}.
 
-\subsection{Fluctuation-Dissipation balance}
+\subsection{Fluctuation-Dissipation balance}\label{sec:fdb}
 A system in contact with a heat bath will exprience both friction and fluctuations stemming from the elimination of a series of fast degrees-of-freedom. Both magnitudes are directly related to each other in equilibrium, as the equipartition theorem states that every degree-of-freedom has $\kT/2$ kinetic energy, which requires that fluctuation and dissipation are in a certain specific balance.
 
 We will see what the \gls{FPE} tells us about the fluctuation-dissipation balance by studying the covariance matrix,
@@ -486,11 +487,53 @@ Making use of the definition of derivative, we can now write eqs. \eqref{eq:fpef
 
 Note that $\tens{\sigma}(t_0) = 0$ since que know $\vec{x}_0$ exactly. Finally, we can decompose any function into its average and a fluctuation, so that $\vec{x} = \left\langle\vec{x}\right\rangle + \delta\vec{x}$. We can then write an \gls{SDE} for the relevant variables
 \begin{equation}
+  \label{eq:fpesde}
   d\vec{x} = \vec{x}(dt) - \vec{x}_0 = \vec{D}^{(1)}dt + \delta\vec{x}
 \end{equation}
 Where the fluctuating part must satisfy eq. \eqref{eq:fpesdefluc}. Furthermore, the diffusion and drag terms are related via the fluctuation-dissipation balance in eq. \eqref{eq:fpefdbal}.
 
 In future chapters, we will apply the Fokker-Planck formalism to the different levels of detail described in fig. \ref{fig:multiscale} and its related discussion.
+
+\subsection{Einstein relation}\label{sec:einstein}
+An extremely important relation between transport coefficients appearing in $\vec{D}^{(1)}$ and the diffusion $\tens{D}^{(2)}$ can be derived from the equilibrium state, $\vec{J} = 0$ in eq. \eqref{eq:fpeflux}. This relation was first defined by Einstein\cite{EinsteinRelation} with arguments similar to those exposed in what follows.
+
+Consider the zero flux condition $\vec{J}=0$, which is solved by the equilibrium distribution $P_{\text{eq}}(\vec{x})$ (independent on time)
+\begin{equation}
+  \label{eq:fluxeq}
+  \vec{J} = \vec{D}^{(1)}P_{\text{eq}} - \tens{D}^{(2)}\vec{\partial}_{\vec{x}}P_{\text{eq}} = 0
+\end{equation}
+Thus
+\begin{equation}
+  \label{eq:fluxeqln}
+\vec{\partial}_{\vec{x}}\ln \left(P_{\text{eq}}\right) = \frac{\vec{D}^{(1)}(\vec{x})}{\tens{D}^{(2)}(\vec{x})}
+\end{equation}
+Now, quite generally, consider that $\vec{D}^{(1)} = -\tens{M}\vec{\partial}_{\vec{x}}U(\vec{x})$ where $U$ is the free energy of the system, satisfying $P_{\text{eq}} = \frac{1}{Z}\exp\left[-\beta U(\vec{x})\right]$ (or $\vec{\partial}_{\vec{x}}P_{\text{eq}} = -\beta \vec{\partial}_{\vec{x}} U(\vec{x})$) and $\tens{M}(\vec{x})$ is called ``mobility'', as it relates forces ,$\vec{F} = -\vec{\partial}_{\vec{x}}U$, with the displacement created by the systematic drift, $\left\langle d\vec{x}\right\rangle = \tens{M}\vec{F} dt$. Inserting $\vec{D}^{(1)} = -\tens{M}\vec{\partial}_{\vec{x}}U$ into eq. \eqref{eq:fluxeqln} and comparing with the equilibrium result, we conclude that
+\begin{equation}
+  \frac{\vec{D}^{(1)}(\vec{x})}{\tens{D}^{(2)}(\vec{x})} = \frac{-\tens{M}(\vec{x})\vec{\partial}_{\vec{x}}U}{\tens{D}^{(2)}(\vec{x})} = -\beta\vec{\partial}_{\vec{x}}U
+\end{equation}
+So that,
+\begin{equation}
+  \label{eq:einsteinrel}
+  \tens{M}(\vec{x}) = \beta\tens{D}^{(2)}(\vec{x})\quad\text{ or }\quad\tens{D}^{(2)}(\vec{x}) = \kT\tens{M}(\vec{x})
+\end{equation}
+Which is the celebrated Einstein relation. Note that the Einstein relation also relates fluctuations (governed by $\tens{D}^{(2)}$) with dissipation (determined by the inverse mobility, AKA friction).
+
+While the Einstein relation is quite general, in colloidal systems $\tens{M}(\vec{x})$ is calculated from macroscopic (deterministic) hydrodynamics. 
+
+For instance, the mobility of a single (isolated) sphere with no-slip surface moving in a fluid at rest with velocity $\vec{\pvel}$ can be obtained\cite{Dhont1996} by studying the total traction created by the fluid stress its surface, $\vec{F} = \oint\tens{\sigma}\cdot \hat{\vec{n}}dS$ where $\tens{\sigma}$ is the fluid pressure tensor. The result is the celebrated Stokes relation
+\begin{equation}
+  \label{eq:stokesrel}
+  \vec{F} = -M_0^{-1} \vec{\pvel}
+\end{equation}
+With the so-called ``self-mobility'' being $M_0 = \left(6\pi\eta a\right)^{-1}$ where $a$ is the particle radius and $\eta$ the fluid viscosity\footnote{Note that perfect slip surfaces leads to $M_0 = (4\pi\eta a)^{-1}$.}. Note that the inverse of the mobility, $\xi := M_0^{-1}$, is the so-called friction coefficient.
+
+Combining the Einstein (eq. \eqref{eq:einsteinrel}) and Stokes (eq. \eqref{eq:stokesrel}) relations leads to the Stokes-Einstein diffusion coefficient
+\begin{equation}
+  \label{eq:spherediff}
+  D_0 = \frac{\kT}{6\pi\eta a}
+\end{equation}
+a manifestation of eq. \eqref{eq:einsteinrel} in the case of a single no-slip sphere moving through a fluid at rest.
+
 
 \section{Molecular Dynamics}\label{sec:dynmol}
 Thus far we have used the term ``particle'' without explicitly defining it. We interpret a particle as an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...). In this sense, the term molecular dynamics is not refered to the numerical simulation technique (described in sec. \ref{sec:md}) rather should be interpreted as \emph{dynamics-of-molecules}, or more appropriately, particles.
@@ -921,9 +964,9 @@ In reality it can happen that the effect of one particle on another is short ran
 
 The reason for giving short range interactions so much credit is simple: Imagine a system with $N$ uniformly distributed particles inside a given domain. If we let each particle interact with every other we need to check $N^2$ pairs of particles as we already saw. On the other hand, restricting the interaction to a certain distance, such that each particle has a number of neighbours $k<<N$ reduces the number of checks to $kN$.
 
-The traiditonal example of a short range interaction is the Lennard-Jones potential.
+The traditonal example of a short range interaction is the Lennard-Jones potential.
 \section{The Lennard-Jones potential}\label{sec:lj}
-A standard potential employed to model the short range Van-der-Waals interactions is the Lennard-Jones potential \cite{lj} (\gls{LJ} for short). A rapidly decaying repulsive radial potential with an attractive tail.
+A standard potential employed to model the short range Van-der-Waals interactions is the \gls{LJ} potential \cite{lj}. A rapidly decaying repulsive radial potential with an attractive tail.
 \begin{equation}
   \label{eq:lj}
   U_{LJ}(r) = 4 \epsilon \left[ \left(\frac{\sigma}{r}\right)^{12} - \left( \frac{\sigma}{r}\right)^6 \right] 
@@ -1413,30 +1456,79 @@ void constructListWithUAMMD(UAMMD sim){
   \label{code:bonded}
 \end{code}
 
-\chapter{Particle-based methods for simulating complex fluids}\label{sec:dynamics}
-\begin{itemize}
-\item Describe fig. \ref{fig:uammdsketch_integrators}
+\chapter{Particle Dynamics}\label{sec:dynamics}
 
-\item In a bottom-up way, we start with MD in sec. \ref{sec:md}, then Langevin in sec. \ref{sec:langevin} and finally hydrodynamics in sec.~\ref{sec:hydro}.
-\end{itemize}
+Thus far we have dealt with particle interactions. In the following chapters we will see a series of numerical strategies to solve the time evolution dynamics of the particles in the different levels of description introduced in chapter \ref{ch:design}. We will do so by descending through the Integrator branch in fig. \ref{fig:uammdsketch}. We can find the leaves below the Integrator branch in fig. \ref{fig:uammdsketch_integrators}.
+
+In a bottom-up manner, refering to the complexity of the numerical methods, we start with the microscopic level (via \gls{MD}) in sec. \ref{sec:md}, then Langevin in sec. \ref{sec:langevin} and finally the hydrodynamics and Smoluchowski levels in chapter \ref{ch:bdhi}.
+  
 \begin{figure}
   \centering
-  \includesvg[width=0.7\columnwidth]{gfx/sketchUAMMD_integrators}
-  \caption{The next level in the \emph{Integrator} branch of the tree presented at fig. \ref{fig:uammdsketch}. The names of the familie sof methods are depicted in green, while actual methods (available as \uammd modules) are in black.}
+  \includesvg[width=\columnwidth]{gfx/sketchUAMMD_integrators}
+  \caption{The next level in the \emph{Integrator} branch of the tree presented at fig. \ref{fig:uammdsketch}. Different methods are available for each of the levels of description (pink) introduced in chapter \ref{ch:design}. Methods available as \uammd modules are in black.}
   \label{fig:uammdsketch_integrators}
 \end{figure}
-\todo{Change with Rafa's figure with circles.}
+
 
 \chapter{The Integrator interface}\label{sec:integrator}
-Handles the time evolution of a group of particles.
-Interactors can be added to it.
+We introduced the \emph{Integrator} concept back in chapter \ref{ch:design}, where we adhered to it the responsability of taking the simulation to the next time step. In this chapter, we will discus in detail \uammd's \emph{Integrator} software interface. Similar to \emph{Interactor}, \emph{Integrator} is a purely virtual C++ class that must be inherited (specialized). Instead of providing functions to compute forces (\emph{Interactor}), \emph{Integrator} exposes functions to take the simulation to the next time step. Additionally, \emph{Integrators} hold a list of \emph{Interactors} that they can use at their leissure to obtain up-to-date forces, energies and/or virials for each particle.
 
+An arbitrary number of \emph{Interactors} instances can be added to an \emph{Integrator} (e.g. short ranged forces, bonded forces...) via its member function \mintinline{\ucpp}{Integrator::addInteractor();}. Source code \ref{code:integratorex} contains an example showcasing how to add an interaction to an \emph{Integrator}. On the other hand, source code \ref{code:integrator} is an example on how to create a novel \emph{Integrator} (parallel to the example \ref{code:interactor} for \emph{Interactors}).
+
+\begin{code}
+\begin{minted}{\ucpp}
+#include<uammd.cuh>
+#include<Integrator/Integrator.cuh>
+using namespace uammd;
+
+//A class that needs to behave as 
+// an UAMMD Integrator must inherit from it
+class MyIntegrator: public Integrator{
+  real dt = 0.1; //A time step with a default value
+public:
+  MyIntegrator(std::shared_ptr<ParticleData> pd):
+          Integrator(pd, "MyIntegrator"){
+    //Any required initialization,
+    //Typically, an Integrator will require
+    // a series of input parameters,
+    // such as the time step, etc.
+  }
+
+  //An Integrator can be issued to take the simulation
+  // to the next step in time
+  virtual void forwardTime(cudaStream_t st) override{
+   //Whatever it takes to take particles to
+   // the next step.
+   { //Reset forces
+     auto force = pd->getForce(access::cpu, access::write);
+     std::fill(force.begin(), force.end(), real4(0.0));
+   }
+   //Typically we will issue the interactors to 
+   // compute forces, energies and/or virials.
+   for(auto i: interactors) i->sum({.force=true}, st)
+   //Use computed forces to update positions and vels
+   auto pos = pd->getPos(access::cpu, access::readwrite);
+   auto vel = pd->getVel(access::cpu, access::readwrite);
+   auto mass = pd->getMass(access::cpu, access::read);
+   auto force = pd->getForce(access::cpu, access::read);
+   for(int i = 0; i<pos.size(); i++){
+     vel[i] += force[i]*dt/mass[i];
+     pos[i] += vel[i]*dt;
+   }
+  }
+};
+\end{minted}
+  \caption{The basic outline of a new \emph{Integrator}. Some advanced functionality has been omitted here for simplicity, refer to Appendix \ref{ch:online} for more information. See chapter \ref{sec:particledata} for more information about how to access particle properties. A class inheriting from \emph{Integrator} has access to a series of built-in members, in particular, a \emph{ParticleData} instance is always available under the name ``pd''. Furthermore, a list of \emph{Interactors} is available in the variable ``interactors''.}
+  \label{code:integrator}
+\end{code}
+
+%\chapter{Particle-based integration methods for simulating complex fluids}
 
 
 \chapter{Molecular Dynamics}\label{sec:md}
 
-At the lowest level, without considering quantum effects, our simulation units are interacting atoms or molecules whose motion can be described using classical mechanics. We refer to the numerical techniques used in this regime as \gls{MD}.
-In \gls{MD} molecules are moving in a vacuum following the Newton's equation of motion. If we need to include some kind of solvent, i.e. water, in a \gls{MD} simulation we must do so by explicitly solving the motion of all the involved molecules of water (which might be coarse grained in some way or another)
+At the lowest level our simulation units are interacting atoms or molecules whose motion can be described using classical mechanics. We refer to the numerical techniques used in this regime as \gls{MD}.
+In \gls{MD} molecules are moving in a vacuum following the Newton's equation of motion. If we need to include some kind of solvent, i.e. water, in a \gls{MD} simulation we must do so by explicitly solving the motion of all the involved molecules of water (with some suitable force field).
 Even so \gls{MD} represents the basis for all particle based methods, where the term \emph{particle}, depending on the level of coarse graining, might refer to anything from an atom to a colloidal particle.
 Although it is not the most fundamental way of expressing the equations of motions, we will stick to a somewhat simplified one. For a system of $N$ molecules interacting via a certain potential, Newton's equation of motion states that the acceleration experienced by each particle comes from the total force, $\vec{F}$, acting on it.
 \begin{equation}
@@ -1452,7 +1544,7 @@ The force can usually be expressed as the gradient of an underlying potential en
 which in general is a function of the positions of the particles.
 
 
-At its core eqs. \eqref{eq:md} and \eqref{eq:md} are an expression of the conservation of the total system's energy. As such, these equations of motion can be used to perform simulations in the so-called microcanonical ensemble (NVE), where the number of particles (N), the volume of the domain (V) and the total energy (E) are conserved.
+At its core eqs. \eqref{eq:md} and \eqref{eq:md} are an expression of the conservation of the total system's energy. As such, these equations of motion can be used to perform simulations in the so-called microcanonical ensemble (NVE), where the number of particles (N), the volume of the domain (V) and the total energy (E) are conserved. Note, however, that the energy is only conserved when forces stem from the gradient of a potential.
 
 
 Our goal is to integrate numerically eq. \eqref{eq:md}. Starting from the state of the system at a certain time $t$ (where the system is conformed by the positions and velocities of the particles and the forces acting on them) we want to find the state of the system at time $t + \dt$. We refer to $\dt$ as the time step.
@@ -1561,7 +1653,7 @@ We can then use eq. \eqref{eq:verletvelhalf} to compute the velocity at $t+\dt$
   \vec{\pvel}^{n+1} = \vec{\pvel}^{n+\half} + \half\vec{a}^{n+1}\dt
 \end{equation}
 Note that these equations are just a rewrite of the Störmer Verlet method above and thus present the same stability and accuracy while eliminating the aforementioned incoveniences presented by the former.\todo{Como se demuestra que la posicion es $O(\dt^4)$?}
-Thus the overall algorithm is second order accurate in the velocity and fourth order accurate in the positions.
+Thus the overall algorithm is second order accurate in the velocity and third order accurate in the positions.
 Finally, the velocity Verlet algorithm can be summarized in the following steps
 \begin{equation}
   \label{eq:verletnve}
@@ -1601,127 +1693,179 @@ auto createIntegratorVerletNVE(UAMMD sim){
 }
 \end{minted}
 
-With \gls{MD} we have to track the movement of each individual atom in the system, which is not practical for a mesoscale simulation of a complex fluid. Say we want to study the folding process of a single, average sized, protein (about $3$nm). A process that can take milliseconds to complete\cite{proteinfolding}. Lets put this protein inside a modest sized box with $10$nm per side. The only way to take into account the environment is to fill the box with water molecules, the 33 million that fit inside our box. And that is if we have somehow coarse grained a water molecule into a single unit, as including every invidual atom would take 100 million particles.
-And that is just water, without taking into account the protein that we are trying to simulate. There are some coarse grained models of water that can help reducing this number, like the MARTINI force field \cite{martini} and others\cite{cgwater}, but we are going to need millions of solvent particles in any case.
-Even if this kind of simulation is technically feasible\cite{antonprotein}, it requires absurd amounts of computing resources which do not really scale for something more complex, like the inside of a cell or a collection of viruses.
-
-Furthermore, including the small water molecules requires to solve their individual dynamics, which is orders of magnitude faster than our time scale of interest (milliseconds).
+%With \gls{MD} we have to track the movement of each individual atom in the system, which is not practical for a mesoscale simulation of a complex fluid. Say we want to study the folding process of a single, average sized, protein (about $3$nm). A process that can take milliseconds to complete\cite{proteinfolding}. Lets put this protein inside a modest sized box with $10$nm per side. The only way to take into account the environment is to fill the box with water molecules, the 33 million that fit inside our box. And that is if we have somehow coarse grained a water molecule into a single unit, as including every invidual atom would take 100 million particles.
+%And that is just water, without taking into account the protein that we are trying to simulate. There are some coarse grained models of water that can help reducing this number, like the MARTINI force field \cite{martini} and others\cite{cgwater}, but we are going to need millions of solvent particles in any case.
+%Even if this kind of simulation is technically feasible\cite{antonprotein}, it requires absurd amounts of computing resources which do not really scale for something more complex, like the inside of a cell or a collection of viruses.
+%
+%Furthermore,
+Including the small water molecules requires to solve their individual dynamics, which is orders of magnitude faster than our time scale of interest (milliseconds).
 In particular, the solvent effect will be coarse grained in the form of fluctuations and hydrodynamic correlations between the colloidal particles resolved.
-%We cannot simply ignore the effect of the solvents since we would be neglecting some of the most important phenomena in the system, such as hydrodynamics and thermal fluctuations.
-During the following sections, we will see different strategies to take into account the effects of the solvent in an implicit manner.
+% We cannot simply ignore the effect of the solvents since we would be neglecting some of the most important phenomena in the system, such as hydrodynamics and thermal fluctuations.
+
+During the following sections, we will see different strategies to take into account the effects of the solvent in an implicit manner. In particular, the solvent effect will be coarse-grained in the form of fluctuations and hydrodynamic correlations between the resolved colloidal particles.
+
 The next natural after \gls{MD} equations is the so-called \gls{LD}.
 
 \chapter{Langevin Dynamics}\label{sec:langevin}
 
+In section \ref{sec:fpe} we introduced the Fokker-Plack formalism, which coarse grains the effects of a series of fast variables into a drift and diffussion coefficients, enabling us to leave in our description only the slow relevant variables.
+
+At the Langevin level of description, the dynamics of the solvent molecules (e.g. water) are orders of magnitude faster than the solute particles. In particular, the submerged particles are so much slower that hydrodynamic interactions are effectively instantaneous, leaving the positions and momenta of the particles as relevant variables. The dynamics of the solute particles are governed by a so-called Langevin equation, a manifestation of the \gls{FPE} that is often described as a ``\gls{MD} with a thermostat''.
 %The solvent particles are removed entirely, the idea is that the motion of the solvent particles (water) is much faster than that of the submerged objects. Furthermore, the size of the simulation units is much larger than the size of the solvent particles. Instead of simulating a time scale fast enough to keep track of each individual collision between a slow object and a solvent particle we assume that between one instant and the next so many solvent particles have collided with the object that we can consider it an stochastic process.
 %In \gls{LD} submerged particles experience a random force stemming from the collisions of all the surrounding solvent particles. Additionally, the solvent particles produce a friction that goes against the movement of the submerged particles.
 %In this sense \gls{LD} only models the viscous behavior of the solvent, disregarding any electrostatic or hydrodynamic phenomena.
 %We reintroduce the ommited degrees of freedom as external forces acting on the particles in a \gls{MD} simulation.
-\todo{REWRITE}
 
-We can write the Langevin equation as
+We can write the Langevin \gls{SDE} as
 \begin{equation}
   \label{eq:langevin}
-  m\vec{a} = \vec{F_c} + \vec{F_d} + \vec{F_r}
+  m\, d\vec{\pvel} = \underbrace{\vec{F}}_{\vec{\partial}_{\vec{\ppos}}U(\ppos)}dt - \overbrace{\xi\vec{\pvel}}^{\text{Drag}}dt + \underbrace{\vec{\beta}}_{\text{Fluctuations}},
 \end{equation}
-Where we have simply added more forces to eq. \eqref{eq:md}. The first term in eq. \eqref{eq:langevin} is the sum of the conservative forces acting on particle $i$ (the ones comming from the underlying potential energy landscape), these can be steric interactions, electrostatic, bonded, etc. The second term represents the drag exterted by the solvend particles in the form of a dissipative force. Finally, the third term comes from the noise produced by the fast and constant collisions of the solvent particles in the form of a random force. Langevin dynamics is often used as a thermostat in \gls{MD}. Noise and drag forces are balanced according to the fluctuation-dissipation relation, this guarantees the correct thermalization of the system (NVT).
+which is often be intepreted as a form of eq. \eqref{eq:md} coupled with a thermostat so that noise and drag forces are balanced according to the fluctuation-dissipation relation (see section \ref{sec:fdb}), guarantying the correct thermalization of the system (NVT ensemble).
 
-This random term transforms eq. \eqref{eq:langevin} into an stochastic differential equation, in which special care must be taken when integrating.
+On the other hand, eq. \eqref{eq:langevin} is an expression of the equivalent \gls{SDE} (eq. \eqref{eq:fpesde}) for the \gls{FPE} with the particle momenta and positions as the relevant variables. The first term in eq. \eqref{eq:langevin}, $\vec{F_c}$, is the sum of the conservative forces acting on particle $i$ (the ones comming from the underlying potential energy landscape), these can be steric interactions, electrostatic, bonded, etc.
+The second term represents the drag exterted by the solvend particles in the form of a dissipative force.
+Finally, the third term represents the fluctuations produced by the fast and constant collisions of the solvent particles. Here $\vec{\beta}$ is a random increment which must be in fluctuation-dissipation balance with the friction term (see section \ref{sec:fdb}), we will shortly study its value.
 
-The dissipative or drag term opposes the movement of the particles and is often written as $\vec{F_d} = -\xi \vec{\pvel}$. The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$. Additionally, $\xi$ can be formally derived from a Green-Kubo relation involving the integral of the solvent-solute force time-correlation\cite{greenkubo}. Its value is often approximated by the Stokes (macroscopic) value $\xi=6\pi\eta a$, of a particle of radius $a$ in a solvent with viscosity $\eta$.
+%This random term transforms eq. \eqref{eq:langevin} into an stochastic differential equation, in which special care must be taken when integrating.
 
-When a system dissipates energy, for instance, due to a force like the drag force in eq. \eqref{eq:langevin}, the fluctuation-dissipation theorem states that there must be an opposite process that reintroduces this energy via thermal fluctuations. Otherwise the system would spontaneously freeze or heat.
-The fluctuation-dissipation balance can be interpreted a consequence of the equipartition theorem in the long time limit. We can use the equipartition theorem for a single particle in the absence of any conservative forces to relate $\vec{F_d}$ with $\vec{F_r}$. 
+The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$. Additionally, $\xi$ can be formally derived from a Green-Kubo relation involving the integral of the solvent-solute force time-correlation\cite{greenkubo}. Its value is often approximated by the Stokes (macroscopic) value $\xi=6\pi\eta a$, of a particle of radius $a$ in a solvent with viscosity $\eta$ (see eq. \eqref{eq:stokesrel} and discussion in chapter \ref{ch:einstein}).
+
+When we introduced the Fokker-Planck formalism in chapter \ref{sec:fpe} we saw that when a system dissipates energy, for instance, due to a force like the drag force in eq. \eqref{eq:langevin}, the fluctuation-dissipation theorem states that there must be an opposite process that reintroduces this energy via thermal fluctuations. Otherwise the system would spontaneously freeze or heat.
+
+We can use eq. \eqref{eq:fpefdbal} to elucidate the relation between the drag, $\xi$ and the noise in eq. \eqref{eq:langevin} by defining the single particle drift coefficient as $\widetilde{\vec{D}}^{(1)} := -\gamma \vec{\pvel}$. The dynamic ``matrix'' (in this case being just a value) is then $H = \gamma$. We can now write eq. \eqref{eq:fpefdbal} in the small time interval limit, which yields
+\begin{equation}
+  \label{eq:langeD2}
+  D^{(2)} = \gamma\sigma_{\text{eq}}.
+\end{equation}
+% The fluctuation-dissipation balance can be interpreted as arising from the equipartition theorem in the long time limit. We can use the equipartition theorem for a single particle in the absence of any conservative forces to relate $\gamma$ with $B$.
+The equipartition theorem can be employed here to obtain the equilibrium covariance $\sigma_{\text{eq}} := \left\langle\vec{\pvel}^2\right\rangle$.
 In the absence of dissipative forces, the Hamiltonian is simply $H = \frac{p^2}{2m}$, where $p = m\dot{\ppos}$ is the momentum.
 Lets apply these arguments to a one dimensional system for simplicity, understanding they also hold for the three dimensional case. The equipartition theorem states that for every degree of freedom in the system the following equation must hold.
 \begin{equation}
   \left\langle p \frac{\partial H}{\partial p}\right\rangle = \left\langle p \frac{p}{m}\right\rangle = k_BT
 \end{equation}
 Where $k_B$ is the Boltzmann constant and $T$ the temperature. Brackets represent ensemble average.
-
 The previous equation leads to the relation
 \begin{equation}
   \label{eq:velautocorr}
-  \left\langle p^2\right\rangle = m k_BT
+  \sigma_{\text{eq}} = \left\langle p^2\right\rangle = m k_BT
 \end{equation}
-Which represents the variance of the particle's momemtum.
-On the other hand, since there are no privileged directions and eq. \eqref{eq:velautocorr} should hold, we infer that
+Which represents the variance of the particle's momemtum. We can now use eqs. \eqref{eq:langeD2} and \eqref{eq:velautocorr} to identify
+\begin{equation}
+  \label{eq:langenoiseamp}
+  D^{(2)} := m\gamma\kT.
+\end{equation}
+
+On the other hand, in order to satisfy eqs. \eqref{eq:fpesdemean} and \eqref{eq:fpesdefluc} the fluctuating term must have zero mean,
 \begin{equation}
   \label{eq:noisemean}
-  \left\langle F_r\right\rangle = 0
+  \left\langle\beta\right\rangle = 0
 \end{equation}
-The Langevin model assumes that the noise has no memory (Markov process), so
+and be uncorrelated in time (since we are assuming the time interval is small enough to consider the transport coefficients as constants) with standard deviation given by
 \begin{equation}
   \label{eq:noiseautocorr}
-  \left\langle F_r(t)F_r(t')\right\rangle = B \delta_{t,t'}
+  \left\langle\beta(t)\beta(t')\right\rangle = 2D^{(2)}dt\delta_{t,t'} = 2\xi\kT dt\delta_{t,t'}.
 \end{equation}
-This assumption is a consequence of the separation of timescales between the fast processes (solvent collisions) and the slow process (velocity of the larger solute particle). $B$ is some constant which needs to be determined to fulfill eq. \eqref{eq:velautocorr}. There are several arguments that can be used here to get the value of $B$ \cite{Allen2017,fokker,langevinsolve}. The simplest one is to take eq. \eqref{eq:langevin} for a single particle in the absence of external forces in one dimension in a time dicretized form
-\begin{equation}
-  p^{n+1} = p^n-\gamma\delta t p^n + \delta t F_r^n
-\end{equation}
-Where $n$ represents an instant in time separated $\delta t$ from the next. Lets compute the variance of the momentum
-\begin{equation}
-  \left\langle (p^{n+1})^2\right\rangle = \left\langle (1-\gamma \delta t)^2(p^n)^2\right\rangle + \delta t \left\langle (F_r^n)^2\right\rangle
-\end{equation}
-In equilibrium the variance of the momemtum must remain constant, so $\left\langle (p^{n+1})^2\right\rangle = \left\langle (p^{n})^2\right\rangle$, leaving
-\begin{equation}
-  \left[ (1-\gamma \delta t)^2 -1 \right]\left\langle (p^{n})^2\right\rangle = \delta t \left\langle (F_r^n)^2\right\rangle
-\end{equation}
-In the limit of $\delta t \rightarrow 0$ and taking into account the relation in eq. \eqref{eq:velautocorr}
-\begin{equation}
-  \left\langle (p^{n})^2\right\rangle = \frac{\left\langle (F_r^n)^2\right\rangle}{2\gamma} = mk_BT
-\end{equation}
-Which represents the fluctuation-dissipation balance for this system. The value of $B$ in eq. \eqref{eq:noiseautocorr} is then,
-\begin{equation}
-  B = 2m\gamma k_BT
-\end{equation}
-Technically, eqs. \eqref{eq:noisemean} and \eqref{eq:noiseautocorr} would be compatible with any random distribution with zero mean and variance $B$. However, as the noise term comes from the action of countless independent random variables (collisions with the solvent particles) the central limit theorem\cite{centrallimittheorem} applies. Thus, it is convenient to choose the random force, $\vec{F_r}$, as a Gaussian white noise\cite{dunweg}.
-
-Finally, we can rewrite eq. \eqref{eq:langevin} as
-%Multiply it by the position, $r$, and average
-%\begin{equation}
-%  \left\langle r \dot{p}\right\rangle + \xi \left\langle rp\right\rangle = 0
-%\end{equation}
-%Note that the fluctuations have vanished since they are not correlated with the position.
-%We can use a couple of mathematical identities to transform this equation into
-%\begin{equation}
-%  \ddot{\langle r^2\rangle} + \xi \dot{\langle r^2\rangle} = 2\langle p^2 \rangle = 2mk_BT
-%\end{equation}
-%
-%The solution to this differential equation is
-%\begin{equation}
-%  \langle r^2\rangle = 2mk_BT\xi^2\left( \exp{-t/\tau} -1 + t/\tau\right)  
-%\end{equation}
-%And in the long time limit where $t \gg \tau$
-%\begin{equation}
-%  \langle r^2\rangle = 2mk_BT\xi t
-%\end{equation}
-%On the other hand,
-%\begin{equation}
-%  \langle r^2\rangle = \int_0^{t_0}dt\int_0^{t_0}dt'\langle F_r(t) F_r(t')\rangle = Bt_0 = 2mk_BT
-%\end{equation}
-%
+Finally, we can write the Langevin equation as
 \begin{equation}
   \label{eq:langevinfull}
-  md\vec{\pvel} = \vec{F_c}dt - \xi \vec{\pvel}dt + \sqrt{2\xi k_BT}\vec{\widetilde{W}}
+  m\, d\vec{\pvel} = \vec{F}dt - \xi\vec{\pvel}dt +  \sqrt{2\xi\kT}\vec{\noise},
 \end{equation}
-Where $\vec{\widetilde{W}}$ is a collection of independent Wiener increments.
-The Langevin model makes several assumptions to arrive at eq. \eqref{eq:langevinfull}. At long time, hydrodynamic effects due to momentum propagation of the solvent (leading to long time tails in the velocity correlation of the particle) are neglected. The dynamics of short times $\tau<\gamma/m$ are also wrong, as memory effects in the noise forces start to matter. We will see in following chapters how to improve the long time limit. In any case, \gls{LD} allows to introduce the fluctuation dissipation balance which generally holds in dissipative systems .
-The presence of $\vec{\widetilde{W}}$ makes eq. \eqref{eq:langevinfull} an \gls{SDE}. Since eq. \eqref{eq:langevinfull} is not analitic the assumptions in eq. \eqref{eq:fdmtaylor} do not hold. In other words, we do not know how to differentiate a random variable. Luckily we can make assumptions about the integral of a random variable, this allows us to devise a solver for eq. \eqref{eq:langevinfull} following a similar strategy as we did in eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} in sec. \ref{sec:euler}.
+Where we have defined $\vec{\beta} := \sqrt{2\xi\kT}\vec{\noise}$.
+%On the other hand, since there are no privileged directions and eq. \eqref{eq:velautocorr} should hold, we infer that
+%\begin{equation}
+%  \label{eq:noisemean}
+%  \left\langle F_r\right\rangle = 0
+%\end{equation}
+%The Langevin model assumes that the noise has no memory (Markov process), so
+%\begin{equation}
+%  \label{eq:noiseautocorr}
+%  \left\langle F_r(t)F_r(t')\right\rangle = B \delta_{t,t'}
+%\end{equation}
+%This assumption is a consequence of the separation of timescales between the fast processes (solvent collisions) and the slow process (velocity of the larger solute particle). $B$ is some constant which needs to be determined to fulfill eq. \eqref{eq:velautocorr}. There are several arguments that can be used here to get the value of $B$ \cite{Allen2017,fokker,langevinsolve}. The simplest one is to take eq. \eqref{eq:langevin} for a single particle in the absence of external forces in one dimension in a time dicretized form
+%\begin{equation}
+%  p^{n+1} = p^n-\gamma\delta t p^n + \delta t F_r^n
+%\end{equation}
+%Where $n$ represents an instant in time separated $\delta t$ from the next. Lets compute the variance of the momentum
+%\begin{equation}
+%  \left\langle (p^{n+1})^2\right\rangle = \left\langle (1-\gamma \delta t)^2(p^n)^2\right\rangle + \delta t \left\langle (F_r^n)^2\right\rangle
+%\end{equation}
+%In equilibrium the variance of the momemtum must remain constant, so $\left\langle (p^{n+1})^2\right\rangle = \left\langle (p^{n})^2\right\rangle$, leaving
+%\begin{equation}
+%  \left[ (1-\gamma \delta t)^2 -1 \right]\left\langle (p^{n})^2\right\rangle = \delta t \left\langle (F_r^n)^2\right\rangle
+%\end{equation}
+%In the limit of $\delta t \rightarrow 0$ and taking into account the relation in eq. \eqref{eq:velautocorr}
+%\begin{equation}
+%  \left\langle (p^{n})^2\right\rangle = \frac{\left\langle (F_r^n)^2\right\rangle}{2\gamma} = mk_BT
+%\end{equation}
+%Which represents the fluctuation-dissipation balance for this system. The value of $B$ in eq. \eqref{eq:noiseautocorr} is then,
+%\begin{equation}
+%  B = 2m\gamma k_BT
+%\end{equation}
+Technically, eqs. \eqref{eq:noisemean} and \eqref{eq:noiseautocorr} would be compatible with any random distribution for the noise, $\vec{\noise}$, that has zero mean and variance $dt$. However, as the noise term comes from the action of countless independent random variables (collisions with the solvent particles) the central limit theorem\cite{centrallimittheorem} applies. Thus, it is convenient to choose $\vec{\noise}$ as a Gaussian white noise (i.e. a Wienner process)\cite{dunweg}.
+
+%
+%Finally, we can rewrite eq. \eqref{eq:langevin} as
+%%Multiply it by the position, $r$, and average
+%%\begin{equation}
+%%  \left\langle r \dot{p}\right\rangle + \xi \left\langle rp\right\rangle = 0
+%%\end{equation}
+%%Note that the fluctuations have vanished since they are not correlated with the position.
+%%We can use a couple of mathematical identities to transform this equation into
+%%\begin{equation}
+%%  \ddot{\langle r^2\rangle} + \xi \dot{\langle r^2\rangle} = 2\langle p^2 \rangle = 2mk_BT
+%%\end{equation}
+%%
+%%The solution to this differential equation is
+%%\begin{equation}
+%%  \langle r^2\rangle = 2mk_BT\xi^2\left( \exp{-t/\tau} -1 + t/\tau\right)  
+%%\end{equation}
+%%And in the long time limit where $t \gg \tau$
+%%\begin{equation}
+%%  \langle r^2\rangle = 2mk_BT\xi t
+%%\end{equation}
+%%On the other hand,
+%%\begin{equation}
+%%  \langle r^2\rangle = \int_0^{t_0}dt\int_0^{t_0}dt'\langle F_r(t) F_r(t')\rangle = Bt_0 = 2mk_BT
+%%\end{equation}
+%%
+%\begin{equation}
+%  \label{eq:langevinfull}
+%  md\vec{\pvel} = \vec{F_c}dt - \xi \vec{\pvel}dt + \sqrt{2\xi k_BT}\vec{\widetilde{W}}
+%\end{equation}
+%Where $\vec{\widetilde{W}}$ is a collection of independent Wiener increments.
+
+The presence of the noise term with $\vec{\widetilde{W}}$ makes eq. \eqref{eq:langevinfull} an \gls{SDE}. Since eq. \eqref{eq:langevinfull} is not analitic the assumptions in eq. \eqref{eq:fdmtaylor} do not hold. In other words, we do not know how to differentiate a random variable. Luckily we can make assumptions about the integral of a random variable, this allows us to devise a solver for eq. \eqref{eq:langevinfull} following a similar strategy as we did in eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} in sec. \ref{sec:euler}.
 
 The challenge in the numerical integration of eq. \eqref{eq:langevinfull} comes from the discretization of the noise term.
 A bad discretization of this term can lead to convergence issues, such is the case for the commonly used BBK (for Brooks-Brünger-Karplus) scheme\cite{Brunger1984}, which is known to provide the correct temperature with an error in the order of $O(\dt)$\cite{Wang2003}.
-Without entering yet into the world of Stochastic calculus, we can overcome this issue by solving eq. \eqref{eq:langevinfull} in integral form. Lets start by studying the one dimensional case of a single particle, since the three directions are uncoupled and particles are independent (beyond the conservative forces) making the jump to 3D and many particles will be trivial. For simplicity, lets define $\beta := \sqrt{2\xi k_BT}\widetilde{W}$. Now we integrate eq. \eqref{eq:langevinfull} between the interval $t$ and $t+\dt$
+We can overcome this issue by solving eq. \eqref{eq:langevinfull} in integral form. Lets start by studying the one dimensional case of a single particle, since the three directions are uncoupled and particles are independent (beyond the conservative forces) making the jump to 3D and many particles is then trivial. Now we integrate eq. \eqref{eq:langevinfull} between the interval $t$ and $t+\dt$
 \begin{equation}
   \label{eq:langevinriemann}
-  \int_t^{t+\dt} m\dot{\pvel}dt' = \int_t^{t+\dt}F_c dt' - \int_t^{t+\dt}\xi\dot{\ppos}dt' + \int_t^{t+\dt}\beta(t')dt'
+  m\int_t^{t+\dt}\dot{\pvel} dt' = \int_t^{t+\dt}F_c dt' - \int_t^{t+\dt}\xi\dot{\ppos}dt' + \sqrt{2\xi\kT}d\noise
 \end{equation}
-The key now is to realize that we can compute the last term numerically by using the Riemann sum definition of the integral in the Itô sense. Lets refer to the last term as
+Where $d\noise$ is known as a Wienner increment, defined so that
 \begin{equation}
-  \label{eq:langenoisint}
-  \beta^{n+1} := \int_t^{t+\dt}\beta(t')dt'
+  \label{eq:langevinwiennerinc}
+  d\noise := \int_t^{t+\dt}\noise(t') dt.
 \end{equation}
-We can use the Riemann sum to transform this into a sum with an arbitrarily large number of terms. This stochastic integral is tricky to compute and more details will be given in sec. \ref{sec:bd}. For the moment we can compute $\beta^{n+1}$ as a Gaussian random number with zero mean and standard deviation $\left\langle\beta^n\beta^m\right\rangle = 2\xi\kT\dt\delta_{n,m}$.
+
+The key now is to realize that we can compute the last term numerically by using the Riemann sum definition of the integral in the Itô sense.
+In the Itô interpretation, this integral is defined as the limit in probability of a Riemann sum, where the Brownian integral of a certain function $f$ between a certain time interval $[0, t]$ is
+\begin{equation}
+  \label{eq:itonoise}
+  \int_0^tf(t')d\noise(t') = \lim_{n\rightarrow\infty}\sum_{i=0}^nf(t^{i-1}) (\noise(t^i) - \noise({t^{i-1}}))
+\end{equation}
+Where $t_i\in [0, t]$.
+It can be shown that this limit converges in probability\cite{itoconvergence}.
+
+%Lets refer to the last term as
+%\begin{equation}
+%  \label{eq:langenoisint}
+%  \noise^{n+1} := d\noise
+%\end{equation}
+We can use the Riemann sum to transform eq. \eqref{eq:langevinwiennerinc} into a sum with an arbitrarily large number of terms. We can compute $d\noise$ as a Gaussian random numbers with zero mean and standard deviation $\left\langle d\noise^nd\noise^m\right\rangle = 2\xi\kT\dt\delta_{n,m}$ (uncorrelated in time).
 This realization now opens the door for a family of Verlet like integration schemes, in particular we are going to describe the algorithm developed by Grønbech-Jensen and Farago \cite{Gronbech2013}.
 
 \section{Grønbech-Jensen}\label{sec:gronbechjensen}
@@ -1791,8 +1935,12 @@ auto createIntegratorVerletNVT(UAMMD sim){
   return std::make_shared<VerletNVT>(sim.pd, par);
 }
 \end{minted}
+
+
+The Langevin model makes several assumptions to arrive at eq. \eqref{eq:langevinfull}. At long time, hydrodynamic effects due to momentum propagation of the solvent (leading to long time tails in the velocity correlation of the particle) are neglected. The dynamics of short times $\tau<\gamma/m$ are also wrong, as memory effects in the noise forces start to matter. We will see in following chapters how to improve the long time limit.
+
 \chapter{Dissipative Particle Dynamics}
-One of the most popular techniques used to reintroduce some of the degrees of freedom lost with \gls{LD} is \gls{DPD}. This coarse graining technique can be used to go further in the spatio-temporal scale by choosing groups of fluid particles as the simulation unit, sitting in between microscopic (as in \gls{MD}) and macroscopic (Navier-Stokes) descriptions.
+One of the most popular techniques used to reintroduce some of the degrees of freedom lost with \gls{LD} is \gls{DPD}. This coarse graining technique can be used to go further in the spatio-temporal scale by choosing groups of fluid particles as the simulation unit, sitting in between microscopic (as in \gls{MD}) and macroscopic (hydrodynamic) descriptions.
 In \gls{DPD} particles interact via a soft potential, modeling the interaction between two large groups of fluid particles.
 \gls{DPD} aims to conserve the local momentum via a special thermostat, introducing pairwise dissipative and random forces. Local momemtum conservation results in the emergence of macroscopic hydrodynamic effects. These momentum conserving forces can then be tuned to reproduce not only thermodynamics, but also dynamical and rheological properties of diverse complex fluids.
 The equations of motion in \gls{DPD} have the same functional form as \gls{LD} and can be in fact considered as a momentum-conserving generalization og \gls{LD}.
@@ -1869,24 +2017,72 @@ auto createIntegratorDPD(UAMMD sim){
 \todo{Introduccion al origen de BD y que problemas resuelve que LD no}
 When the viscous forces are much larger than the inertial forces, i.e. $ |\xi\vec{\pvel}| \gg |m\vec{a}|$, the inertial term in eq. \eqref{eq:langevinfull} becomes irrelevant at very short time scales.
 \gls{BD} takes advantage of such time scale separation between the particle velocity fluctuations and its displacement and can be interpreted as the overdamped, or non-intertial, limit of \gls{LD}. The decorrelation time of the velocity, defined as $\tau_l = m/\xi$ is much faster than the time needed to move a particle its own size. \gls{BD} represents the long time limit of the Langevin equation. This is a powerful property of \gls{BD}, since sampling the probability distributions of the underlying stochastic processes (stemming from the rapid movement of the solute particles) does not require to sample their fast dynamics.
-Note, however, that we are still disregarding hydrodynamic interactions by assuming the density of particles is low enough for them to be neglegible. This translates into the friction coefficient being independent on the particle positions. We will see in section \ref{sec:bdhi} how to introduce this dependence.
 
-One way or the other, given that by construction the decorrelation rate of the velocity is instantaneous it is not as natural to talk about the friction $\xi$ coefficient in terms of it. Alternatively, the inverse of the friction, refered to as the mobility $M:=1/\xi$, becomes the natural parameter. The eq. \eqref{eq:langevinfull} in the non inertial regime can thus be written as \todo{justify this more properly}
+In \gls{BD}, the coupling between the submerged particles and the solvent is instantaneous.
+Furthermore, since the particle velocities decorrelates instantly, the only remaining relevant variables are the positions of the colloidal particles. We can use the Fokker-Planck formalism to describe the dynamics of the colloidal particles positions. When the \gls{FPE} \eqref{eq:fpe} is restricted to Brownian particles it is known as the Smoluchowski Diffusion Equation.
+
+Using eq. \eqref{eq:fpesde}, we can write the \gls{SDE} for the positions of a collection of colloidal particles in the Smoluchowski level as
 \begin{equation}
   \label{eq:bdlange}
-  \dot{\vec{\ppos}} = M\vec{F} + \sqrt{2D}\vec{\mathcal{\noise}}
+  d\vec{\ppos} = \widetilde{\vec{D}}^{(1)}(\vec{\ppos})dt + \delta\vec{\ppos}
 \end{equation}
-Where the expression for the diffusion coefficient, $D := Mk_BT$, is the famous Einstein relation\cite{einstein}, comming from the fluctuation-dissipation balance as discussed in sec. \ref{sec:langevin}. Here $\vec{F}$ is some force acting on the particle.
-It is important to notice that the noise, $\vec{\mathcal{\noise}}$, is no longer just a random force coming from an additive action of many collisions with solvent particles, but the average of a series of stochastic displacements over a long period of time $\dt \gg \tau_l$.
-There are several strategies that can be employed here to compute the properties of the stochastic term.
-%One way is to integrate the stochastic term over a period of time $\dt\gg\tau_l$ in the Langevin equation. We already made this integral while developing the numerical integration scheme for the Langevin equation in eq. \eqref{eq:langenoisint}, the same can be applied here to arrive at $\left\langle\Delta\vec{\noise}(t)\Delta\vec{\noise}(0)\right\rangle = t\delta(t)$.
-We are going to do it by studying the long time correlation of the position (the relevant variable in \gls{BD}) in eq. \eqref{eq:langevinfull}. Lets start by computing the long time correlation of the velocity in the one dimensional case for one particle in the absence of external forces.
-We can neglect the time derivative in eq. \eqref{eq:langevinfull} in the long time limit so that
+Where the fluctuations, $\delta\vec{\ppos}$, are given by eq. \eqref{eq:fpesdefluc} as
 \begin{equation}
-  \label{eq:bdvelcorr}
-  \langle v(t) v(t') \rangle \underset{t-t'\gg\tau_l}{\approx} 2D\langle \noise(t)\noise(t')\rangle = 2D\delta(t-t')
+  \label{eq:bdfluc}
+  \left\langle \delta\vec{\ppos}\otimes \delta\vec{\ppos}\right\rangle = 2\tens{D} dt
 \end{equation}
-Where we have used the already known correlation for the noise in eq. \eqref{eq:noiseautocorr}.
+
+As discussed in sec \ref{sec:einstein} we can in general define the drift coefficients in a general way as
+\begin{equation}
+  \label{eq:bddrift}
+\vec{D}^{(1)} := -\tens{M}\vec{\partial}_{\vec{\ppos}}U(\vec{\ppos}),
+\end{equation}
+where $U$ represents in this case the potential energy acting on the particles. The mobility tensor, $\tens{M}$, encodes in its elements the hydrodynamic correlations between the different particles necessary to transform the forces acting on them into displacements.
+The mobility tensor is then related to the diffusion coefficients via the Einstein relation (see sec. \ref{sec:einstein}),
+\begin{equation}
+  \tens{D}(\vec{\ppos}) = \kT \tens{M}(\vec{\ppos}).
+\end{equation}
+The Einstein relation coupled with the condition in eq. \eqref{eq:bdfluc} hints the mobility tensor to be symmetric and positive semi-definite, so that we can define a tensor $\tens{B}$ such that
+\begin{equation}
+  \tens{B}\tens{B}^T := \sqrt{\tens{M}}.
+\end{equation}
+In general, the mobility matrix will be a function of all the particles in the system. However, it is usual to consider the mobility in the pairwise approximation, so that $\tens{M}(\vec{\ppos}, \vec{\ppos}') = \tens{M}(\vec{\ppos}-\vec{\ppos}')$\todo{Something more to add here?}. Including further reflexions explodes the complexity of the formulation and its only useful in situations in which particles are really close (e.g. high densities)\cite{Dhont1996}.
+
+We can then write the equations of \gls{BD} as
+\begin{equation}
+  \label{eq:bdfull}
+  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT\tens{M}}d\vec{\noise} + \kT\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}dt.
+\end{equation}
+Where $\vec{F} = -\vec{\partial}_{\vec{\ppos}}U$ are the forces acting on the particles and the (so-called) Brownian motion, $d\vec{\noise}$, is a collection of Wienner increments with zero mean and
+\begin{equation}
+\left\langle d\noise_{ij}(t)d\noise_{ij}(t') \right\rangle = dt\delta_{t,t'}\delta_{ij}.
+\end{equation}
+It is worth noticing that the physical origin of the noise, $d\vec{\noise}$, is no longer just a random force coming from an additive action of many collisions with solvent particles, but the average of a series of stochastic displacements over a long period of time $\dt \gg \tau_l$.
+
+The last term in eq. \eqref{eq:bdfull}, known as the thermal drift term, can be non zero in cases where the compressibility of the fluid has to be taken into account\todo{RAFA help me here pls}. However, in isotropic and irrotational hydrodynamic fields, this term is usually zero and can thus be ommited from the description.
+
+In practice, the actual form of the mobility matrix can be obtained by directly measuring the hydrodynamic correlations in an experiment\todo{RAFA help me here pls}. However, in some cases it is possible to obtain analytical expressions for $\tens{M}$. In future chapters we will study several analytical instances of $\tens{M}$ in various regimes.
+
+For the time being, we will focus on the simple case of the mobility being non-zero only in the diagonal (neglecting hydrodynamic interactions). Furthermore, we assume the self mobility is equal for all particles so that $\tens{M}(\vec{\ppos}, \vec{\ppos}') = M\mathbb{I} = M_0$. Hydrodynamics will then be reintroduced in chapter \ref{sec:bdhi}. This order allows us to introduce the stochastic numerical integration schemes and their use in \uammd before dealing with the full mobility tensor, which calls for a series of numerical techniques that will be introduced later.
+
+As discussed in sec. \ref{sec:einstein}, in the case of a no-slip sphere of radius $a$ moving inside a fluid with viscosity $\eta$ the self mobility is $M_0 = (6\pi\eta a)^{-1}$.
+
+Since the mobility is just a number in the non hydrodynamic case, the thermal drift disapears and eq. \eqref{eq:bdfull} is greatly simplified, leaving
+\begin{equation}
+  \label{eq:bd}
+  d\vec{\ppos} = M\vec{F}dt + \sqrt{2\kT M}d\vec{\noise},
+\end{equation}
+
+
+%There are several strategies that can be employed here to compute the properties of the stochastic term.
+%One way is to integrate the stochastic term over a period of time $\dt\gg\tau_l$ in the Langevin equation. We already made this integral while developing the numerical integration scheme for the Langevin equation in eq. \eqref{eq:langenoisint}, the same can be applied here to arrive at $\left\langle\Delta\vec{\noise}(t)\Delta\vec{\noise}(0)\right\rangle = t\delta(t)$.
+%We are going to do it by studying the long time correlation of the position (the relevant variable in \gls{BD}) in eq. \eqref{eq:langevinfull}. Lets start by computing the long time correlation of the velocity in the one dimensional case for one particle in the absence of external forces.
+%We can neglect the time derivative in eq. \eqref{eq:langevinfull} in the long time limit so that
+%\begin{equation}
+%  \label{eq:bdvelcorr}
+%  \langle v(t) v(t') \rangle \underset{t-t'\gg\tau_l}{\approx} 2D\langle \noise(t)\noise(t')\rangle = 2D\delta(t-t')
+%\end{equation}
+%Where we have used the already known correlation for the noise in eq. \eqref{eq:noiseautocorr}.
 %The solution for eq. \eqref{eq:langevinfull} can be written as
 %\begin{equation}
 %  v(t) = v_0\exp(-\gamma t) + \int_0^t\exp(-\gamma(t-t'))\noise(t')dt'
@@ -1908,62 +2104,50 @@ Where we have used the already known correlation for the noise in eq. \eqref{eq:
 %\begin{equation}
 %  \left\langle v(t_1)v(t_2)\right\rangle = \frac{B}{2\gamma}\exp(-\gamma|t_1-t_2|)
 %\end{equation}
-Lets now compute the mean squared displacement of the position
-\begin{equation}
-  \left\langle(r(t) - r_0)^2 \right\rangle = \left\langle\left[ \int_0^{t}v(t_1)dt_1 \right]^2 \right\rangle = \int_0^{t_1}{\int_0^{t_2}{\left\langle v(t_1)v(t_2)\right\rangle}}
-\end{equation}
-Replacing eq. \eqref{eq:bdvelcorr} and solving the double integral yields
-\begin{equation}
-  \left\langle(r(t) - r_0)^2 \right\rangle \underset{t\gg\tau_l}{\approx}  2Dt % - \frac{B}{\gamma^3}\left(1-\exp(-\gamma t)\right)
-\end{equation}
-Which is the mean square displacement of a Langevin particle at long times.
-%At long times, $t \gg\tau_l$, only the first term survives, finally arriving at the expression for the long time mean square displacement of the displacement
+%Lets now compute the mean squared displacement of the position
 %\begin{equation}
-%  \label{eq:langeposmsd}
-%  \left\langle(r(t\gg\tau_l) - r_0)^2 \right\rangle = \frac{B}{2\gamma}t = 2Dt
+%  \left\langle(r(t) - r_0)^2 \right\rangle = \left\langle\left[ \int_0^{t}v(t_1)dt_1 \right]^2 \right\rangle = \int_0^{t_1}{\int_0^{t_2}{\left\langle v(t_1)v(t_2)\right\rangle}}
 %\end{equation}
-We can now compute the same for eq. \eqref{eq:bdlange} with only fluctuations, which must be equal to eq. \eqref{eq:bdvelcorr} for a time $t \gg \tau_l$.
-
-\begin{equation}
-  \label{eq:bdmsd}
-  \left\langle (r(t)-r_0)^2 \right\rangle = 2D\int_0^{t}{\int_0^{t}{\left\langle\mathcal{\noise}(t_1)\mathcal{\noise}(t_2)\right\rangle dt_1dt_2}} = 2Dt
-\end{equation}
-This allows us to devise the properties of the noise in eq. \eqref{eq:bdlange}, $\mathcal{\noise}$ is a Gaussian random number with zero mean and standard deviation $\langle\mathcal{\noise}(t)\mathcal{\noise}(t')\rangle = \delta(t-t')$.
-In \gls{BD} displacements are proportional to the forces via the mobility, i.e terminal velocity is reached instantenously.
-Coupled with the thermal fluctuations, the velocity is basically transformed into a random variable. This makes expressing eq. \eqref{eq:bdlange} in terms of the velocity awkward. The relevant variable is now the position and it is therefore usual to write eq. \eqref{eq:bdlange} in terms of displacements via the so-called Itô formula
-\begin{equation}
-  \label{eq:bd}
-  d\vec{\ppos} = M\vec{F}dt + \sqrt{2D}d\vec{\noise}
-\end{equation}
-Where the stochastic term $d\vec{\noise}$, is the origin of the Brownian motion being a Wiener increment (independent random numbers with zero mean and variance $\dt$).
+%Replacing eq. \eqref{eq:bdvelcorr} and solving the double integral yields
+%\begin{equation}
+%  \left\langle(r(t) - r_0)^2 \right\rangle \underset{t\gg\tau_l}{\approx}  2Dt % - \frac{B}{\gamma^3}\left(1-\exp(-\gamma t)\right)
+%\end{equation}
+%Which is the mean square displacement of a Langevin particle at long times.
+%%At long times, $t \gg\tau_l$, only the first term survives, finally arriving at the expression for the long time mean square displacement of the displacement
+%%\begin{equation}
+%%  \label{eq:langeposmsd}
+%%  \left\langle(r(t\gg\tau_l) - r_0)^2 \right\rangle = \frac{B}{2\gamma}t = 2Dt
+%%\end{equation}
+%We can now compute the same for eq. \eqref{eq:bdlange} with only fluctuations, which must be equal to eq. \eqref{eq:bdvelcorr} for a time $t \gg \tau_l$.
+%
+%\begin{equation}
+%  \label{eq:bdmsd}
+%  \left\langle (r(t)-r_0)^2 \right\rangle = 2D\int_0^{t}{\int_0^{t}{\left\langle\mathcal{\noise}(t_1)\mathcal{\noise}(t_2)\right\rangle dt_1dt_2}} = 2Dt
+%\end{equation}
+%This allows us to devise the properties of the noise in eq. \eqref{eq:bdlange}, $\mathcal{\noise}$ is a Gaussian random number with zero mean and standard deviation $\langle\mathcal{\noise}(t)\mathcal{\noise}(t')\rangle = \delta(t-t')$.
+%In \gls{BD} displacements are proportional to the forces via the mobility, i.e terminal velocity is reached instantenously.
+%Coupled with the thermal fluctuations, the velocity is basically transformed into a random variable. This makes expressing eq. \eqref{eq:bdlange} in terms of the velocity awkward. The relevant variable is now the position and it is therefore usual to write eq. \eqref{eq:bdlange} in terms of displacements via the so-called Itô formula
+%\begin{equation}
+%  \label{eq:bd}
+%  d\vec{\ppos} = M\vec{F}dt + \sqrt{2D}d\vec{\noise}
+%\end{equation}
+where the stochastic term, $d\vec{\noise}$, is the origin of the Brownian motion being a Wiener increment (independent random numbers with zero mean and variance $dt$).
 A solution to eq. \eqref{eq:bd} is one that satisfies
 \begin{equation}
   \label{eq:bddis}
-  \vec{\ppos}(t) = \vec{\ppos}_0 + \int_0^tM\vec{F}dt + \int_0^t\sqrt{2D}d\vec{\noise}
+  \vec{\ppos}(t) = \vec{\ppos}_0 + \int_0^tM\vec{F}dt + \int_0^t\sqrt{2\kT M}d\vec{\noise}
 \end{equation}
-It is important to understand here that the integral of the Brownian motion is interpreted in the Itô sense.
-In the Itô interpretation, this integral is defined as the limit in probability of a Riemann sum, where the Brownian integral of a certain function $f$ between a certain time interval $[0, t]$ is
-\begin{equation}
-  \label{eq:itonoise}
-  \int_0^tf(t')d\noise(t') = \lim_{n\rightarrow\infty}\sum_{i=0}^nf(t^{i-1}) (\noise(t^i) - \noise({t^{i-1}}))
-\end{equation}
-Where $t_i\in [0, t]$.
-It can be shown that this limit converges in probability\cite{itoconvergence}.
-\subsection{The diffusion of a sphere}
-\todo{Explain the mobility and diffusion of a sphere}
-\begin{equation}
-  D = \frac{\kT}{6\pi\eta R_h}
-\end{equation}
-\subsection{Numerical integration}
-In order to numerically integrate eq. \eqref{eq:bd} we must discretize the Brownian motion in \eqref{eq:itonoise}. We can do so by integrating the Brownian during a small time interval,$[t_n, t_{n+1}]$, where $t_{n+1}-t_{n} = \dt$. Using the discrete time notation we can write
+
+\subsection*{Numerical integration}
+In order to numerically integrate eq. \eqref{eq:bd} we must discretize the Brownian motion in \eqref{eq:itonoise}. We can do so by integrating the Brownian during a small time interval,$[t_n, t_{n+1}]$, where $t_{n+1}-t_{n} = \dt$. If the time interval is small enough, we can approximate the Riemman sum by only its first term. Using the discrete time notation we can write
 \begin{equation}
   \label{eq:itonoise2}
-  \int_{t_n}^{t_{n+1}}f(t')d\noise(t') \approx f^n \mathcal{\noise}^n = f^n \left(\noise^{n+1} - \noise^n\right)
+  \int_{t_n}^{t_{n+1}}f(t')d\noise(t') \approx f^n \mathcal{\noise}^n = f^n \left(\noise^{n+1} - \noise^n\right),
 \end{equation}
-Where $\mathcal{\noise}^n$ are independent Gaussian random variables with zero mean and standard deviation $\dt$ in order to satisfy eq. \eqref{eq:bdmsd}. This approximation is better as $\dt \rightarrow 0$.
+where $\noise^n$ are independent Gaussian random variables with zero mean and standard deviation $\dt$. Naturally, this approximation is better as $\dt \rightarrow 0$.
 With this discretization of the noise we can devise several strategies to numerically integrate eq. \eqref{eq:bd}. The simplest one is the so-called \gls{EM} scheme\cite{Desmond2001}.
 
-%\subsection{Euler Maruyama}
+\subsection*{Euler Maruyama}
 Using eq. \eqref{eq:bddis} and \eqref{eq:itonoise2} we can write
 \begin{equation}
   \label{eq:eulermaruyama}
@@ -1971,13 +2155,13 @@ Using eq. \eqref{eq:bddis} and \eqref{eq:itonoise2} we can write
 \end{equation}
 It can be proved that this algorithm is weakly convergent with order $1$ and strongly convergent with order $1/2$\cite{Kloeden2011}. Thus the \gls{EM} scheme is not particularly accurate, even in the absence of fluctuations.
 There are, however, other solvers that yield better accuracy at the same, or similar, computational cost. Lets see some of them
-%\subsection{Adams Bashforth}
+\subsubsection*{Adams Bashforth}
 The \gls{AB} scheme uses the forces from the previous step to improve the prediction for the next. This incurs the overhead of storing the previous forces but its computational cost is marginally larger than \gls{EM}. This algorithm mixes a first order method for the noise with a second order method for the force. It yields better accuracy than EulerMaruyama, although this comes from experience since as of the time of writing no formal work has been done on its weak accuracy. An empirical demonstration of its better accuracy can be found in\cite{Balboa2017}.
 \begin{equation}
   \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\left[\frac{3}{2}\vec{F}^n - \half \vec{F}^{n-1}\right]\dt + \sqrt{2D\dt}\vec{\mathcal{\noise}}^n
 \end{equation}
 
-%\subsection{Leimkuhler}
+\subsubsection*{Leimkuhler}
 Another integrator recently developed by Leimkuhler in\cite{Leimkuhler2015}
  While also a first order method it seems to yield better accuracy than \gls{AB} and \gls{EM}. I am not aware of any formal studies of its accuracy.
  The update rule is very similar to \gls{EM} but uses noise from two steps (which are generated each time instead of stored)
@@ -1986,7 +2170,7 @@ Another integrator recently developed by Leimkuhler in\cite{Leimkuhler2015}
 \end{equation}
 Note that, as stated in\cite{Leimkuhler2015}, while this solver seems to be better than the rest at sampling equilibrium configurations, it does not correctly solves the dynamics of the problem.
 
-%\subsection{Midpoint}
+\subsubsection*{Midpoint}
 Finally, a more sophisticated integrator which we are going to refer to as Mid Point is described in\cite{Delong2013}. 
 It is a two step explicit midpoint predictor-corrector scheme. It has a fourth order convergence scaling at the expense of having twice the cost of a single step method, as it requires to evaluate forces twice per update. Noise has to be remembered as well but in practice it is just regenerated instead of stored.
 Mid Point updates the simulation with the following rule
@@ -2020,12 +2204,15 @@ auto createIntegratorBD(UAMMD sim){
 \end{minted}
 
 
-\chapter{Brownian Dynamics with Hydrodynamic Interactions (BDHI)}\label{sec:bdhi}
-In our discussion about \gls{LD} and \gls{BD} we neglected hydrodynamic interactions. We considered the effect of the solvent on the submerged particles without considering the opposite interaction. Particles disturb the fluid around them, which in turn has an effect on the rest. This effect can be considered approximately by making the friction coefficient in eq. \eqref{eq:langevinfull} be configuration dependent, as we saw with \gls{DPD} or \gls{SPH}. However, we were forced to include the solvent particles (or more appropriately, groups of them) explicitly. Furthermore, both methods lie in the inertial regime of the particles, forcing us to describe a fast time scale that might be of no interest in a given model.
-We would like to reintroduce hydrodynamic interactions into our description of \gls{BD}. Thus far we have taken a bottom-up approach, starting by modeling the dynamics of the solvent particles themselves and then eliminating degrees of freedom. It is worth now to take a top-down approach and then bridge the gap back to \gls{BD}.
-In order to do that lets introduce the steady Navier-Stokes equations, describing the dynamics of an incompressible fluid. We will then introduce the action of the particles as a force-density and study how it propagates to the rest of the fluid.
+\chapter{Hydrodynamic Interactions}\label{sec:bdhi}
+In our discussion about \gls{BD} in chapter \ref{sec:bd} we neglected hydrodynamic interactions by considering only the diagonal terms of the mobility tensor in eq. \eqref{eq:bdfull} (the so-called self-mobility). We considered the effect of the solvent on the submerged particles without considering the opposite interaction. Particles disturb the fluid around them, which in turn has an effect on the rest. When the hydrodynamic displacements are no longer neglegible (for instance, due to the density of colloidal particles increasing), the full form of the mobility tensor must be taken into account. Alternatively, hydrodynamic effects can be taken into account (to some extent) by particle solvers equipped with local momentum conservation (such as \gls{DPD}, see chapter \ref{sec:dpd}). However, \gls{DPD} (and \gls{SPH}) explicitly solve the solvent particle dynamics (or some coarse-grained version of them). Furthermore, the \gls{DPD} and \gls{SPH} methods lie in the inertial regime of the solvent, forcing us to describe a fast time scale that might bt of no interest in a given model, in particular the sound and viscous momentum propagation (vorticity). Thus far we have taken a bottom-up approach, starting by modeling the dynamics of the solvent particles themselves and then eliminating degrees of freedom aided by the Fokker-Planck formalism. This enabled us to elucidate eq. \eqref{eq:bdfull}, giving us some clues about the mobility matrix and more importantly, relating it with the diffusion via the fluctuation-dissipation balance. It is worth now to take a top-down approach by considering the hydrodynamics of the solvent and then bridge the gap back to \gls{BD}, which will give us more information about the actual form of the mobility.
 
-We will then take the non-inertial regime in both the fluid and the particles, which will allow us to connect it back to \gls{BD} while taking into account hydrodynamic correlations.
+In the spirit of \gls{BD}, we also assume that the friction time $\tau_F = m/\xi$ is quite small compared with any other physical process. In other words, we assume particles are neutrally buoyant and disregard inertial effects of them ($\dot{\vec{\pvel}} = 0$). As demonstrated in \cite{Balboa2014}, the inertial effects of the particles due also to a non zero excess mass can be reintroduced via a Lagrange multiplier, $\lambda$, by introducing the constraint $(m + m_e) \dot{\vec{\pvel}} = \vec{F} - \lambda$ (being $m_e = m - \rho\Delta V$ the excess mass of the particle). For neutrally buoyant particles and $t\gg\tau_F$, $\dot{\vec{\pvel}}\rightarrow 0$ and $\vec{F} = \lambda$, thus the force acting on the particle is directly transfered to the fluid.
+
+
+We start by considering the more general incompressible steady Navier-Stokes equations. Then, we will introduce the action of the particles as a force-density on the fluid and study how it propagates to the rest of the fluid.
+
+We will take the non-inertial regime for the dynamics of both the fluid and the particles, which will allow us to connect it back to \gls{BD} while taking into account hydrodynamic correlations. In section \ref{sec:icm} we consider the fluid inertial regime. We will briefly describe how particle inertia can be reintroduced as a constraint shortly.
 
 The incompressible Navier-Stokes equations can be written as
 \begin{equation}
@@ -2035,9 +2222,9 @@ The incompressible Navier-Stokes equations can be written as
     \nabla\cdot\vec{\fvel} &= 0
   \end{aligned}
 \end{equation}
-Where $\vec{\fvel}(\vec{\fpos})$ represents the velocity of the fluid, $\pi$ the pressure, $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid (which can arise from the coupling with a series of submerged particles).
+Where $\vec{\fvel}(\vec{\fpos}, t)$ represents the velocity field of the fluid, $\pi$ the pressure, $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid (which can arise from the coupling with a series of submerged particles).
 
-The fluctuating stress tensor, $\mathcal{Z}(\vec{\fpos}, t)$, must comply with the fluctuation-dissipation balance (see sec. \ref{sec:langevin}) by presenting the following statistical properties
+The fluctuating stress tensor, $\mathcal{Z}(\vec{\fpos}, t)$, must comply with the fluctuation-dissipation balance (see sec. \ref{sec:fdb}) by presenting the following statistical properties\cite{Zarate}
 \begin{equation}
   \begin{aligned}
 &  \langle \mathcal Z_{ij}\rangle = 0\\
@@ -2048,7 +2235,7 @@ In order to generalize the notation for eq. \eqref{eq:navierstokes}, we introduc
 
 \section*{The Stokes limit}
 
-If we take the overdamped limit (where inertial terms are neglected) of eq. \eqref{eq:navierstokes} we get the so-called Stokes equations
+If we take the overdamped limit (where fluid inertial terms are neglected) of eq. \eqref{eq:navierstokes} we get the so-called Stokes equations
 \begin{equation}
   \label{eq:stokes}
   \begin{aligned}
@@ -2060,7 +2247,7 @@ We can eliminate the pressure from the description by using the projection metho
 \begin{equation}
   \nabla^2 \pi - \eta \nabla\cdot(\nabla^2\vec{\fvel}) =  \nabla\cdot\tilde{\vec{f}}
 \end{equation}
-Since the divergence of the velocity is zero the second term vanishes, so we can identify
+Since the divergence of the velocity is zero the second term vanishes, so we can formally write
 \begin{equation}
   \label{eq:stokespressure}
   \pi = \nabla^{-2}(\nabla\cdot\tilde{\vec{f}})
@@ -2069,12 +2256,12 @@ Replacing the pressure in eq. \eqref{eq:stokes}
 \begin{equation}
   \eta\nabla^2\vec{\fvel} = \nabla\left[\nabla^{-2}(\nabla\cdot\tilde{\vec{f}})\right] - \tilde{\vec{f}} = -\oper{P} \tilde{\vec{f}}
 \end{equation}
-Where the projection operator, $\oper{P}$, is defined as
+Where the projection operator, $\oper{P}$, is formally defined as
 \begin{equation}
   \label{eq:projectoper}
-\oper{P}  =  \mathbb{I} - \nabla\nabla^{-2}\nabla
+\oper{P}  =  \mathbb{I} - \nabla\nabla^{-2}\nabla.
 \end{equation}
-Projects onto a space of divergence-free velocities. $\mathbb{I}$ represents the identity.
+$\oper{P}$ projects onto the space of divergence-free velocity. $\mathbb{I}$ represents the identity.
 In the particular case of an unbounded domain with fluid at rest at infinity, all the differential operators in eq. \eqref{eq:projectoper} commute in Fourier space, so that
 
 \begin{equation}
@@ -2143,9 +2330,8 @@ The physical volume $\Delta V$ of the particle is related to the kernel via
 Using the same kernel function for spreading and interpolation makes both operations adjoint, so that $\oper{S} = \oper{J}^*$. This adjoint property is necessary for energy conservation and fluctuation-dissipation balance.
 We will discuss spreading and interpolation in more detail in sec. \ref{sec:ibm}.
 
-We assume particles are neutrally buoyant and disregard inertial effects of them ($\dot{\vec{\pvel}} = 0$). As demonstrated in \cite{Balboa2014}, the inertial effects of the particles due to a non zero excess mass can be reintroduced via a Lagrange multiplier, $\lambda$, by defining $\vec{f} = \oper{S}\lambda$ and making $m_e \dot{\vec{\pvel}} = \vec{F} - \lambda$ (being $m_e = m - \rho\Delta V$ the excess mass of the particle).
 
-\section*{Connection with Brownian dynamics}
+\section{Connection with Brownian Dynamics}\label{sec:bdhicon}
 
 We can now write an equation for the displacements of a particle
 \begin{equation}
@@ -2154,7 +2340,7 @@ We can now write an equation for the displacements of a particle
 \end{equation}
 Generalizing to many particles amounts to summing the force spreading for all of them.
 
-This equation is reminiscent of eq. \eqref{eq:bd} by defining the mobility as
+This equation is reminiscent of eq. \eqref{eq:bdfull} by defining the mobility as
 \begin{equation}
   \label{eq:bdhimobns}
   \tens{M} = \eta^{-1}\oper{J}\oper{L}\oper{S}.
@@ -2169,16 +2355,14 @@ It can be easily proved, by using that $-\oper{L}\nabla^2\oper{L} = \oper{L}$\ci
   \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T.
 \end{equation}
 
-We can now rewrite eq. \eqref{eq:bdhibdrelation} in a similar form to eq. \eqref{eq:bd} as
-\begin{equation}
-  \label{eq:bdhi}
-  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}} + \kT\left(\partial_{\vec{\ppos}}\cdot\tens{M}\right)dt
-\end{equation}
-Where the mobility is now a tensor with dimensions $3N\times 3N$. 
+%We can now transform eq. \eqref{eq:bdhibdrelation} into eq. \eqref{eq:bdfull}, rewritten here for convenience:
+%\begin{equation}
+%  \label{eq:bdhi}
+%  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}} + \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)dt
+%\end{equation}
+The definition in eq. \ref{bdhimobns} allows us to realize that eq. \eqref{eq:bdhibdrelation} and \eqref{eq:bdfull} are, in fact, equivalent.
 
-The divergence of the mobility in the last term, commonly referred to as thermal drift, is an stochastic term stemming from the Itô interpretation of the Brownian equation and its necessary for time reversibility (detailed balance) of the limiting dynamics.\todo{Referencias, me gustaria explicar mejor este termino}
-
-The mobility is a configuration-dependent tensor. In particular, writing eq. \eqref{eq:bdhimobns} as the double convolution with the kernel at the position of two particles yields a pairwise mobility, depending only on the positions of the particles as
+We are now ready to extract more information about the mobility matrix, which is in general a configuration-dependent tensor. In particular, writing eq. \eqref{eq:bdhimobns} as the double convolution with the kernel at the position of two particles yields a pairwise mobility, depending only on the positions of the particles as
 \begin{equation}
   \label{eq:bdhimob}
   \tens{M}_{ij} = \eta^{-1}\int{\delta_a(\vec{q}_j-\vec{r})\tens{G}(\vec{r}, \vec{r}')\delta_a(\vec{q}_i -\vec{r}')d\vec{r}d\vec{r}'}
@@ -2187,10 +2371,13 @@ Here $\tens{G}$ is the Green's function of eq. \eqref{eq:stokes} for unit viscos
 
 The mobility tensor definition in eq. \eqref{eq:bdhimob} is general for any geometry, but for an unbounded fluid, the Green's function is the Oseen tensor in eq. \eqref{eq:bdhioseen} and the resulting mobility is refered to as the Oseen mobility, so that $\tens{M}_{ij} = \tens{O}(\vec{\ppos}_j - \vec{\ppos}_i)$.
 
-In practice we would like to take into account the finite size of the submerged particles, which amounts to choosing a different kernel in eq. \eqref{eq:bdhimob} or, in the purely particle based description of eq. \eqref{eq:bd}, a different (pairwise) approximation to the mobility altogether.
-We will see in future sections how to solve the dynamics of the particles without the need of the explicit form for the Green's function by discretizing eq. \eqref{eq:bdhifvel} directly. This can be useful for special geometries in which the differential operators in Stokes solution operator do not commute or when eq. \eqref{eq:bdhimob} cannot be solved analytically. For the moment lets stick to imposing a mobility tensor explicitly.
-The Oseen mobility presents asymptotic behavior at short distance stemming from the point particle assumption. However, we are usually interested in simulating the dynamics of objects with a certain hydrodynamic radius. 
-One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. We can compute it by integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator in the surface, $S$, of two spheres of radius $a$
+The Oseen mobility presents several problems when particles get too close stemming from the point particle assumption. For instance, the tensor becomes ill-formed (and non positive-definite) at close distances, hindering the applicability of the assumption in eq. \eqref{eq:mobsqrt}. On the other hand, the Oseen mobility diverges at zero distance, which can result in numerical issues in the absence of steric repulsions and requires treating the self mobility separatedly. The Oseen mobility can be in a way interpreted as the mobility for colloidal particles with size $a\rightarrow 0$.
+
+In practice we would like to take into account the finite size of the submerged particles, which amounts to choosing a different kernel in eq. \eqref{eq:bdhimob} or, in the purely particle based description of eq. \eqref{eq:bdfull}, a different (pairwise) approximation to the mobility altogether.
+
+We will see in future sections how to solve the dynamics of the particles without the need of the explicit form for the Green's function by discretizing eq. \eqref{eq:bdhifvel} directly. This can be useful for special geometries in which the differential operators in Stokes solution operator do not commute or when eq. \eqref{eq:bdhimob} cannot be solved analytically. For the moment we will stick to imposing a mobility tensor explicitly.
+
+One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. We can compute it by integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator (the Oseen tensor) in the surface, $S$, of two spheres of radius $a$
 \begin{equation}
   \label{eq:rpymobfour}
   \begin{aligned}
@@ -2203,13 +2390,14 @@ A detailed solution for this integral can be found at\cite{Wajnryb2013}. It is i
 Finally, the free-space \gls{RPY} mobility tensor can be written in real space as\cite{Wajnryb2013}
 \begin{equation}
   \label{eq:rpy}
-  \tens{M}^{\textrm{RPY}}_{ij}(\vec{r} = \vec{q}_i-\vec{q}_j) = M_0\left\{
+  \tens{M}^{\textrm{RPY}}(\vec{r} = \vec{q}_i-\vec{q}_j) = M_0\left\{
   \begin{aligned}
     &\left( \frac{3a}{4r} + \frac{a^3}{2r^3} \right)\mathbb{I} + \left(\frac{3a}{4r} - \frac{3a^3}{2r^3}\right)\frac{\vec{r}\otimes\vec{r}}{r^2}  & r > 2a\\
     &\left(1 - \frac{9r}{32a} \right)\mathbb{I} + \left( \frac{3r}{32a} \right)\frac{\vec{r}\otimes\vec{r}}{r^2} & r \le 2a
   \end{aligned}\right.
 \end{equation}
-The self mobility $M_0 = \tens{M}_{ii} = \frac{1}{6\pi\eta·a}$ is, by no coincidence, equal to the drag for a sphere moving through a Stokesian fluid as given by the Stokes law\cite{Dhont1996}.
+The self mobility, $M_0 := \tens{M}(0) = (6\pi\eta·a)^{-1}$ is, by no coincidence, equal to the drag for a sphere moving through a Stokesian fluid as given by the Stokes-Einstein relation\cite{Dhont1996} (see sec. \ref{sec:einstein}).
+
 This approximation is valid for dilute suspensions (and) to leading order in the far field. Although the \gls{RPY} tensor has been proven to accurately capture hydrodynamics even when particles overlap beyond their hydrodynamic radius\cite{Ermak1978}\cite{Wajnryb2013}.
 Given its popularity a lot of works attempting to generalize or adapt the \gls{RPY} tensor for different geometries an use cases can be found\cite{Wajnryb2013,Liang2013,Guan2018,Fiore2017}. In particular, we will make use of the generalization in\cite{Zuk2014}, which allows for each particle to have a different hydrodynamic radius.
 
@@ -2569,7 +2757,6 @@ In a thread-per-particle approach, if the particles are sorted randomly in memor
 %In general there will be a battle between these two effects (coalescence vs. atomic overlap).
 Our block-per-particle algorithm hides these issues to an extent, since only one thread in each block will fetch a particle and atomic overlap is reduced by design.
 However, testing suggests that particle sorting via spatial hashing dramatically improves performance (an overall speedup of $\times 7$ for TPP and $\times 2$ for BPP\todo{graph with these claims?}). Suggesting that atomic overlap is far less important than a cache-friendly memory access pattern.
-
 The storage layout of the grid data can also influence the performance of the algorithm. In particular, using a space filling curve (as the one in sec. \ref{sec:celllist}) could improve the access pattern in both spreading and interpolation\cite{Shih2021}. However, this has not been considered in this work, were a linear index is always considered so that the data for cell with indices $(i,j,k)$ is located at element $i+(j+kn_y)n_x$ in the relevant array\footnote{Note however, that the software interface for this module allows for an arbitrary ordering of the grid data, as we will later see}. This ordering comes imposed by the usual relation between spreading/interpolation and spectral methods in fluctuating hydrodynamics, which requires using \gls{FFT} libraries that benefit from (or are restricted to) it.
 
 We compare the described TPP and BPP algorithms with the hybrid SM in \cite{Shih2021} in fig. \ref{fig:ibmcomp}, measuring the performance of spreading one number per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible.
