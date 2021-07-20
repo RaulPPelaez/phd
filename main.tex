@@ -8,22 +8,42 @@ headinclude,footinclude,cleardoublepage=empty,abstract=on,
 BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 ]{scrreprt}
 \usepackage{todonotes}
-\usepackage{xspace}
+\usepackage{xspace} 
+\usepackage{courier}
+\usepackage{lmodern}
 
 \def\ucpp{uammd_cpp_lexer.py:UAMMDCppLexer -x}
+%\def\ucpp{cuda}
 
-\usepackage[newfloat=true]{minted}
-\usepackage[framemethod=TikZ]{mdframed}
-
+\usepackage{tcolorbox}
+\usepackage{xparse}
+\tcbuselibrary{breakable,minted,xparse,skins,listings}
+\usemintedstyle{default}
 \setminted[\ucpp]{ %
   linenos=false,             % Line numbers
   autogobble=true,          % Automatically remove common white space
-  fontsize=\small
+  fontsize=\small,
+  breaklines
 }
 
-\newenvironment{code}{\begin{listing}}{\end{listing}}
-\SetupFloatingEnvironment{listing}{name=Source Code}
-\surroundwithmdframed[linewidth=1pt]{minted}
+%, number within=section
+\newtcblisting[list inside=code2, auto counter]{code2}[2][]{
+  colback=white,
+  colbacktitle=white,
+  coltitle=black,
+  breakable,
+  pad at break*=0mm,
+  listing only,
+  listing engine=minted,
+  title={\textbf{Source Code \thetcbcounter:} ~#1},
+  minted language=\ucpp,
+  enhanced jigsaw,
+  minipage boxed title,
+  attach boxed title to bottom center={xshift=0mm,yshift=-1mm},
+  boxed title style={size=small, blanker},
+  center title,
+  #2
+}
 \input{classicthesis-config}
 \usepackage{amsmath}
 \usepackage{algorithm}
@@ -53,6 +73,35 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
   % \input{#1.pdf_tex}
   \includegraphics[#1]{#2.pdf}
 }
+%
+%\definecolor{kwcol}{HTML}{32b43f}
+%\definecolor{comcol}{HTML}{7e8775}
+%\definecolor{dircol}{HTML}{e090d7}
+%\definecolor{idcol}{HTML}{ff8531}
+%\definecolor{morecol}{HTML}{3ab5eb}
+%\definecolor{morecol3}{HTML}{972ebd}
+%\usepackage{listings}
+%\lstset{ 
+%  language=[11]C++,
+%  basicstyle= \ttfamily\small,
+%  numbers=none,
+%%  numberfirstline=true,
+%%  numbersep=5pt,                  % how far the line-numbers are from the code
+%  backgroundcolor=\color{white},      % choose the background color. You must add \usepackage{color}
+%  showspaces=false,       
+%  rulecolor=\color{black},
+%  breaklines=true,
+%  breakatwhitespace=true,
+%  keywordstyle=\bfseries\color{kwcol},      
+%  commentstyle=\color{comcol},
+%  identifierstyle=\color{black},
+%  directivestyle=\bfseries\color{dircol},
+%  stringstyle=\color{orange},   
+%  keywords=[2]{Parameters, UAMMD},
+%  keywordstyle=[2]\color{morecol},
+%  keywords=[3]{std, thrust, uammd, access},
+%  keywordstyle=[3]\color{morecol3}
+%}
 
 \makeglossaries
 \newacronym{UAMMD}{UAMMD}{Universaly Adaptable Multiscale Molecular Dynamics}
@@ -114,6 +163,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \newcommand{\fvel}{v}
 
 \newcommand{\corr}{\text{corr}}
+\newcommand{\dpr}{\text{\tiny DP}}
 
 \addbibresource{Bibliography.bib}
 
@@ -548,8 +598,8 @@ Throughout this manuscript, we will typically create a module named ``Module'' u
 
 The argument of the function \emph{createModule} in example code \ref{code:module}, of type \emph{UAMMD}, is simply an aggregate (a \emph{struct} in C++) of recurrent parameters . In particular, this structure can be defined as in code example \ref{code:uammdstruct}.
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Definition of the UAMMD auxiliar structure created for this manuscript.]
+  {label=code:uammdstruct}
 #include<uammd.cuh>
 //This line allows to ommit writting "uammd::"
 // when accessing an uammd-specific type,
@@ -561,17 +611,17 @@ struct Parameters{
   //real dt;
   //...
 };
+void foo(int a, Parameters b){
+
+  return a;
+}
 struct UAMMD{
   std::shared_ptr<ParticleData> pd;
   Parameters par;
 };
-\end{minted}
-  \caption{Definition of the UAMMD auxiliar structure created for this manuscript.}
-  \label{code:uammdstruct}
-\end{code}
+\end{code2}
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Template code for the creation of a module.]{label=code:module}
 #include<uammd.cuh>
 //Additional includes when necessary
 //A module named "Module" is created and returned.
@@ -579,10 +629,7 @@ auto createModule(UAMMD sim){
   //Some parameter preparations...
   return std::make_shared(Module(/*Required parameters*/));
 }
-\end{minted}
-  \caption{Template code for the creation of a module.}
-  \label{code:module}
-\end{code}
+\end{code2}
 
 
 
@@ -593,8 +640,8 @@ auto createModule(UAMMD sim){
 
 In C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the code crashing.
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Creating an using an instance of \emph{ParticleData}.]
+  {label=code:pd}
 #include<uammd.cuh>
 using namespace uammd; 
 int main(){
@@ -617,10 +664,7 @@ int main(){
   charges[someIndex] = -1.0;
   return 0;
 }
-\end{minted}
-  \caption{Creating an using an instance of \emph{ParticleData}.}
-  \label{code:pd}
-\end{code}
+\end{code2}
 
 \emph{ParticleData} can provide handles which give access the different particle properties.
 \todo{Put here examples of createModule}
@@ -748,8 +792,8 @@ Let start by describing \uammd's \emph{Interactor} interface in detail.
 An \emph{Interactor} can be issued to compute, for each particle, the forces, energies and/or virial due to a certain interaction.
 To do so it can access the current state of the particles (like positions, velocities, etc) via \emph{ParticleData}.
 A minimal example of an Interactor can be found in code \ref{code:interactor}.
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[The basic outline of a new \emph{Interactor}. A lot of advanced functionality has been omitted here for simplicity, refer to Appendix \ref{ch:online} for more information. See chapter \ref{sec:particledata} for more information about how to access particle properties.]
+  {label=code:interactor}
 #include<uammd.cuh>
 #include<Interactor/Interactor.cuh>
 using namespace uammd;
@@ -785,10 +829,8 @@ public:
     }
   }
 };
-\end{minted}
-  \caption{The basic outline of a new \emph{Interactor}. A lot of advanced functionality has been omitted here for simplicity, refer to Appendix \ref{ch:online} for more information. See chapter \ref{sec:particledata} for more information about how to access particle properties.}
-  \label{code:interactor}
-\end{code}
+
+\end{code2}
 
 The \emph{Computables} type in the \emph{sum} function simply contains a list of boolean values describing the needs of the caller (which will typically be an \emph{Integrator}). As of today, an \emph{Interactor} can be asked to compute only forces, energies and or virials acting on the particles. The \emph{Computables} structure exists also to facilitate the future inclusion of additional quantities to the \emph{Interactor} responsibilities.
 
@@ -815,8 +857,7 @@ Numerically we can express this algorithm as follows:
 We can also use this algorithm to get the minimum distance between two points, so particles near opposite walls interact.
 \subsection*{Use in UAMMD}
 In \uammd, \gls{MIC} can be accesed via the \emph{Box} class.
-\begin{code}[H]
-\begin{minted}{\ucpp}
+\begin{code2}[Using the Box class.]{label=code:box}
 #include<uammd.cuh>
 using namespace uammd;
 int main(){
@@ -828,10 +869,7 @@ int main(){
   //position_in_box holds {-lx*0.5+1,0,0}
   return 0; 
 }
-\end{minted}
-\caption{Using the Box class.}
-\label{code:box}
-\end{code}
+\end{code2}
 In \uammd the \emph{Box} object handles the domain details, including \gls{PBC}.
 \todo{code example}
 
@@ -918,8 +956,7 @@ There are three ways to access this algorithm depending on the usage:
 \end{enumerate}
 The \emph{Transverser} and \emph{Potential} interfaces are described in detail in Appendix \ref{ch:transverser}.
 An example of each one is available in code \ref{code:nbody}.
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Usage examples of the three different ways the NBody algorithm is exposed in \uammd. The \emph{Transverser} and \emph{Potential} interfaces are described in Appendix \ref{ch:transverser}.]{label=code:nbody}
 #include<uammd.cuh>
 using namespace uammd;
 
@@ -947,10 +984,7 @@ auto createPairForcesWithPotential(UAMMD sim, Potential pot){
   using PF = PairForces<Potential>;
   return std::make_shared<PF> pf(sim.pd, pot);
 }
-\end{minted}
-  \caption{Usage examples of the three different ways the NBody algorithm is exposed in \uammd. The \emph{Transverser} and \emph{Potential} interfaces are described in Appendix \ref{ch:transverser}.}
-  \label{code:nbody}
-\end{code}
+\end{code2}
 If the \emph{NeighbourCounter} example given in Appendix \ref{ch:transverser} is given as a \emph{Transverser}, the number of particles will be stored in the result of each particle.
 
 
@@ -1006,8 +1040,7 @@ A short range \emph{Interactor} is available in \uammd under the name \emph{Pair
 The \emph{PairForces} module can be specialized for a certain \emph{Potential} (see Appendix \ref{sec:potential}) and \emph{NeighbourList} (see chapter \ref{sec:nlist}).
 
 In the following chapters, we will discuss in detail the different neighbour list strategies.
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Creating and returning a short range interaction module. The \emph{Potential} interface are described in Appendix \ref{ch:transverser}.] {label=code:pf}
 #include<uammd.cuh>
 using namespace uammd;
 #include<Interactor/PairForces.cuh>
@@ -1030,10 +1063,7 @@ auto createPairForcesWithPotential(UAMMD sim, Potential pot){
   //par.nl = std::make_shared<NeighbourList>(sim.pd);
   return std::make_shared<PF> pf(sim.pd, par, pot);
 }
-\end{minted}
-  \caption{Creating and returning a short range interaction module. The \emph{Potential} interface are described in Appendix \ref{ch:transverser}.}
-  \label{code:pf}
-\end{code}
+\end{code2}
 
 
 
@@ -1086,8 +1116,9 @@ The \emph{NeighbourContainer} interface comes works the assumption that the unde
 It loosely behaves as a C++ standard container, providing \emph{begin} and \emph{end} methods returning forward input iterators to the first and last neighbours. This means that the neighbour container of a certain particle can only be advanced in sequential order starting from the first neighbour.
 By using this interface we can write code that will work for any neighbour list algorithm.
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}
+  [A CUDA kernel that uses a \emph{NeighbourContainer} to go though all the neighbours of each particle. This code is a manifestation of the pseudo code in Algorithm \ref{alg:nlist}.]
+{label=code:ncontainer}
 //The actual type name of the container
 //  will be different for each type of list
 template<class NeighbourContainer>
@@ -1112,10 +1143,7 @@ __global__ void traverseNeighbours(NeighbourContainer &nc,
   //Do something with result
   //output[i] = result;
   }
-\end{minted}
-\caption{A CUDA kernel that uses a \emph{NeighbourContainer} to go though all the neighbours of each particle. This code is a manifestation of the pseudo code in Algorithm \ref{alg:nlist}.}
-\label{code:ncontainer}
-\end{code}
+\end{code2}
 
 We are now ready to explore the different neighbour list algorithms, including construction and traversal. Although the latter can be solved via \emph{Transversers} and/or \emph{NeighbourContainers} we will see how each algorithm deals with it. This can be useful for more specialized computations that can leverage the internal workings of the different lists.
 
@@ -1253,8 +1281,7 @@ There are two main ways to construct a Cell List in \uammd (and the other neighb
 \end{itemize}
 The example code \ref{code:cellist} shows how to construct and traverse a cell list using both methods.
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[The different ways of using a Cell List in \uammd. The \emph{Transverser} interface, already used in chapter \ref{sec:nbody}, is described in detail in Appendix \ref{ch:transverser}.]{label=code:cellist}
 #include<uammd.cuh>
 #include<Interactor/NeighbourList/CellList.cuh>
 using namespace uammd;
@@ -1295,10 +1322,7 @@ void constructListWithPositions(Iterator positions,
   //And a NeighbourContainer can be constructed from it
   auto nc = CellList_ns::NeighbourContainer(cldata);
 }
-\end{minted}
-  \caption{The different ways of using a Cell List in \uammd. The \emph{Transverser} interface, already used in chapter \ref{sec:nbody}, is described in detail in Appendix \ref{ch:transverser}.}
-  \label{code:cellist}
-\end{code}
+\end{code2}
 
 In both cases the internal structure of the cell list can be requested to facilitate any usage outside the proposed interfaces for neighbour traversing. In the case of the cell list, this means having access to an ordered list containing the indices of the particle s in each cell. Remembering that the cell list works by binning the domain, assigning a hash to each position according to the bin they are in and then sorting this hash list.
 As explained in sec. \ref{sec:celllist}, the cell list algorithm mainly stores two arrays containing the indices of the particles for each cell.
@@ -1363,8 +1387,7 @@ On the other hand, we can request \emph{VerletList} to provide its internal stru
 
 Note that the particle stride (or offset) is not necessarily a full fledged array. The reason for this is that the offset might just be the same for all particles. In \uammd's current implementation, the particle stride is simply the maximum number of neighbours per particle (see the initial discussion in chapter \ref{sec:nlist}). However, this interface allows for the possibility of compacting the list in the future, with a similar behavior as the \emph{cellStart} array in \emph{CellList}.
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[The different ways of using a Verlet List in \uammd. The \emph{Transverser} interface, already used in chapter \ref{sec:nbody}, is described in detail in Appendix \ref{ch:transverser}. Note that the \emph{Transverer} and \emph{NeighbourContainer} options are identical to the case of a \emph{CellList}.]{label=code:verletlist}
 #include<uammd.cuh>
 #include<Interactor/NeighbourList/VerletList.cuh>
 using namespace uammd;
@@ -1414,11 +1437,9 @@ void constructListWithPositions(Iterator positions,
   // it was necessary to rebuild the list can be 
   // obtained
   int nbuild = vl.getNumberOfStepsSinceLastUpdate();
-}
-\end{minted}
-  \caption{The different ways of using a Verlet List in \uammd. The \emph{Transverser} interface, already used in chapter \ref{sec:nbody}, is described in detail in Appendix \ref{ch:transverser}. Note that the \emph{Transverer} and \emph{NeighbourContainer} options are identical to the case of a \emph{CellList}.}
-  \label{code:verletlist}
-\end{code}
+}//Construct a VerletList without UAMMD
+\end{code2}
+
 
 
 \section{LBVH list}\label{sec:lbvh}
@@ -1441,8 +1462,8 @@ The special type of bond that involves a single particle is called a fixed point
 
 \section*{Use in UAMMD}
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Constructing and returning a Bonded interaction module.]
+  {label=code:bonded}
 #include<uammd.cuh>
 #include<Interactor/NeighbourList/VerletList.cuh>
 using namespace uammd;
@@ -1451,10 +1472,7 @@ using namespace uammd;
 void constructListWithUAMMD(UAMMD sim){
 
 }
-\end{minted}
-  \caption{Constructing and returning a Bonded interaction module.}
-  \label{code:bonded}
-\end{code}
+\end{code2}
 
 \chapter{Particle Dynamics}\label{sec:dynamics}
 
@@ -1475,8 +1493,8 @@ We introduced the \emph{Integrator} concept back in chapter \ref{ch:design}, whe
 
 An arbitrary number of \emph{Interactors} instances can be added to an \emph{Integrator} (e.g. short ranged forces, bonded forces...) via its member function \mintinline{\ucpp}{Integrator::addInteractor();}. Source code \ref{code:integratorex} contains an example showcasing how to add an interaction to an \emph{Integrator}. On the other hand, source code \ref{code:integrator} is an example on how to create a novel \emph{Integrator} (parallel to the example \ref{code:interactor} for \emph{Interactors}).
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[The basic outline of a new \emph{Integrator}. Some advanced functionality has been omitted here for simplicity, refer to Appendix \ref{ch:online} for more information. See chapter \ref{sec:particledata} for more information about how to access particle properties. A class inheriting from \emph{Integrator} has access to a series of built-in members, in particular, a \emph{ParticleData} instance is always available under the name ``pd''. Furthermore, a list of \emph{Interactors} is available in the variable ``interactors''.]
+{label=code:integrator}
 #include<uammd.cuh>
 #include<Integrator/Integrator.cuh>
 using namespace uammd;
@@ -1517,10 +1535,7 @@ public:
    }
   }
 };
-\end{minted}
-  \caption{The basic outline of a new \emph{Integrator}. Some advanced functionality has been omitted here for simplicity, refer to Appendix \ref{ch:online} for more information. See chapter \ref{sec:particledata} for more information about how to access particle properties. A class inheriting from \emph{Integrator} has access to a series of built-in members, in particular, a \emph{ParticleData} instance is always available under the name ``pd''. Furthermore, a list of \emph{Interactors} is available in the variable ``interactors''.}
-  \label{code:integrator}
-\end{code}
+\end{code2}
 
 %\chapter{Particle-based integration methods for simulating complex fluids}
 
@@ -1976,8 +1991,7 @@ One popular approach is to simply use velocity Verlet as described in sec. \ref{
 \section*{Use in UAMMD}
 In \uammd, \gls{DPD} is encoded as a \emph{Potential} that can be used to specialize the \emph{PairForces} module in sec. \ref{sec:shortrange}, the resulting \emph{Interactor} can then be coupled to a \emph{VerletNVE} \emph{Integrator} (described in sec. \ref{sec:velocityverlet}).
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Creation of an instance of a \gls{DPD} integrator. In \uammd, \gls{DPD} is encoded as a Verlet integrator coupled with a short range interaction.]  {label=code:dpd}
 #include<uammd.cuh>
 #include<Integrator/VerletNVE.cuh>
 #include<Interactor/PairForces.cuh>
@@ -2004,10 +2018,7 @@ auto createIntegratorDPD(UAMMD sim){
   verlet->addInteractor(interactor);
   return verlet;
 }
-\end{minted}
-  \caption{Creation of an instance of a \gls{DPD} integrator. In \uammd, \gls{DPD} is encoded as a Verlet integrator coupled with a short range interaction.}
-  \label{code:dpd}
-\end{code}
+\end{code2}
 \newpage
 \chapter{Smoothed Particle Hydrodynamics}
 \todo{Describe SPH}
@@ -2210,15 +2221,15 @@ In our discussion about \gls{BD} in chapter \ref{sec:bd} we neglected hydrodynam
 In the spirit of \gls{BD}, we also assume that the friction time $\tau_F = m/\xi$ is quite small compared with any other physical process. In other words, we assume particles are neutrally buoyant and disregard inertial effects of them ($\dot{\vec{\pvel}} = 0$). As demonstrated in \cite{Balboa2014}, the inertial effects of the particles due also to a non zero excess mass can be reintroduced via a Lagrange multiplier, $\lambda$, by introducing the constraint $(m + m_e) \dot{\vec{\pvel}} = \vec{F} - \lambda$ (being $m_e = m - \rho\Delta V$ the excess mass of the particle). For neutrally buoyant particles and $t\gg\tau_F$, $\dot{\vec{\pvel}}\rightarrow 0$ and $\vec{F} = \lambda$, thus the force acting on the particle is directly transfered to the fluid.
 
 
-We start by considering the more general incompressible steady Navier-Stokes equations. Then, we will introduce the action of the particles as a force-density on the fluid and study how it propagates to the rest of the fluid.
+We start by considering the more general incompressible steady Navier-Stokes equations. Then, we will introduce the action of the particles as a force-density on the fluid (propagated by a smoothed delta-like function centered around each particle). We now study how this force propagates to the rest of the fluid.
 
-We will take the non-inertial regime for the dynamics of both the fluid and the particles, which will allow us to connect it back to \gls{BD} while taking into account hydrodynamic correlations. In section \ref{sec:icm} we consider the fluid inertial regime. We will briefly describe how particle inertia can be reintroduced as a constraint shortly.
+We will take the non-inertial regime for the dynamics of both the fluid and the particles to connect with \gls{BD} while taking into account hydrodynamic correlations. In section \ref{sec:icm} we consider the fluid inertial regime.
 
 The incompressible Navier-Stokes equations can be written as
 \begin{equation}
   \label{eq:navierstokes}
   \begin{aligned}
-    \overbrace{\underbrace{\rho\dot{\vec{\fvel}}}_{\text{time}} +\underbrace{\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})}_{\text{convection}}}^{\text{inertia}} + \underbrace{\nabla \pi}_{\text{internal stress}} &= \underbrace{\eta \nabla^2\vec{\fvel}}_{\text{diffusion}} + \underbrace{\vec{f} + \nabla\cdot \mathcal{Z}}_{\text{external stress}}\\
+    \overbrace{\underbrace{\rho\dot{\vec{\fvel}}}_{\text{time}} +\underbrace{\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})}_{\text{convection}}}^{\text{fluid inertia}} + \underbrace{\nabla \pi}_{\text{internal stress}} &= \underbrace{\eta \nabla^2\vec{\fvel}}_{\text{diffusion}} + \underbrace{\vec{f} + \nabla\cdot \mathcal{Z}}_{\text{external stress}}\\
     \nabla\cdot\vec{\fvel} &= 0
   \end{aligned}
 \end{equation}
@@ -2302,43 +2313,42 @@ Figure \ref{fig:oseen} contains a visual representation of the Oseen tensor.
 \end{figure}
 
 \section*{Coupling with particles}
-Eq. \eqref{eq:bdhivel} and its solution with the Green's function in eq. \eqref{eq:greenstokes} constitute a formalism to translate between forces and velocities in the fluid. Lets connect that with a group of particles submerged in it.
+Eq. \eqref{eq:bdhivel} and its solution with the Green's function in eq. \eqref{eq:greenstokes} constitute a formalism to translate between forces and velocities in the fluid. This will permit us to connect the effect of the forces on the particles on their correlated motion.
 
-We impose an instantaneous coupling between the particles and their surrounding fluid (enforcing a no-slip constraint). The particles velocities are then 
+In the following derivation we are going to use a generalized delta function, $\delta_a(\vec{r})$. More properly a distribution of compact support.
+
+The symbol $\delta_a$ is used here to indicate that this kernel will usually be a smooth smeared delta function. The subscript $a$ refers to the hydrodynamic radius of the particle, related to the typical size of the particle around of which the kernel distributes the particle force, or any other extensive quantity (e.g acoustic forces\cite{BalboaAcoustic}, torques, etc).
+
+We impose an instantaneous coupling between the particles and their surrounding fluid (enforcing a no-slip constraint). The velocity of a certain particle $i\in [1,N]$ is computed as
 \begin{equation}
   \label{eq:bdhifvel}
-  \vec{\pvel}_i= \oper{J}_{\vec{\ppos}_i}\vec{\fvel} =\int{\delta_a(\vec{\ppos}_i - \vec{\fpos})\vec{\fvel}(\vec{\fpos})d\vec{\fpos}}
+  \vec{\pvel}_i= \oper{J}_{\vec{\ppos}_i}\vec{\fvel} =\int{\delta_a(\vec{\ppos}_i - \vec{\fpos})\vec{\fvel}(\vec{\fpos})d\vec{\fpos}}.
 \end{equation}
 
 The use of the interpolation operator, $\oper{J}$, states that the velocity of the particle is equal to the local average of the fluid velocity.
 
-The fluid-particle communication is going to be mediated via a kernel function, $\delta_a(\vec{r})$ that integrates to unity and is localized inside a closely supported region of space. The symbol $\delta$ is used here to indicate that this kernel will usually be a smooth smeared delta function. The subscript $a$ refers to the hydrodynamic radius of the particle, related to the typical size of the particle.
+The reverse of interpolation is spreading, i.e  communicating particle forces, $\vec{F}$, to the fluid. Although not compulsory, the same kernel $\delta_a$ is employed. We compute the force density acting on the fluid at a given point $\vec{\fpos}$ in space by spreading the forces of all particles to that point, so
+\begin{equation}
+  \label{eq:spreadoper}
+  \vec{f}(\vec{\fpos}) = \oper{S}(\vec{\fpos})\vec{F} = \sum_i\delta_a(\vec{\fpos}-\vec{\ppos}_i)\vec{F}_i,
+\end{equation}
+where we have strectched the notation by interpreting $\vec{F} := \{\vec{F}_1,\dots,\vec{F}_N\}$.
+The benefit of using the same kernel to spread and interpolate is that both are adjoint, $\oper{J} = \oper{S}^*$, which is required in the following derivation.
 
-The reverse of interpolation, communicating particle forces\footnote{Or in general any Lagrangian quantity.}, $\vec{F}$, to the fluid, will also be mediated with $\delta_a$. We refer to the reverse of interpolation as spreading
-\begin{equation}
-  \vec{f}(\vec{\fpos}) = \sum_i\oper{S}(\vec{\fpos})\vec{F}_i
-\end{equation}
-The spreading operator, $\oper{S}$, transforms the force acting on the particles (located at $\vec{\ppos}_i$) into a force density on the fluid. It can then be defined as
-\begin{equation}
-    \label{eq:spreadoper}
-  \oper{S}(\vec{\fpos})\vec{F}_i = \delta_a(\vec{\fpos}-\vec{\ppos}_i)\vec{F}_i
-\end{equation}
 The physical volume $\Delta V$ of the particle is related to the kernel via
 \begin{equation}
   \Delta V = (\oper{J}\oper{S}1)^{-1} = \left(\int\delta_a^2d\vec{r}\right)^{-1}
 \end{equation}
-Using the same kernel function for spreading and interpolation makes both operations adjoint, so that $\oper{S} = \oper{J}^*$. This adjoint property is necessary for energy conservation and fluctuation-dissipation balance.
-We will discuss spreading and interpolation in more detail in sec. \ref{sec:ibm}.
 
+We will discuss spreading and interpolation in more detail in sec. \ref{sec:ibm}.
 
 \section{Connection with Brownian Dynamics}\label{sec:bdhicon}
 
-We can now write an equation for the displacements of a particle
+We can now write an equation for the displacements (velocities) of a group of particles
 \begin{equation}
   \label{eq:bdhibdrelation}
-  \frac{d\vec{q}_i}{dt} = \vec{u}_i = \eta^{-1}\oper{J}_{\vec{\ppos}_i}\oper{L}(\oper{S}\vec{F}_i + \nabla\cdot\mathcal Z)
+  \frac{d\vec{q}_i}{dt} = \vec{u}_i = \eta^{-1}\oper{J}_{\vec{\ppos}_i}\oper{L}(\oper{S}\vec{F} + \nabla\cdot\mathcal Z)
 \end{equation}
-Generalizing to many particles amounts to summing the force spreading for all of them.
 
 This equation is reminiscent of eq. \eqref{eq:bdfull} by defining the mobility as
 \begin{equation}
@@ -2349,7 +2359,7 @@ and its ``square root'' as
 \begin{equation}
   \tens{M}^{1/2} = \eta^{-1/2}\oper{J}\oper{L}\nabla.
 \end{equation}
-It can be easily proved, by using that $-\oper{L}\nabla^2\oper{L} = \oper{L}$\cite{Delong2014}, that this definition of the square root of the mobility satisfies the fluctuation-dissipation balance and
+It can be easily proved, by using that $-\oper{L}\nabla^2\oper{L}^* = \oper{L}$ and that $\oper{J}^*=\oper{S}$\cite{Delong2014}\footnote{In particular, because $\nabla^2 = -\nabla\cdot\nabla$, we can write $\left(\oper{J}\oper{L}\nabla\right)\left(\oper{J}\oper{L}\nabla\right)^* = \oper{J}\oper{L}\nabla\nabla^*\oper{L}^*\oper{J}^* = \oper{J}\oper{L}\nabla^2\oper{L}^*\oper{S} = \oper{J}\oper{L}\oper{S}$.}, that this definition of the square root of the mobility satisfies the fluctuation-dissipation balance and
 \begin{equation}
   \label{eq:mobsqrt}
   \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T.
@@ -2367,7 +2377,7 @@ We are now ready to extract more information about the mobility matrix, which is
   \label{eq:bdhimob}
   \tens{M}_{ij} = \eta^{-1}\int{\delta_a(\vec{q}_j-\vec{r})\tens{G}(\vec{r}, \vec{r}')\delta_a(\vec{q}_i -\vec{r}')d\vec{r}d\vec{r}'}
 \end{equation}
-Here $\tens{G}$ is the Green's function of eq. \eqref{eq:stokes} for unit viscosity.
+Here $\tens{G}$ is the Green's function of eq. \eqref{eq:stokes} with the particular boundary conditions and unit viscosity.
 
 The mobility tensor definition in eq. \eqref{eq:bdhimob} is general for any geometry, but for an unbounded fluid, the Green's function is the Oseen tensor in eq. \eqref{eq:bdhioseen} and the resulting mobility is refered to as the Oseen mobility, so that $\tens{M}_{ij} = \tens{O}(\vec{\ppos}_j - \vec{\ppos}_i)$.
 
@@ -2413,7 +2423,16 @@ This is an expression of the fact that the mobility is usually isotropic and tra
 %  \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T
 %\end{equation}
 
-The mobility tensors elucidated thus far have zero divergence (due to the incompressibility of the three dimensional flow). However, it is important to take the thermal drift term in eq. \eqref{eq:bdhi} into account since even for this cases, certain spatio-temporal discretizations could result in the mobility having an spurious thermal drift. Furthermore, divergence will be non-zero in other geometries (like the confined systems in sec. \ref{sec:q2D}). 
+The mobility tensors elucidated thus far have zero divergence (due to the incompressibility of the three dimensional flow). However, it is important to take the thermal drift term in eq. \eqref{eq:bdhi} into account since even for these cases, certain spatio-temporal discretizations could result in the mobility having an spurious thermal drift\todo{RAFA: chequea triple}. Furthermore, divergence will be non-zero in other geometries (like the confined systems in sec. \ref{sec:q2D}).
+Although in the use cases throughout this manuscript thermal drift does not pose a significant computational challenge, certain solvers (for instance, when computing hydrodynamic correlations of rigid bodies\cite{Rigidbody}), for which the application of the Stokes solution operator (or alternatively the evaluation of the mobility) is particularly expensive can result in the thermal drift term having a non-trivial cost.
+One of the most widespread generic approaches for computing the thermal drift term is to use the so-called Random Finite Differences (RFD)\cite{Delong2014}, where the divergence of the mobility is computed as
+\begin{equation}
+  \label{eq:rfd}
+    \frac{1}{\delta}\left\langle \tens{M}\left(\vec{\ppos}+\frac{\delta}{2}\vec{\noise}\right)\vec{\noise} - \tens{M}\left(\vec{\ppos}-\frac{\delta}{2}\vec{\noise}\right)\vec{\noise}\right\rangle
+    = \vec{\partial}_{\vec{\ppos}}\cdot\tens{M}(\vec{\ppos}) + O(\delta^2).
+\end{equation}
+Here $\vec{\noise}$ is a vector of random Gaussian numbers with zero mean and unit standard deviation and $\delta$ is a small parameter (generally chosen as small as possible without incurring in numerical issues).
+Note that evaluating eq. \eqref{eq:rfd} requires two Stokes/mobility solves. It is possible to skip one of them by evaluating the derivative of the kernel\cite{Delong2014}.
 
 \chapter{Hydrodynamics in open boundaries}
 Although our mathematical framework is not limited to it, thus far the mobility matrices we have computed explicitly (in eqs. \eqref{eq:rpy} and \eqref{eq:oseenmob}) correspond to systems with open boundaries (since they come from applying the unbounded Green's function in eq. \eqref{eq:greenstokes}). Lets first see how to solve eq. \eqref{eq:bdhi} by using the unbounded \gls{RPY} mobility and then explore other strategies that can be used when assuming periodic boundary conditions.
@@ -2432,8 +2451,7 @@ On the other hand, since the mobility matrix has to be stored anyway, the rest o
 \subsection*{Use in UAMMD}\label{sec:uammdchol}
 In \uammd, \gls{BDHI} algorithms are separated between temporal integration schemes and strategies for computing the deterministic and stochastic displacements. Both pieces are joined to form an \emph{Integrator} that can be used as usual.
 Here is an example of the Euler-Maruyama integration scheme being specialized with the Cholesky decomposition algorithm for the fluctuations.
-\begin{code}  
-\begin{minted}{\ucpp}
+\begin{code2}[Example code for the Cholesky \gls{BDHI} method]{label=code:chol}
 #include<uammd.cuh>
 #include<Integrator/BDHI/BDHI_EulerMaruyama.cuh>
 #include<Integrator/BDHI/BDHI_Cholesky.cuh>
@@ -2454,10 +2472,7 @@ auto createIntegratorBDHICholesky(UAMMD sim){
   auto bdhi = std::make_shared<Cholesky>(sim.pd, par);
   return bdhi;
 }
-\end{minted}
-  \caption{Example code for the Cholesky \gls{BDHI} method}
-  \label{code:chol}
-\end{code}
+\end{code2}
 
 
 \section{Lanczos}\label{sec:lanczos}
@@ -2469,8 +2484,7 @@ Another benefit of this method over Cholesky is that it is not required to store
 \subsection*{Use in UAMMD}
 Using the Lanczos strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). With the difference that now, being this an iterative algorithm, a tolerance can be selected.
 Here is an example of the Euler-Maruyama integration scheme being specialized with the Cholesky decomposition algorithm for the fluctuations.
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}  [Example code for the Lanczos \gls{BDHI} method]  {label=code:lanczos}
 #include<uammd.cuh>
 #include<Integrator/BDHI/BDHI_EulerMaruyama.cuh>
 #include<Integrator/BDHI/BDHI_Lanczos.cuh>
@@ -2493,10 +2507,7 @@ auto createIntegratorBDHILanczos(UAMMD sim){
   auto bdhi = std::make_shared<Lanczos>(sim.pd, par);
   return bdhi;
 }
-\end{minted}
-  \caption{Example code for the Lanczos \gls{BDHI} method}
-  \label{code:lanczos}
-\end{code}
+\end{code2}
 
 \newpage
 \chapter{Triply periodic hydrodynamics}
@@ -2808,8 +2819,7 @@ An implementation of all the kernels in sec. \ref{alg:ibm} can be found at file 
 This extra functionality is documented in \uammd's online documentation, here we provide an example function that spreads and/or gathers an isotropic Gaussian kernel into a regular cartesian grid. Representing the simplest, yet most usual, use case.
 
 \todo{This interface is super big and complex, what do?}
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Usage example of the spreading and interpolation module.]  {label=code:ibm}
 #include<uammd.cuh>
 #include<misc/IBM.cuh>
 using namespace uammd;
@@ -2850,10 +2860,7 @@ void spreadOrInterpWithIBM(Grid grid, real4* positions,
   //Both functions can also accept a 
   // CUDA stream as the last argument
 }
-\end{minted}
-  \caption{Usage example of the spreading and interpolation module.}
-  \label{code:ibm}
-\end{code}
+\end{code2}
 
 
 
@@ -2947,8 +2954,7 @@ Using the \gls{FCM} strategy in \uammd is similar to using Cholesky (see sec. \r
 
 In contrast with the open boundary algorithms in sections \ref{sec:chol} and \ref{sec:lanczos} this implementation does not allow to set a different hydrodynamic radius for each particle.
 Here is an example of the Euler-Maruyama integration scheme being specialized with \gls{FCM}.
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Usage example of the \gls{FCM} module] {label=code:fcm}
 #include<uammd.cuh>
 #include<Integrator/BDHI/BDHI_EulerMaruyama.cuh>
 #include<Integrator/BDHI/BDHI_FCM.cuh>
@@ -2969,10 +2975,7 @@ auto createIntegratorBDHIFCM(UAMMD sim){
                                     sim.sys, par);
   return bdhi;
 }
-\end{minted}
-  \caption{Usage example of the \gls{FCM} module}
-  \label{code:fcm}
-\end{code}
+\end{code2}
 
 \newpage
 
@@ -3067,8 +3070,7 @@ Finally the optimal Hasimoto splitting parameter, $\xi$, must be tuned in a case
 
 Usage is similar to \gls{FCM}, with the difference that now a splitting parameter ($\xi$ in eq. \eqref{eq:psehasimoto}) can be selected to shift the weight of the algorithm between the near and far field. In particular, lower values $\xi a$ give more weight to the near field, while higher values give more importance to the far field.
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Example of the creation of the \gls{PSE} module.]  {label=code:pse}
 #include<uammd.cuh>
 #include<Integrator/BDHI/BDHI_EulerMaruyama.cuh>
 #include<Integrator/BDHI/BDHI_PSE.cuh>
@@ -3090,10 +3092,7 @@ auto createIntegratorBDHIPSE(UAMMD sim){
   auto bdhi = std::make_shared<PSE>(sim.pd, par);
   return bdhi;
 }
-\end{minted}
-  \caption{Example of the creation of the \gls{PSE} module.}
-  \label{code:pse}
-\end{code}
+\end{code2}
 
 \newpage
 \section{Spatial discretization with staggered grids}\label{sec:staggered}
@@ -3463,15 +3462,18 @@ auto createIntegratorMALA(UAMMD sim){
 \cleardoublepage
 \part{Novel algorithms and physics for complex fluids}\label{pt:algo}
 
+In this part of the manuscript we will go through several novel, \gpu-focused, algorithms that have been developed during this thesis.
+In particular, we will discuss four new algorithms; two of them solving the Stokes equation (see eq. \eqref{eq:stokes}) for hydrodynamics and the other two solving the, not yet introduced, Poisson equation (see eq. \eqref{eq:ttpoisson}) for electrostatics.
+In chapter \ref{sec:q2D} we introduce a novel algorithm for solving the Stokes equation in quasi 2D geometries, in which particles are restricted to move in a periodic plane while embedded in a fluid that is either open (quasi 2D) or non existent (true 2D) in the third direction.
+Later, in chapter \ref{sec:dpstokes} we solve the Stokes equation again but this time letting the particles move freely inside a doubly periodic domain (periodic in the plane and open in the third direction), introducing the possibility of placing walls at the domain limits, creating slit or walled geometries.
+The doubly periodic Stokes algorithm will be the last methodology for hydrodynamics in this manuscript. We will use the two next chapters in this part to introduce two algorithms for electrostatics (by solving the Poisson equation)\footnote{The algorithms for electrostatics make use of the toolset developed for \gls{FCM} and \gls{PSE} in previous chapters, which is the reason why its introduction was delayed up to this point}. We will start by describing a method for computing the electrostatic interactions of a group of charged particles in a triply  periodic environment in chapter \ref{ch:tppoisson}. Finally, in a similar way as done with Stokes, we will compute electrostatic interactions in a doubly periodic environment (with the possibility of placing surface charged walls at the domain limits).
 \begin{itemize}
 \item New contributions are related to complex fluids in confined geometries
 \item Hydrodynamics in slit channels are key in several contexts of technological and biological significance.
 \item Introduce star polymers
-\item Outline of this part
 \end{itemize}
 
-\chapter{Hydrodynamics under quasi two dimensional confinement}
-
+\chapter{Hydrodynamics under quasi two dimensional confinement}\label{sec:q2D}
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/q2d}
@@ -3636,8 +3638,7 @@ Where $\fou{\tens{Z}}^{1,2}_k$ are independent Wienner processes. The same conce
 \item Tolerance controls the support of the Gaussian kernels and the size of the grid similarly as in \gls{FCM}.\todo{This is not actually implemented, it is just hardcoded to 1e-4}
 \end{itemize}
 \todo{I could implement the same thing for FCM, generalizing the module for any $f_k$ and $g_k$ as long as they do not have thermal drift, which is not implemented in 3D. Maybe this could be done for FIB, where thermal drift is obtained via RFD.}
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Example of the creation of a quasi 2D \emph{Integrator}.]{label=code:q2D}
 #include<uammd.cuh>
 #include<Integrator/Hydro/BDHI_quasi2D.cuh>
 using namespace uammd;
@@ -3657,23 +3658,20 @@ auto createIntegratorQ2D(UAMMD sim){
                                        sim.sys, par);
   return q2d;
 }
-\end{minted}
-  \caption{Example of the creation of a quasi 2D \emph{Integrator}.}
-  \label{code:q2D}
-\end{code}
+\end{code2}
 
 \newpage
 
-\chapter{Hydrodynamics in doubly periodic geometries}
+\chapter{Hydrodynamics in doubly periodic geometries}\label{sec:dpstokes}
 We develop an algorithm to solve the incompressible Stokes equation \eqref{eq:stokes} without fluctuations in a \gls{DP} domain of size $L_{x,y}$ (we will assume $L_x=L_y$, which can then be easily generalized). Thus, we want to solve
 \begin{equation}
   \label{eq:dpstokes}
   \begin{aligned}
-    &\nabla p_{DP} - \eta\nabla^2\vec{\fvel}_{DP} = \vec{f}\\
-    &\nabla\cdot\vec{\fvel}_{DP} = 0
+    &\nabla p_{\dpr} - \eta\nabla^2\vec{\fvel}_{\dpr} = \vec{f}\\
+    &\nabla\cdot\vec{\fvel}_{\dpr} = 0
 \end{aligned}
 \end{equation}
-With $z\in(-\infty, \infty)$ and free-space \glspl{BC} in $z$, assuming that $\vec{\fvel}_{DP}$ is bounded as $|z|\rightarrow\infty$. The plane $(x,y)$ is periodic as in quasi 2D.
+With $z\in(-\infty, \infty)$ and free-space \glspl{BC} in $z$, assuming that $\vec{\fvel}_{\dpr}$ is bounded as $|z|\rightarrow\infty$. The plane $(x,y)$ is periodic as in quasi 2D.
 
 Here $p$ is the pressure and the fluid forcing includes the particle forces and torques (similarly as with \gls{FCM} in sec. \ref{sec:fcm})
 \begin{equation}
@@ -3684,15 +3682,15 @@ We assume that the fluid forcing is zero outside a domain $z\in [-H, H]$. In the
 
 Our solver is periodic in the plane $(x,y)$ (as in quasi 2D). In the $z$ direction, by incorporating different \glspl{BC}, we distinguish between three modes:
 \begin{enumerate}
-\item Unbounded in $z$, $z\in(-\infty, \infty)$. $\vec{\fvel}_{DP}$ is bounded as $|z|\rightarrow\infty$.
+\item Unbounded in $z$, $z\in(-\infty, \infty)$. $\vec{\fvel}_{\dpr}$ is bounded as $|z|\rightarrow\infty$.
 \item A no-slip  wall at the bottom of the domain, $z=-H$ (unbounded at $z>-H$). $z\in [-H, \infty)$.
   The no-slip \gls{BC} for the wall is simply
   \begin{equation}
-    \vec{\fvel}_{DP}(z=0) = 0    
+    \vec{\fvel}_{\dpr}(z=0) = 0    
   \end{equation} 
 \item A slit channel, with no-slip walls located at $z=-H$ and $z=H$. $z\in [-H, H]$. Besides the \gls{BC} for the bottom wall, we add a similar one for the top ones
   \begin{equation}
-    \vec{\fvel}_{DP}(z=H) = 0
+    \vec{\fvel}_{\dpr}(z=H) = 0
   \end{equation}
 \end{enumerate}
 The unbounded mode allows to simulate systems were particles are not restricted to a plane, so $\delta>0$. Additionally the other modes can be used in a variety of simulations. For instance, the bottom wall mode can be used to model the hydrodynamics of a Quarts Crystal Microbalance (QCM)\todo{More about it?}.
@@ -3723,8 +3721,8 @@ The \gls{DP} solver is vastly different from the \gls{FCM} family of methods we 
 Our approach consists of solving the Stokes equation in an ubounded domain, adding the effects of the wall afterwards as a correction. Thus we first solve eq. \eqref{eq:dpstokes} with free-space \glspl{BC} and $z\in (-\infty, \infty)$. Then we compute the final result in the presence of one or two walls as
 \begin{equation}
   \begin{aligned}
-  &\vec{\fvel} =   \vec{\fvel}_{DP} +   \vec{\fvel}_{\corr}\\
-  &\vec{p} =   \vec{p}_{DP} +   \vec{p}_{\corr}
+  &\vec{\fvel} =   \vec{\fvel}_{\dpr} +   \vec{\fvel}_{\corr}\\
+  &\vec{p} =   \vec{p}_{\dpr} +   \vec{p}_{\corr}
 \end{aligned}
 \end{equation}
 
@@ -3741,8 +3739,8 @@ Solved in a domain with $z\in [-H,\infty)$ in the case of a bottom wall and $z\i
 \begin{equation}
   \label{eq:dpstokescorrbcs}
   \begin{aligned}
-    &\vec{\fvel}_{\corr}(z=-H) = -\vec{\fvel}_{DP}(z=-H)\\
-    &\vec{\fvel}_{\corr}(z=H) = -\vec{\fvel}_{DP}(z=H)    
+    &\vec{\fvel}_{\corr}(z=-H) = -\vec{\fvel}_{\dpr}(z=-H)\\
+    &\vec{\fvel}_{\corr}(z=H) = -\vec{\fvel}_{\dpr}(z=H)    
 \end{aligned}
 \end{equation}
 Where the second condition, at $z=H$, is imposed only in the case of a slit channel geometry.
@@ -4389,8 +4387,8 @@ CUDA/C++ is a compiled language, meaning that before executing a source code, it
 
 Lets start with some basic concepts in C++ and then go to the \gpu. The entry point for execution in all C++ codes starts with a function called ``main''. This function must be defined by the user with the name ``main'' and a returning type int (see example code \ref{code:minimal}).
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[A C++ program that does nothing.]
+{label=code:minimal}
 //This is a comment, which is ignored by the compiler
 //The main function must be present in all C++ programs
 int main(){
@@ -4398,16 +4396,11 @@ int main(){
   // program terminated sucessfully, and 1 otherwise.
   return 0;
 }
-\end{minted}
-  \caption{A C++ program that does nothing.}
-  \label{code:minimal}
-\end{code}
+\end{code2}
 
 We can define functions with the syntax in code \ref{code:function}
 
-\begin{code}
-\begin{minted}{\ucpp}
-
+\begin{code2}[The classic Hello World program in C++. Once executed, it will print ``Hello world'' to the terminal.] {label=code:hello}
 //We can define a function with the syntax below
 //The returning type, in this case int, can be replaced 
 // by the keyword auto.
@@ -4424,26 +4417,19 @@ int main(){
   //The type of the variable, int, can be replaced by auto
   return 0;
 }
-\end{minted}
-  \caption{The classic Hello World program in C++. Once executed, it will print ``Hello world'' to the terminal.}
-  \label{code:hello}
-\end{code}
+\end{code2}
 
 
 By default, a C++ code will have access only to the basic rules of the languages. 
 
 
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[The classic Hello World program in C++. Once executed, it will print ``Hello world'' to the terminal.] {label=code:hello}
 #include<iostream> //Includes std::cout and std::endl
 int main(){
   std::cout<<"Hello world"<<std::endl;
   return 0;
 }
-\end{minted}
-  \caption{The classic Hello World program in C++. Once executed, it will print ``Hello world'' to the terminal.}
-  \label{code:hello}
-\end{code}
+\end{code2}
 
 
 \begin{itemize}
@@ -4525,8 +4511,7 @@ For example, if we want to transform the three coordinates for the forces in an 
 In a complex to real transform (and thus also in a real to complex transform) the corresponding Fourier data points meet the conditoin $data(\vec{k}) = data(\vec{k} - \vec{n_k})^*$. A consequence of this is that, in a transformation with an even number of points in some direction, there are some points that are the conjugates of themselves. We call this uncoupled modes Nyquist points.
 There are $8$ nyquist points at most (including the $\vec{k} = (0,0,0)$ mode), corresponding to the vertices of the inferior left cuadrant.
 A function to determine if a certain wave number is a Nyquist point:
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[Finding Nyquist numbers]{label=code:nyquist}
 bool isNyquistWaveNumber(int3 ik, int3 n){
   //Is the current wave number a nyquist point?
   const bool isXnyquist = (ik.x == n.x - ik.x);
@@ -4542,8 +4527,7 @@ bool isNyquistWaveNumber(int3 ik, int3 n){
     (isXnyquist and isYnyquist and isZnyquist);   //7
   return nyquist;
 }
-\end{minted}
-\end{code}
+\end{code2}
 
 
 \chapter{Boundary Value Problem (BVP) Solver} \label{sec:bvp}
@@ -4768,8 +4752,7 @@ The \emph{Transverser} interface requires a given class/struct to provide the fo
 
 Lets see a trivial example.
 This \emph{Transverser} can be used with a neighbour list to count the number of neighbours of each particle:
-\begin{code}
-\begin{minted}{\ucpp}
+\begin{code2}[A \emph{Transverser} that counts the number of neighbours of each particle]{label=code:ncounter}
 struct NeighbourCounter{
   int *nneigh;
   real rc;
@@ -4798,10 +4781,7 @@ struct NeighbourCounter{
     nneigh[index] = total;
   }
 };
-\end{minted}
-\caption{A \emph{Transverser} that counts the number of neighbours of each particle}
-\label{code:ncounter}
-\end{code}
+\end{code2}
 In the following sections, we will see how to use \emph{Transversers} to compute forces, energies and more between particles.
 But in order to do that, we need yet another interface in order connecting the general concept of a \emph{Transverser} with something that computes forces, energies or virial of an interaction. In \uammd, we use the \emph{Potential} interface for that.
 
