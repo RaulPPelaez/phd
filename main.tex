@@ -3683,19 +3683,21 @@ We assume that the fluid forcing is zero outside a domain $z\in [-H, H]$. In the
 Our solver is periodic in the plane $(x,y)$ (as in quasi 2D). In the $z$ direction, by incorporating different \glspl{BC}, we distinguish between three modes:
 \begin{enumerate}
 \item Unbounded in $z$, $z\in(-\infty, \infty)$. $\vec{\fvel}_{\dpr}$ is bounded as $|z|\rightarrow\infty$.
-\item A no-slip  wall at the bottom of the domain, $z=-H$ (unbounded at $z>-H$). $z\in [-H, \infty)$.
+\item A no-slip  wall at the bottom of the domain, $z=-H$ (unbounded at $z>H$). $z\in [-H, \infty)$.
   The no-slip \gls{BC} for the wall is simply
   \begin{equation}
-    \vec{\fvel}_{\dpr}(z=0) = 0    
+    \label{eq:dpstokesbwvelbc}
+    \vec{\fvel}_{\dpr}(z=-H) = 0.   
   \end{equation} 
-\item A slit channel, with no-slip walls located at $z=-H$ and $z=H$. $z\in [-H, H]$. Besides the \gls{BC} for the bottom wall, we add a similar one for the top ones
+\item A slit channel, with no-slip walls located at $z=-H$ and $z=H$. $z\in [-H, H]$. Besides the \gls{BC} for the bottom wall, we add a similar one for the top one
   \begin{equation}
-    \vec{\fvel}_{\dpr}(z=H) = 0
+    \label{eq:dpstokestwvelbc}
+    \vec{\fvel}_{\dpr}(z=H) = 0.
   \end{equation}
 \end{enumerate}
 The unbounded mode allows to simulate systems were particles are not restricted to a plane, so $\delta>0$. Additionally the other modes can be used in a variety of simulations. For instance, the bottom wall mode can be used to model the hydrodynamics of a Quarts Crystal Microbalance (QCM)\todo{More about it?}.
 
-In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\in [-H,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by substracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
+In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\notin [-H,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by substracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
 \begin{equation}
   \label{eq:dpstokeskernel}
   \widetilde{\delta_a}(\vec{\fpos}-\vec{\ppos}_i) = \delta_a(\vec{\fpos}-\vec{\ppos}_i) - \delta_a(\vec{\fpos}-\vec{\ppos}^{\text{img}}_i)
@@ -3716,10 +3718,11 @@ Being $\hat{\vec{e}}_z$ a unitary vector in the $z$ direction. The no-slip condi
   \label{fig:dpstokesspread}
 \end{figure}
 
-The \gls{DP} solver is vastly different from the \gls{FCM} family of methods we have seen thus far. The main similarity is that we also make use of \gls{IBM} spreading and interpolation to communicate the particles and a grid.
+The \gls{DP} solver is vastly different from the \gls{FCM} family of methods we have seen thus far. The main similarity is that we also make use of the \gls{IBM}'s spreading and interpolation to communicate the particles and a grid.
 
-Our approach consists of solving the Stokes equation in an ubounded domain, adding the effects of the wall afterwards as a correction. Thus we first solve eq. \eqref{eq:dpstokes} with free-space \glspl{BC} and $z\in (-\infty, \infty)$. Then we compute the final result in the presence of one or two walls as
+Our approach consists of solving the Stokes equation in an ubounded domain, adding the effects of the walls afterwards as a correction. Thus we first solve eq. \eqref{eq:dpstokes} with free-space \glspl{BC} and $z\in (-\infty, \infty)$. Then we compute the final result in the presence of one or two walls as
 \begin{equation}
+  \label{eq:dpstokescorrsum}
   \begin{aligned}
   &\vec{\fvel} =   \vec{\fvel}_{\dpr} +   \vec{\fvel}_{\corr}\\
   &\vec{p} =   \vec{p}_{\dpr} +   \vec{p}_{\corr}
@@ -3767,7 +3770,7 @@ Transforming to Fourier space in the plane we get a one dimensional problem for 
   \end{bmatrix}
 \fou{\vec{f}}
 \end{equation}
-Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. We can use this to solve the pressure outside the domain, so that
+Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. As a matter of fact, the \gls{FCT} is employed here (see Appendix \ref{sec:fct}) to transform the signals in the $z$ direction to the Chebyshev basis, as this allows to use the \gls{BVP} solver and facilitates the evaluation of the derivatives in this direction (by using the relations for the Chebyshev coefficients introduced in Appendix \ref{sec:bvp}). Therefore we will work with the Chebyshev coefficients, $\fou{p}_n$ (or $\fou{\vec{f}}_n$), of the different quantities. We can use this to solve the pressure outside the domain, so that
 \begin{equation}
     (\partial_{zz}-k^2)\fou{p} = 0, \quad \text{ for } z \notin [-H,H]
 \end{equation}
@@ -3792,10 +3795,11 @@ For a given wave number, $k$, the system in eq. \eqref{eq:dpstokesfreepressure} 
 Since this solver requires to define $z$ in the Chebyshev basis, we can apply $\partial_z$ in linear time by using recurrent relations on the Chebyshev coefficients (in this case of $\fou{f}^z$) instead of via \emph{ik} differentiation. As discussed in Appendix \ref{sec:bvp} and \ref{sec:fct}, the Fourier-Chebyshev\footnote{Fourier in the plane $(x,y)$ and Chebyshev in $z$.} coefficients $\fou{p}(\vec{k}, z)$ are computed via a hybrid \gls{FFT}-\gls{FCT}. Which amounts to performing the 3D \gls{FFT} of $\vec{f}$ periodic extended in $z$.
 
 \subsection*{Velocity solve}
-Once the pressure is known we can write the plane Fourier transformed equations for the three components of the velocity as
+Once the Chebyshev coefficients for the pressure for each wave number are known we can write the equations for the three components of the velocity in Fourier space as
 
 \begin{equation}
-  \eta\left(-k^2 + \partial_{zz}\right)\fou{\vec{\fvel}} = 
+  \label{eq:dpstokesvel}
+  \eta\left(\partial_{zz} -k^2\right)\fou{\vec{\fvel}} = 
   \begin{bmatrix}
     i\vec{k}\\
     \partial_z
@@ -3804,109 +3808,157 @@ Once the pressure is known we can write the plane Fourier transformed equations 
 \end{equation}
 
 Where the derivative of the pressure, $\partial_z\fou{p}$, can be computed via the Chebyshev coefficients of the pressure.
-\subsection*{Parallel velocity solve}
+
+For the \glspl{BC} we know that outside the domain, where $\fou{\vec{f}} = 0$, the velocity satisfies
+\begin{equation}
+  \label{eq:dpstokesvelout}
+  \eta\left(\partial_{zz} -k^2\right)\fou{\vec{\fvel}} = 
+  \begin{bmatrix}
+    i\vec{k}\\
+    \partial_z
+  \end{bmatrix}
+  \fou{p}, \quad \text{ for } z \notin [-H,H]
+\end{equation}
+The \glspl{BC} for eq. \eqref{eq:dpstokesvelout} must be computed independently for the plane, $\vec{\fvel}^\parallel$, and perpendicular, $\vec{\fvel}^\perp$, velocities.
+\subsubsection*{Parallel velocity solve}
+Using the boundness of the velocity at $\pm\infty$, the solution of eq. \eqref{eq:dpstokesvelout} in the plane for $z \le -H \text{ and } z\ge H]$ is, respectively
+\begin{equation}
+  \label{eq:dpstokesparvel}
+  \fou{\vec{\fvel}}^{\parallel} = \mp\frac{C_1\vec{k}\exp(\pm kz)\left(2zk\mp 1\right)}{4\eta ik^2} + C_2\exp(\pm zk).
+\end{equation}
+The derivative of eq. \eqref{eq:dpstokesparvel} can be written as
+\begin{equation}
+  \label{eq:dpstokesparvelder}
+  \partial_z\fou{\vec{\fvel}}^{\parallel} = \pm k\fou{\vec{\fvel}}^{\parallel} + \frac{C_1i\vec{k}\exp(\pm kz)}{2\eta k}.
+\end{equation}
+We can make use of the previously computed solution for the pressure outside the domain,
+\begin{equation}
+  \label{eq:dpstokespresout}
+\fou{p}(\vec{k}, z \le -H \text{ or } z\ge H]) = C_1\exp\left(\pm zk\right),
+\end{equation}
+to finally write the \glspl{BC} for the parallel velocity as
+\begin{equation}
+  \label{eq:dpstokesparvelbc}
+  \left(\partial_z\pm k\right)\fou{\vec{\fvel}}^\parallel(\vec{k}, \pm H) = \mp \frac{i\vec{k}}{2\eta k}\fou{p}(\vec{k}, \pm H)
+\end{equation}
+Note that the pressure at the domain limits, $\fou{p}(\vec{k}, \pm H)$, can be easily computed from the already available Chebyshev coefficients of the pressure.
+
+\subsubsection*{Perpendicular velocity solve}
+Following a similar strategy as with the parallel velocity, we can write the solution for the perpendicular velocity outside the domain as
+\begin{equation}
+    \label{eq:dpstokesperpvel}
+  \fou{\vec{\fvel}}^{\perp} = \frac{C_1\vec{k}\exp(\pm kz)\left(2zk\mp 1\right)}{4\eta k} + C_2\exp(\pm zk).
+\end{equation}
+And its derivative
+\begin{equation}
+  \label{eq:dpstokesperpvelder}
+  \partial_z\fou{\vec{\fvel}}^{\perp} = \pm k\fou{\vec{\fvel}}^{\perp} + \frac{C_1\exp(\pm kz)}{2\eta}.
+\end{equation}
+%Now, since we know that
+%\begin{equation}
+%  \partial_z\fou{p}(\vec{k}, z \le -H\text{ or} z\ge H) = \pm C_1\exp\left(\pm kz\right), 
+%\end{equation}
+Identifying the already known solution for the pressure (see eq. \eqref{eq:dpstokespresout}) we can finally write the \glspl{BC} for the perpendicular velocity as
+\begin{equation}
+  \label{eq:dpstokesperpvelbc}
+  \left(\partial_z\pm k\right)\fou{\vec{\fvel}}^\perp(\vec{k}, \pm H) = \frac{1}{2\eta}\fou{p}(\vec{k}, \pm H).
+\end{equation}
+\todo{The k=0 modes}
+Thus far we have shown how to compute, for all wave numbers, the Chebyshev coefficients for the pressure and the three directions of the velocity in the free-space case. We will now study the correction in the bottom wall and slit channel geometries.
+\section{Corrections}
+We will compute, for each wave number, the analytical solution of the velocity and pressure inside the domain due to the presence of the walls and sum it to the main solution.
+
+Let us start with the bottom wall case.
+\subsection*{Bottom wall}
+
+We want to solve eq. \eqref{eq:dpstokescorr} with \glspl{BC} in eq. \eqref{eq:dpstokesbwvelbc}.
+
+For simplicity, let us define $\fou{\vec{\fvel}}_b := \fou{\vec{\fvel}}_{\dpr}(\vec{k}, -H)$ and $z':=(z+H)/2$.
+It is straight forward to prove that the following solutions for the velocity and the pressure satisfy eq. \eqref{eq:dpstokescorr} with \glspl{BC} in eq. \eqref{eq:dpstokesbwvelbc}:
+\begin{equation}
+  \fou{\vec{\fvel}}_{\corr}(\vec{k}, z) = \left(  \fou{\vec{\fvel}}_b -
+    \begin{bmatrix}
+    \vec{k}\\
+    ik
+  \end{bmatrix}
+  \left(\left[\vec{k},ik\right]\cdot\fou{\vec{\fvel}}_b\right) \frac{z'}{k}\right)\exp\left(-kz'\right)
+\end{equation}
+\begin{equation}
+  \fou{p}_{\corr}(\vec{k}, z) = 2\eta \left[-i\vec{k},k\right]\cdot\fou{\vec{\fvel}}_b\exp\left(-kz'\right)
+\end{equation}
+
+The velocity at the bottom, $\fou{\vec{\fvel}}_b$, can be trivially evaulated via its already available Chebyshev coefficients. Once the solution is computed for every wave number, the Chebyshev coefficients can be obtained by applying the \gls{FCT} to each of them. Finally, we compute the total solution using eq. \eqref{eq:dpstokescorrsum}.
+
+\subsection*{Slit channel}
+The double wall case proves to be a little more convoluted. We want to solve eq. \eqref{eq:dpstokescorr} with \glspl{BC} in eq. \eqref{eq:dpstokesbwvelbc} and \eqref{eq:dpstokestwvelbc}.
+
+The general solution for the correction in this case is
+
+\begin{equation}
+  \label{eq:dpstokesslitcor}
+  \begin{aligned}
+    \fou{\vec{\fvel}}_{\corr}(\vec{k}, z) =& \left(\frac{C_0}{2\eta k} z'
+      \begin{bmatrix}
+        -i\vec{k}\\
+        k
+      \end{bmatrix}
+      +
+      \begin{bmatrix}
+        C_1\\
+        C_2\\
+        C_3
+      \end{bmatrix}
+    \right)
+    \exp(-kz')+\\    
+    &\left(\frac{D_0}{2\eta k} z'
+      \begin{bmatrix}
+        i\vec{k}\\
+        k
+      \end{bmatrix}
+      +
+      \begin{bmatrix}
+        D_1\\
+        D_2\\
+        D_3
+      \end{bmatrix}
+    \right)\exp(kz')
+  \end{aligned}
+\end{equation}
+
+\begin{equation}
+  \fou{p}_{\corr}(\vec{k}, z) = C_0\exp(-k z') + D_0\exp(k z')
+\end{equation}
+The six equations above are not enough to compute the values of the eight unknown coefficients, $\vec{C}=C_{[0,1,2,3]}$ and $\vec{D} = D_{[0,1,2,3]}$. For the remaining two equations we can use the incompressibility condition in eq. \eqref{eq:dpstokes},
+\begin{equation}
+  \label{eq:dpstokesincompres}
+    \begin{bmatrix}
+    i\vec{k}\\
+    \partial_z
+  \end{bmatrix}
+  \fou{\vec{\fvel}}_{\corr}(\vec{k}, z) = 0,
+\end{equation}
+evaluated at both the domain limits, $z=-H,H$.
+Similarly to the bottom wall case, for simplicity we define here $\fou{\vec{\fvel}}_t := \fou{\vec{\fvel}}_{\dpr}(\vec{k}, H)$.
+Evaluating eq. \eqref{eq:dpstokesincompres} and replacing $\partial_z\fou{\fvel}_{\corr}^z(\vec{k}, z=\pm H)$ from eq. \eqref{eq:dpstokesslitcor} yields the last two required equations
+\begin{equation}
+  \begin{aligned}
+    \frac{C_0}{2\eta} + \frac{D_0}{2\eta} - C_3k + D3_k &= -ik_x\fou{\vec{\fvel}}_b^x - ik_y\fou{\vec{\fvel}}_b^y\\
+    \left[(1-2kH)\frac{C_0}{2\eta}-kC_3\right]\exp(-2kH) +&\\ \left[(1+2kH)\frac{D_0}{2\eta} + kD_3\right]\exp(2kH) &= -ik_x\fou{\vec{\fvel}}_t^x - ik_y\fou{\vec{\fvel}}_t^y
+\end{aligned}
+\end{equation}
+We now have a linear system of 8 equations and 8 unknowns ($\vec{C}$ and $\vec{D}$). Once this system is solved\footnote{The system can be written in matrix form and partially precomputed (via matrix inversion) so that solving the slit correction at runtime amounts to a simple 8x8 matrix-vector multiplication. The related functions in \uammd can be found in the file \emph{StokesSlab/Correction.cuh}.} we can evaluate the correction and compute its Chebyshev coefficients. Finally we sum the correction to the free domain solution, obtaining the final result as per eq. \eqref{eq:dpstokescorrsum}.
+
+\section{The zero wave number}
+The $k=0$ mode must be handled separatedly
+
+\subsection*{Free space}
+\subsection*{Bottom wall}
+\subsection*{Slit channel}
+
+\section*{Use in UAMMD}
 
 
 
-\subsection*{Perpendicular velocity solve}
-
-
-
-
-\chapter{Applications: Hydrodynamics in confined geometries}
-\begin{itemize}
-\item Long time self diffussion
-\item Linear response theory for MSD
-\item Ensemble averages for color
-\item giant fluctuations comparison BD, q2D, t2D
-\item Bridging the gap to 3D, the short time collective diffusion coefficient and the hydrodynamic function
-\item Mention steric repulsion, only affects large wavenumbers (steric repulsion size), but the colective effect remains.
-\end{itemize}
-Bulk diffusion of particles in liquids is well-known to be controlled by hydrodynamics, and diffusion on interfaces is no exception. While the diffusion of colloids and polymers on a fluid-fluid interface has been studied theoretically since the 1970s \cite{FluidFluidInterface_Polymers,Diffusion2D_TwoViscosities}, \emph{collective diffusion} in a monolayer of colloidal particles confined to a fluid-fluid interface has only recently been explored in some detail both theoretically \cite{Bleibel2014,Bleibel2016,Bleibel2015} and experimentally[11].
-
-The hydrodynamic coupling between the confining force acting on each individual colloid and their collective motion leads to surprising effects.
-For instance, if the constraint is holonomic (colloids are restricted to move on a purely 2D domain), the confining force can be seen to arise from the non-zero divergence of the mobility tensor, which is related to the reduction of entropy imposed across the confining plane. In the case of a point wise force in unbounded fluid such flow perturbation (Oseen) decays like the inverse of the distance and, as a consequence, the diffusion coefficient of larger and larger colloidal density fluctuations increases without bounds. In particular, this results in the short-time collective diffusion diverging as the inverse of the wave number.
-This unexpected finding has prompted re-examination of previous experimental results \cite{Diffusion2D_Experiments_Weitz,SD_TwoWalls,Diffusion2D_Experiments_Rice}, and it is plausible that the effect may have been overlooked in a number of other prior experimental and theoretical works as well.
-
-The physical origin of the anomalous collective diffusion has already been elucidated in prior work by others\cite{Bleibel2014,Bleibel2016,Bleibel2015,Dominguez2014}. Basically, momentum conservation implies that the confining force acting on each particle has to propagate to the surrounding, incompressible, solvent. In the plane, the resulting hydrodynamic drag created by one particle acts like a flow source that induces an effective repulsive force on the other particles.
-
-This results in strong displacement correlations which are the origin of the anomalous collective diffusion.
-A new interpretation of this phenomena is obtained if one focuses on the in-plane dynamics.
-In the plane, the field of diffusive displacements appears to be compressible due to the momentum source associated with each confined particle.
-In the limit of strict confinement, the flow acts as a compressible two-dimensional cut through an incompressible three-dimensional flow field.
-Because of this apparent compressibility, the Brownian motion of the particles creates an osmotic pressure proportional to $\kT$, which propagates via the fluid inducing long-ranged repulsive interactions.
-This long-ranged repulsion decays slowly with the particle-particle distance, and dramatically accelerates collective diffusion at large scales.
-Furthermore,
-% contrary to what was previously thought \cite{Pelaez2017,Bleibel2017},
-these long-ranged correlations also appreciably modify the single-particle diffusion, as we will see in future sections.
-
-Such types of hydrodynamic enhancements do not only take place when the fluid is unbounded in the three directions. The presence of distant boundaries modifies the propagation (e.g., $1/r^2$ inside a slit channel[12,13]), leading to yet-unexplained and stronger variations of this phenomena which might also depend on the wall's slip boundary conditions.
-We will study how this anomalous collective diffusion becomes normal as the confinement is made softer.
-
-During the following chapters, we will study the collective diffusion and transport properties of a suspension of particles confined to a plane in two regimes:
-\begin{itemize}
-\item When the confinement is not strict and particles can leave the plane. For this, we can make use of the \gls{FIB} or \gls{FCM} described in previous sections and impose an external confining force on each particle. Although our implementations for these algorithms are triply periodic, we will neglect the contributions of the periodic copies of the system in the third direction by making the domain be much larger than the typical width of the suspension. We can also study the transient to the inertial regime by using \gls{ICM}.
-\item In the limit of strict confinement. Since our region of interest is the purely 2D plane in which particles diffuse, we will develop a new algorithm that takes into account the unbounded fluid in the $z$ direction implicitly.
-\end{itemize}
-Additionally, we will describe a new doubly periodic algorithm capable of solving hydrodynamics in the first scenario by directly imposing a different set of boundary conditions at the domain limits in the third direction. In particular, we can use this new framework to impose open boundaries, with the possibility of adding one or two walls at the domain limits (particles near a wall or a slit channel).
-
-
-%\chapter{Diffusion under soft confinement}\label{ch:softq2D}
-We will see how this length scale governs the collective intermediate scattering function of colloids under harmonic confinement. We will examine how the enhancement of the collective diffussion dissapears going from the limit of strict confinement with $K_s\rightarrow \infty$ to the purely open 3D hydrodynamics with $K_s\rightarrow 0$.
-Excluded volume and other potential interactions between colloids add another length scale to the collective diffusion, which partially masks the anomalous hydrodynamic enhancement. This masking depends on the static structure factor, $S(k)$, and here we illustrate the case of repulsive, \gls{WCA}, and attractive, \gls{LJ}, potentials.
-
-Later, we will take the mathematical limit of $K_s\rightarrow \infty$ to connect 
-
-%% Q2d paper intro:
-
-%Previous work on collective diffusion of colloids on fluid-fluid interfaces\cite{Bleibel2014,Bleibel2016,Bleibel2015} has focused on the \emph{ensemble average}. Our focus here is on the \emph{fluctuations} around the ensemble average, i.e., on the equations for the evolution of a particular \emph{instance} (trajectory) of diffusive processes on interfaces. We use the fluctuating DDFT-HI developed in \cite{Donev2014}, which is closely-related to \emph{fluctuating hydrodynamics} (FHD)\cite{Donev2014_2}. The (formal) nonlinear equations of FHD are challenging to interpret \cite{SPDE_Diffusion_DDFT,DDFT_Hydro}, but, at the same time, they are more physically transparent than the ensemble-averaged equations, and do not require closures for noninteracting particles\cite{DDFT_Hydro}. Furthermore, as we will see later, the fluctuating DDFT-HI equations are a very useful tool for constructing linear-time Brownian Dynamics (BD) algorithms.
-%%%%%%%
-
-
-\begin{itemize}
-\item Short time Collective diffusion
-\item Recovering 3D Hydrodynamics
-\item Color density fluctuations
-  Understanding the magnitude and the dynamics of density fluctuations is crucial for several reasons. First, in actual experiments one observes individual instances, not the ensemble average. While in many systems typical instances are quite similar to the average, i.e., the fluctuations are small compared to the mean, this is not always the case. It is well-known that nonequilibrium fluctuations in diffusive processes are, rather generally, much larger in magnitude than equilibrium fluctuations, and are also long ranged \cite{FluctHydroNonEq_Book}.
-Experiments in microgravity have measured these ``giant fluctuations'' in three dimensions, and shown that nonequilibrium diffusive fluctuations are correlated over macroscopic distances \cite{FractalDiffusion_Microgravity,GRADFLEXTransient}.
-
-For diffusion in two-dimensional systems such as thin smectic films in vacuum \cite{ThinFilms_True2D}, linearized FHD predicts that the magnitude of the nonequilibrium fluctuations becomes comparable to the mean \cite{GiantFluctuations_ThinFilms}. The appearance of such ``colossal fluctuations'' implies that the ensemble average is no longer informative, since each instance looks very different from the mean.
-It is therefore essential to understand whether individual instances of diffusive mixing processes on fluid-fluid interfaces evolve similarly to the ensemble average.
-Second, fluctuations can be measured in experiments and reveal information about the underlying microscopic mechanism of diffusion. For diffusion in bulk three-dimensional liquids or in truly two-dimensional liquids (e.g., a hard-disk fluid), the ensemble average strictly follows the familiar Fick's law \cite{DiffusionJSTAT}.
-This means that the ensemble-averaged concentration in a system where the diffusing particles are strongly correlated by hydrodynamics (e.g., two-dimensional thin smectic films \cite{ThinFilms_HIs}), will look indistinguishable from the ensemble average in a system where the diffusing particles are uncorrelated (e.g., diffusion in a solid).
-
-But if one examines the magnitude of the nonequilibrium fluctuations, the hydrodynamic correlations are revealed through an unexpected power-law dependence of the structure factor on the wavenumber \cite{GiantFluctuations_ThinFilms}.
-
-Third, collective fluctuations can couple bi-directionally to the motion of each particle and therefore \emph{renormalize} transport coefficients. For example, the fluctuating hydrodynamic theory developed in \cite{TracerDiffusion_Demery} shows that collective density fluctuations reduce the effective diffusion coefficient of a tagged particle in a dense system of uncorrelated Brownian soft spheres.
-In this paper we will show that a similar effect exists even for an ideal gas of non-interacting but hydrodynamically-correlated particles diffusing on a fluid-fluid interface.
-
-We will study the ensemble average and fluctuations of the density of spherical colloidal particles confined to diffuse on a fluid-fluid interface. We closely mimic the physical setting used in prior studies \cite{ConfinedDiffusion_2D,DDFT_Diffusion_2D,Diffusion2D_IdealGas}, and make a number of strong simplifying assumptions:
-\begin{enumerate}
-\item We assume that the interface is perfectly flat and that two fluids have the same viscosity; the case of unequal viscosity simply amounts to taking the arithmetic average of the two viscosities \cite{Diffusion2D_TwoViscosities,FluidFluidInterface_Polymers}.
-\item In order to isolate the role of hydrodynamics from the role of other direct interactions such as capillary forces or steric/electrostatic repulsion, we focus on an \emph{ideal gas} of non-interacting spherical colloids \cite{Diffusion2D_IdealGas}.
-  While such an idealized system could not be studied experimentally, it is a natural candidate for testing existing and developing new theories.
-  Furthermore, light scattering observational data for colloids at a fluid interface support predictions made for an ideal gas of particles \cite{Diffusion2D_IdealGas}.
-\item We assume that the colloids are strictly confined to the interface by a strong confining force in the $z$-direction, i.e., they cannot leave the $x-y$ plane.
-  In reality, the confinement would be partial, for example, a laser sheet may provide a harmonic confining potential in the $z$ direction. However, prior work \cite{PartiallyConfined_Quasi2D,PartiallyConfinedDiffusion_2D} has shown that partial confinement only changes the results for larger wavenumbers (i.e., for wavelengths smaller than or comparable to the range of movement in the $z$ direction), and does not affect the anomalous diffusion in the plane.
-  At the same time, we will show here that the case of strict confinement can be simulated much more efficiently using a two-dimensional Brownian dynamics algorithm.
-\item We use a minimal far-field description of the hydrodynamics, as used in prior work by others \cite{ConfinedDiffusion_2D,DDFT_Diffusion_2D,Diffusion2D_IdealGas}.
-Such a Rotne-Prager approximation is quantitatively accurate only for dilute suspensions, and we may question its usefulness in studying a \emph{collective }effect that is dominant at larger packing densities.
-Nevertheless, as already mentioned, the anomalous collective diffusion arises because of a long-ranged (far-field) repulsion $\sim k_{B}T$.
-We therefore believe that short-ranged (near-field) corrections to the hydrodynamics will not qualitatively change the phenomena studied here.
-\end{enumerate}
-While our focus is diffusion on a fluid-fluid interface, which we will refer to as Quasi2D (abbreviated q2D) diffusion, we will contrast Quasi2D diffusion to diffusion in truly two-dimensional systems such as thin films in vacuum \cite{ThinFilms_True2D}, which we will refer to as True2D (abbreviated t2D). Even though the diffusion is constrained to a two-dimensional plane in both cases, the hydrodynamics is essentially three-dimensional in Quasi2D but it is two-dimensional in True2D.
-Our computational and analytical tools can easily be extended to other types of hydrodynamics. For example, it is believed that lateral diffusion in lipid membranes \cite{MembraneDiffusion_Review} or thin smectic films in air \cite{ThinFilms_HIs} can be described using a hydrodynamic model first proposed by Saffman. The (2+1)-dimensional ((2+1)D for short) Saffman model has already been combined with linearized fluctuating hydrodynamics in \cite{GiantFluctuations_ThinFilms}, but an experimental confirmation of the predictions of the theory is still lacking.
-
-\end{itemize}
-
-
-
-
-\begin{itemize}
-\item Enhanced diffusion under soft confinement\cite{Pelaez2017}
-\item Limit to infinetely stiff confinement\cite{Pelaez2018}
-\item Describe quasi2D paper. Similar to \gls{FCM}, but with a Green's function that is integrated in Z. It is the limit of an infinite boxin Z with particles attached to z=0 via an infinitely stiff spring.
-\end{itemize}
 
 \chapter{Triply Periodic Electrostatics} \label{ch:tppoisson}
 % \section{Theory} \label{sec:tppoisson_theory}
@@ -3916,33 +3968,32 @@ Our computational and analytical tools can easily be extended to other types of 
 \item Ewald splitting similar to PSE.
 \end{itemize}
 We are going to describe a fast spectral solver for this equation with periodic boundary conditions and Gaussian sources of arbitrary widths at the charges' locations. This approach is similar to the ones presented at \cite{Lindbo2011,Tornberg2015}.
-We want to solve the Poisson equation in a periodic domain in the presence of a charge density $f(\vec{\fpos}=(x,y,z))$.
+We want to solve the Poisson equation in a periodic domain in the presence of a charge density $f(\vec{\fpos}=(x,y,z))$,
 \begin{equation}
   \label{eq:ttpoisson}
- \varepsilon\Delta\phi=-f
+ \varepsilon\Delta\phi=-f.
 \end{equation}
-Here $\varepsilon$ represents the permittivity of the medium and $f$ accounts for $N$ Gaussian charges of strenght $Q_i$ located at $\vec{z}_i$
+Here $\varepsilon$ represents the permittivity of the medium and $f$ accounts for $N$ Gaussian charges of strenght $Q_i$ located at $\vec{\ppos}_i$,
 \begin{equation}
   \label{eq:tppoisson_cdens}
-  f(\vec{\fpos})= \oper{S}(\vec{\fpos})Q = \sum_iQ_ig(||\vec{\fpos}-\vec{\ppos}_i||)
+  f(\vec{\fpos})= \oper{S}(\vec{\fpos})\vec{Q} = \sum_iQ_i\delta_a(||\vec{\fpos}-\vec{\ppos}_i||).
 \end{equation}
-Where $\oper{S}$ represents the spreading operator which transforms the charges around the particles to a smooth charge density field. The charges have a Gaussian shape
+Let us denote with the vector containing all charges as $\vec{Q} = \{Q_1,\dots,Q_N\}$.
+We will use the spreading operator, $\oper{S}$, (introduced in chapter \ref{sec:bdhi}) to transform the particles charges to a smooth charge density field. We use the Gaussian kernel,
 \begin{equation}
   \label{eq:tpppoisson_gaussiansource}
- g(r)=\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2g_w^2}\right)}
+  \delta_a(\vec{r})=\frac{1}{\left(2\pi a^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2a^2}\right)},
 \end{equation}
-Where $g_w$ represents the width of the Gaussian charges (notice that the case $g_w\rightarrow 0$ corresponds to point charges).
-Once eq. \eqref{eq:ttpoisson} is solved we have the value of the potential in every point in space and can be evaluated at the charges locations via the interpolation operator
+Identifying $a$ as the width the charges (notice that the case $a\rightarrow 0$ corresponds to point charges).
+Once eq. \eqref{eq:ttpoisson} is solved we have the value of the potential in every point in space and can be evaluated at the charges locations via the interpolation operator (introduced in chapter \ref{sec:bdhi})
 \begin{equation}  
-  \oper{J}_{\vec{\ppos}_i}\phi = \int Q_ig(\vec{\ppos}_i - \vec{\fpos})\phi(\vec{\fpos})d\vec{\fpos}
+  \phi_{\vec{\ppos}_i} = \oper{J}_{\vec{\ppos}_i}\phi = \int Q_i\delta_a(\vec{\ppos}_i - \vec{\fpos})\phi(\vec{\fpos})d\vec{\fpos}
 \end{equation}
-Here $\oper{J}$ represents the interpolation operator, that averages a quantity defined in space to a charge's location. This is the inverse operation to spreading, $\oper{J} = \oper{S}^*$.
-%In this case $J$ is the convolution with a Gaussian centered at $\vec{\ppos}_i$.
-
+Here $\oper{J}$ represents the interpolation operator, that averages a quantity defined in space to a charge's location.
 The electrostatic energy can be computed as
 \begin{equation}
   \label{tppoisson_avgpot}
-  U =  \frac{1}{2}\sum_i{\oper{J}_{\vec{\ppos}_i}\phi} 
+  U =  \frac{1}{2}\sum_i{\phi_{\vec{\ppos}_i}} 
 \end{equation}
 % Where $\bar{\phi}(\vec{z}_i)=\bar{\phi}_i$ is the convolution of the potential with a Gaussian centered at the charge's location and can also be interpreted as the average potential at that point.
 
@@ -3967,36 +4018,38 @@ Eq. \eqref{eq:ttpoisson} can be easily solved in Fourier space by convolution wi
 \begin{equation}
   \label{tppoisson_phihat}
  \hat\phi(\vec{k}) = \frac{\hat f(\vec{k})}{\varepsilon k^2}
-\end{equation}   
+\end{equation}
+We can reuse the methodological machinery devised for the \gls{FCM} (see chapter \ref{sec:fcm}) identifying $\fou{\oper{G}} := \frac{1}{k^2}$ as the Green's function and interpreting the viscosity as the permittivity. Naturally, in the current case fluctuations are not present.
+
 The electric field can be derived from the potential in fourier space via \emph{ik} differenciation \cite{ikdiff}.
 \begin{equation}
     \label{tppoisson_ehat}
   \hat{\vec{E}} = i\vec{k}\hat{\phi}
 \end{equation}
 
-Eq. \eqref{tppoisson_phihat} can be discretized using 3D \gls{FFT} in a grid with spacing fine enough to resolve the Gaussian charges in eq. \eqref{eq:tppoisson_cdens}.
+Similarly as with \gls{FCM}, eq. \eqref{tppoisson_phihat} can be discretized using 3D \gls{FFT} in a grid with spacing fine enough to resolve the Gaussian charges in eq. \eqref{eq:tppoisson_cdens}.
 
 The whole algorithm, going from particle charges to forces, can be summarized as follows
-\begin{itemize}
-\item Spread charges to the grid, eq. \eqref{eq:tppoisson_cdens}
-\item Fourier transform $f\rightarrow \hat{f}$
-\item Multiply by the Poisson's Greens function to obtain the potential, eq. \eqref{tppoisson_phihat}
-\item Compute field via \emph{ik} differentiation, eq. \eqref{tppoisson_ehat}
-\item Transform potential and field back to real space $\hat{\phi} \rightarrow \phi$; $\hat{\vec{E}} \rightarrow \vec{E}$
-\item Interpolate energy and/or force to charge locations, eqs. \eqref{tppoisson_avgpot} and \eqref{tppoisson_avgfield}.
-\end{itemize}
-Using operator notation
-\begin{equation}
-  \label{eq:tppoison_alg}
-  \vec{F}_i = Q_i\oper{J}_{\vec{\ppos}}\textrm{FFT}^{-1} \left[\frac{i\vec{K}}{\varepsilon K^2} \cdot \textrm{FFT}\left( \oper{S} Q\right)\right]
-\end{equation}
-Where $\textrm{FFT}$ represents the Fourier transform, $\vec{K}$ is the tensor with of all wave vectors (being $K$ their modulus).
+\begin{enumerate}
+\item Spread charges to the grid, $f=\oper{S}\vec{Q}$.
+\item Fourier transform $\hat{f} = \mathfrak{F}f$.
+\item Multiply by the Poisson's Greens function to obtain the potential, $\fou{\phi} = \frac{\hat{f}}{\varepsilon k^2}$.
+\item Compute field via \emph{ik} differentiation, $\fou{\vec{E}} = i\vec{k}\fou\phi$.
+\item Transform potential and field back to real space $\phi = \mathfrak{F}^{-1}\fou\phi$; $\vec{E} = \mathfrak{F}^{-1}\fou{\vec{E}}$.
+\item Interpolate energy and/or force to charge locations, $\phi_i = \oper{J}\phi$; $\vec{E}_i = \oper{J}_{\vec{\ppos}_i}\vec{E}$.
+\end{enumerate}
+%Using operator notation
+%\begin{equation}
+%  \label{eq:tppoison_alg}
+%  \vec{F}_i = Q_i\oper{J}_{\vec{\ppos}}\textrm{FFT}^{-1} \left[\frac{i\vec{K}}{\varepsilon K^2} \cdot \textrm{FFT}\left( \oper{S} Q\right)\right]
+%\end{equation}
+%Where $\textrm{FFT}$ represents the Fourier transform, $\vec{K}$ is the tensor with of all wave vectors (being $K$ their modulus).
 %\begin{equation}
 %  \label{eq:tppoison_alg_u}
 %  U_i = q_iJ_iF^{-1} \frac{1}{\epsilon K^2}F Sq
 %\end{equation}
-
-The main problem with this approach is that the grid needs to be fine enough to correctly describe the Gaussian sources. Thus a small width results in a high number of grid cells. This hinders the ability to simulate large domains (in terms of $g_w$) or narrow (or even point) sources. In order to overcome this limitation we use an Ewald splitting technique\cite{ewaldsplit}.
+\subsection*{Ewald splitting}
+The main problem with this approach is that the grid needs to be fine enough to correctly describe the Gaussian sources. Thus a small width results in a high number of grid cells. This hinders the ability to simulate large domains (in terms of $a$) or narrow (or even point) sources. In order to overcome this limitation we use an Ewald splitting technique\cite{ewaldsplit} (reminiscent of the use case introduced with \gls{PSE} in chapter \ref{sec:pse}).
 
 We can write the potential as
 \begin{equation}
@@ -4019,40 +4072,40 @@ Given that the Laplacian commutes with the convolution we can divide the problem
  \label{tppoisson_ewald_near}
  \varepsilon\Delta\phi^{\near}=-f\star(1-\gamma)
 \end{equation}   
-The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case by effectively modifying the width of the Gaussian sources from $g_w$ to
+The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case by effectively modifying the width of the Gaussian sources from $a$ to
 \begin{equation}
-  g_t = \sqrt{\frac{1}{4\xi^2} + g_w^2}
+  g_t = \sqrt{\frac{1}{4\xi^2} + a^2}
 \end{equation}
 Notice that this overcomes the difficulties for the case of point sources, since we can arbitrarily increase $\xi$ to work with an arbitrarily large Gaussian source.
 
 In contrast the near field effective charges are sharply peaked and narrower than the originals, rapidly decaying to zero. We can compute the Green's function for eq. \eqref{tppoisson_ewald_near} analytically by convolving the original Poisson Green's function with the effective charges in eq. \eqref{tppoisson_ewald_near} in Fourier space
 \begin{equation}
-  \hat{G}^{\near}(k) = \frac{(1-\hat{\gamma})\hat{g}}{\varepsilon k^2}
+  \hat{\oper{G}}^{\near}(k) = \frac{(1-\hat{\gamma})\hat{f}}{\varepsilon k^2}
 \end{equation}
 The inverse transform of this kernel gives us the potential at any point of the grid 
 \begin{equation}
-  \phi^{\near}(\vec{\fpos}) = \sum_i{Q_iG^{\near}(||\vec{\fpos}-\vec{\ppos}_i||)}
+  \phi^{\near}(\vec{\fpos}) = \sum_i{Q_i\oper{G}^{\near}(||\vec{\fpos}-\vec{\ppos}_i||)}
 \end{equation}
-However, we are only interested in the potential averaged at the charges locations. Instead of storing and computing the potential in a grid and then interpolating as in the far field we can compute this analytically. Given that $\oper{J} \phi^{\near} = g\star \phi^{\near}$ we can define a pre-interpolated interaction kernel as
+However, we are only interested in the potential averaged at the charges locations. Instead of storing and computing the potential in a grid and then interpolating as in the far field we can compute this analytically. Given that $\oper{J} \phi^{\near} = f\star \phi^{\near}$ we can define a pre-interpolated interaction kernel as
 \begin{equation}
-  \hat{G}_{\oper{J}}^{\near}(k) = \hat{g}\hat{G}^{\near} = \frac{(1-\hat{\gamma})\hat{g}^2}{\varepsilon k^2}
+  \hat{\oper{G}}_{\oper{J}}^{\near}(k) = \hat{f}\hat{\oper{G}}^{\near} = \frac{(1-\hat{\gamma})\hat{f}^2}{\varepsilon k^2}
 \end{equation}
 This expression is radially symmetric, which allows to compute the inverse Fourier transform as
 \begin{equation}
   \label{tppoisson_gnear}
   \begin{aligned}
-    G_{\oper{J}}^{\near}(r) &= \frac{1}{2\pi^2r}\int{\hat{G}^{\near}_{\oper{J}}k \sin(kr)dk} \\
-            &= \frac{1}{4\pi\epsilon r}\left(\erf\left(\frac{r}{2g_w}\right) - \erf\left(\frac{r}{2g_t}\right)\right)
+    \oper{G}_{\oper{J}}^{\near}(r) &= \frac{1}{2\pi^2r}\int{\hat{\oper{G}}^{\near}_{\oper{J}}k \sin(kr)dk} \\
+            &= \frac{1}{4\pi\epsilon r}\left(\erf\left(\frac{r}{2a}\right) - \erf\left(\frac{r}{2g_t}\right)\right)
   \end{aligned}
 \end{equation}
 Which decays exponentially and thus can be truncated at a certain cut off radius $r_c$. Furthermore this expression requires special consideration at short distances where numerical issues could arise. In this cases the Taylor expansion of eq. \eqref{tppoisson_gnear} can be used instead.
 We can use this expression to compute the potential or energy at the charges locations
 \begin{equation}
-  U_i = Q_i\oper{J}_{\vec{\ppos}}\phi^{\near}(\vec{\fpos}) = Q_i\sum_j{Q_jG_{\oper{J}}^{\near}(||\vec{\ppos}_i - \vec{\ppos}_j||)}
+  U_i = Q_i\oper{J}_{\vec{\ppos}_i}\phi^{\near}(\vec{\fpos}) = Q_i\sum_j{Q_j\oper{G}_{\oper{J}}^{\near}(||\vec{\ppos}_i - \vec{\ppos}_j||)}
 \end{equation}
 Similarly we compute the electric field or force acting on each charge 
 \begin{equation}
-  \vec{F}_i = Q_i \oper{J}_{\vec{\ppos}} \vec{E}^{\near}_i = Q_i\sum_j{Q_j\frac{\partial G_{\oper{J}}^{\near}({r_{ij}})}{\partial r}\frac{\vec{r}_{ij}}{r_{ij}}}
+  \vec{F}_i = Q_i \oper{J}_{\vec{\ppos}_i} \vec{E}^{\near} = Q_i\sum_j{Q_j\frac{\partial G_{\oper{J}}^{\near}({r_{ij}})}{\partial r}\frac{\vec{r}_{ij}}{r_{ij}}}
 \end{equation}
 Where $\vec{r}_{ij} = \vec{\ppos}_i - \vec{\ppos}_j$ and $r_{ij} = ||\vec{r}_{ij}||$. The derivative of eq. \eqref{tppoisson_gnear} can be computed analytically.
 
@@ -4060,7 +4113,7 @@ Where $\vec{r}_{ij} = \vec{\ppos}_i - \vec{\ppos}_j$ and $r_{ij} = ||\vec{r}_{ij
 There are several parameters than can be tweaked to control the overall accuracy of the algorithm:
 The grid cell size $h$ or the number of grid cells $n$ control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
 \begin{equation}
-h = L/n = g_w/\alpha
+h = L/n = a/\alpha
 \end{equation}
 Where $L$ is the domain size (a cubic box is considered, but the arguments can be extended easily to any domain dimensions) and $\alpha$ is a proportionality factor. Note that $n$ should be chosen to be an \gls{FFT}-friendly number.
 
@@ -4069,7 +4122,7 @@ Where $L$ is the domain size (a cubic box is considered, but the arguments can b
 
 This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
 
-\begin{minted}{\ucpp}
+\begin{code2}[Usage example of the triply periodic Poisson module.]{label=code:poisson}
 #include<uammd.cuh>
 #include<Interactor/SpectralEwaldPoisson.cuh>
 using namespace uammd;
@@ -4087,10 +4140,9 @@ auto createTPPoissonInteractor(UAMMD sim){
   // the code will run in Ewald split mode
   //Otherwise, the non Ewald version will be used
   //par.split = 1.0;
-  //The charges and positions will be requested from sim.pd
-  return std::make_shared<Poisson>(sim.pd, sim.pg, sim.sys, par);
+  return std::make_shared<Poisson>(sim.pd, par);
 }
-\end{minted}
+\end{code2}
 The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for $L\rightarrow\infty$ is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance.
 
 \chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
@@ -4254,19 +4306,6 @@ Introduction.
 \section{Implementation}
 
 \section{How to use in UAMMD}
-
-
-\chapter{Doubly Periodic Stokes}\label{ch:dpstokes}
-Doubly Periodic Stokes
-\section{Problem description}
-Introduction.
-\section{Algorithm}
-
-\section{Implementation}
-
-\section{How to use in UAMMD}
-
-
 \newpage
 \cleardoublepage
 \ctparttext{Collection of tools and algorithms useful in soft matter simulations.}
@@ -4369,9 +4408,102 @@ Using \gls{PSE} to model the environment of a cell. In particular how the presen
 Using \gls{BDHI} via Cholesky to compute different properties of a low density solution of star polymers in shear flow.
 % \chapter{Optofluidic Control of nanoscale dumbbells}
 
-\chapter{Collective colloid diffusion under soft two-dimensional confinement}
+\chapter{Applications: Hydrodynamics in confined geometries}
+\begin{itemize}
+\item Long time self diffussion
+\item Linear response theory for MSD
+\item Ensemble averages for color
+\item giant fluctuations comparison BD, q2D, t2D
+\item Bridging the gap to 3D, the short time collective diffusion coefficient and the hydrodynamic function
+\item Mention steric repulsion, only affects large wavenumbers (steric repulsion size), but the colective effect remains.
+\end{itemize}
+Bulk diffusion of particles in liquids is well-known to be controlled by hydrodynamics, and diffusion on interfaces is no exception. While the diffusion of colloids and polymers on a fluid-fluid interface has been studied theoretically since the 1970s \cite{FluidFluidInterface_Polymers,Diffusion2D_TwoViscosities}, \emph{collective diffusion} in a monolayer of colloidal particles confined to a fluid-fluid interface has only recently been explored in some detail both theoretically \cite{Bleibel2014,Bleibel2016,Bleibel2015} and experimentally[11].
 
-asdasdasdas
+The hydrodynamic coupling between the confining force acting on each individual colloid and their collective motion leads to surprising effects.
+For instance, if the constraint is holonomic (colloids are restricted to move on a purely 2D domain), the confining force can be seen to arise from the non-zero divergence of the mobility tensor, which is related to the reduction of entropy imposed across the confining plane. In the case of a point wise force in unbounded fluid such flow perturbation (Oseen) decays like the inverse of the distance and, as a consequence, the diffusion coefficient of larger and larger colloidal density fluctuations increases without bounds. In particular, this results in the short-time collective diffusion diverging as the inverse of the wave number.
+This unexpected finding has prompted re-examination of previous experimental results \cite{Diffusion2D_Experiments_Weitz,SD_TwoWalls,Diffusion2D_Experiments_Rice}, and it is plausible that the effect may have been overlooked in a number of other prior experimental and theoretical works as well.
+
+The physical origin of the anomalous collective diffusion has already been elucidated in prior work by others\cite{Bleibel2014,Bleibel2016,Bleibel2015,Dominguez2014}. Basically, momentum conservation implies that the confining force acting on each particle has to propagate to the surrounding, incompressible, solvent. In the plane, the resulting hydrodynamic drag created by one particle acts like a flow source that induces an effective repulsive force on the other particles.
+
+This results in strong displacement correlations which are the origin of the anomalous collective diffusion.
+A new interpretation of this phenomena is obtained if one focuses on the in-plane dynamics.
+In the plane, the field of diffusive displacements appears to be compressible due to the momentum source associated with each confined particle.
+In the limit of strict confinement, the flow acts as a compressible two-dimensional cut through an incompressible three-dimensional flow field.
+Because of this apparent compressibility, the Brownian motion of the particles creates an osmotic pressure proportional to $\kT$, which propagates via the fluid inducing long-ranged repulsive interactions.
+This long-ranged repulsion decays slowly with the particle-particle distance, and dramatically accelerates collective diffusion at large scales.
+Furthermore,
+% contrary to what was previously thought \cite{Pelaez2017,Bleibel2017},
+these long-ranged correlations also appreciably modify the single-particle diffusion, as we will see in future sections.
+
+Such types of hydrodynamic enhancements do not only take place when the fluid is unbounded in the three directions. The presence of distant boundaries modifies the propagation (e.g., $1/r^2$ inside a slit channel[12,13]), leading to yet-unexplained and stronger variations of this phenomena which might also depend on the wall's slip boundary conditions.
+We will study how this anomalous collective diffusion becomes normal as the confinement is made softer.
+
+During the following chapters, we will study the collective diffusion and transport properties of a suspension of particles confined to a plane in two regimes:
+\begin{itemize}
+\item When the confinement is not strict and particles can leave the plane. For this, we can make use of the \gls{FIB} or \gls{FCM} described in previous sections and impose an external confining force on each particle. Although our implementations for these algorithms are triply periodic, we will neglect the contributions of the periodic copies of the system in the third direction by making the domain be much larger than the typical width of the suspension. We can also study the transient to the inertial regime by using \gls{ICM}.
+\item In the limit of strict confinement. Since our region of interest is the purely 2D plane in which particles diffuse, we will develop a new algorithm that takes into account the unbounded fluid in the $z$ direction implicitly.
+\end{itemize}
+Additionally, we will describe a new doubly periodic algorithm capable of solving hydrodynamics in the first scenario by directly imposing a different set of boundary conditions at the domain limits in the third direction. In particular, we can use this new framework to impose open boundaries, with the possibility of adding one or two walls at the domain limits (particles near a wall or a slit channel).
+
+
+%\chapter{Diffusion under soft confinement}\label{ch:softq2D}
+We will see how this length scale governs the collective intermediate scattering function of colloids under harmonic confinement. We will examine how the enhancement of the collective diffussion dissapears going from the limit of strict confinement with $K_s\rightarrow \infty$ to the purely open 3D hydrodynamics with $K_s\rightarrow 0$.
+Excluded volume and other potential interactions between colloids add another length scale to the collective diffusion, which partially masks the anomalous hydrodynamic enhancement. This masking depends on the static structure factor, $S(k)$, and here we illustrate the case of repulsive, \gls{WCA}, and attractive, \gls{LJ}, potentials.
+
+Later, we will take the mathematical limit of $K_s\rightarrow \infty$ to connect 
+
+%% Q2d paper intro:
+
+%Previous work on collective diffusion of colloids on fluid-fluid interfaces\cite{Bleibel2014,Bleibel2016,Bleibel2015} has focused on the \emph{ensemble average}. Our focus here is on the \emph{fluctuations} around the ensemble average, i.e., on the equations for the evolution of a particular \emph{instance} (trajectory) of diffusive processes on interfaces. We use the fluctuating DDFT-HI developed in \cite{Donev2014}, which is closely-related to \emph{fluctuating hydrodynamics} (FHD)\cite{Donev2014_2}. The (formal) nonlinear equations of FHD are challenging to interpret \cite{SPDE_Diffusion_DDFT,DDFT_Hydro}, but, at the same time, they are more physically transparent than the ensemble-averaged equations, and do not require closures for noninteracting particles\cite{DDFT_Hydro}. Furthermore, as we will see later, the fluctuating DDFT-HI equations are a very useful tool for constructing linear-time Brownian Dynamics (BD) algorithms.
+%%%%%%%
+
+
+\begin{itemize}
+\item Short time Collective diffusion
+\item Recovering 3D Hydrodynamics
+\item Color density fluctuations
+  Understanding the magnitude and the dynamics of density fluctuations is crucial for several reasons. First, in actual experiments one observes individual instances, not the ensemble average. While in many systems typical instances are quite similar to the average, i.e., the fluctuations are small compared to the mean, this is not always the case. It is well-known that nonequilibrium fluctuations in diffusive processes are, rather generally, much larger in magnitude than equilibrium fluctuations, and are also long ranged \cite{FluctHydroNonEq_Book}.
+Experiments in microgravity have measured these ``giant fluctuations'' in three dimensions, and shown that nonequilibrium diffusive fluctuations are correlated over macroscopic distances \cite{FractalDiffusion_Microgravity,GRADFLEXTransient}.
+
+For diffusion in two-dimensional systems such as thin smectic films in vacuum \cite{ThinFilms_True2D}, linearized FHD predicts that the magnitude of the nonequilibrium fluctuations becomes comparable to the mean \cite{GiantFluctuations_ThinFilms}. The appearance of such ``colossal fluctuations'' implies that the ensemble average is no longer informative, since each instance looks very different from the mean.
+It is therefore essential to understand whether individual instances of diffusive mixing processes on fluid-fluid interfaces evolve similarly to the ensemble average.
+Second, fluctuations can be measured in experiments and reveal information about the underlying microscopic mechanism of diffusion. For diffusion in bulk three-dimensional liquids or in truly two-dimensional liquids (e.g., a hard-disk fluid), the ensemble average strictly follows the familiar Fick's law \cite{DiffusionJSTAT}.
+This means that the ensemble-averaged concentration in a system where the diffusing particles are strongly correlated by hydrodynamics (e.g., two-dimensional thin smectic films \cite{ThinFilms_HIs}), will look indistinguishable from the ensemble average in a system where the diffusing particles are uncorrelated (e.g., diffusion in a solid).
+
+But if one examines the magnitude of the nonequilibrium fluctuations, the hydrodynamic correlations are revealed through an unexpected power-law dependence of the structure factor on the wavenumber \cite{GiantFluctuations_ThinFilms}.
+
+Third, collective fluctuations can couple bi-directionally to the motion of each particle and therefore \emph{renormalize} transport coefficients. For example, the fluctuating hydrodynamic theory developed in \cite{TracerDiffusion_Demery} shows that collective density fluctuations reduce the effective diffusion coefficient of a tagged particle in a dense system of uncorrelated Brownian soft spheres.
+In this paper we will show that a similar effect exists even for an ideal gas of non-interacting but hydrodynamically-correlated particles diffusing on a fluid-fluid interface.
+
+We will study the ensemble average and fluctuations of the density of spherical colloidal particles confined to diffuse on a fluid-fluid interface. We closely mimic the physical setting used in prior studies \cite{ConfinedDiffusion_2D,DDFT_Diffusion_2D,Diffusion2D_IdealGas}, and make a number of strong simplifying assumptions:
+\begin{enumerate}
+\item We assume that the interface is perfectly flat and that two fluids have the same viscosity; the case of unequal viscosity simply amounts to taking the arithmetic average of the two viscosities \cite{Diffusion2D_TwoViscosities,FluidFluidInterface_Polymers}.
+\item In order to isolate the role of hydrodynamics from the role of other direct interactions such as capillary forces or steric/electrostatic repulsion, we focus on an \emph{ideal gas} of non-interacting spherical colloids \cite{Diffusion2D_IdealGas}.
+  While such an idealized system could not be studied experimentally, it is a natural candidate for testing existing and developing new theories.
+  Furthermore, light scattering observational data for colloids at a fluid interface support predictions made for an ideal gas of particles \cite{Diffusion2D_IdealGas}.
+\item We assume that the colloids are strictly confined to the interface by a strong confining force in the $z$-direction, i.e., they cannot leave the $x-y$ plane.
+  In reality, the confinement would be partial, for example, a laser sheet may provide a harmonic confining potential in the $z$ direction. However, prior work \cite{PartiallyConfined_Quasi2D,PartiallyConfinedDiffusion_2D} has shown that partial confinement only changes the results for larger wavenumbers (i.e., for wavelengths smaller than or comparable to the range of movement in the $z$ direction), and does not affect the anomalous diffusion in the plane.
+  At the same time, we will show here that the case of strict confinement can be simulated much more efficiently using a two-dimensional Brownian dynamics algorithm.
+\item We use a minimal far-field description of the hydrodynamics, as used in prior work by others \cite{ConfinedDiffusion_2D,DDFT_Diffusion_2D,Diffusion2D_IdealGas}.
+Such a Rotne-Prager approximation is quantitatively accurate only for dilute suspensions, and we may question its usefulness in studying a \emph{collective }effect that is dominant at larger packing densities.
+Nevertheless, as already mentioned, the anomalous collective diffusion arises because of a long-ranged (far-field) repulsion $\sim k_{B}T$.
+We therefore believe that short-ranged (near-field) corrections to the hydrodynamics will not qualitatively change the phenomena studied here.
+\end{enumerate}
+While our focus is diffusion on a fluid-fluid interface, which we will refer to as Quasi2D (abbreviated q2D) diffusion, we will contrast Quasi2D diffusion to diffusion in truly two-dimensional systems such as thin films in vacuum \cite{ThinFilms_True2D}, which we will refer to as True2D (abbreviated t2D). Even though the diffusion is constrained to a two-dimensional plane in both cases, the hydrodynamics is essentially three-dimensional in Quasi2D but it is two-dimensional in True2D.
+Our computational and analytical tools can easily be extended to other types of hydrodynamics. For example, it is believed that lateral diffusion in lipid membranes \cite{MembraneDiffusion_Review} or thin smectic films in air \cite{ThinFilms_HIs} can be described using a hydrodynamic model first proposed by Saffman. The (2+1)-dimensional ((2+1)D for short) Saffman model has already been combined with linearized fluctuating hydrodynamics in \cite{GiantFluctuations_ThinFilms}, but an experimental confirmation of the predictions of the theory is still lacking.
+
+\end{itemize}
+
+
+
+
+\begin{itemize}
+\item Enhanced diffusion under soft confinement\cite{Pelaez2017}
+\item Limit to infinetely stiff confinement\cite{Pelaez2018}
+\item Describe quasi2D paper. Similar to \gls{FCM}, but with a Green's function that is integrated in Z. It is the limit of an infinite boxin Z with particles attached to z=0 via an infinitely stiff spring.
+\end{itemize}
+
+
 
 \part{Appendix}
 
@@ -4398,9 +4530,14 @@ int main(){
 }
 \end{code2}
 
-We can define functions with the syntax in code \ref{code:function}
+\subsection*{The auto keyword}
+The keyword \emph{auto} can be seen in almost every code example in this manuscript. In contrast with other loosely typed languages, C++ forces the developer to always state the actual type of a variable when defining it. Similarly, the return type of a function must be specified.
+In some situations, for instance when dealing with metaprogramming (which we will discuss shortly), knowing the name of the relevant type can become cumbersome and verbose. Luckily, the latest standards allow to replace the type name by the keyword \emph{auto}. When the compiler sees a variable with the type \emph{auto}, it will automatically deduce the correct type for it. Example code \ref{code:foo} introduces a couple of use cases for the \emph{auto} keyword.
 
-\begin{code2}[The classic Hello World program in C++. Once executed, it will print ``Hello world'' to the terminal.] {label=code:hello}
+\subsection*{Functions}
+Main is an example of a function (albeit a special one), the syntax for defining custom functions is similar, see code \ref{code:foo}. The special return type \mintinline{\ucpp}{void} can be used to signify that a function returns nothing.
+
+\begin{code2}[Defining a function in C++.] {label=code:foo}
 //We can define a function with the syntax below
 //The returning type, in this case int, can be replaced 
 // by the keyword auto.
@@ -4419,28 +4556,163 @@ int main(){
 }
 \end{code2}
 
-
-By default, a C++ code will have access only to the basic rules of the languages. 
-
+\subsection*{Including other codes}
+By default, a C++ source code will have access only to the basic rules of the languages. We can add libraries via the \emph{include} directive, which will make available to us every function, class an variable defined in another file. For instance, in example code \ref{code:hello} we can see how to include the standard library header file that provides printing functionality.
 
 \begin{code2}[The classic Hello World program in C++. Once executed, it will print ``Hello world'' to the terminal.] {label=code:hello}
-#include<iostream> //Includes std::cout and std::endl
-int main(){
-  std::cout<<"Hello world"<<std::endl;
-  return 0;
-}
+  #include<iostream> //Includes std::cout and std::endl
+  //Uncommenting the line below permits to omit
+  // the std::
+  //using namespace std;
+  int main(){    
+    std::cout<<"Hello world"<<std::endl;    
+    return 0;  
+  }
 \end{code2}
 
+\subsection*{Namespaces and the using keyword}
+In order to avoid naming collisions (two libraries or files defining entities with the same name) C++ provides the concept of \emph{namespaces}. We have already seen the standard library namespace, \emph{std}, in action in example \ref{code:hello}. In order to reference an entity inside a given namespace, the ``::'' operator is used. In the aforementioned example, we access the object \emph{cout} of the \emph{std} namespace with \mintinline{\ucpp}{std::cout}.
 
-\begin{itemize}
-\item The main function
-\item The using keyword, using namespace
-\item struct and class
-\item Inheritance 
-\item Describe shared pointer
-\item Importance of modern C++
-\item Concept of metaprogramming
-\end{itemize}
+This can become a nuissance when a given namespace is constantly used. C++ provides the \mintinline{\ucpp}{using namespace} construct to mitigate this. For instance, throughout this manuscript, the line \mintinline{\ucpp}{using namespace uammd;} is used to omit writting \mintinline{\ucpp}{uammd::} every time an \uammd entity is referenced.
+
+The \mintinline{\ucpp}{using} keyword has a second usage, it allows to ``rename'' a type. In C++ type names can become quite convoluted and long. The \mintinline{\ucpp}{using} keyword can be used in these cases. For instance, in example code \ref{code:pf} we write the line \mintinline{\ucpp}{using PF = PairForces<Potential, NeighbourList>;}, allowing to use simply ``PF'' when we want to refer to the longer type name.
+\subsection*{Objects}
+Although C++ can work as a functional language, it is heavily object oriented. The \mintinline{\ucpp}{struct} and \mintinline{\ucpp}{class} keywords are used to define objects in C++\footnote{The only difference between a struct and a class is the default visibility of its members. By default, members in a struct have public visibility, whereas a class defaults to private visibility.}.
+
+An object can hold both variables and functions, which are refered to as \emph{members}. A member function in a class has access to all other members of the object.
+
+In the author's personal programming style, structs are usually used to serve as an aggregate of variables, whereas classes are used as a more complex object (with member functions, etc). Note however, that the struct and class keywords are almost interchangeable.
+
+\begin{code2}[Examples of object creation.] {label=code:class}
+  #include<iostream>
+  //The syntax for creating a struct with type name Parameters, holds two double variables.
+  struct Parameters{
+    double var1;
+    double var2;    
+  };
+  //A class with public visibility is equivalent to a struct.
+  class MyClass{
+    //The public keyword marks every defined member below as accessible from outside
+    public:
+    void print(){
+      std::cout<<"Hello"<<std::endl;
+    }
+  };
+  int main(){
+    //Create an instance of the struct Parameters
+    Parameters par;
+    //Set the value of one of its variables
+    par.var1 = 1.0;
+    //Create an instance of the object MyClass
+    MyClass c;
+    //Call it's member "print".
+    c.print();
+    return 0;  
+  }
+\end{code2}
+Given that object can be created and passed around as regular variables, we can use them to encapsulate and transport logic between different parts of the code.
+
+In \uammd, every \emph{Interactor} and \emph{Integrator} is provided as a C++ \mintinline{\ucpp}{class}.
+
+
+\subsection*{Object inheritance}
+In C++, objects can inherit the functionality of other classes, and even override some of it. For instance, every polygon has an area, we can create a class called \emph{Polygon} that provides a member function called \emph{area} (returning the area). However, a polygon is just a concept that has no area per se. We can then create another class called \emph{Square} that inherits from \emph{Polygon} and overrides the \emph{area} function, providing its squared side.
+
+Given that the area of a \emph{Polygon} object is meaningless, we can mark it's \emph{area} function as \mintinline{\ucpp}{virtual} and add the suffix \mintinline{\ucpp}{= 0;} to its signature. This transforms the \emph{Polygon} class into a \emph{virtual base class}, which means that it cannot be instanced directly, rather it must be inherited and the virtual members must be overriden. See example code \ref{code:inherit}.
+\begin{code2}[Inheriting a virtual class.] {label=code:inherit}
+  //This is a virtual class
+  class Polygon{
+    public:
+    virtual double area() = 0;
+  };
+  //This class is a kind of Polygon (inherits from it)
+  class Square: public Polygon{
+    double side = 2.0; //An arbitrary value for the side
+    public:
+    //We can override the area member of Polygon
+    virtual double area() override{
+      return side*side;
+    }
+  };
+  //This class is a kind of Polygon (inherits from it)
+  class Circle: public Polygon{
+    double radius = 2.0; //An arbitrary value for the radius
+    public:
+    //We can override the area member of Polygon
+    virtual double area() override{
+      return 3.1415*radius*radius;
+    }
+  };
+
+  int main(){
+    Square s;
+    auto a = s.area();
+    Circle c;
+    auto a2 = c.area();
+    return 0;  
+  }
+\end{code2}
+
+In \uammd, \emph{Interactor} and \emph{Integrator} are virtual classes such as \emph{Polygon}. One of the benefits of using inheritance is that it allows to provide a general logical interface. In general C++ an inherited class can mascarade as an instance of the parent class (but not the other way around). So a \emph{Square} can be used as a \emph{Polygon} but not viceversa. This only happens, however, for pointers (since the virtual base class cannot be instanced directly).
+
+Let us discuss now the type of pointer used throughout this manuscript, the \mintinline{\ucpp}{std::shared_ptr}.
+
+\subsection*{Shared pointers}
+Without going into detail (the reader can learn more online), a C++ shared pointer can hold ownership of an object through a pointer. In the \uammd examples in this manuscript we use shared pointers mainly to pass around \emph{Interactors} and \emph{Integrators}. For instance, in example \ref{code:pf} we create and return an instance of \emph{PairForces}, a class inherited from \emph{Interactor}. On the other hand, the \emph{Integrator} member function \mintinline{\ucpp}{addInteractor();} will take in its argument a pointer to an \emph{Interactor}, meaning that the \emph{PairForces} instance created in example \ref{code:pf} can be passed to an \emph{Integrator} (such as the one created in example \ref{code:md}) directly.
+
+
+\begin{code2}[Using shared pointer to hold many types of polygons.] {label=code:sharedptr}
+  #include<memory> //std::shared_ptr
+  #include<vector> //std::vector
+  //Using the Polygon declarations of the previous example
+  //This function takes a pointer to a polygon and returns its area
+  auto getAreaOf(std::shared_ptr<Polygon> pol){
+    return pol->area();
+  }
+  int main(){
+    //Create pointers to a square and a circle
+    auto s = std::make_shared<Square>();
+    auto c = std::make_shared<Circle>();
+    //The getAreaOf function works for pointers of any class that inherits from Polygon
+    double as = getAreaOf(s);
+    double ac = getAreaOf(c);
+    //We can also aggregate pointers to Polygon childs in a vector
+    std::vector<std::shared_ptr<Polygon> > vec({s, c});
+    return 0;  
+  }
+\end{code2}
+
+\subsection*{Metaprogramming}
+In addition of inheritance, C++ offers another way of writing generic code called templates. A template is a function or object that is generic for any type (sometimes the type is restricted under some assumptions). For instance, let us rewrite the function \mintinline{\ucpp}{getAreaOf} in example \ref{code:sharedptr} using metaprogramming instead of inheritance.
+
+\begin{code2}[Using shared pointer to hold many types of polygons.] {label=code:sharedptr}
+  //This function takes any type and returns its area. Of course, it will not compile if the provided type has no member function called area.
+  //When we call this function, T will be replaced by the type of the provided argument
+  template<class T>
+  auto getAreaOf(T pol){
+    return pol.area();
+  }
+  int main(){
+    Square s;
+    Circle c;
+    //The getAreaOf function now works any type that provides a function called
+    // area
+    double as = getAreaOf(s);
+    double ac = getAreaOf(c);    
+    double var = 1.0;
+    //The code would be invalid if a double is passed, since the function expects the member area to exists.
+    //double avar = getAreaOf(var);
+    return 0;  
+  }
+\end{code2}
+
+In \uammd, templates are used extensively to generalize modules. For instance, the \emph{PairForces} module (see example code \ref{code:pf}) is templated for both the potential and the neighbour list.
+
+
+
+\subsection*{Other keywords}
+The \mintinline{\ucpp}{const} keyword simply informs the reader (and compiler) that the value of the accompanying variable cannot be modified after its declaration. When appearing in the signature of an object's member function, it conveys that the function will not modify the state of the object in any way.
+
 
 \section{Basic concepts of GPU programming}
 Things to explain here:
@@ -4455,7 +4727,7 @@ Things to explain here:
 
 
 
-\chapter{Appendix A: Dealing with the FFT in the GPU} \label{ch:appendixa}
+\chapter{Dealing with the FFT in the GPU} \label{ch:appendixa}
 
 Many of the numerical techniques in this manuscript make use of the \gls{FFT}, mostly in order to easily compute convolutions. The \gpu is a very powerful hardware for \gls{FFT}, but using the available \glspl{API} can become a real nuisance. In this chapter we will see how \uammd makes use of the CUDA library \emph{cuFFT}\cite{cufft} and how to work with data in Fourier space. While the information hereafter is centric to the \emph{cuFFT} library, most lessons are applicable to other popular \gls{FFT} libraries (such as \emph{FFTW}).
 The documentation of the \emph{cuFFT} library is sometimes obscure (and even lacking). There are some particular details that have made me waste countless hours, hopefully with the help of this chapter you can spare some.
@@ -4493,7 +4765,7 @@ In principle, \emph{cuFFT} allows to store the input and output of a C2R or R2C 
 Since most spectral algorithms in \uammd require C2R and R2C transforms it is worth giving here some more details about the correspondence of wave numbers and elements in the data array.
 
 Here is a convenience function that returns the wave number that corresponds to a certain index in the data array.
-\begin{minted}{\ucpp}
+\begin{code2}[Getting the wave number corresponding to a given linearized index.]{label=code:i2wn}
 int3 indexToWaveNumber(int i, int3 nk){
   int ikx = i%(nk.x/2+1);
   int iky = (i/(nk.x/2+1))%nk.y;
@@ -4503,7 +4775,7 @@ int3 indexToWaveNumber(int i, int3 nk){
   ikz -= nk.z*(ikz >= (nk.z/2+1));
   return make_int3(ikx, iky, ikz);
 }
-\end{minted}
+\end{code2}
 
 Most \gls{FFT} libraries povide some kind of advanced interface allowing to customize the data layout to some extent. In \emph{cuFFT} this is called the \emph{Advanced Data Layout}. In \uammd this is used extensively to compute three or four transformations in a single batch using interleaved data. For example, we can directly transform the forces spreaded to the grid in \gls{FCM} (see sec. \ref{sec:fcm}) stored in a vector \emph{real3} elements.
 For example, if we want to transform the three coordinates for the forces in an interleaved array, we can instruct the library to interpret this data as three signals, each starting after the other and strided by three elements.
@@ -4671,9 +4943,9 @@ Except for the $k=0$ wave number, every solve is identical in operations, meanin
 }
 
 \chapter{UAMMD's online documentation}\label{ch:online}
+At the time of writing, the \uammd codebase is hosted as a git repository in the github platform (currently the de facto standard git hosting platform), at \url{https://github.com/RaulPPelaez/UAMMD}. Platforms change over time and github might not exist at the time you are reading this\footnote{As a side note, the \uammd was included among the github's Artic Code Vault program repositories. Thus, a physical copy of the codebase can be found 250 meters under the permafrost in a vault inside an abandoned coal mine in the Svalbard archipielago. This means that the codebase should be retrievable for at least the next thousand years.}. If that is the case and a google search does not help you locate its new hosting you have two options; either find me and request it directly or look in the wayback machine. At the time of writing, the internet archive has already scraped the uammd repository at least once, you can find the archived versions at \url{http://web.archive.org/web/202*/https://github.com/RaulPPelaez/UAMMD}.
 
 \begin{itemize}
-\item References to the repository
 \item Description of the wiki
 \item Marc's book
 \item Tutorials included in the repo
