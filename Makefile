@@ -4,6 +4,7 @@ all: clean
 	(cd gfx && bash agr2eps.bash)
 	@texfot --ignore="This is" pdflatex -interaction=batchmode  -draftmode $(OPTIONS) main	
 	@texfot	--ignore="This is" bibtex main
+	@texfot	--ignore="This is" bibtex main1-blx
 	@texfot	--ignore="This is" pdflatex -interaction=batchmode -draftmode $(OPTIONS)  main
 	@texfot	--ignore="This is" makeglossaries main
 	@texfot	--ignore="This is" pdflatex -interaction=batchmode $(OPTIONS) main
@@ -12,6 +13,7 @@ verbose: clean
 	(cd gfx && bash agr2eps.bash)
 	pdflatex  -draftmode $(OPTIONS) main	
 	bibtex main
+	bibtex main1-blx
 	pdflatex -draftmode $(OPTIONS)  main
 	makeglossaries main
 	pdflatex $(OPTIONS) main

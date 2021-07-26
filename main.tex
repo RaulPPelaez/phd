@@ -26,8 +26,9 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
   breaklines
 }
 
+
 %, number within=section
-\newtcblisting[list inside=code2, auto counter]{code2}[2][]{
+\newtcblisting[list inside=lol, auto counter, list type={lstlisting}]{code2}[2][]{
   colback=white,
   colbacktitle=white,
   coltitle=black,
@@ -184,9 +185,101 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \cleardoublepage\input{FrontBackmatter/Dedication}
 %\cleardoublepage\input{FrontBackmatter/Foreword}
 \cleardoublepage\input{FrontBackmatter/Abstract}
-\cleardoublepage\input{FrontBackmatter/Publications}
-\cleardoublepage\input{FrontBackmatter/Acknowledgments}
-\cleardoublepage\input{FrontBackmatter/Contents}
+\cleardoublepage
+\pdfbookmark[1]{Publications}{publications}
+\chapter*{Publications}
+
+The following publications resulted from the development of this work
+%\noindent Put your publications from the thesis here. The packages \texttt{multibib} or \texttt{bibtopic} etc. can be used to handle multiple different bibliographies in your document.
+
+\begin{refsection}[ownpubs]
+    \small
+    \nocite{*} % is local to to the enclosing refsection
+    \printbibliography[heading=none]
+\end{refsection}
+
+
+\cleardoublepage
+\pdfbookmark[1]{Acknowledgments}{acknowledgments}
+
+\begin{flushright}{\slshape}
+\end{flushright}
+
+
+
+\bigskip
+
+\begingroup
+\let\cleardoublepage\relax
+\let\cleardoublepage\relax
+\let\cleardoublepage\relax
+\chapter*{Acknowledgments}
+
+Thanks y'all.
+
+
+\cleardoublepage
+
+\pagestyle{scrheadings}
+%\phantomsection
+\pdfbookmark[1]{\contentsname}{tableofcontents}
+\setcounter{tocdepth}{2} % <-- 2 includes up to subsections in the ToC
+\setcounter{secnumdepth}{3} % <-- 3 numbers up to subsubsections
+\manualmark
+\markboth{\spacedlowsmallcaps{\contentsname}}{\spacedlowsmallcaps{\contentsname}}
+\tableofcontents
+\automark[section]{chapter}
+\renewcommand{\chaptermark}[1]{\markboth{\spacedlowsmallcaps{#1}}{\spacedlowsmallcaps{#1}}}
+\renewcommand{\sectionmark}[1]{\markright{\textsc{\thesection}\enspace\spacedlowsmallcaps{#1}}}
+%*******************************************************
+% List of Figures and of the Tables
+%*******************************************************
+\cleardoublepage
+% \pagestyle{empty} % Uncomment this line if your lists should not have any headlines with section name and page number
+\begingroup
+    \let\cleardoublepage\relax
+    \let\cleardoublepage\relax
+    %*******************************************************
+    % List of Figures
+    %*******************************************************
+    \phantomsection
+    \addcontentsline{toc}{chapter}{\listfigurename}
+    \pdfbookmark[1]{\listfigurename}{lof}
+    \listoffigures
+
+    \vspace{8ex}
+
+    %*******************************************************
+    % List of Tables
+    %*******************************************************
+    %\phantomsection
+    %\addcontentsline{toc}{chapter}{\listtablename}
+    %\pdfbookmark[1]{\listtablename}{lot}
+    %\listoftables
+
+   % \vspace{8ex}
+    % \newpage
+
+    %*******************************************************
+    % List of Listings
+    %*******************************************************
+    \phantomsection
+    \addcontentsline{toc}{chapter}{\lstlistlistingname}
+    \pdfbookmark[1]{\lstlistlistingname}{lol}
+    \lstlistoflistings
+
+    \vspace{8ex}
+
+    %*******************************************************
+    % Acronyms
+    %*******************************************************
+    %\phantomsection
+    \pdfbookmark[1]{Acronyms}{acronyms}
+ %   \markboth{\spacedlowsmallcaps{Acronyms}}{\spacedlowsmallcaps{Acronyms}}
+%    \chapter*{Acronyms}
+    \printglossary[type=\acronymtype]
+\endgroup
+
 
 \cleardoublepage
 \pagestyle{scrheadings}
@@ -197,6 +290,12 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \part{Introduction}\label{pt:intro}
 \chapter{Introduction}\label{ch:introduction}
 
+\begin{figure}[h]
+  \centering
+  \includesvg[width=\columnwidth]{gfx/scales}
+  \caption{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales invovled in a biological system or, in general, a complex fluid. Zooming in from the bottom-left we have the blood inside a section of a vein, the plasmic environment in a small drop of blood (where cells, platelettes, viruses, etc are present), a virus, a single protein and finally the individual atoms that compose it along the surrounding fluid particles (water).}
+  \label{fig:sptime-land}
+\end{figure}
 
 The modeling and simulation of physical systems is always tied to a certain spatio-temporal scale. Usually, studying a system through the lens of a certain scale prevents the exploration of the others.
 Choosing the right lens for a problem requires understanding its characteristic times and lengths.
@@ -254,30 +353,33 @@ Now developers aiming for the \gpu did not have to be experts in hacking a certa
 
 The birth of CUDA became a pivotal moment in high performance computing, opening the doors to a revolution in several fields such as medical analysis, bioinformatics, machine learning, economic market analysis, molecular dynamics and more.
 
-In this thesis, we will push the boundaries of \gpu computing by developing and implementing old and new algorithms for the modelling of soft matter systems.
+In this thesis, we will push the boundaries of \gpu computing by developing and implementing old and new algorithms for the modelling of soft matter systems into a new infrastructure called \uammd. \uammd is designed from the ground up with the \gpu in mind and is written in CUDA/C++.
+
+One of the main critiques to CUDA is that it is a close sourced, propietary, environment that can only be compiled for NVIDIA's own \glspl{GPU}. This restricts CUDA code to only a subset of \gpu hardware.
+In 2009, an open standard called OpenCL\cite{Stone2010} was born (from the creators of OpenGL) as an alternative to CUDA. Although implementations of OpenCL exist for almost any hardware (including GPUs from NVIDIA and AMD, CPUs, FPGAs,...) its adoption has been slow, partly due to an aggressive marketing campaign from NVIDIA to sell CUDA as the better alternative\footnote{Since the birth of CUDA, NVIDIA has been promoting it by donating GPUs to researchers, giving away a plethora of CUDA courses all around the world and more.}. The general sentiment in the community has always been that OpenCL should win as the de facto \gls{GPGPU}-\gls{API} in the long term. However, it simply has not happend yet.
+Luckily, there are ways to translate CUDA code into OpenCL code\footnote{In particular, the HIP library works as a thin wrapper over CUDA/OpenCL, allowing to write code that can be compiled for any of the \glspl{API}.} and given that the paradigms of both \glspl{API} are quite similar, it is fairly straight-forward to port CUDA code to OpenCL. Therefore, in the future, porting the software infrastructure presented in this manuscript to OpenCL would be mainly painless and will not require changes to the public \gls{API}. So even though at the time of writing \uammd is restricted to run on NVIDIA's hardware it is possible to adapt it so that it runs on virtually any parallel hardware.
 
 
-\todo{continue}
 \section{Software for soft matter simulations}
 
 Particle based computer modelling of soft matter systems has been around since the advent of computers. The use of computers for physical simulation can be tracked back as far as to the 1940's when researches at the Los Alamos national laboratory described the use of the ENIAC\footnote{The first programmable, electronic, generalpurpose digital computer.} for simulating some stochastic physical process\cite{Hurd1985} (the origins of the Monte Carlo method\cite{Johansen2010}). Shortly after, in the 1950's, computational molecular dynamics was born\cite{DeTullio2016}.
 
-One of the first examples of a software package for molecular dynamics is CHARMM, whose initial release dates back to 1983\cite{Brooks1983}. To put thi in perspective, Windows 1.0 was released in 1985, the UNIX operating system was disclosed to the public in 1973 and Linux originated in 1991.
+One of the first examples of a software package for molecular dynamics is CHARMM, whose initial release dates back to 1983\cite{Brooks1983}. To put it in perspective, Windows 1.0 was released in 1985, the UNIX operating system was disclosed to the public in 1973 and Linux originated in 1991. It is humbling to realize that since 1983 the basic layout of a full-fledge molecular dynamics software package has not changed that much. As a matter of fact, the infrastructure presented in this manuscript shares many of the basic conceptual separations already present in \cite{Brooks1983}.
 
 It is important to also mention that MPI, one of the first parallel \glspl{API}, was not available until 1994. Up to that point, sequencial computing was the norm.
 
-Another famous molecular dynamics package is GROMACS, which was released in 1991, with the first version using MPI
+Another famous molecular dynamics package is GROMACS, which was released in 1991, with the first version using MPI coming shortly after it's release.
 
 
+Many of these software packages were born more than a decade before the term \gpu existed and were already quite stablished when the \gpu became a mainstream general purpose computing hardware. Naturally almost all of them have, at least partially, ported their functionalities to be accelerated by a \gpu in some way. However, \gpu programming poses such a wildly orthogonal paradigm that it makes the porting process slow and painful. Most CPU centric molecular dynamics packages are already so complex that redesigning from the ground up to accomodate for the \gpu is not an option and thus their inclusion can become awkward, sometimes causing the so-called software rot.
 
-Problems with porting CPU centric \gls{MD} packages to \gpu. Scalability in software.
+It is therefore worth it to once in a while start again from a clean slate considering the new environments. One example of this is the general-purpose molecular dynamics software package HOOMD\cite{Anderson2008}. Born around the same time as CUDA itself HOOMD was designed from the ground up with the \gpu in mind. Although HOOMD provides a CPU-only backend it is centered around the \gpu and can work exclusively in it, this is crucial, as communication between the CPU and the \gpu is quite expensive, so much that it can many times negate the benefits of using a \gpu altogether.
 
+Virtually all of the mainstream commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for an user, the only option to interface with the packages is to integrate their simulations in them in their totality. In other words, it is awkward (or stright up not possible) to use these packages as external accelerators for an already stablished code. Of course, a closed ecosystem allows to design the software under less assumptions, easing development. On the other hand, a closed ecosystem misses some opportunities in doing so. For instance, one of the first problems a soft matter software package must solve is the construction of a short ranged particle interaction list (a so-called neighbour list), which usually governs the overall computational cost of a simulation. Creating a public, library-like, interface exposing this list creation algorithm allows an user to take his existing code and accelerate it, as opposed to having to do it the other way around, that is porting the entirety of his simulation to the closed ecosystem.
 
+\uammd attempts to be provide an \emph{open} ecosystem, exposing most of the underlying algorithms in a library-like fashion. From a software perspective, this is one of the main vantage points of \uammd as compared with similar packages.
+Furthermore, while most packages require to be compiled into a binary or library in order to be used, \uammd is a header-only framework. Meaning that the compilation of a source code using parts of \uammd can be seamlessly ingrained along the compilation process of another software.
 
-The present and future of high performance computing.
-CUDA vs alternatives.
-
-Scientific computing in the GPU era.
 
 Developing algorithms for the ground up with the GPU architecture in mind is essential. Leverage ultra efficient \gpu \gls{FFT} by developing spectral algorithms. Many times simplicity beats complexity.
 
@@ -746,13 +848,6 @@ When requesting a handle to a property from \emph{ParticleData} with the intenti
 
 Let us go through the different numerical techniques that are used to simulate the different sections of the spatio-temporal landscape.
 
-\begin{figure}[h]
-  \centering
-  \includesvg[width=\columnwidth]{gfx/scales}
-  \caption{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales invovled in a biological system or, in general, a complex fluid. Zooming in from the bottom-left we have the blood inside a section of a vein, the plasmic environment in a small drop of blood (where cells, platelettes, viruses, etc are present), a virus, a single protein and finally the individual atoms that compose it along the surrounding fluid particles (water).}
-  \label{fig:sptime-land}
-\end{figure}
-
 
 We can distinguish between two families of numerical techniques, particle (Lagrangian) and grid (Eulerian-Lagrangian) based methods.
 %The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
@@ -894,7 +989,7 @@ In this case, if we want to compute the force acting on a star due to the presen
 Furthermore this computation is a really good fit for a \gls{GPU} as we are going to see.
 \section{The NBody algorithm}
 The naive parallel algorithm that checks, for each particle, every other would simply assign a particle (or a group of them) to a thread and then iterate over the rest is summarized in algorithm \ref{alg:nbodynaive}.
-\begin{algorithm}
+\begin{algorithm}[H]
   \caption{Naive NBody algorithm. Each particle, i, visits all the others.}\label{alg:nbodynaive}
   \Input{A list of $N$ particles}
   \begin{algorithmic}[1]
@@ -975,7 +1070,7 @@ void transverseWithoutUAMMD(real4* gpupositions,
 template<class Transverser>
 void tranverseWithNBody(UAMMD sim, Transverser tr){
   NBody nb(sim.pd);
-  nb.transverse(tr, st);
+  nb.transverse(tr);
 }
 
 #include<Interactor/PairForces.cuh>
@@ -1667,7 +1762,7 @@ We can then use eq. \eqref{eq:verletvelhalf} to compute the velocity at $t+\dt$
 \begin{equation}
   \vec{\pvel}^{n+1} = \vec{\pvel}^{n+\half} + \half\vec{a}^{n+1}\dt
 \end{equation}
-Note that these equations are just a rewrite of the Störmer Verlet method above and thus present the same stability and accuracy while eliminating the aforementioned incoveniences presented by the former.\todo{Como se demuestra que la posicion es $O(\dt^4)$?}
+Note that these equations are just a rewrite of the Störmer Verlet method above and thus present the same stability and accuracy while eliminating the aforementioned incoveniences presented by the former.
 Thus the overall algorithm is second order accurate in the velocity and third order accurate in the positions.
 Finally, the velocity Verlet algorithm can be summarized in the following steps
 \begin{equation}
@@ -1692,7 +1787,7 @@ The starting kinetic energy of the system will be set to match this energy. Note
 Alternatively you can instruct VerletNVE to leave particle velocities untouched, which will result in the initial total energy being uncontrolled by the module.
 The only tool used by this module to set the initial total energy is the kinetic energy, which is always positive. As such, an error will be thrown if the target energy is \emph{less} than the potential energy at creation. See sec. \ref{sec:uammd_errors} on how to deal with errors.
 
-\begin{minted}{\ucpp}
+\begin{code2}[Example of the creation of a \emph{VerletNVE} \emph{Integrator}.]{label=code:verletnve}
 #include<uammd.cuh>
 #include<Integrator/VerletNVE.cuh>
 using namespace uammd;
@@ -1701,12 +1796,12 @@ auto createIntegratorVerletNVE(UAMMD sim){
   VerletNVE::Parameters par;
   par.dt = sim.par.dt; //The time step
   //Optionally a target energy can be passed
-  par.energy = 1; 
+  par.energy = sim.par.targetEnergy;
   //If false, VerletNVE will not initialize velocities
   //par.initVelocities = false;
-  return std::make_shared<VerletNVE>(sim.pd, sim.sys, par);
+  return std::make_shared<VerletNVE>(sim.pd, par);
 }
-\end{minted}
+\end{code2}
 
 %With \gls{MD} we have to track the movement of each individual atom in the system, which is not practical for a mesoscale simulation of a complex fluid. Say we want to study the folding process of a single, average sized, protein (about $3$nm). A process that can take milliseconds to complete\cite{proteinfolding}. Lets put this protein inside a modest sized box with $10$nm per side. The only way to take into account the environment is to fill the box with water molecules, the 33 million that fit inside our box. And that is if we have somehow coarse grained a water molecule into a single unit, as including every invidual atom would take 100 million particles.
 %And that is just water, without taking into account the protein that we are trying to simulate. There are some coarse grained models of water that can help reducing this number, like the MARTINI force field \cite{martini} and others\cite{cgwater}, but we are going to need millions of solvent particles in any case.
@@ -1714,9 +1809,8 @@ auto createIntegratorVerletNVE(UAMMD sim){
 %
 %Furthermore,
 Including the small water molecules requires to solve their individual dynamics, which is orders of magnitude faster than our time scale of interest (milliseconds).
-In particular, the solvent effect will be coarse grained in the form of fluctuations and hydrodynamic correlations between the colloidal particles resolved.
+%In particular, the solvent effect will be coarse grained in the form of fluctuations and hydrodynamic correlations between the colloidal particles resolved.
 % We cannot simply ignore the effect of the solvents since we would be neglecting some of the most important phenomena in the system, such as hydrodynamics and thermal fluctuations.
-
 During the following sections, we will see different strategies to take into account the effects of the solvent in an implicit manner. In particular, the solvent effect will be coarse-grained in the form of fluctuations and hydrodynamic correlations between the resolved colloidal particles.
 
 The next natural after \gls{MD} equations is the so-called \gls{LD}.
@@ -1926,7 +2020,7 @@ The Grønbech-Jensen algorithm described above is available in \uammd as an Inte
 This module will initialize the particle's velocities near the equilibrium Boltzmann distribution.
 Alternatively you can instruct it to leave particle velocities untouched. The system's temperature will then tend to the equilirbrium one according to the friction coefficient and each particle's mass.
 
-\begin{minted}{\ucpp}
+\begin{code2}[Example of the creation of a \emph{VerletNVT} \emph{Integrator} module.]{label=code:verletnvt}
 #include<uammd.cuh>
 #include<Integrator/VerletNVT.cuh>
 using namespace uammd;
@@ -1937,19 +2031,15 @@ auto createIntegratorVerletNVT(UAMMD sim){
   par.dt = sim.par.dt; //The time step
   par.friction = sim.par.friction;
   par.temperature = sim.par.temperature; 
-  //Optionally, you can force that all particles have
-  // the same mass, overriding the one in sim.pd
-  // even if it was set.
+  //Optionally, you can force that all particles have the same mass, overriding the one in sim.pd even if it was set.
   //par.mass = sim.par.mass;
-  //If set to true, particle velocities will be left
-  // untouched at initialziation.
+  //If set to true, particle velocities will be left untouched at initialziation.
   //par.initVelocities = false;
-  //If 2D is se to true here the integrator will leave
-  // the third coordinate of the particles untouched.
+  //If 2D is se to true here the integrator will leave the third coordinate of the particles untouched.
   //par.is2D = true;
   return std::make_shared<VerletNVT>(sim.pd, par);
 }
-\end{minted}
+\end{code2}
 
 
 The Langevin model makes several assumptions to arrive at eq. \eqref{eq:langevinfull}. At long time, hydrodynamic effects due to momentum propagation of the solvent (leading to long time tails in the velocity correlation of the particle) are neglected. The dynamics of short times $\tau<\gamma/m$ are also wrong, as memory effects in the noise forces start to matter. We will see in following chapters how to improve the long time limit.
@@ -2043,7 +2133,7 @@ Where the fluctuations, $\delta\vec{\ppos}$, are given by eq. \eqref{eq:fpesdefl
   \left\langle \delta\vec{\ppos}\otimes \delta\vec{\ppos}\right\rangle = 2\tens{D} dt
 \end{equation}
 
-As discussed in sec \ref{sec:einstein} we can in general define the drift coefficients in a general way as
+As discussed in sec \ref{sec:einstein} we can in define the drift coefficients in a general way as
 \begin{equation}
   \label{eq:bddrift}
 \vec{D}^{(1)} := -\tens{M}\vec{\partial}_{\vec{\ppos}}U(\vec{\ppos}),
@@ -2162,14 +2252,14 @@ With this discretization of the noise we can devise several strategies to numeri
 Using eq. \eqref{eq:bddis} and \eqref{eq:itonoise2} we can write
 \begin{equation}
   \label{eq:eulermaruyama}
-  \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^n\dt + \sqrt{2D\dt}\vec{\mathcal{\noise}}^n
+  \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^n\dt + \sqrt{2D}\vec{\mathcal{\noise}}^n
 \end{equation}
 It can be proved that this algorithm is weakly convergent with order $1$ and strongly convergent with order $1/2$\cite{Kloeden2011}. Thus the \gls{EM} scheme is not particularly accurate, even in the absence of fluctuations.
 There are, however, other solvers that yield better accuracy at the same, or similar, computational cost. Lets see some of them
 \subsubsection*{Adams Bashforth}
 The \gls{AB} scheme uses the forces from the previous step to improve the prediction for the next. This incurs the overhead of storing the previous forces but its computational cost is marginally larger than \gls{EM}. This algorithm mixes a first order method for the noise with a second order method for the force. It yields better accuracy than EulerMaruyama, although this comes from experience since as of the time of writing no formal work has been done on its weak accuracy. An empirical demonstration of its better accuracy can be found in\cite{Balboa2017}.
 \begin{equation}
-  \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\left[\frac{3}{2}\vec{F}^n - \half \vec{F}^{n-1}\right]\dt + \sqrt{2D\dt}\vec{\mathcal{\noise}}^n
+  \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\left[\frac{3}{2}\vec{F}^n - \half \vec{F}^{n-1}\right]\dt + \sqrt{2D}\vec{\mathcal{\noise}}^n
 \end{equation}
 
 \subsubsection*{Leimkuhler}
@@ -2177,7 +2267,7 @@ Another integrator recently developed by Leimkuhler in\cite{Leimkuhler2015}
  While also a first order method it seems to yield better accuracy than \gls{AB} and \gls{EM}. I am not aware of any formal studies of its accuracy.
  The update rule is very similar to \gls{EM} but uses noise from two steps (which are generated each time instead of stored)
  \begin{equation}
-  \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^n\dt + \sqrt{\frac{D\dt}{2}}\left[\vec{\mathcal{\noise}}^n + \vec{\mathcal{\noise}}^{n-1}\right]
+  \vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^n\dt + \sqrt{\frac{D}{2}}\left[\vec{\mathcal{\noise}}^n + \vec{\mathcal{\noise}}^{n-1}\right]
 \end{equation}
 Note that, as stated in\cite{Leimkuhler2015}, while this solver seems to be better than the rest at sampling equilibrium configurations, it does not correctly solves the dynamics of the problem.
 
@@ -2187,14 +2277,14 @@ It is a two step explicit midpoint predictor-corrector scheme. It has a fourth o
 Mid Point updates the simulation with the following rule
 \begin{equation}
   \begin{aligned}
-    &\vec{\ppos}^{n+1/2} = \vec{\ppos}^n + \half M\vec{F}^n\dt + \sqrt{D\dt}\vec{\mathcal{\noise}}^{n_1}\\
-    &\vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^{n+1/2}\dt + \sqrt{D\dt}\left[\vec{\mathcal{\noise}}^{n_1}  + \vec{\mathcal{\noise}}^{n_2}\right]
+    &\vec{\ppos}^{n+1/2} = \vec{\ppos}^n + \half M\vec{F}^n\dt + \sqrt{D}\vec{\mathcal{\noise}}^{n_1}\\
+    &\vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^{n+1/2}\dt + \sqrt{D}\left[\vec{\mathcal{\noise}}^{n_1}  + \vec{\mathcal{\noise}}^{n_2}\right]
   \end{aligned}
 \end{equation}
 \todo{Compare all algorithms by showing a g(r) with different time steps}
 \subsection*{Use in UAMMD}
 
-\begin{minted}{\ucpp}
+\begin{code2}[Example of the creation of a \gls{BD} \emph{Integrator} module.]{label=code:bd}
 #include<uammd.cuh>
 #include<Integrator/BrownianDynamics.cuh>
 using namespace uammd;
@@ -2210,9 +2300,10 @@ auto createIntegratorBD(UAMMD sim){
   par.viscosity=sim.par.viscosity;
   par.hydrodynamicRadius=sim.par.hydrodynamicRadius;
   par.dt=sim.par.dt;
+  auto bd = std::make_shared<BD>(sim.pd, par);
   return bd;
 }
-\end{minted}
+\end{code2}
 
 
 \chapter{Hydrodynamic Interactions}\label{sec:bdhi}
@@ -2270,14 +2361,14 @@ Replacing the pressure in eq. \eqref{eq:stokes}
 Where the projection operator, $\oper{P}$, is formally defined as
 \begin{equation}
   \label{eq:projectoper}
-\oper{P}  =  \mathbb{I} - \nabla\nabla^{-2}\nabla.
+\oper{P}  :=  \mathbb{I} - \nabla\nabla^{-2}\nabla.
 \end{equation}
 $\oper{P}$ projects onto the space of divergence-free velocity. $\mathbb{I}$ represents the identity.
 In the particular case of an unbounded domain with fluid at rest at infinity, all the differential operators in eq. \eqref{eq:projectoper} commute in Fourier space, so that
 
 \begin{equation}
   \label{eq:eq:projectoperfou}
-  \fou{\oper{P}}(\vec{k}) = \left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
+  \fou{\oper{P}}(\vec{k}) = \mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}
 \end{equation}
 Where $\vec{k}$ are the wave numbers.
 
@@ -2333,7 +2424,7 @@ The reverse of interpolation is spreading, i.e  communicating particle forces, $
   \vec{f}(\vec{\fpos}) = \oper{S}(\vec{\fpos})\vec{F} = \sum_i\delta_a(\vec{\fpos}-\vec{\ppos}_i)\vec{F}_i,
 \end{equation}
 where we have strectched the notation by interpreting $\vec{F} := \{\vec{F}_1,\dots,\vec{F}_N\}$.
-The benefit of using the same kernel to spread and interpolate is that both are adjoint, $\oper{J} = \oper{S}^*$, which is required in the following derivation.
+The benefit of using the same kernel to spread and interpolate is that it makes both operations adjoint, $\oper{J} = \oper{S}^*$, which is required in the following derivation.
 
 The physical volume $\Delta V$ of the particle is related to the kernel via
 \begin{equation}
@@ -2379,7 +2470,7 @@ We are now ready to extract more information about the mobility matrix, which is
 \end{equation}
 Here $\tens{G}$ is the Green's function of eq. \eqref{eq:stokes} with the particular boundary conditions and unit viscosity.
 
-The mobility tensor definition in eq. \eqref{eq:bdhimob} is general for any geometry, but for an unbounded fluid, the Green's function is the Oseen tensor in eq. \eqref{eq:bdhioseen} and the resulting mobility is refered to as the Oseen mobility, so that $\tens{M}_{ij} = \tens{O}(\vec{\ppos}_j - \vec{\ppos}_i)$.
+The mobility tensor definition in eq. \eqref{eq:bdhimob} is general for any geometry, but for an unbounded fluid, the Green's function is the Oseen tensor in eq. \eqref{eq:bdhioseen} and the resulting mobility (when using $\delta_a:=\delta$) is refered to as the Oseen mobility, so that $\tens{M}_{ij} = \tens{O}(\vec{\ppos}_j - \vec{\ppos}_i)$.
 
 The Oseen mobility presents several problems when particles get too close stemming from the point particle assumption. For instance, the tensor becomes ill-formed (and non positive-definite) at close distances, hindering the applicability of the assumption in eq. \eqref{eq:mobsqrt}. On the other hand, the Oseen mobility diverges at zero distance, which can result in numerical issues in the absence of steric repulsions and requires treating the self mobility separatedly. The Oseen mobility can be in a way interpreted as the mobility for colloidal particles with size $a\rightarrow 0$.
 
@@ -2387,11 +2478,11 @@ In practice we would like to take into account the finite size of the submerged 
 
 We will see in future sections how to solve the dynamics of the particles without the need of the explicit form for the Green's function by discretizing eq. \eqref{eq:bdhifvel} directly. This can be useful for special geometries in which the differential operators in Stokes solution operator do not commute or when eq. \eqref{eq:bdhimob} cannot be solved analytically. For the moment we will stick to imposing a mobility tensor explicitly.
 
-One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. We can compute it by integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator (the Oseen tensor) in the surface, $S$, of two spheres of radius $a$
+One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. We can compute it by integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator (the Oseen tensor) in the surface, $S$, of two spheres of radius $a$ centered at the positions of the particles ($\vec{\ppos}_i$ and $\vec{\ppos}_j$)
 \begin{equation}
   \label{eq:rpymobfour}
   \begin{aligned}
-    \tens{M}_{ij}^{\textrm{RPY}} &= \frac{\eta^{-1}}{(4\pi a^2)^2} \int_{S_1}dS_1\int_{S_2}dS_2 \int d\vec{k} \exp(i\vec{k}\vec{r})\hat{\oper{L}}(\vec{k})\\
+    \tens{M}_{ij}^{\textrm{RPY}} &= \frac{\eta^{-1}}{(4\pi a^2)^2} \int_{S_i}dS_i\int_{S_j}dS_j \int d\vec{k} \exp(i\vec{k}\vec{r})\hat{\oper{L}}(\vec{k})\\
     &= \eta^{-1} \int \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\sinc(ka) \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)d\vec{k}
 \end{aligned}
 \end{equation}
@@ -2406,7 +2497,7 @@ Finally, the free-space \gls{RPY} mobility tensor can be written in real space a
     &\left(1 - \frac{9r}{32a} \right)\mathbb{I} + \left( \frac{3r}{32a} \right)\frac{\vec{r}\otimes\vec{r}}{r^2} & r \le 2a
   \end{aligned}\right.
 \end{equation}
-The self mobility, $M_0 := \tens{M}(0) = (6\pi\eta·a)^{-1}$ is, by no coincidence, equal to the drag for a sphere moving through a Stokesian fluid as given by the Stokes-Einstein relation\cite{Dhont1996} (see sec. \ref{sec:einstein}).
+The self mobility, $M_0 := \tens{M}(0) = (6\pi\eta a)^{-1}$ is, by no coincidence, equal to the drag for a sphere moving through a Stokesian fluid as given by the Stokes-Einstein relation\cite{Dhont1996} (see sec. \ref{sec:einstein}).
 
 This approximation is valid for dilute suspensions (and) to leading order in the far field. Although the \gls{RPY} tensor has been proven to accurately capture hydrodynamics even when particles overlap beyond their hydrodynamic radius\cite{Ermak1978}\cite{Wajnryb2013}.
 Given its popularity a lot of works attempting to generalize or adapt the \gls{RPY} tensor for different geometries an use cases can be found\cite{Wajnryb2013,Liang2013,Guan2018,Fiore2017}. In particular, we will make use of the generalization in\cite{Zuk2014}, which allows for each particle to have a different hydrodynamic radius.
@@ -2971,8 +3062,7 @@ auto createIntegratorBDHIFCM(UAMMD sim){
   par.dt = sim.par.dt;
   par.tolerance = sim.par.tolerance;
   par.box = sim.par.box;
-  auto bdhi = std::make_shared<FCM>(sim.pd, sim.pg, 
-                                    sim.sys, par);
+  auto bdhi = std::make_shared<FCM>(sim.pd, par);
   return bdhi;
 }
 \end{code2}
@@ -3215,7 +3305,7 @@ For convenience, we can now write the discrete version of the projection operato
 \end{itemize}
 \subsection*{Use in UAMMD}
 
-\begin{minted}{\ucpp}
+\begin{code2}[Example of the creation of a \emph{FIB} \emph{Integrator} module.]{label=code:fib}
 #include<uammd.cuh>
 #include<Integrator/BDHI/FIB.cuh>
 using namespace uammd;
@@ -3233,7 +3323,7 @@ auto createIntegratorFIB(UAMMD sim){
   auto fib = std::make_shared<BDHI::FIB>(sim.pd, par);
   return fib;
 }
-\end{minted}
+\end{code2}
 
 
 \section{Comparing the different spreading kernels for BDHI}\label{sec:kernelcomp}
@@ -3428,7 +3518,7 @@ In contrast with the naive Metropolis-Hasting algorithm, that blindly proposes c
 \item Use like any other Integrator, will query its Interactors for both force and energy.
 \item The step size will be autotuned until it reaches the target one.
 \end{itemize}
-\begin{minted}{\ucpp}
+\begin{code2}[Example of the creation of a MALA \emph{Integrator} module.]{label=code:mala}
 #include<uammd.cuh>
 #include<Integrator/MonteCarlo/ForceBiased.cuh>
 using namespace uammd;
@@ -3442,11 +3532,10 @@ auto createIntegratorMALA(UAMMD sim){
   par.stepSize = sim.par.dt;
   //Desired acceptance ratio 
   par.acceptanceRatio = sim.par.accRatio;
-  auto mala = std::make_shared<MC::ForceBiased>(sim.pd, sim.pg, 
-                                                sim.sys, par);
+  auto mala = std::make_shared<MC::ForceBiased>(sim.pd, par);
   return mala;
 }
-\end{minted}
+\end{code2}
 
 
 
@@ -3654,8 +3743,7 @@ auto createIntegratorQ2D(UAMMD sim){
   par.dt = sim.par.dt;
   par.tolerance = sim.par.tolerance;
   par.box = sim.par.box;
-  auto q2d = std::make_shared<Hydro2D>(sim.pd, sim.pg, 
-                                       sim.sys, par);
+  auto q2d = std::make_shared<Hydro2D>(sim.pd, par);
   return q2d;
 }
 \end{code2}
@@ -4945,23 +5033,27 @@ Except for the $k=0$ wave number, every solve is identical in operations, meanin
 \chapter{UAMMD's online documentation}\label{ch:online}
 At the time of writing, the \uammd codebase is hosted as a git repository in the github platform (currently the de facto standard git hosting platform), at \url{https://github.com/RaulPPelaez/UAMMD}. Platforms change over time and github might not exist at the time you are reading this\footnote{As a side note, the \uammd was included among the github's Artic Code Vault program repositories. Thus, a physical copy of the codebase can be found 250 meters under the permafrost in a vault inside an abandoned coal mine in the Svalbard archipielago. This means that the codebase should be retrievable for at least the next thousand years.}. If that is the case and a google search does not help you locate its new hosting you have two options; either find me and request it directly or look in the wayback machine. At the time of writing, the internet archive has already scraped the uammd repository at least once, you can find the archived versions at \url{http://web.archive.org/web/202*/https://github.com/RaulPPelaez/UAMMD}.
 
-\begin{itemize}
-\item Description of the wiki
-\item Marc's book
-\item Tutorials included in the repo
-\end{itemize}
+This very manuscript is focused on the underlying theory behind the many algorithms exposed by the code as well as the design choices involved in its creation. However, it is not intended as an usage guide for \uammd (although several code examples are included). A user wanting to learn how to use \uammd can benefit from the online resources. In particular, \uammd offers three distinct sources of knowledge:
+\begin{enumerate}
+\item Code examples.
+  The repository itself contains a plethora of organized usage examples showcasing the different \uammd's functionalities. In particular, the \emph{basic\_concepts} folder contains a series of tutorial-like examples intended as an introduction to the \uammd ecosystem.
+\item Wiki.
+  A wiki accompanying the codebase provides extensive information about all the available modules, as well as detailed information about the compilation process.
+\item Marc's book, ``A Painless Introduction to Programming UAMMD Modules''\cite{Marc2020}.
+  This book provides an introduction to \uammd from the very ground up, while making little assumptions about the readers familiarity with programming, complex fluids and their related numerical methods.
+\end{enumerate}
 
 
 \chapter{The Transverser and Potential interfaces}\label{ch:transverser}
 \section{The Transverser Interface} \label{sec:transverser}
 Many of the algorithms described in this manuscript require some kind of particle traversal.
 %A Transverser is a concept that refers to the action of going through each element of something.  
-Say, for instance, that for each particle we want to visit the rest of the particles that are closer than a certain distance. Or simply all of the other particles. More generally, we mght want to perform some kind of operation equivalent to a matrix-vector multiplication, for which in order to compute one element of the result, the vector needs to go through a row of the matrix.
-In these cases, a Transverser is used.
+Say, for instance, that for each particle we want to visit the rest of the particles that are closer than a certain distance. Or simply all of the other particles. More generally, we might want to perform some kind of operation equivalent to a matrix-vector multiplication, for which in order to compute one element of the result, the vector needs to go through a row of the matrix.
+In these cases, a \emph{Transverser} is used.
 
-A Transverser holds information about what to do with a pair of particles, what information is needed to compute this interaction, or what to do when a particle has interacted with all pairs it is involved in.  
+A \emph{Transverser} holds information about what to do with a pair of particles, what information is needed to compute this interaction, and what to do when a particle has interacted with all pairs it is involved in.  
 
-Being such a general concept, a \emph{Transverser} is used as a template argument, and therefore cannot be a base virtual class that can be inherited. This is why it is a "concept". No assumption can be made about the return types of each function, or the input parameters, the only things general are the function names.  
+Being such a general concept, a \emph{Transverser} is used as a template argument, and therefore cannot be a base virtual class that can be inherited. This is why it is a "concept". No assumption can be made about the return types of each function, or the input parameters, the only common things are the function names.  
 
 For each particle to be processed the \emph{Transverser} will be called for: \todo{Draw this in a skematik}
 \begin{itemize}
@@ -4971,7 +5063,7 @@ For each particle to be processed the \emph{Transverser} will be called for: \to
 \item Accumulate/reduce  the result for each neighbour (function \emph{accumulate})
 \item  Set/write/handle the accumulated result for all neighbours (function \emph{set})
  \end{itemize}
-The same Transverser instance will be used to process every particle in an arbitrary order. Therefore, the Transverser must not assume it is bound to a specific particle.
+The same \emph{Transverser} instance will be used to process every particle in an arbitrary order. Therefore, the Transverser must not assume it is bound to a specific particle.
 
 The \emph{Transverser} interface requires a given class/struct to provide the following public device (unless prepare that must be a host function) member functions:
 
