@@ -377,7 +377,7 @@ It is therefore worth it to once in a while start again from a clean slate consi
 
 Virtually all of the mainstream commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for an user, the only option to interface with the packages is to integrate their simulations in them in their totality. In other words, it is awkward (or stright up not possible) to use these packages as external accelerators for an already stablished code. Of course, a closed ecosystem allows to design the software under less assumptions, easing development. On the other hand, a closed ecosystem misses some opportunities in doing so. For instance, one of the first problems a soft matter software package must solve is the construction of a short ranged particle interaction list (a so-called neighbour list), which usually governs the overall computational cost of a simulation. Creating a public, library-like, interface exposing this list creation algorithm allows an user to take his existing code and accelerate it, as opposed to having to do it the other way around, that is porting the entirety of his simulation to the closed ecosystem.
 
-\uammd attempts to be provide an \emph{open} ecosystem, exposing most of the underlying algorithms in a library-like fashion. From a software perspective, this is one of the main vantage points of \uammd as compared with similar packages.
+\uammd attempts to provide an \emph{open} ecosystem, exposing most of the underlying algorithms in a library-like fashion.
 Furthermore, while most packages require to be compiled into a binary or library in order to be used, \uammd is a header-only framework. Meaning that the compilation of a source code using parts of \uammd can be seamlessly ingrained along the compilation process of another software.
 
 
@@ -933,42 +933,47 @@ Note that \emph{Interactor} is what is called a \emph{pure-virtual} class in C++
 
 %\uammd offers a series of \emph{Interactors} (discused in the following sections) sometimes exposing a general algorithm that can be specialized (like \emph{PairForces} for particle pair interactions, see sec. \ref{sec:pairforces}) and others exposing particular potentials (like \emph{SpectralEwaldPoisson} for electrostatics, see sec. \ref{sec:tppoisson}).
 
+It is worth mentioning that the \emph{Interactor} interface offers, in addition to what is showcased in code \ref{code:interactor}, a series of optional functionalities, ommited here for simplicity, allowing more sophisticated communication between modules. The reader can learn about these extra capabilities at the online's \uammd documentation (see Appendix \ref{ch:online}).
 
+\subsection{The simulation domain}
+Particles are often ocated inside a certain domain. In each direction, we distingish between the domain being open or periodic. In the first case, particles near opposite walls of the domain will not interact. This can be used to model either a truly open boundary system (if the domain length is infinite) or in general a non periodic domain (e.g. due to the presence of a repulsive wall).
 
-\section{Periodic Boundary Conditions}
+On the other hand, periodic domains are common in numerical simulation as a way of approximating a large system while simulating only a small region of it (called unit cell). In a domain with periodic boundary conditions, particles in the unit cell interact with the particles in the system images. Usually, particles are made to interact only with the closest image of the other particles (so a pair of particles near opposite walls of the system see each other ``through'' the wall). The so-called \gls{MIC} is used to determine the distance of the closest image, the algorithm is laid out in algorithm \ref{alg:mic}.
+%\subsection*{Periodic Boundary Conditions}
 %\todo{This goes in a section called Domain in UAMMD. Explain periodic vs open etc.}
-\todo{This goes to ParticleData chapter, as part of an example}
-In order to conserve the total volume of the system we use the \gls{MIC}, where a particle that leaves the simulation domain though one side appears on the other.
-Numerically we can express this algorithm as follows:
+%\todo{This goes to ParticleData chapter, as part of an example}
+%In order to conserve the total volume of the system we use the \gls{MIC}, where a particle that leaves the simulation domain though one side appears on the other.
 
 \begin{algorithm}
   \caption{Minimum Image Convention, takes a position or distance and returns it inside the simulation domain}
+  \label{alg:mic}
   \begin{algorithmic}[1]
     \Function{MIC}{r, L}   
     \State \Return r - floor(r/L + 0.5)*L
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
-We can also use this algorithm to get the minimum distance between two points, so particles near opposite walls interact.
+
 \subsection*{Use in UAMMD}
-In \uammd, \gls{MIC} can be accesed via the \emph{Box} class.
+In \uammd, the \emph{Box} class holds information about the domain. When required, individual modules will request a \emph{Box} instance as a parameter (for instance, short ranged interactions require a box if the domain is periodic). Source code \ref{code:box} contains an usage example of the \emph{Box} class
 \begin{code2}[Using the Box class.]{label=code:box}
 #include<uammd.cuh>
 using namespace uammd;
 int main(){
   real lx, ly, lz;
   lx = ly = lz = 32.0;
+  //A Box requires the size of the domain in each direction, which can be infinite
   Box box({lx, ly, lz});
+  //Periodicity can be set independently for each direction. 1 meaning periodic and 0 aperiodic
+  box.setPeriodicity(1,1,0);
+  //The unit cell goes from -L/2 to L/2 in each direction. Note that when the box is not periodic this is irrelevant.  
   real3 position_outside_box = {0.5*lx+1, 0, 0};
+  //Given that we have set the box as periodic in X, the position will be folded to the other side of the domain
   real3 position_in_box = box.apply_pbc(position_outside_box);
   //position_in_box holds {-lx*0.5+1,0,0}
   return 0; 
 }
 \end{code2}
-In \uammd the \emph{Box} object handles the domain details, including \gls{PBC}.
-\todo{code example}
-
-
 
 \chapter{Long range interactions}\label{sec:nbody}
 
@@ -1632,7 +1637,7 @@ public:
 };
 \end{code2}
 
-%\chapter{Particle-based integration methods for simulating complex fluids}
+Similarly as with the \emph{Interactor} interface (described in section \ref{sec:interactor}), some functionality exposed by the \emph{Integrator} interface has been omitted in this manuscript for simplicity. The reader can learn about these additional capabilities in \uammd's online resources (see Appendix \ref{ch:online}). Nonetheless, the capabilities showcased in codes \ref{code:integrator} and \ref{code:interactor} are sufficient to encode any of the interactions and integration algorithms described in this thesis.
 
 
 \chapter{Molecular Dynamics}\label{sec:md}
@@ -4019,11 +4024,7 @@ The general solution for the correction in this case is
 The six equations above are not enough to compute the values of the eight unknown coefficients, $\vec{C}=C_{[0,1,2,3]}$ and $\vec{D} = D_{[0,1,2,3]}$. For the remaining two equations we can use the incompressibility condition in eq. \eqref{eq:dpstokes},
 \begin{equation}
   \label{eq:dpstokesincompres}
-    \begin{bmatrix}
-    i\vec{k}\\
-    \partial_z
-  \end{bmatrix}
-  \fou{\vec{\fvel}}_{\corr}(\vec{k}, z) = 0,
+  [i\vec{k}, \partial_z] \cdot\fou{\vec{\fvel}}_{\corr}(\vec{k}, z) = 0,
 \end{equation}
 evaluated at both the domain limits, $z=-H,H$.
 Similarly to the bottom wall case, for simplicity we define here $\fou{\vec{\fvel}}_t := \fou{\vec{\fvel}}_{\dpr}(\vec{k}, H)$.
@@ -4087,6 +4088,7 @@ The electrostatic energy can be computed as
 
 In a similar way we compute the electrostatic force $\vec{F}_i = -\nabla_i{\fvel}$ acting on each charge from the electric field
 \begin{equation}
+  \label{eq:tppoisson_fieldnablaphi}
   \vec{E} = -\nabla{\phi}
 \end{equation}
 By interpolating again
@@ -4096,6 +4098,7 @@ By interpolating again
 \end{equation}
 So that the electrostatic force acting on particle $i$ is
 \begin{equation}
+  \label{eq:tppoisson_force}
 \vec{F}_i = Q_i\oper{J}_{\vec{\ppos}_i}\vec{E}
 \end{equation}
 
@@ -4253,17 +4256,12 @@ We present a novel algorithm for computing the electrostatic energies and forces
 %### Algorithm summary  
 A complete description of the algorithm can be found in \cite{Maxian2021}.
 We model charges as Gaussian sources (as opposed to point charges). Even so our algorithm provides spectral accuracy via Ewald splitting, which naturally decouples the width of the sources and the grid size. This allows to use an arbitrarily narrow Gaussian to simulate point charges if needed. By using Gaussian charges we avoid divergent self-interactions while more closely modelling electrolyte solutions, in which solvated ions are not point charges but rather have a certain characteristic charge size that we can mimic via the Gaussian width.
-Thus, we want to solve the following Poisson equation
-\begin{equation}
- \varepsilon_0\Delta\phi(\vec{x} = (x,y,z))=-f(\vec{x})=-\sum_{k=1}^Nq_kg(||\vec{x}-\vec{z}_k||)\label{eq:dppoisson}
+We want to solve the Poisson equation with Gaussian charge sources
+\begin{equation}\label{eq:dppoisson}
+ \varepsilon_0\Delta\phi(\vec{x} = (x,y,z))=-f(\vec{x})=-\oper{S}(\vec{r})\vec{Q}
 \end{equation}
 In a doubly periodic domain of width $H$ and size $L_{xy}$ in the plane.
-Here $g$ represents a Gaussian source, the sum goes over all markers, $N$.
-\begin{equation}
-  g(r)=\frac{1}{\left(2\pi g_w^2\right)^{3/2}}\exp{\left(\frac{-r^2}{2g_w^2}\right)}
-  \label{eq:dppoisson_gaussian}
-\end{equation}
-We impose that the sources do not overlap the boundaries so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma g_w \ge 4 g_w$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $q$.
+We impose that the sources do not overlap the boundaries in the $z$ direction, $f(|z|>H/2) = 0$, so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma g_w \ge 4 g_w$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $q$.
 
 Finally, we solve \eqref{eq:dppoisson} with the following set of \bcs for the potential
 \begin{equation}\phi(x,y,z\rightarrow -H/2^+)=\phi(x,y,z\rightarrow -H/2^-)\label{eq:dppoissonbcs1}\end{equation}  
@@ -4271,33 +4269,23 @@ Finally, we solve \eqref{eq:dppoisson} with the following set of \bcs for the po
 And for the electric field 
 \begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H/2^+)-\varepsilon_b \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H/2^-)=-\sigma_b(x,y)\label{eq:dppoissonbcs3}\end{equation}  
 \begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H/2^-)-\varepsilon_t \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H/2^+)=\sigma_t(x,y)\label{eq:dppoissonbcs4}\end{equation} 
-We introduce, via these \bcs, the possibility of having arbitrary surface charges at the walls, $\sigma_b$ and $\sigma_t$ for the bottom and top respectively. Additionally, we can set different permittivities inside the slab ($\varepsilon_0$) above ($\varepsilon_t$) and below ($\varepsilon_b$) it.
-We assume that the domain is overall electroneutral,
+We introduce, via these \bcs, the possibility of having arbitrary surface charges at the walls, $\sigma_b$ and $\sigma_t$ for the bottom and top respectively. Additionally, we can set different permittivities inside the slab ($\varepsilon_0$) above ($\varepsilon_t$) and below ($\varepsilon_b$) it. See figure \ref{fig:dppoisson_sketch} for a representation of the described set up.
+Finally, we assume that the domain is overall electroneutral,
 \begin{equation}
   \label{eq:dppoisson_electroneutral}
-  \sum_{k=1}^N{q_k} + \int_0^{L_xy}{\int_0^{L_xy}{(\sigma_b(x,y) + \sigma_t(x,y))dxdy}} = 0
+  \sum_{k=1}^N{q_k} + \int_0^{L_{xy}}{\int_0^{L_{xy}}{(\sigma_b(x,y) + \sigma_t(x,y))dx dy}} = 0.
 \end{equation}
 Similarly as in the triply periodic algorithm described in chapter \ref{ch:tppoisson}, we are interested in computing the system energy and the particle forces.
 Once the potential is known the total electrostatic energy can be computed as
 \begin{equation}
   \label{eq:dppu}
-  U = \frac{1}{2}\sum_i{q_i\bar\phi(\vec{z}_i)} + \frac{1}{2}\sum_{wall=b,t}{\int_{x,y}{\sigma_{wall}\phi(x,y,wall)dxdy}}
+  U = \frac{1}{2}\sum_i{q_i\oper{J}_{\vec{q}_i}\phi} + \frac{1}{2}\sum_{wall=b,t}{\int_{x,y}{\sigma_{wall}\phi(x,y,wall)dx dy}}
 \end{equation}
-Where $\bar\phi$ is the potential averaged (interpolated) at the charge's location, computed as the convolution between the pointwise potential and the Gaussian $g$
-\begin{equation}
-  \label{eq:dpphibar}
-  \bar\phi(\vec{z}) = (\phi\star g)(\vec{z})
-\end{equation}
-The force can be computed from the potential via the electric field
-\begin{equation}
-  \label{eq:dppE}
-  \vec{E}(\vec{x}) = -\nabla{\phi}  
-\end{equation}
-Similarly averaged at the charge's location
-\begin{equation}
-  \label{eq:dppf}
-  \vec{F}_i = -\frac{\partial U}{\partial\vec{z}_i} = q_i(\vec{E}\star g)(\vec{z}_i)
-\end{equation}
+Where $\oper{J}$ represents the interpolation operator as in chapter \ref{ch:tppoisson}.
+In the same way as with the triply periodic algorithm, we can compute the electric field using eq. \eqref{eq:tppoisson_fieldnablaphi} and interpolate it to the particles positions with eq. \eqref{tppoisson_avgfield}. Finally, we compute the force acting on each particle with eq. \eqref{eq:tppoisson_force}.
+
+Since we do not have periodic boundaries in the $z$ direction, the application of the nabla operator on the potential to compute the electric field is not as straight-forward as in the triply periodic case. In particular, as we will study in the following sections, our solver works in the Fourier-Chebyshev space (similar to the doubly periodic Stokes solver in chapter \ref{sec:dpstokes}).
+
 \section{Solver description}
 We start by separating the problem into two sub-problems. First we solve \eqref{eq:dppoisson} in free space (no dielectric jumps or surface charges, see sec \ref{sec:dpsolver}) and then introduce an harmonic correction to account for the jump \bcs (section \ref{sec:dpcorr}).
 We use a grid-based solver to get an algorithm with linear complexity with the number of particles. First we evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (as described in chapter \ref{ch:ibm}), then solve the potential in that grid and finally interpolate the required quantities back to the particle positions (eqs. \eqref{eq:dppu} and \eqref{eq:dppf}).
@@ -5042,7 +5030,6 @@ This very manuscript is focused on the underlying theory behind the many algorit
 \item Marc's book, ``A Painless Introduction to Programming UAMMD Modules''\cite{Marc2020}.
   This book provides an introduction to \uammd from the very ground up, while making little assumptions about the readers familiarity with programming, complex fluids and their related numerical methods.
 \end{enumerate}
-
 
 \chapter{The Transverser and Potential interfaces}\label{ch:transverser}
 \section{The Transverser Interface} \label{sec:transverser}
