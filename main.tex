@@ -3857,15 +3857,16 @@ Transforming to Fourier space in the plane we get a one dimensional problem for 
 \begin{equation}
   \label{eq:dpstokesfreepressure}
   (\partial_{zz}-k^2)\fou{p} =
-  \begin{bmatrix}
-    i\vec{k}\\
-    \partial_z
-  \end{bmatrix}
-\fou{\vec{f}}
+  % \begin{bmatrix}
+  \left[
+    i\vec{k},
+    \partial_z\right]
+  % \end{bmatrix}
+  \cdot\vec{f}
 \end{equation}
-Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. As a matter of fact, the \gls{FCT} is employed here (see Appendix \ref{sec:fct}) to transform the signals in the $z$ direction to the Chebyshev basis, as this allows to use the \gls{BVP} solver and facilitates the evaluation of the derivatives in this direction (by using the relations for the Chebyshev coefficients introduced in Appendix \ref{sec:bvp}). Therefore we will work with the Chebyshev coefficients, $\fou{p}_n$ (or $\fou{\vec{f}}_n$), of the different quantities. We can use this to solve the pressure outside the domain, so that
+Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. As a matter of fact, the \gls{FCT} is employed here (see Appendix \ref{sec:fct}) to transform the signals in the $z$ direction to the Chebyshev basis, as this allows to use the \gls{BVP} solver and facilitates the evaluation of the derivatives in this direction (by using the relations for the Chebyshev coefficients introduced in Appendix \ref{sec:bvp}). Therefore we will work with the Chebyshev coefficients, $\fou{p}_n$ (or $\fou{\vec{f}}_n$), of the different quantities. We can solve the pressure outside the domain using that
 \begin{equation}
-    (\partial_{zz}-k^2)\fou{p} = 0, \quad \text{ for } z \notin [-H,H]
+    (\partial_{zz}-k^2)\fou{p} = 0, \quad \text{ for } z \notin [-H,H].
 \end{equation}
 Whose solution is
 \begin{equation}
@@ -4086,7 +4087,7 @@ The electrostatic energy can be computed as
 \end{equation}
 % Where $\bar{\phi}(\vec{z}_i)=\bar{\phi}_i$ is the convolution of the potential with a Gaussian centered at the charge's location and can also be interpreted as the average potential at that point.
 
-In a similar way we compute the electrostatic force $\vec{F}_i = -\nabla_i{\fvel}$ acting on each charge from the electric field
+In a similar way we compute the electrostatic force $\vec{F}_i = -Q_i\nabla_i{\phi}$ acting on each charge from the electric field
 \begin{equation}
   \label{eq:tppoisson_fieldnablaphi}
   \vec{E} = -\nabla{\phi}
@@ -4261,7 +4262,7 @@ We want to solve the Poisson equation with Gaussian charge sources
  \varepsilon_0\Delta\phi(\vec{x} = (x,y,z))=-f(\vec{x})=-\oper{S}(\vec{r})\vec{Q}
 \end{equation}
 In a doubly periodic domain of width $H$ and size $L_{xy}$ in the plane.
-We impose that the sources do not overlap the boundaries in the $z$ direction, $f(|z|>H/2) = 0$, so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma g_w \ge 4 g_w$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $q$.
+We impose that the sources do not overlap the boundaries in the $z$ direction, $f(|z|>H/2) = 0$, so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma a \ge 4 a$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $q$.
 
 Finally, we solve \eqref{eq:dppoisson} with the following set of \bcs for the potential
 \begin{equation}\phi(x,y,z\rightarrow -H/2^+)=\phi(x,y,z\rightarrow -H/2^-)\label{eq:dppoissonbcs1}\end{equation}  
@@ -4287,20 +4288,42 @@ In the same way as with the triply periodic algorithm, we can compute the electr
 Since we do not have periodic boundaries in the $z$ direction, the application of the nabla operator on the potential to compute the electric field is not as straight-forward as in the triply periodic case. In particular, as we will study in the following sections, our solver works in the Fourier-Chebyshev space (similar to the doubly periodic Stokes solver in chapter \ref{sec:dpstokes}).
 
 \section{Solver description}
-We start by separating the problem into two sub-problems. First we solve \eqref{eq:dppoisson} in free space (no dielectric jumps or surface charges, see sec \ref{sec:dpsolver}) and then introduce an harmonic correction to account for the jump \bcs (section \ref{sec:dpcorr}).
-We use a grid-based solver to get an algorithm with linear complexity with the number of particles. First we evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (as described in chapter \ref{ch:ibm}), then solve the potential in that grid and finally interpolate the required quantities back to the particle positions (eqs. \eqref{eq:dppu} and \eqref{eq:dppf}).
-In order to accurately describe the charge density $f(\vec{x})$ in the grid we must choose a sufficiently small grid size, $h$. Since $h$ depends on the Gaussian width of the sources, $g_w$, this method will be inefficient for point-like charges ($g_w\rightarrow 0$). To overcome this limitation (similarly as with the triply periodic case described in chapter \ref{ch:tppoisson}) we make use of Ewald splitting.
+We use a grid-based solver to get an algorithm with linear complexity with the number of particles. We evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (similarly as in chapter \ref{ch:tppoisson}), then solve the potential in that grid and finally interpolate the required quantities back to the particle positions (eqs. \eqref{eq:dppu} and \eqref{eq:dppf}).
+In order to accurately describe the charge density $f(\vec{x})$ in the grid we must choose a sufficiently small grid size, $h$. Since the correct description of the charge density field produced by the Gaussian sources requires $h \sim a$ this method will be inefficient for point-like charges ($a\rightarrow 0$). To overcome this limitation (similarly as with the triply periodic case described in chapter \ref{ch:tppoisson}) we make use of Ewald splitting.
 
-\subsection{Free space solver}\label{sec:dpsolver}
+Let us start with the non-Ewald split case by considering that the distance between charges is comparable to their width, $a$.
+
+Reminiscent of the \gls{DP} Stokes algorithm in chapter \ref{sec:dpstokes} we start by separating the problem into two sub-problems. First we solve \eqref{eq:dppoisson} in free space (no dielectric jumps or surface charges) and then introduce an harmonic correction to account for the jump \bcs (section \ref{sec:dpcorr}). In particular, we separate the potential as
+\begin{equation}
+  \phi = \phi_{\dpr} + \phi_{\corr}
+\end{equation}
 
 
-\subsection{Correction}\label{sec:dpcorr}
+We first find the free-space potential, $\phi_{\dpr}$, by solving the Poisson equation \eqref{eq:dppoisson} with free-space \bcs and uniform permittivity $\varepsilon_0$ (see eq. \eqref{eq:dppoissonfreespacepot}). Then we compute the correction, $\phi_{\corr}$, by solving a Laplace equation that satisfies the \bcs in eqs. \eqref{eq:dppoissonbcs1}-\eqref{eq:dppoissonbcs4}.
+Notice that on one hand the free-space potential is oblivious to the presence of the surface charged walls and, in contrast, the harmonic correction does not include the Gaussian sources in its formulation. This means that each separate problem is not necessarily electroneutral, we address electroneutrality further on in section \ref{sec:dpelectroneutral}.
 
-\subsection{Ewald splitting}\label{sec:dpewald}
+\subsection{Free space solver, $\phi_{\dpr}$}\label{sec:dpsolver}
+Let us start by describing the free-space solver. We want to solve
+\begin{equation}
+  \varepsilon_0 \Delta \phi_{\dpr}(\vec{\fpos}) = -f(\vec{\fpos}),
+\end{equation}
+bounded at infinity so that $\partial_z\phi_{\dpr}\rightarrow \pm \infty 0$ and periodic boundary conditions in the plane.
+We can use the fact that the source charges are contained inside the domain $z\in[-H/2, H/2]$ to find the necessary \bcs to constitute a \gls{BVP}, which can then be solved using the solver in Appendix \ref{sec:bvp} (first introduced in chapter \ref{sec:dpstokes} for the Stokes equation). In particular, we can write
+\begin{equation}
+  \varepsilon_0 \Delta \phi_{\dpr}(\vec{\fpos})\quad\text{for}\quad |z|> H/2.
+\end{equation}
+Which can be solved analytically by taking its Fourier transform in the plane, so that
+\begin{equation}
+  (\partial_z^2 - k^2)\fou{\phi}_{\dpr}(\vec{k}, z) = 0
+\end{equation}
+\subsection{Harmonic correction, $\phi_{\corr}$}\label{sec:dpcorr}
+
+\subsection{Electroneutrality}\label{sec:dpelectroneutral}
+
+\section{Ewald splitting}\label{sec:dpewald}
 
 \section{Algorithm}
 %The far field poses a much more challenging problem since, contrary to the triply periodic case, the problem cannot be solved in Fourier space by simple algebraic multiplication with a Greens function. In our approach the potential is split into two pieces; one with free space boundary conditions and uniform permittivity and another that satisfies the boundary conditions as a correction. Thus  
-\begin{equation}  \phi = \phi^* + \phi^{(c)}\end{equation}  
 %The free space solution is solved by Fourier transforming in the XY directions and interpreting each wave number as a Boundary Value Problem which can be then solved independently in the Chebyshev basis.  
 \begin{equation}
   \varepsilon  \left( \frac{\partial ^2 \hat{\phi}^*(\mathbf{k}_{||},z)}{\partial z^2} -k_{||}^2 \hat{\phi}^*(\mathbf{k}_{||},z)  \right) = -\hat{f}(\mathbf{k}_{||},z)
