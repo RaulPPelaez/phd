@@ -4238,6 +4238,9 @@ auto createTPPoissonInteractor(UAMMD sim){
 The tolerance parameter is the maximum relative error allowed in the potential for two charges. The potential for $L\rightarrow\infty$ is extrapolated and compared with the analytical solution. Also in Ewald split mode the relative error between two different splits is less than the tolerance.
 
 \chapter{Doubly Periodic Electrostatics}\label{ch:dppoisson}
+\newcommand{\botl}{{0}}
+\newcommand{\topl}{{H}}
+
 \begin{itemize}
 \item Introduce the need for slit channel electrostatics
 \item Spectral Ewald solver
@@ -4262,14 +4265,14 @@ We want to solve the Poisson equation with Gaussian charge sources
  \varepsilon_0\Delta\phi(\vec{x} = (x,y,z))=-f(\vec{x})=-\oper{S}(\vec{r})\vec{Q}
 \end{equation}
 In a doubly periodic domain of width $H$ and size $L_{xy}$ in the plane\footnote{In \uammd's implementation, the permittivity inside the domain is set to unity and the charges are reescaled as $\vec{Q}' = \vec{Q}/\varepsilon_0$.}.
-We impose that the sources do not overlap the boundaries in the $z$ direction, $f(|z|>H) = 0$, so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma a \ge 4 a$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $q$.
+We impose that the sources do not overlap the boundaries in the $z$ direction, $f(z>\topl \text{ or } z<\botl) = 0$, so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma a \ge 4 a$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $q$.
 
 Finally, we solve \eqref{eq:dppoisson} with the following set of \bcs for the potential
-\begin{equation}\phi(x,y,z\rightarrow -H^+)=\phi(x,y,z\rightarrow -H^-)\label{eq:dppoissonbcs1}\end{equation}  
-\begin{equation}\phi(x,y,z\rightarrow H^-)=\phi(x,y,z\rightarrow H^+)\label{eq:dppoissonbcs2}\end{equation}
+\begin{equation}\phi(x,y,z\rightarrow \botl^+)=\phi(x,y,z\rightarrow \botl^-)\label{eq:dppoissonbcs1}\end{equation}  
+\begin{equation}\phi(x,y,z\rightarrow \topl^-)=\phi(x,y,z\rightarrow \topl^+)\label{eq:dppoissonbcs2}\end{equation}
 And for the electric field 
-\begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H^+)-\varepsilon_b \frac{\partial \phi}{\partial z}(x,y,z\rightarrow -H^-)=-\sigma_b(x,y)\label{eq:dppoissonbcs3}\end{equation}  
-\begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H^-)-\varepsilon_t \frac{\partial \phi}{\partial z}(x,y,z\rightarrow H^+)=\sigma_t(x,y)\label{eq:dppoissonbcs4}\end{equation} 
+\begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow \botl^+)-\varepsilon_b \frac{\partial \phi}{\partial z}(x,y,z\rightarrow \botl^-)=-\sigma_b(x,y)\label{eq:dppoissonbcs3}\end{equation}  
+\begin{equation}\varepsilon_0 \frac{\partial \phi}{\partial z}(x,y,z\rightarrow \topl^-)-\varepsilon_t \frac{\partial \phi}{\partial z}(x,y,z\rightarrow \topl^+)=\sigma_t(x,y)\label{eq:dppoissonbcs4}\end{equation} 
 We introduce, via these \bcs, the possibility of having arbitrary surface charges at the walls, $\sigma_b$ and $\sigma_t$ for the bottom and top respectively. Additionally, we can set different permittivities inside the slab ($\varepsilon_0$) above ($\varepsilon_t$) and below ($\varepsilon_b$) it. See figure \ref{fig:dppoisson_sketch} for a representation of the described set up.
 Finally, we assume that the domain is overall electroneutral,
 \begin{equation}
@@ -4307,12 +4310,12 @@ Notice that on one hand the free-space potential is oblivious to the presence of
 Let us start by describing the free-space solver. We want to solve
 \begin{equation}
   \label{eq:dppoissonfreespacepot}
-  \varepsilon_0 \Delta \phi_{\dpr}(\vec{\fpos}) = -f(\vec{\fpos}) \quad \text{for}\quad |z|<H
+  \varepsilon_0 \Delta \phi_{\dpr}(\vec{\fpos}) = -f(\vec{\fpos}) \quad \text{for}\quad \botl<z<\topl
 \end{equation}
 bounded at infinity so that $\partial_z\phi_{\dpr}(z \rightarrow \pm \infty) \rightarrow 0$ and periodic boundary conditions in the plane.
-We can use the fact that the source charges are contained inside the domain $z\in[-H, H]$ to find the necessary \bcs to constitute a \gls{BVP}, which can then be solved using the solver in Appendix \ref{sec:bvp} (first introduced in chapter \ref{sec:dpstokes} for the Stokes equation). In particular, we can write
+We can use the fact that the source charges are contained inside the domain $z\in[\botl, \topl]$ to find the necessary \bcs to constitute a \gls{BVP}, which can then be solved using the solver in Appendix \ref{sec:bvp} (first introduced in chapter \ref{sec:dpstokes} for the Stokes equation). In particular, we can write
 \begin{equation}
-  \varepsilon_0 \Delta \phi_{\dpr} = 0\quad\text{for}\quad |z|> H.
+  \varepsilon_0 \Delta \phi_{\dpr} = 0\quad\text{for}\quad z\le\botl \quad\text{or}\quad z\ge \topl.
 \end{equation}
 this equation can be solved analytically by taking its Fourier transform in the plane, so that for each wavenumber we have
 \begin{equation}
@@ -4320,46 +4323,51 @@ this equation can be solved analytically by taking its Fourier transform in the 
 \end{equation}
 Which has an analytical solution
 \begin{equation}
-  \fou{\phi}_{\dpr}(\vec{k}, z \ge \pm H) \propto \exp(\mp kz),
+  \fou{\phi}_{\dpr}(\vec{k}, z \le \botl) \propto \exp(kz)\quad\text{and}\quad\fou{\phi}_{\dpr}(\vec{k}, z \ge \topl) \propto \exp(-kz),
 \end{equation}
 hinting at the following \bcs for eq. \eqref{eq:dppoissonfreespacepot},
 \begin{equation}
   \label{eq:dppoissonfreespacebcs}
-  (\partial_z \pm k)\fou{\phi}_{\dpr}(\vec{k}, \pm H) = 0, 
+  (\partial_z + k)\fou{\phi}_{\dpr}(\vec{k}, \topl) = 0\quad\text{and}\quad(\partial_z - k)\fou{\phi}_{\dpr}(\vec{k}, \botl) = 0, 
 \end{equation}
-owning to the continuity of $\phi_{\dpr}$ and $\partial_z\phi_{\dpr}$.
+owning to the continuity of $\phi_{\dpr}$ and $\partial_z\phi_{\dpr}$ at the boundaries.
 We can now write eq. \eqref{eq:dppoissonfreespacepot} in Fourier space in the plane and couple it with the \bcs in eq. \eqref{eq:dppoissonfreespacebcs} to constitute a two point \gls{BVP} that can be efficiently solved in the \gpu with the solver described in Appendix \ref{sec:bvp}. We can thus rewrite eq. \eqref{eq:dppoissonfreespacepot} as
 \begin{equation}
   \label{eq:dppoissonfreespacepotbvp}
-  \varepsilon_0(\partial_z^2 - k^2)\fou{\phi}_{\dpr}(\vec{k}, z) = -\fou{f}(\vec{k}, z) \quad \text{for}\quad |z|\le H.
+  \varepsilon_0(\partial_z^2 - k^2)\fou{\phi}_{\dpr}(\vec{k}, z) = -\fou{f}(\vec{k}, z) \quad \text{for}\quad \botl\le z\le \topl.
 \end{equation}
 The $k=0$ mode requires special treatment, since the \gls{BVP} in eqs. \eqref{eq:dppoissonfreespacepotbvp} with \bcs in eq. \eqref{eq:dppoissonfreespacebcs} is not necessarily electroneutral (since it does not consider the surface charges), we will consider it later along with the correction (given that the problem for $\phi$ is indeed electroneutral).
 \subsection{Harmonic correction, $\phi_{\corr}$}\label{sec:dpcorr}
 We now correct the solution $\phi_{\dpr}$, for which we did not take into account the \bcs in eqs. \eqref{eq:dppoissonbcs1}-\eqref{eq:dppoissonbcs4}, mainly neglecting the surface charges $\sigma_{b/t}$. In contrast, the correction potential does not require to take into account the Gaussian sources, which were included in $\phi_{\dpr}$. Thus, the correction will have a Laplace equation
 \begin{equation}
+  \label{eq:dppoissonlaplacecorr}
   \Delta \phi_{\corr} = 0
 \end{equation}
 for all space, $z\in(-\infty, \infty)$. For the \bcs we use the four jump conditions at the domain limits (two for the potential and two for the field). In general, we will have a mismatch at the boundaries in both the potential and the field given by
 \begin{equation}
   \label{eq:dppoissonmismatchcorr}
   \begin{aligned}
-    &\phi_{\corr}(x,y,z\rightarrow \mp H^\pm) - \phi_{\corr}(x,y,z\rightarrow \mp H^\mp) = -m_{\phi}^{b/t}(x,y),\\
-    &\varepsilon_0\partial_z\phi_{\corr}(x,y,z\rightarrow \mp H^\pm) - \varepsilon_{b/t}\partial_z\phi_{\corr}(x,y,z\rightarrow \mp H^\mp) = -m_E^{b/t}(x,y).
+    &\phi_{\corr}(x,y,z\rightarrow \botl^+) - \phi_{\corr}(x,y,z\rightarrow \botl^-) = -m_{\phi}^{b}(x,y),\\
+    &\phi_{\corr}(x,y,z\rightarrow \topl^-) - \phi_{\corr}(x,y,z\rightarrow \topl^+) = -m_{\phi}^{t}(x,y),\\
+    &\varepsilon_0\partial_z\phi_{\corr}(x,y,z\rightarrow \botl^+) - \varepsilon_{b}\partial_z\phi_{\corr}(x,y,z\rightarrow \botl^-) = -m_E^{b}(x,y)\\
+    &\varepsilon_0\partial_z\phi_{\corr}(x,y,z\rightarrow \topl^-) - \varepsilon_{t}\partial_z\phi_{\corr}(x,y,z\rightarrow \topl^+) = -m_E^{t}(x,y).
   \end{aligned}
 \end{equation}
 Using $\phi = \phi_{\dpr} + \phi_{\corr}$ we can write them in terms of the already computed $\phi_{\dpr}$, 
 \begin{equation}
   \begin{aligned}
-    &m_{\phi}^{b/t} = \phi_{\dpr}(z\rightarrow \mp H^\pm) - \phi_{\dpr}(z\rightarrow \mp H^\mp) = 0,\\
-    &m_E^{b/t} = \varepsilon_0\partial_z\phi_{\dpr}(z\rightarrow \mp H^\pm) - \varepsilon_{b/t}\partial_z\phi_{\dpr}(z\rightarrow \mp H^\mp) + \sigma_{b/t} =\\
-    &\qquad=(\varepsilon_0 - \varepsilon_{b/t})\partial_z\phi_{\dpr}(z=\mp H) +\sigma_{b/t}.
+    &m_{\phi}^{b} = \phi_{\dpr}(z\rightarrow \botl^+) - \phi_{\dpr}(z\rightarrow \botl^-) = 0,\\
+    &m_{\phi}^{t} = \phi_{\dpr}(z\rightarrow \topl^-) - \phi_{\dpr}(z\rightarrow \topl^+) = 0,\\
+    &m_E^{b} = (\varepsilon_0 - \varepsilon_{b})\partial_z\phi_{\dpr}(z=\botl) + \sigma_{b},\\
+    &m_E^{t} = (\varepsilon_0 - \varepsilon_{t})\partial_z\phi_{\dpr}(z=\topl) - \sigma_{t}.
   \end{aligned}
 \end{equation}
 Where we have used the continuity of $\phi_{\dpr}$ and its derivative at the domain limits to simplify the expressions for the field mismatch. Additionally, the potential mismatch is zero in the current case, nonetheless we keep it in the description, since it will become non-zero in the Ewald splitted case (see section \ref{sec:dpewald}).
 
 We can write the general solution for the correction potential inside the domain in Fourier space (as usual, transformed only in the plane) as 
 \begin{equation}
-  \fou{\phi}_{\corr}(\vec{k}, z) = A(\vec{k})\exp(k z) + B(\vec{k})\exp(-kz), \quad \text{for} \quad |z|<H
+  \label{eq:dppoissoncorrpoteq}
+  \fou{\phi}_{\corr}(\vec{k}, z) = A(\vec{k})\exp(k z) + B(\vec{k})\exp(-kz), \quad \text{for} \quad \botl\le z\le \topl
 \end{equation}
 
 Using the \bcs in eq. \eqref{eq:dppoissonmismatchcorr} it can be shown that the solution is
@@ -4367,41 +4375,86 @@ Using the \bcs in eq. \eqref{eq:dppoissonmismatchcorr} it can be shown that the 
 \begin{equation}
   \label{eq:dppoissoncorrpot}
   \begin{aligned}
-    \fou{\phi}_{\corr}(\vec{k}, z) = \alpha(k)\bigg[ &(\varepsilon_t +1)\exp(-k z')(\fou{m}_E^b - \varepsilon_bk \fou{m}_\phi^b)\\
-    &-(\varepsilon_b+1)\exp\left(k\left(z'-2H\right)\right)(\fou{m}_E^t + \varepsilon_tk\fou{m}_\phi^t)\\
-    &+(\varepsilon_b-1)\exp\left(-k(2H+z')\right)(\varepsilon_tk\fou{m}_\phi^t + \fou{m}_E^t)\\
-    &-(\varepsilon_t -1)\exp\left(k(z'-4H)\right)(\fou{m}_E^b - \varepsilon_bk\fou{m}_\phi^b)
+    \fou{\phi}_{\corr}(\vec{k}, z) = \alpha(k)\bigg[ &(\varepsilon_t +1)\exp(-k z)(\fou{m}_E^b - \varepsilon_bk \fou{m}_\phi^b)\\
+    &-(\varepsilon_b+1)\exp\left(k\left(z-H\right)\right)(\fou{m}_E^t + \varepsilon_tk\fou{m}_\phi^t)\\
+    &+(\varepsilon_b-1)\exp\left(-k(H+z)\right)(\varepsilon_tk\fou{m}_\phi^t + \fou{m}_E^t)\\
+    &-(\varepsilon_t -1)\exp\left(k(z-2H)\right)(\fou{m}_E^b - \varepsilon_bk\fou{m}_\phi^b)
     \bigg].
 \end{aligned}
 \end{equation}
-Where we have defined for convenience $z':=(z+H)/2$ and the helper function, $\alpha(k)$, is defined as
+Where we have defined for convenience the helper function, $\alpha(k)$, as
 \begin{equation}
   \alpha(k) := \left(k(\varepsilon_b +1)(\varepsilon_t+1) - (\varepsilon_b\varepsilon_t + \varepsilon_b + \varepsilon_t -1)\exp(-2Hk) \right)^{-1}
 \end{equation}
-The expression for the correction potential in eq. \eqref{eq:dppoissoncorrpot} has been carefully laid out to minimize overflow errors in a numerical implementation (due to the evaluation of the exponential terms). In particular, \uammd's implementation evaluates this expression in double precision regardless of the overall precision mode, since the standard math library allows for a maximum exponent of $~709$. Exponential overflow is not an issue in the non-Ewald splitted case, but as we will see in the following sections, the Ewald-splitted case requires to evaluate eq. \eqref{eq:dppoissoncorrpot} below $z=-H_e-H$, which results in the term $\exp(kH_e)$ being evaluated.
+The expression for the correction potential in eq. \eqref{eq:dppoissoncorrpot} has been carefully laid out to minimize overflow errors in a numerical implementation (due to the evaluation of the exponential terms). In particular, \uammd's implementation evaluates this expression in double precision regardless of the overall precision mode, since the standard math library allows for a maximum exponent of $~709$. Exponential overflow is not an issue in the non-Ewald splitted case, but as we will see in the following sections, the Ewald-splitted case requires to evaluate eq. \eqref{eq:dppoissoncorrpot} below $z=-H_e$, which results in the term $\exp(kH_e)$ being evaluated.
 
 The only missing piece in our description is the $k=0$ mode, which must be computed for directly for $\phi$, since this is the only way to ensure the solution is well defined (which requires electroneutrality, i.e the integral of the overall charge being zero).
  
 \subsection{The $k=0$ mode}\label{sec:dpelectroneutral}
 For the zero mode we can write the equation for the uncorrected potential as
 \begin{equation}
-  \varepsilon_0\partial_z ^2\fou{\phi}_{\dpr}(\vec{k}=\vec{0}, z) = -\fou{f}(\vec{0}, z).
+  \label{eq:dppoissonk0}
+  \partial_z ^2\fou{\phi}_{\dpr}(\vec{k}=\vec{0}, z) = -  \varepsilon_0^{-1}\fou{f}(\vec{0}, z).
 \end{equation}
+%With \bcs in eqs. \eqref{eq:dppoissonbcs1}-\eqref{eq:dppoissonbcs4}.
 %Using the boundness of $\fou{\phi}$ at infinity we can safely assume that the potential $\fou\{phi}(\vec{0}, z)$ remains constant outside the boundaries and given that we can choose $\fou{\phi}(\vec{0},z)$ at one place, we set
 %\begin{equation}
 %  \fou{\phi}(\vec{0}, z\ge H) = A_0\quad\text{and}\quad\fou{\phi}(\vec{0}, z\le -H) = -A_0
 %\end{equation}
-%The constant $A_0$ can be evaluated by integrating 
+%The constant $A_0$ can be evaluated by multiplying eq. \eqref{eq:dppoissonk0} by $z$ and integrating by parts,
+%\begin{equation}
+%  \int_{-H}^H
+%\end{equation}
 Which can be solved by integrating the zero mode of the charge density twice, making use of the Chebyshev coefficients of $\fou{f}$. Alternatively, our \gls{BVP} solver can handle eq. \eqref{eq:dppoissonfreespacepotbvp} with the (homogeneous) \bcs in eq. \eqref{eq:dppoissonfreespacebcs} in the case $k=0$\footnote{Which is how \uammd computes the linear mode.}.
-
-The final solution for the linear mode can be written as
+The potential in eq. \eqref{eq:dppoissonk0} is only valid up to a linear correction, given by the solution of eq. \eqref{eq:dppoissoncorrpoteq} for $k=0$,
 \begin{equation}
-  $\phi(\vec{0}, z)$ = $\phi_{\dpr}(\vec{0}, z)$ + Cz
+  \fou{\phi}_{\corr}(\vec{0}, \botl\le z\le \topl) = A_0z + B_0.
 \end{equation}
+Let us also define the correction potential outside the boundaries as
+\begin{equation}
+  \fou{\phi}_{\corr}(\vec{0}, z> \topl) = A^t_0z + B^t_0 \quad\text{and}\quad \fou{\phi}_{\corr}(\vec{0}, z<\botl) = A^b_0z + B^b_0.
+\end{equation}
+The final potential, $\phi(\vec{0},z) = \phi_{\dpr}(\vec{0},z) + \phi_{\corr}(\vec{0},z)$ must satisfy the \bcs in eqs. \eqref{eq:dppoissonbcs1}-\eqref{eq:dppoissonbcs4}, replacing the equations for the partial potentials and using the mismatches yields a system of equations for the unknown coefficients as
+\begin{equation}
+  \label{eq:dppoissonB0}
+  \fou{\phi}_{\dpr}(\vec{0}, \botl) + B_0 = B_0^b = 0,
+\end{equation}
+\begin{equation}
+  A_0H + B_0 + \fou{\phi}_{\dpr}(\vec{0}, \topl) = A_0^tH + B_0^t,
+\end{equation}
+\begin{equation}
+  m_E^b +\varepsilon_0A_0-\varepsilon_bA_0^b = 0,
+\end{equation}
+\begin{equation}
+  m_E^t +\varepsilon_0A_0-\varepsilon_tA_0^t = 0.
+\end{equation}
+We only need the values of $A_0$ and $B_0$ in order to compute $\fou{\phi}(\vec{0},z)$ inside the slab. We can obtain $B_0$ from eq. \eqref{eq:dppoissonB0}. For $A_0$ we can use the decay of the field outside the slab, which requires that the correction potentials outside the boundaries cancel the one produced by $\fou{\phi}_{\dpr}$, so
+\begin{equation}
+  A_0^b = -\partial_z\fou{\phi}_{\dpr}(\vec{0}, z\le\botl),\quad\text{and}\quad A_0^t = -\partial_z\fou{\phi}_{\dpr}(\vec{0}, z\ge\topl).
+\end{equation}
+Using the above expressions we can arrive to two solutions, which are identical for electroneutral slabs, for $A_0$,
+\begin{equation}
+  \begin{aligned}
+    A_0 &= -\varepsilon_0^{-1}(m_E^b +\varepsilon_b\partial_z\fou{\phi}_{\dpr}(\vec{0}, \botl)) =\\
+    &= -\varepsilon_0^{-1}(m_E^t +\varepsilon_t\partial_z\fou{\phi}_{\dpr}(\vec{0}, \topl)).
+\end{aligned}
+\end{equation}
+In \uammd's implementation we average both expressions to minimize the discretization errors\footnote{In \uammd, the code for the zero mode correction can be found in the mismatch compute source file, \emph{PoissonSlab/MismatchCompute.cuh}.}
 
+%On the other hand, the equation for the correction potential (see eq. \eqref{eq:dppoissonlaplacecorr}) with $k=0$ is
+%\begin{equation}
+%  \phi_{\corr}(\vec{0}, z) = A_0z+B_0
+%\end{equation}
+%
+%
+%The final solution for the linear mode can be written as
+%\begin{equation}
+%  \phi(\vec{0}, z) = \phi_{\dpr}(\vec{0}, z) + Cz
+%\end{equation}
+%
 
 \subsection{Wrapping up}
-Once the correction is evaluated for all wavenumbers, we apply the \gls{FCT} to each one, obtaining the Chebyshev coefficients that can then be summed to the uncorrected solution, $\phi_{\dpr}$ to finally get the total potential, $\phi$, via eq. \eqref{eq:dppoissonpotsep}.
+Once the correction is evaluated for all wavenumbers (except the zero mode, which as we have seen is handled independently), we apply the \gls{FCT} to each one, obtaining the Chebyshev coefficients that can then be summed to the uncorrected solution, $\fou{\phi}_{\dpr}$ to finally get the total potential, $\phi$, via eq. \eqref{eq:dppoissonpotsep}.
 
 In order to compute the electric field we can use \emph{ik} differentiation in the plane directions and use the Chebyshev coefficients in z for each wavenumber to compute its derivative (see Appendix \ref{sec:bvp}).
 
@@ -4409,88 +4462,17 @@ Then we apply the inverse Fourier-Chebyshev transform to get the potential and/o
 
 
 \section{Ewald splitting}\label{sec:dpewald}
+In order to reuse the Ewald splitting machinery laid out for the triply periodic case (see chapter \ref{ch:tppoisson}) we must shift our approach and describe the problem using images charges instead of boundary conditions.
+\subsection*{The method of images}
+In the presence of a dielectric boundary, the method of images states that the potential of reflect the charges across the boundary
+\begin{figure}
+  \centering
+  \includesvg[width=\columnwidth]{gfx/dppoisson_images}
+  \caption{Enforcing the dielectric jumps using images. The presence of the two dielectric boundaries (at $z=\botl$ and $z=\topl$) causes each charge to have infinite reflections. For instance, the charge $q$ reflects through the bottom reflection with $q^*$, which in turn reflects again through the top wall with $q^{**}$. We manage to Ewald split the problem into a near and far field contributions in such a way that both parts only need to take into account the first reflections at most.}
+  \label{fig:dppoisson_images}
+\end{figure}
 
 \section{Algorithm}
-%The far field poses a much more challenging problem since, contrary to the triply periodic case, the problem cannot be solved in Fourier space by simple algebraic multiplication with a Greens function. In our approach the potential is split into two pieces; one with free space boundary conditions and uniform permittivity and another that satisfies the boundary conditions as a correction. Thus  
-%The free space solution is solved by Fourier transforming in the XY directions and interpreting each wave number as a Boundary Value Problem which can be then solved independently in the Chebyshev basis.  
-\begin{equation}
-  \varepsilon  \left( \frac{\partial ^2 \hat{\phi}^*(\mathbf{k}_{||},z)}{\partial z^2} -k_{||}^2 \hat{\phi}^*(\mathbf{k}_{||},z)  \right) = -\hat{f}(\mathbf{k}_{||},z)
-\end{equation}
-\begin{eqnarray}
-  \frac{\partial \hat{\phi}^*(\mathbf{k}_{||},-H/2)}{\partial z} -  k_{||} \hat{\phi}^*(\mathbf{k}_{||},-H/2)&=&0 \\
-  \frac{\partial \hat{\phi}^*(\mathbf{k}_{||},H/2)}{\partial z}  +  k_{||} \hat{\phi}^*(\mathbf{k}_{||},H/2) &=&0
-\label{eq:dppoisson_ewald}
-\end{eqnarray}
-
-%The transformation of the charge density in the grid to Chebyshev space is achieved using mirrored 3D FFTs (fast Chebyshev transform) [4].  
-%For the correction potential a Laplace equation for each wavenumber is solved analytically using the jump boundary conditions ensuring that the overall boundary conditions are satisfied in the final potential.   
-%
-%## Example
-%DPPoisson is created as the typical UAMMD module:
-%
-%```c++
-%#include<uammd.cuh>
-%#include<Interactor/DoublyPeriodic/DPPoissonSlab.cuh>
-%using namespace uammd;
-%...
-%int main(int argc, char *argv[]){
-%...
-%  int N = 1<<14;
-%  auto sys = make_shared<System>(arc, argv);
-%  auto pd = make_shared<ParticleData>(N, sys);          
-%  auto pg = make_shared<ParticleGroup>(pd, sys, "All"); //A group with all the particles
-%  {
-%    auto pos = pd->getPos(access::location::cpu, access::mode::write);
-%    auto charge = pd->getCharge(access::location::cpu, access::mode::write);
-%   ...
-%  }
-%  DPPoissonSlab::Parameters par;
-%  par.Lxy = {32,32};
-%  par.H = 32;
-%  DPPoissonSlab::Permitivity perm;
-%  perm.inside = 1;
-%  perm.top = 2;
-%  perm.bottom = 2;
-%  par.permitivity = perm;
-%  par.gw = 1;
-%  par.Nxy = 72; //Number of Fourier modes for the far field section of the algorithm
-%  // par.split=1; //Splitting parameter, controls the number of Fourier nodes, choose either this or Nxy directly.
-%  auto pg = std::make_shared<ParticleGroup>(pd, sys, "All");
-%  auto dppoisson= std::make_shared<DPPoissonSlab>(pd, pg, sys, par);
-%...
-%  myintegrator->addInteractor(dppoisson);
-%...
-%return 0;
-%}
-%```
-%As in [3] the splitting can be tuned via the parameters, in this case either using ```split``` or the number of Fourier nodes, ```Nxy```.  
-%The algorithm ensures electroneutrality by placing the opposite of the total system charge as a surface charge in the walls (the same charge to each wall).  
-%The default accuracy parameters, omited in the example (see below), give 3-4 digits of accuracy in the electric field. To ensure this tolerance it is important that charges are kept at least 4*gw away from the walls at all times. For example an steric wall could be placed using ExternalForces[5] to ensure this.  
-%
-%### Additional accuracy parameters
-%These are advanced parameters that control the accuracy of the algorithm. See [2] for additional tested sets of parameters for different accuracies. The default parameters give 3-4 digits of accuracy.   
-%```c++
-%  DPPoissonSlab::Parameters par;
-%  par.tolerance = 1e-4; //Controls the cut off distance of the near field interaction kernel
-%  //The far field cell size as: h=sqrt(gw*gw + 1.0/(4.0*split*split))/upsampling;
-%  //If split is provided upsampling controls the cell size, h. If Nxy is provided upsampling controls the split.
-%  par.upsampling=1.2; 
-%  par.support=10; //The number of support cells for the Gaussian charges.
-%  par.numberStandardDeviations = 4; //Image charges will be considered up to a distance of He=1.25*numberStandardDeviations*sqrt(gw*gw + 1.0/(4.0*split*split));  
-%```
-%Additional examples and test cases (including a python interface) reproducing the results presented in [2] can be found at [5].
-%***
-%[1] https://github.com/RaulPPelaez/UAMMD/wiki/Interactor   
-%[2] [Maxian et al. "A fast spectral method for electrostatics in doubly periodic slit channels"](https://arxiv.org/abs/2101.07088).  
-%[3] https://github.com/RaulPPelaez/UAMMD/wiki/SpectralEwaldPoisson   
-%[4] https://en.wikipedia.org/wiki/Discrete_Chebyshev_transform  
-%[5] https://github.com/stochasticHydroTools/DPPoissonTests  
-%[5] https://github.com/RaulPPelaez/UAMMD/wiki/ExternalForces   
-\section{Problem description}
-Introduction.
-\section{Algorithm}
-
-\section{Implementation}
 
 \section{How to use in UAMMD}
 \newpage
