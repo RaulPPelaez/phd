@@ -375,7 +375,7 @@ Many of these software packages were born more than a decade before the term \gp
 
 It is therefore worth it to once in a while start again from a clean slate considering the new environments. One example of this is the general-purpose molecular dynamics software package HOOMD\cite{Anderson2008}. Born around the same time as CUDA itself HOOMD was designed from the ground up with the \gpu in mind. Although HOOMD provides a CPU-only backend it is centered around the \gpu and can work exclusively in it, this is crucial, as communication between the CPU and the \gpu is quite expensive, so much that it can many times negate the benefits of using a \gpu altogether.
 
-Virtually all of the mainstream commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for an user, the only option to interface with the packages is to integrate their simulations in them in their totality. In other words, it is awkward (or stright up not possible) to use these packages as external accelerators for an already stablished code. Of course, a closed ecosystem allows to design the software under less assumptions, easing development. On the other hand, a closed ecosystem misses some opportunities in doing so. For instance, one of the first problems a soft matter software package must solve is the construction of a short ranged particle interaction list (a so-called neighbour list), which usually governs the overall computational cost of a simulation. Creating a public, library-like, interface exposing this list creation algorithm allows an user to take his existing code and accelerate it, as opposed to having to do it the other way around, that is porting the entirety of his simulation to the closed ecosystem.
+Most commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for an user, the only option to interface with the packages is to integrate their simulations in them in their totality. In other words, it is awkward (or stright up not possible) to use these packages as external accelerators for an already stablished code. Of course, a closed ecosystem allows to design the software under less assumptions, easing development. On the other hand, a closed ecosystem misses some opportunities in doing so. For instance, one of the first problems a soft matter software package must solve is the construction of a short ranged particle interaction list (a so-called neighbour list), which usually governs the overall computational cost of a simulation. Creating a public, library-like, interface exposing this list creation algorithm allows an user to take his existing code and accelerate it, as opposed to having to do it the other way around, that is porting the entirety of his simulation to the closed ecosystem.
 
 \uammd attempts to provide an \emph{open} ecosystem, exposing most of the underlying algorithms in a library-like fashion.
 Furthermore, while most packages require to be compiled into a binary or library in order to be used, \uammd is a header-only framework. Meaning that the compilation of a source code using parts of \uammd can be seamlessly ingrained along the compilation process of another software.
@@ -406,7 +406,7 @@ Of course, this is not an original idea, coming, in part, from the underlying mi
 
 The \uammd framework takes this KISS\footnote{Keep It Simple, Sir} philosophy very seriously. It is supported on a handful of (deliberately) vague assumptions which can be summarize in four:
 \begin{enumerate}[label=\textbf{S.\arabic*}]
-\item The \emph{System} assumption: The code will run primarily on a \gpu (the most limiting assumption).
+\item The \emph{System} assumption: The code will run primarily on a \gpu (the most limiting assumption in the development process).
 \item The \emph{ParticleData} assumption: Simulations are based on the state of ``particles'' (whatever a particle and it's state mean).
 \item The \emph{Integrator} assumption: The state of these particles changes in time.
 \item The \emph{Interactor} assumption: Particles can interact between them and with an external influence.
@@ -490,14 +490,14 @@ Adaptability also means that, when it makes sense, a module can be specialized f
 The use of metaprogramming (in the C++ sense) reaches every corner of the code base, in many cases allowing to customize (or hack) an utility or module beyond its intended scope without having to modify a single line of it.
 
 \uammd is presented as a CUDA/C++ header-only library and it is mostly self-contained in terms of dependencies. The use of the word library is not chosen lightly here. We have discussed how an \emph{Integrator} is joined with a collection of \emph{Interactors}, maybe suggesting that the latter cannot function without the former. This is not the case since our framework provides a completely open ecosystem, facilitating (and actually encouraging) the incorporation of \uammd modules outside their \emph{normal} environment.
-All the utilities in \uammd, including \emph{Interactors}, \emph{Integrators}, neighbour lists, linear solvers and many more\footnote{A list of all the modules in \uammd at the time of writing can be found in Appendix \ref{sec:modulelist}.} \todo{Maybe include here an actual list of things like nlists, ibm, fft, bvp solver,... it is quite the long list...} can be used in an isolated way from ouside the code base. This also means that parts of \uammd can be used as accelerators in already stablished codes. For instance, an already written simulation code can include one of our fast \gpu hydrodynamics implementations into their description with just a few lines of code.
+All the utilities in \uammd, including \emph{Interactors}, \emph{Integrators}, neighbour lists, linear solvers and many more\footnote{A list of all the modules in \uammd at the time of writing can be found in Appendix \ref{sec:modulelist}.} can be used in an isolated way from ouside the code base. This also means that parts of \uammd can be used as accelerators in already stablished codes. For instance, an already written simulation code can include one of our fast \gpu hydrodynamics implementations into their description with just a few lines of code.
 
 In the past, we have explored this facet of the project by providing to collaborators some of our utilities and solvers as stand alone Python interfaces.
 
 The modularity of \uammd is reflected directly in the code, where modules can be created independently of each other as in the example code \ref{code:module}.
 Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Interactor} (short range, bonded,...), all modules in \uammd can be created and stored individually.
 %The \emph{ParticleData} object here, which is the direct expression in code of the second assumption, will be described in detail in sec. \ref{sec:particledata}.
-\todo{Maybe switch the order of the code examples here. In fact, join them both and say that the preamble is going to be omited. Take both code examples below ParticleData. Specify ``Module'' is an Integrator or an Interactor.}
+%\todo{Maybe switch the order of the code examples here. In fact, join them both and say that the preamble is going to be omited. Take both code examples below ParticleData. Specify ``Module'' is an Integrator or an Interactor.}
 \section{Multiscale}
 \begin{figure}[h]
   \centering
@@ -4140,7 +4140,7 @@ The whole algorithm, going from particle charges to forces, can be summarized as
 %  \label{eq:tppoison_alg_u}
 %  U_i = q_iJ_iF^{-1} \frac{1}{\epsilon K^2}F Sq
 %\end{equation}
-\subsection*{Ewald splitting}
+\section{Ewald splitting}\label{sec:tppoisson_ewald}
 The main problem with this approach is that the grid needs to be fine enough to correctly describe the Gaussian sources. Thus a small width results in a high number of grid cells. This hinders the ability to simulate large domains (in terms of $a$) or narrow (or even point) sources. In order to overcome this limitation we use an Ewald splitting technique\cite{ewaldsplit} (reminiscent of the use case introduced with \gls{PSE} in chapter \ref{sec:pse}).
 
 We can write the potential as
@@ -4464,15 +4464,31 @@ Then we apply the inverse Fourier-Chebyshev transform to get the potential and/o
 \section{Ewald splitting}\label{sec:dpewald}
 In order to reuse the Ewald splitting machinery laid out for the triply periodic case (see chapter \ref{ch:tppoisson}) we must shift our approach and describe the problem using images charges instead of boundary conditions.
 \subsection*{The method of images}
-In the presence of a dielectric boundary, the method of images states that the potential of reflect the charges across the boundary
+In the presence of a single wall with a jump in permittivity (for instance, the bottom wall at $z=0$, below of which the permittivity is $\varepsilon_b$), the method of images states that the potential (and field) at the location, $(x,y,z)$, of a charge $q$ is equivalent to that of a medium with uniform permittivity, $\varepsilon_0$, containing the original charge along with an image charge reflected across the wall, $(x,y,-z)$, with charge
+\begin{equation}
+  q^* = -q\frac{\varepsilon_b - \varepsilon_0}{\varepsilon_b + \varepsilon_0}.
+\end{equation}
+Additionally, the potential and field at the position of the image charge, $(x,y,-z)$, is equivalent to the medium having permittivity $\varepsilon_0$ in the presence of a single charge, located at $(x,y,z)$ with charge
+\begin{equation}
+  q^{*}_{\text{img}} = q\frac{2\varepsilon_0}{\varepsilon_b + \varepsilon_0}.
+\end{equation}
+With two walls the situation becomes much more complex, since the image charges further reflect through the opposite wall (see fig. \ref{fig:dppoisson_images}) and so on and so forth, resulting in intinite images.
 \begin{figure}
   \centering
   \includesvg[width=\columnwidth]{gfx/dppoisson_images}
-  \caption{Enforcing the dielectric jumps using images. The presence of the two dielectric boundaries (at $z=\botl$ and $z=\topl$) causes each charge to have infinite reflections. For instance, the charge $q$ reflects through the bottom reflection with $q^*$, which in turn reflects again through the top wall with $q^{**}$. We manage to Ewald split the problem into a near and far field contributions in such a way that both parts only need to take into account the first reflections at most.}
+  \caption{Enforcing the dielectric jumps using images. The presence of the two dielectric boundaries (at $z=\botl$ and $z=\topl$) causes each charge to have infinite reflections. For instance, the charge $q$ reflects through the bottom with an effective charge $q^*$, which in turn reflects again through the top wall with $q^{**}$. We manage to Ewald split the problem into a near and far field contributions in such a way that both parts only need to take into account the first reflections at most.}
   \label{fig:dppoisson_images}
 \end{figure}
+The image construction enforces the \bcs in eqs. \eqref{eq:dppoissonbcs1}-\eqref{eq:dppoissonbcs4} without surface charges (which we will introduce later) even when the particles are Gaussian clouds instead of point-like charges.
+In the following discussion, we will see how to deal with images when we split the problem into a near and far field contributions (using the Ewald-splitting tools in chapter \ref{ch:tppoisson}).
 
-\section{Algorithm}
+\subsection{Near field}
+As discussed in sec \ref{sec:tppoisson_ewald}, the range of the near field Green's function is related to the splitting parameter, $\xi$, and we can truncate it at a certain distance, $r_{c}$, in order to meet a certain tolerance requirement. We can take advantage of this and truncate $G_{\oper{J}}^{\near}$ to limit the near field computation to just the first set of images above or below the walls. We can achieve this by imposing $r_c<H$, we further restrict $r_c < L_{xy}/2$ in order to apply the \gls{MIC}.
+
+Besides having to include the first images, this part of the algorithm is then identical to the triply periodic case in sec. \ref{ch:tppoisson_ewald}\footnote{In \uammd's implementation, the near field images are handled via a special \emph{Transverser} that checks, for a given neighbour, its position and that of its two images (top and bottom wall). The related code can be found at the file \emph{Interactor/DoublyPeriodic/PoissonSlab/NearField.cuh}.}.
+\subsection{Far field}
+
+Let us split far field potential
 
 \section{How to use in UAMMD}
 \newpage
@@ -4486,8 +4502,6 @@ In the presence of a dielectric boundary, the method of images states that the p
 \end{itemize}
 
 \chapter{Radial Distribution Function}
-
-
 \chapter{Mean Square Displacement}
 \chapter{Fast Correlations}
 \chapter{Fast Histogram}
@@ -4884,15 +4898,84 @@ The \mintinline{\ucpp}{const} keyword simply informs the reader (and compiler) t
 
 
 \section{Basic concepts of GPU programming}
-Things to explain here:
+The \gpu (usually refered to as \emph{device}) works as a massively parallel co-processor, with thousands of (relatively slow) cores, independent of the rest of the system for most uses and purposes. It runs instructions independently (and in principle asynchronously) from the CPU (refered to as the \emph{host}). More importantly, the \gpu has its own memory space which is separated from the system RAM. The device cannot access the host memory (and viceversa). If information must be shared between each other an explicit memory copy has to be issued, which incurs a synchronization barrier and is in general a (relatively) slow process. In this section, we will discuss how this properties are taken into account and how they affect the programming model.
 
-\begin{itemize}
-\item Separation between CPU and GPU RAM
-\item Different memories in the GPU; global memory, register memory, shared memory, constant memory.
-\item Threading model; blocks and threads per block
-\item Execution order of threads (threads execute in lock-step inside a warp), blocks are async between them.
-\item Concurrent threads like to access concurrent elements in memory.
-\end{itemize}
+From a programmatic point of view, we can access the \gpu capabilities using CUDA, which extends C++ (by introducing new keywords and an \gls{API}) to accomodate for the particular programming model of a \gpu\footnote{There are other ways to program a \gpu, such as OpenACC\cite{openacc} or OpenCL\cite{opencl}, but we will stick to CUDA.}. Note, however, that this Appendix is not intended to be a CUDA programming guide (the reader can look online for a plethora of CUDA learning resources), but just an introduction to the particularities that come with coding for the \gpu.
+
+CUDA exposes the many cores of the \gpu via a series of logical groupings of workers (which in turn map to the hardware cores). The most basic computing unit is called a \emph{thread}, which can execute a single instruction at a time. A group of threads (typically inferior to $1024$) is called a \emph{block}. Finally, blocks are grouped into a \emph{grid}.
+
+Although it is not required, threads inside a block excel when executing the same set of instructions in lock-step. In particular, blocks are composed of groups of 32 threads called \emph{warps}. Threads in a warp must execute the same instructions at the same time (but not necessarily acting on the same data).
+
+CUDA allows us to write small programs, called kernels, that we can then launch to run on the \gpu. The instructions in a kernel are executed by a grid of threads, whose size can be customized per launch. 
+
+We use the keyword \mintinline{\ucpp}{__global__} to mark a C++ function as a CUDA kernel, which must return a \mintinline{\ucpp}{void}, a kernel must be called with a special syntax and specifying the thread grid geometry (see example code \ref{code:cudakernel}).
+Additionally, kernels might call other functions, which must be adorned with the \mintinline{\ucpp}{__device__} attribute\footnote{The \mintinline{\ucpp}{__host__} attribute also exist. A function adorned with both device and host attributes can be called from both the device and the host.}.
+
+The main memory space of the \gpu (the equivalent of the heap memory in the CPU) is called \emph{global memory}. Memory allocated in this memory space is accessible at all times by every thread in a kernel. We use the \mintinline{\ucpp}{cudaMalloc*} family of functions to request global memory, although in practice we have higher level containers available, such as \mintinline{\ucpp}{thrust::device_vector<T>}. Nowadays, it is not a good practice to call \mintinline{\ucpp}{cudaMalloc} directly, similarly as with \mintinline{\ucpp}{malloc/new} vs. \mintinline{\ucpp}{std::vector<T>} in the CPU.
+We can populate the allocated global memory copying data from the CPU via the \mintinline{\ucpp}{cudaMemcpy*} family of functions. As with allocation, a series of higher level functions are available as alternatives. In particular we have \mintinline{\ucpp}{thrust::copy}, which handles CPU-\gpu copies. Additionally, kernels can write or read freely to global memory arrays, with the atomic considerations proper to a parallel environment.
+Similar to the CPU's heap memory, global memory is slow to access (although a series of caches exists to mitigate this).
+
+\begin{code2}[Creating vectors allocated in the \gpu, populating them and performing the saxpy operation using a kernel.]{label=code:cudakernel}
+  #include<thrust/device_vector.h>
+  #include<iostream>
+  
+  //Example of a device function, returns a*x+y
+  __device__ float saxpy_element(float a, float x, float y){
+    returns a*x + y;
+  }
+  
+  //Performs the operation y = a*x + y, where y and x are vectors of size n and a is a number  
+  //Each thread will handle one element
+  //This kernel must be launched with at least n threads
+  __global__ void saxpy(float a, const float *x, float *y, int n){
+    //Built in variables are available in kernels to compute things like a unique id for each thread in the grid
+    int id = blockIdx.x*blockDim.x + threadIdx.x;
+    //In case the kernel is launched with more threads than elements.
+    if(id>=n) return;
+    y[id] = saxpy_element(a, x[id], y[id]);
+  }
+  
+  int main(){
+    const int n = 1<<20;
+    //Allocate two vectors in GPU global memory
+    thrust::device_vector<float> y(n), x(n);
+    //Fill the vectors with some arbitrary number
+    //These operations will be performed in the GPU
+    thrust::fill(y.begin(), y.end(), 1.123f);
+    thrust::fill(x.begin(), x.end(), 2.123f);      
+    float a = 1.0f;
+    //Configure and launch the kernel
+    int blockSize = 128;  //Number of threads per block
+    int nBlocks = n/blockSize + 1; //Number of blocks
+    //Get pointers to the global memory
+    float* y_ptr = thrust::raw_pointer_cast(y.data());
+    float* x_ptr = thrust::raw_pointer_cast(x.data());
+    //Writing or reading from these pointers from the CPU will result in a crash, since the CPU cannot access the device memory (and viceversa).
+    //y_ptr[0] = 1.0; //<- Not allowed
+    //Launch the kernel with nBlocks blocks of blockSize threads each
+    saxpy<<<nBlocks, blockSize>>>(a, x_ptr, y_ptr, n);
+    //Let us download the results to the CPU
+    std::vector<float> y_host(n);
+    //The thrust library knows this is a device to host copy
+    thrust::copy(y.begin(), y.end(), y_host.begin());
+    //Now we can print the contents of the CPU copy
+    std::cout<<y_host[0]<<<std::endl;
+    return 0;
+  }
+\end{code2}
+
+In a CUDA code it is important to always know the procedence of a pointer in order to know where to access it from\footnote{There is a special kind of memory, called \emph{managed memory}, that can be accessed from both devices freely. However, it comes with its own downsides and is beyond the scope of this introduction. \uammd sometimes defaults to managed memory when compiled in debug mode.}.
+This is the original motivation for the \emph{ParticleData} \uammd object.
+
+%\item Different memories in the GPU; global memory, register memory, shared memory, constant memory.
+%  The \gpu has a series of memory spaces that we can leverage.
+%  \begin{itemize}
+%  \item Global memory: The main memory, it is the equivalent of the heap memory in the CPU. Memory allocated in this memory space is accessible at all times by every thread in a kernel. We use the \mintinline{\ucpp}{cudaMalloc*} family of functions to request global memory, although in practice we have higher level containers available, such as \mintinline{\ucpp}{thrust::device_vector<T>}. Nowadays, it is not a good practice to call \mintinline{\ucpp}{cudaMalloc} directly, similarly as with \mintinline{\ucpp}{malloc/new} vs. \mintinline{\ucpp}{std::vector<T>} in the CPU.
+%    We can populate the allocated global memory copying data from the CPU via the \mintinline{\ucpp}{cudaMemcpy*} family of functions. As with allocation, a series of higher level functions are available as alternatives. In particular we have \mintinline{\ucpp}{thrust::copy}, which handles CPU-\gpu copies. Additionally, kernels can write or read freely to global memory arrays, with the atomic considerations proper to a parallel environment.
+%    Similar to the CPU's heap memory, global memory is slow to access (although a series of caches exists to mitigate this).
+%  \item Register memory: Local storage for each thread in a block, very limited but has the fastest access time of all memory spaces.
+%  \item Shared memory: Kernels have available a fast-access memory space that is shared by all threads inside a block.
+%    
 
 
 
@@ -4901,8 +4984,8 @@ Things to explain here:
 Many of the numerical techniques in this manuscript make use of the \gls{FFT}, mostly in order to easily compute convolutions. The \gpu is a very powerful hardware for \gls{FFT}, but using the available \glspl{API} can become a real nuisance. In this chapter we will see how \uammd makes use of the CUDA library \emph{cuFFT}\cite{cufft} and how to work with data in Fourier space. While the information hereafter is centric to the \emph{cuFFT} library, most lessons are applicable to other popular \gls{FFT} libraries (such as \emph{FFTW}).
 The documentation of the \emph{cuFFT} library is sometimes obscure (and even lacking). There are some particular details that have made me waste countless hours, hopefully with the help of this chapter you can spare some.
 
-Lets assume we want to work on some three dimensional data defined on the nodes (cells) of a mesh (grid) with size $\vec{n} = (n_x, n_y, n_z)$. For instance, the forces spreaded to the grid in \gls{FCM}.
-A one dimensional transform has size $(n: = \vec{n} =(n_x,1,1)$.
+Lets assume we want to work on some three dimensional\footnote{The dimensionality of the transformation is tipically refered to as \emph{rank}, so a 3D transform has rank 3.} data defined on the nodes (cells) of a mesh (grid) with size $\vec{n} = (n_x, n_y, n_z)$. For instance, the forces spreaded to the grid in \gls{FCM}.
+A one dimensional transform has size $n: = \vec{n} =(n_x,1,1)$.
 
 We will store the data in a linear array of size $n_xn_yn_z$, and access the value of cell $\vec{c} = (c_x,c_y,c_z)$ at the element $i = c_x + (c_y + c_zn_y)n_x$. Where $c_{x/y/z} \in [0, n_{x/y/z}-1]$.
 
@@ -4914,8 +4997,8 @@ We will store the data in a linear array of size $n_xn_yn_z$, and access the val
 n = 2^i3^j5^k7^l11^m
 \end{equation}
 
-Where $i,j,k,l,m$ are integer numbers. A number that meets that can be expressed like this is refered to as an \gls{FFT}-friendly number.
-Typically we will look for the next friendly number given a certain target size. One way to find this number is to simply generate all numbers that meet eq. \eqref{eq:fftfriendly}, sort them and find the nearest one to a target.
+Where $i,j,k,l,m$ are positive integers. A number that can be expressed like this is refered to as an \gls{FFT}-friendly number.
+Typically we will look for the next friendly number given a certain target size. One way to find this number is to simply generate all numbers, limiting the exponents to some low arbitrary numbers, that meet eq. \eqref{eq:fftfriendly}, sort them and find the nearest one to a target\footnote{The code in \uammd that performs this operation is at \emph{utils/Grid.cuh}.}.
 
 Although this is a good rule of thumb, we can expect the performance to vary between implementations, hardware and version. The best strategy is to test in a case by case basis. This can be worth for long simulations, since this means that a bigger transformation can sometimes be faster. Given that in many spectral algorithms a bigger grid size means more accuracy, we could get a more accurate run with a shorter runtime.
 
@@ -4926,15 +5009,16 @@ One particular optimization commonly employed is to take advantage of the fact t
 \begin{equation}
   \hat{s}(\vec{k}) = \hat{s}(\vec{n} - \vec{k})^*
 \end{equation}
-In particular \emph{cuFFT} will only store the first $\textrm{floor}(n/2)+1$ wavenumbers in the $x$ direction. By default, a R2C transform will take an input of size $\vec{n}$ real numbers and return a complex array of size $\hat{\vec{n}} := (\textrm{floor}(n_x/2)+1, n_y, n_z)$ complex numbers\footnote{Note that since a complex number is stored as of two real numbers, the storage of both arrays is equal}. Similarly, a C2R transform will take a $\hat{\vec{n}}$ sized complex array and return a size $\vec{n}$ array with real numbers.
+In particular \emph{cuFFT} will only store the first $\textrm{floor}(n/2)+1$ wavenumbers in the $x$ direction. By default, a R2C transform will take an input of size $\vec{n}$ real numbers and return a complex array of size $\hat{\vec{n}} := (\textrm{floor}(n_x/2)+1, n_y, n_z)$ complex numbers\footnote{Note that since a complex number is stored as of two real numbers, the storage of both arrays is similar}. Similarly, a C2R transform will take a $\hat{\vec{n}}$ sized complex array and return a size $\vec{n}$ array with real numbers.
 
 In principle, \emph{cuFFT} allows to store the input and output of a C2R or R2C transform in the same array in what it's called an \emph{in-place} transform. However, in my experience this results in unexpected behavior, so I advise against it\footnote{The documentation hints that in these cases the input size in the $x$ direction for an in-place C2R transform should be $2(\textrm{floor}(n_x/2)+1)$ to accomodate for all necessary complex values in the output. However, this does not seem to be the same rule for a C2R transform and has caused some problems to me in the past}.
 
 \section*{Data layout}
 Since most spectral algorithms in \uammd require C2R and R2C transforms it is worth giving here some more details about the correspondence of wave numbers and elements in the data array.
 
-Here is a convenience function that returns the wave number that corresponds to a certain index in the data array.
+Here is a convenience function that returns the wave number in each direction that corresponds to a certain index in the data array.
 \begin{code2}[Getting the wave number corresponding to a given linearized index.]{label=code:i2wn}
+//Returns the wave number in each direction given a linear index, i, and a grid size, nk.
 int3 indexToWaveNumber(int i, int3 nk){
   int ikx = i%(nk.x/2+1);
   int iky = (i/(nk.x/2+1))%nk.y;
@@ -4946,13 +5030,16 @@ int3 indexToWaveNumber(int i, int3 nk){
 }
 \end{code2}
 
-Most \gls{FFT} libraries povide some kind of advanced interface allowing to customize the data layout to some extent. In \emph{cuFFT} this is called the \emph{Advanced Data Layout}. In \uammd this is used extensively to compute three or four transformations in a single batch using interleaved data. For example, we can directly transform the forces spreaded to the grid in \gls{FCM} (see sec. \ref{sec:fcm}) stored in a vector \emph{real3} elements.
+Most \gls{FFT} libraries povide some kind of advanced interface allowing to customize the data layout to some extent. In \emph{cuFFT} this is called the \emph{Advanced Data Layout}. In \uammd this is used extensively to compute three or four transformations in a single batch using interleaved data. For example, we can transform in a single call the three directions of the forces spreaded to the grid in \gls{FCM} (see sec. \ref{sec:fcm}), which are stored in a vector with \emph{real3}\footnote{The real3 type stores three scalars contigously.} type elements.
 For example, if we want to transform the three coordinates for the forces in an interleaved array, we can instruct the library to interpret this data as three signals, each starting after the other and strided by three elements.
 \section*{Nyquist points}
-In a complex to real transform (and thus also in a real to complex transform) the corresponding Fourier data points meet the conditoin $data(\vec{k}) = data(\vec{k} - \vec{n_k})^*$. A consequence of this is that, in a transformation with an even number of points in some direction, there are some points that are the conjugates of themselves. We call this uncoupled modes Nyquist points.
-There are $8$ nyquist points at most (including the $\vec{k} = (0,0,0)$ mode), corresponding to the vertices of the inferior left cuadrant.
-A function to determine if a certain wave number is a Nyquist point:
-\begin{code2}[Finding Nyquist numbers]{label=code:nyquist}
+The complex data resulting of a R2C transform (or the input data of a C2R transform) meet the conditoin $data(\vec{i}) = data(\vec{i} - \vec{n})^*$. A consequence of this is that, in a transformation with an even number of points in some direction, there are some points that are the conjugates of themselves. We call this uncoupled modes Nyquist points.
+
+In \uammd, we take this into account mainly when including random fluctuations in Fourier space (see for instance the \gls{FCM} in chapter \ref{sec:fcm}).
+
+There are $8$ nyquist points at most (including the $\vec{k} = (0,0,0)$ mode), corresponding to the vertices of the inferior left cuadrant of the grid.
+Here is a convenience function that determines if a certain wave number is a Nyquist point:
+\begin{code2}[Finding if a wave number corresponds to a Nyquist point given the wave number and the grid size.]{label=code:nyquist}  
 bool isNyquistWaveNumber(int3 ik, int3 n){
   //Is the current wave number a nyquist point?
   const bool isXnyquist = (ik.x == n.x - ik.x);
@@ -4972,7 +5059,7 @@ bool isNyquistWaveNumber(int3 ik, int3 n){
 
 
 \chapter{Boundary Value Problem (BVP) Solver} \label{sec:bvp}
-In sections \ref{sec:dpstokes} and \ref{sec:dppoisson} we laid out the basic \glspl{PDE} as \glspl{BVP} with the following generic form
+In sections \ref{sec:dpstokes} and \ref{ch:dppoisson} we laid out the basic \glspl{PDE} as \glspl{BVP} with the following generic form
 \begin{equation}
   \label{eq:bvpmain}
   \begin{aligned}
@@ -4993,10 +5080,9 @@ Where $\partial_z y:= \frac{\partial y}{\partial z} := y'(z)$ and $\partial_{zz}
 %\end{aligned}
 % \end{equation}
 
-The domain is here defined in the $[-1, 1]$ range for simplicity. We can later generalize to any size via a simple change in units. In particular by defining $z = z'/H$ (with $z'\in [-H, H]$) and $k = k'H$.
+The domain is here defined in the $[-1, 1]$ range for simplicity. We can later generalize to any size via a simple change in units. For instance by defining $z = z'/H$ (with $z'\in [-H, H]$) and $k = k'H$.
 
 In this section we describe a generic, \gpu-friendly, spectral solver for the set of equations in \eqref{eq:bvpmain} based on the spectral integration method described in\cite{Greengard1991}.
-
 
 We will work with the discrete Chebyshev transform of eq. \eqref{eq:bvpmain}. In general, we can expand a given function, $g(z)$ with $z\in \mathcal{R}$ into the first $N$ terms of its Chebyshev series so that
 \begin{equation}
@@ -5055,14 +5141,14 @@ Matching modes gives a system of $N+2$ equations for the Chebyshev coefficients
 &\sum_{n=0}^{N-1} (\fou{y}'_n-k\fou{y}_n) (-1)^n = \beta
 \end{aligned}
 \end{equation}
-Where has $N+2$ unknowns $\fou{y}_0, \fou{y}'_0, \fou{y}''_0, \dots \fou{y}''_{N-1}$. We solve the algebraic system of equations\ \eqref{eq:bvpmodes} for the second derivative coefficients $\fou{y}''_0, \dots \fou{y}''_{N-1}$ and integration constants $\fou{y}_0$ and $\fou{y}'_0$, then determine $\fou{y}_n$ by integrating twice using \eqref{eq:bvpyn}.
+Where we have $N+2$ unknowns $\fou{y}_0, \fou{y}'_0, \fou{y}''_0, \dots \fou{y}''_{N-1}$ and equations. We solve the algebraic system of equations\ \eqref{eq:bvpmodes} for the second derivative coefficients $\fou{y}''_0, \dots \fou{y}''_{N-1}$ and integration constants $\fou{y}_0$ and $\fou{y}'_0$, then determine $\fou{y}_n$ by integrating twice using \eqref{eq:bvpyn}.
 
 For the $k=0$ mode, the system reduces to the trivial system of equations
 \begin{equation}
 \label{eq:bvpmodes0}
 \fou{y}''_n=\fou{f}_n \qquad n=0, \dots, N-1.
 \end{equation}
-The factors $\alpha$ and $\beta$, which in general can be different for each $k$, are zero for $k=0$, so in tfou case we enforce
+The factors $\alpha$ and $\beta$, which in general can be different for each $k$, are zero for $k=0$, so in this case we enforce
 \begin{equation}
 \label{eq:bvpBCs0}
 \sum_{n=0}^{N-1} \fou{y}_n = 0, \qquad \sum_{n=0}^{N-1} \fou{y}_n (-1)^n = 0.
@@ -5071,21 +5157,21 @@ The factors $\alpha$ and $\beta$, which in general can be different for each $k$
 We use a Schur complement approach to solve the algebraic system of equations \eqref{eq:bvpmodes}. We can write the system in block form as 
 \begin{equation}
 \label{eq:blocksys}
-\begin{pmatrix} \bm{A} & \bm{B} \\[2 pt] \bm{C} & \bm{D} \end{pmatrix}
-\begin{pmatrix} \fou{\bm{y}}''\\ \fou{y}_0 \\ \fou{y}'_0 \\ \end{pmatrix}
-= \begin{pmatrix}  \fou{\bm{f}}\\ \alpha \\ \beta\\ \end{pmatrix}. 
+\begin{bmatrix} \bm{A} & \bm{B} \\[2 pt] \bm{C} & \bm{D} \end{bmatrix}
+\begin{bmatrix} \fou{\bm{y}}''\\ \fou{y}_0 \\ \fou{y}'_0 \\ \end{bmatrix}
+= \begin{bmatrix}  \fou{\bm{f}}\\ \alpha \\ \beta\\ \end{bmatrix}. 
 \end{equation}
 Here $\bm{B}$ is $N \times 2$, $\bm{C}$ is $2 \times N$, $\bm{D}$ is $2 \times 2$, and $\bm{A}$ is an $N \times N$ \textit{pentadiagonal} matrix. In particular, the matrix $\bm{A}$, refered to as the second integral matrix, has only three non zero diagonals ($i=j$ and $i = j\pm 2$) which allows to use a specialized factorization algorithm. In \uammd we use the so-called \emph{KBPENTA} in \cite{Karawia2010}, modified for the special case of only three nonzero diagonals.\footnote{The matrix $\bm{A}$ is pre factorized (incurring an auxiliar storage of $3N$ elements for a given $k$). Using this our special pentadiagonal system can be solved in just $2N$ operations.} 
 
-We then solve the $2 \times 2$ system
+We start by solving the $2 \times 2$ system
 \begin{equation}
-(\bm{C}\bm{A}^{-1}\bm{B}-\bm{D})\begin{pmatrix}  \fou{y}_0 \\ \fou{y}'_0\\ \end{pmatrix} = \bm{C}\bm{A}^{-1}\bm{f}-\begin{pmatrix}  \alpha \\ \beta\\ \end{pmatrix}
+(\bm{C}\bm{A}^{-1}\bm{B}-\bm{D})\begin{bmatrix}  \fou{y}_0 \\ \fou{y}'_0\\ \end{bmatrix} = \bm{C}\bm{A}^{-1}\bm{f}-\begin{bmatrix}  \alpha \\ \beta\\ \end{bmatrix}
 \end{equation}
 for $\fou{y}_0$ and $\fou{y}'_0$. The $2\times 2$ matrix in the left hand side as well as $\bm{C}\bm{A}^{-1}$ ($2\times N$ size) are precomputed and stored for each $k$. Since the inverse of $\bm{A}$ is only needed at the precomputation stage no special performance considerations are required for it\footnote{In \uammd, the CPU \emph{getrf} BLAS square matrix inversion routine is used.}.
 
 Finally we obtain the coefficients $\fou{\bm{y}}''=(\fou{y}''_0, \dots \fou{y}''_{N-1})$ by solving
 \begin{equation}
-\bm{A}\fou{\bm{y}}''=\left(\bm{f}-\bm{B}\begin{pmatrix}   \fou{y}_0 \\ \fou{y}'_0\\ \end{pmatrix}\right)
+\bm{A}\fou{\bm{y}}''=\left(\bm{f}-\bm{B}\begin{bmatrix}   \fou{y}_0 \\ \fou{y}'_0\\ \end{bmatrix}\right)
 \end{equation}
 using the pre-factorized modified \emph{KBPENTA} algorithm.
 
@@ -5238,12 +5324,16 @@ Furthermore, while \emph{Transverser} describes a very general computation, \emp
 
 \todo{DESCRIBE INTERFACE}
 
-We are now ready to start exploring the different types of particle interactions, mainly:
-\begin{itemize}
-\item Long range interactions
-\item Short range interactions
-\item Bonded interactions
-\end{itemize}
+\chapter{List of currently implemented modules}\label{sec:modulelist}
+
+For convenience, we present here a list of all the modules available in \uammd at the time of writing. Each of them can be created and used on its own. Alternatively, several of them can be joined to construct a simulation.
+
+\section{Integrators}
+
+\section{Interactors}
+
+\section{Other modules}
+
 
 
 \printbibliography[heading=bibintoc]
