@@ -280,7 +280,7 @@ Thanks y'all.
 %    \chapter*{Acronyms}
     \printglossary[type=\acronymtype]
 \endgroup
-\glsresetallu 
+\glsresetall
 
 \cleardoublepage
 \pagestyle{scrheadings}
@@ -698,16 +698,16 @@ Adding new particle properties in \uammd amounts to include them in a special li
 
 
 \section{ParticleData}\label{sec:particledata}
-\uammd is a \gpu software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at an isolated piece of code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu.
+\uammd is a \gpu software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at an isolated piece of code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu\footnote{The following chapters and the code examples therein assume a certain level of familiarity with \gpu programming and the C++ programming language. A reader not familiar with these concepts can start by reading Appendix \ref{sec:cpp}, which introduces basic notions of both C++ and \gpu programming.}.
 
-The \emph{ParticleData} \uammd class attempts to mitigate this by handling this memory space internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and an usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up-to-date reference to the data in the correct memory space.
+The \emph{ParticleData} \uammd class attempts to hide the two memory spaces from the user by handling this memory space internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and an usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up-to-date reference to the data in the correct memory space.
 
 In C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the code crashing.
 
 
 \emph{ParticleData} can provide handles which give access the different particle properties.
 
-When requesting a handle to a property from \emph{ParticleData} with the intention of writing, the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed. The example code \ref{code:pd} showcases the basic usage of the \emph{ParticleData} class. In particular, showing how to access and modify particle properties.
+When requesting a handle to a property from \emph{ParticleData} with the intention of writing the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed. The example code \ref{code:pd} showcases the basic usage of the \emph{ParticleData} class. In particular, showing how to access and modify particle properties.
 
 \begin{code2}[Creating an using an instance of \emph{ParticleData}.]
   {label=code:pd}
@@ -971,7 +971,7 @@ int main(){
   Box box({lx, ly, lz});
   //Periodicity can be set independently for each direction. 1 meaning periodic and 0 aperiodic
   box.setPeriodicity(1,1,0);
-  //The unit cell goes from -L/2 to L/2 in each direction. Note that when the box is not periodic this is irrelevant.  
+  //The unit cell goes from -L/2 to L/2 in each direction.
   real3 position_outside_box = {0.5*lx+1, 0, 0};
   //Given that we have set the box as periodic in X, the position will be folded to the other side of the domain
   real3 position_in_box = box.apply_pbc(position_outside_box);
@@ -3084,7 +3084,7 @@ In \gls{FCM} the size of the grid is tied to the hydrodynamic radius of the part
 %Furthermore, the \gls{FCM} does not imposes a mobility explicitly, making it impossible to control the near field hydrodynamic effects without modifying the shape of the spreading kernels.
 We can apply an Ewald splitting strategy to overcome this limitation as described in\cite{Fiore2017}.
 
-In particular, we will solve eq. \eqref{eq:bdhi} using the \gls{RPY} mobility in with periodic boundary conditions. We can write the Stokes solution operator in eq. \eqref{eq:stokesoperfou} for a periodic system in real space using the same strategy as in\cite{Hasimoto1959}
+In particular, we will solve eq. \eqref{eq:bdfull} using the \gls{RPY} mobility with periodic boundary conditions. We can write the Stokes solution operator in eq. \eqref{eq:stokesoper} for a periodic system in real space using the same strategy as in\cite{Hasimoto1959}
 \begin{equation}
   \label{eq:psestokesoper}
   \oper{L}(\vec{\fpos}) = \frac{1}{V}\sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
@@ -4146,28 +4146,28 @@ The whole algorithm, going from particle charges to forces, can be summarized as
 %  U_i = q_iJ_iF^{-1} \frac{1}{\epsilon K^2}F Sq
 %\end{equation}
 \section{Ewald splitting}\label{sec:tppoisson_ewald}
-The main problem with this approach is that the grid needs to be fine enough to correctly describe the Gaussian sources. Thus a small width results in a high number of grid cells. This hinders the ability to simulate large domains (in terms of $a$) or narrow (or even point) sources. In order to overcome this limitation we use an Ewald splitting technique\cite{ewaldsplit} (reminiscent of the use case introduced with \gls{PSE} in chapter \ref{sec:pse}).
+The main problem with the approach in the previos section is that the grid needs to be fine enough to correctly describe the Gaussian sources. Thus a small width results in a high number of grid cells. This hinders the ability to simulate large domains (in terms of $a$) or narrow (or even point) sources. In order to overcome this limitation we use an Ewald splitting technique\cite{ewaldsplit} (reminiscent of the use case introduced with \gls{PSE} in chapter \ref{sec:pse}).
 
 We can write the potential as
 \begin{equation}
- \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{\near} + \phi^{\far}
+ \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{\near} + \phi^{\far}.
 \end{equation}
 Where $\star$ represents convolution and the intermediate solution $\psi$ satisfies
  \begin{equation}
- \varepsilon\Delta\psi=-f\star\gamma^{1/2}
+ \varepsilon\Delta\psi=-f\star\gamma^{1/2}.
 \end{equation}   
 The splitting function $\gamma$ is defined as
  \begin{equation}
- \gamma^{1/2} = \frac{8\xi^3}{(2\pi)^{3/2}}\exp\left(-2r^2\xi^2\right)
+ \gamma^{1/2} = \frac{8\xi^3}{(2\pi)^{3/2}}\exp\left(-2r^2\xi^2\right).
 \end{equation}
 Here the splitting parameter, $\xi$, is an arbitrary factor that is chosen to optimize performance. 
 Given that the Laplacian commutes with the convolution we can divide the problem in two separate parts, denoted as near and far field  
  \begin{equation}
- \varepsilon\Delta\phi^{\far}=-f\star\gamma
+ \varepsilon\Delta\phi^{\far}=-f\star\gamma,
 \end{equation}   
 \begin{equation}
  \label{tppoisson_ewald_near}
- \varepsilon\Delta\phi^{\near}=-f\star(1-\gamma)
+ \varepsilon\Delta\phi^{\near}=-f\star(1-\gamma).
 \end{equation}   
 The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case by effectively modifying the width of the Gaussian sources from $a$ to
 \begin{equation}
@@ -4205,19 +4205,17 @@ Similarly we compute the electric field or force acting on each charge
   \vec{F}_i = Q_i \oper{J}_{\vec{\ppos}_i} \vec{E}^{\near} = Q_i\sum_j{Q_j\frac{\partial G_{\oper{J}}^{\near}({r_{ij}})}{\partial r}\frac{\vec{r}_{ij}}{r_{ij}}}
 \end{equation}
 Where $\vec{r}_{ij} = \vec{\ppos}_i - \vec{\ppos}_j$ and $r_{ij} = ||\vec{r}_{ij}||$. The derivative of eq. \eqref{tppoisson_gnear} can be computed analytically.
-
 \subsection*{Accuracy}
 There are several parameters than can be tweaked to control the overall accuracy of the algorithm:
-The grid cell size $h$ or the number of grid cells $n$ control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
-\begin{equation}
-h = L/n = a/\alpha
-\end{equation}
-Where $L$ is the domain size (a cubic box is considered, but the arguments can be extended easily to any domain dimensions) and $\alpha$ is a proportionality factor. Note that $n$ should be chosen to be an \gls{FFT}-friendly number.
+The grid cell size $h:=L/n$ (being $L$ the box size and $n$ the number of grid cells\footnote{A cubic box is considered, but the arguments can be extended easily to any domain dimensions.}) control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
+Note that $n$ should be chosen to be an \gls{FFT}-friendly number (see Appendix \ref{ch:appendixa}).
+
+On the other hand, we also truncate the Gaussian kernel, $\phi_G$, up to a certain distance, $r_c$, such that $\phi_G(r_c)< \epsilon$ (being $\epsilon$ a desired tolerance).
 
 
 \subsection*{Use in UAMMD}
 
-This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} module.
+This algorithm is exposed in \uammd via the \emph{SpectralEwaldPoisson} \emph{Interactor} module.
 
 \begin{code2}[Usage example of the triply periodic Poisson module.]{label=code:poisson}
 #include<uammd.cuh>
@@ -4488,7 +4486,7 @@ The image construction enforces the \bcs in eqs. \eqref{eq:dppoissonbcs1}-\eqref
 In the following discussion, we will see how to deal with images when we split the problem into a near and far field contributions (using the Ewald-splitting tools in chapter \ref{ch:tppoisson}).
 
 \subsection{Near field}
-As discussed in sec \ref{sec:tppoisson_ewald}, the range of the near field Green's function is related to the splitting parameter, $\xi$, and we can truncate it at a certain distance, $r_{c}$, in order to meet a certain tolerance requirement. We can take advantage of this and truncate $G_{\oper{J}}^{\near}$ to limit the near field computation to just the first set of images above or below the walls. We can achieve this by imposing $r_c<H$, we further restrict $r_c < L_{xy}/2$ in order to apply the \gls{MIC}.
+As discussed in sec \ref{sec:tppoisson_ewald}, the range of the near field Green's function is related to the splitting parameter, $\xi$, and we can truncate it at a certain distance, $r_{c}$, in order to meet a certain tolerance requirement. We can take advantage of this and truncate $G_{\oper{J}}^{\near}$ to limit the near field computation to just the first set of images above or below the walls. We can achieve this by imposing $r_c<H$, we further restrict $r_c < L_{xy}/2$ in order to apply the \gls{MIC} in the plane.
 
 Besides having to include the first images, this part of the algorithm is then identical to the triply periodic case in sec. \ref{ch:tppoisson_ewald}\footnote{In \uammd's implementation, the near field images are handled via a special \emph{Transverser} that checks, for a given neighbour, its position and that of its two images (top and bottom wall). The related code can be found at the file \emph{Interactor/DoublyPeriodic/PoissonSlab/NearField.cuh}.}.
 \subsection{Far field}
@@ -4688,7 +4686,6 @@ Our computational and analytical tools can easily be extended to other types of 
 \begin{itemize}
 \item Enhanced diffusion under soft confinement\cite{Pelaez2017}
 \item Limit to infinetely stiff confinement\cite{Pelaez2018}
-\item Describe quasi2D paper. Similar to \gls{FCM}, but with a Green's function that is integrated in Z. It is the limit of an infinite boxin Z with particles attached to z=0 via an infinitely stiff spring.
 \end{itemize}
 
 
@@ -4802,13 +4799,61 @@ Given that object can be created and passed around as regular variables, we can 
 
 In \uammd, every \emph{Interactor} and \emph{Integrator} is provided as a C++ \mintinline{\ucpp}{class}.
 
+\subsection*{Scope}
+A name (be it of a function, class, variable, etc...) is only visible inside a certain portion (or portions) of the source code. This portion is called the \emph{scope} of the name. There are several scopes in a C++ source code, however we will limit our introduction to discuss the lifespan of the variables we create.
+
+In particular, when a new instance of an object (or in general any variable) is created, as we saw in example \ref{code:class}, it will live until it goes out of \emph{scope}. At that point, the object/variable will be destroyed.
+Destruction involves the invalidation of the variable and the release of the memory allocated for it. Additionally, in the case of objects the destructor function, if defined for that object, will be called. When a name goes out of scope it is made available for use again (i.e. we cannot have two variables with the same name, unless one has gone out of scope).
+
+The portion of code between two curly brackets is called a \emph{block}. As a rule of thumb, a variable will live until the code block in which it has been defined is closed. In \uammd this is used, for instance, to release the handles to the particle properties provided by \emph{ParticleData}. When the destructor of one of these handles is called, it signals \emph{ParticleData} for it to take it into account (for instance, by synchronizing the CPU and \gpu verions of the data).
+
+Let us showcase the lifespan of a variable by creating some instances inside different types of code blocks.
+\begin{code2}[Examples of a variable going out of scope]{label=code:scope}
+  //Let us define a class and give it a destructor
+  class MyClass{
+
+    public:
+    //The destructor is a special member function that has ~[class name] as signature.
+    ~MyClass(){
+      std::cerr<<"This is printed when the instance goes out of scope"<<std::endl;
+    }
+    //Additionally, a constructor can be defined.
+    //The constructor can even have input arguments.
+    MyClass(){
+      std::cerr<<"This is printed when an instance is created"<<std::endl;
+    }
+    //If either the constructor or destructor are not present, they are automatically defined by the compiler as just empty functions
+  };
+
+  //A function that just creates an instance of MyClass
+  void foo(){
+    MyClass c; //"c" is created and its constructor is called
+  }//"c" goes out of scope and its destructor is called
+  
+  int main(){
+    {//This is a code block
+      MyClass c; //"c" is created and its constructor is called
+      //Note that even we used the name "c" in the function foo, we can use it again here, since the variable "c" inside foo went out of scope
+    }// "c" goes out of scope here and its destructor is called
+    float someVariable;//Lets create some variable here
+    //A loop also works as a code block
+    for(int i=0; i<10; i++){
+      MyClass c; //"c" is created
+      //Again, the name "c" is available because it was not currently in scope
+    }//"c" goes out of scope
+
+    MyClass someVariable; //This is an illegal name, because there is already a variable in scope with this name
+    
+    return 0;
+  }
+\end{code2}
 
 \subsection*{Object inheritance}
 In C++, objects can inherit the functionality of other classes, and even override some of it. For instance, every polygon has an area, we can create a class called \emph{Polygon} that provides a member function called \emph{area} (returning the area). However, a polygon is just a concept that has no area per se. We can then create another class called \emph{Square} that inherits from \emph{Polygon} and overrides the \emph{area} function, providing its squared side.
 
 Given that the area of a \emph{Polygon} object is meaningless, we can mark it's \emph{area} function as \mintinline{\ucpp}{virtual} and add the suffix \mintinline{\ucpp}{= 0;} to its signature. This transforms the \emph{Polygon} class into a \emph{virtual base class}, which means that it cannot be instanced directly, rather it must be inherited and the virtual members must be overriden. See example code \ref{code:inherit}.
 \begin{code2}[Inheriting a virtual class.] {label=code:inherit}
-  //This is a virtual class
+  //This is a pure virtual class. A "Polygon" cannot be instanciated, only classes that inherit from it are instanciable.
   class Polygon{
     public:
     virtual double area() = 0;
@@ -4837,6 +4882,7 @@ Given that the area of a \emph{Polygon} object is meaningless, we can mark it's 
     auto a = s.area();
     Circle c;
     auto a2 = c.area();
+    //Polygon pol; //Illegal, pure virtual object cannot be instanciated.
     return 0;  
   }
 \end{code2}
