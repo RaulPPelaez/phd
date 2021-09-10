@@ -300,7 +300,7 @@ The advent of supercomputing in the last two decades has presented the field wit
 Developing new techniques (numerical and theoretical) directly aimed to these new technologies will enable the exploration of regimes previously unreachable, opening the doors to new phenomena.
 Multiscale problems will particularly benefit from the improvements in supercomputing.
 For instance, \cite{virusfullatom2018} to simulate every molecule of a virus capsid submerged in water ($6$ million atoms) in the span of $1\mu s$ ($5\cdot10^8$ simulation steps).
-Another example of these huge simulations, the authors of \cite{fullatombacteria2016} use $100$ million particles to model a chunk of the interior environment of a bacteria for some tens of nanoseconds (around $10^7$ steps).\todo{weird wording here and punctuation}
+In another example of these huge simulations, the authors of \cite{fullatombacteria2016} use $100$ million particles to model a chunk of the interior environment of a bacteria for some tens of nanoseconds (around $10^7$ steps).
 
 These sort of simulations would be impossible without the aid of a super computer and specialized software tools to take advantage of it. Indeed, aside from raw computing power, new fast and efficient numerical schemes (adapted to novel computing architectures) are needed to cover larger spatio-temporal windows in physical modelling. This is precisely the objective of this thesis, which is, in particular, devoted to the development of new algorithms and software tools for the study of complex fluids and biological systems in high performance computing environments.
 
@@ -314,8 +314,6 @@ Most of the properties of complex fluids often arise from an intermediate regime
 
 The definition of mesoscale is fuzzy, but normally deals with scales ranging from $50-100nm$ (a typical virus) to $~10\mu m$ (the size of a HeLa cell). Characteristic times go from micro seconds to even minutes.
 The mesoscale poses a series of theoretical and numerical challenges, because it stems from the microscopic spatio-temporal scales and yet it interacts with slower processes over large scales: a perfect fit for a super computer.
-
-\todo{continue}
 
 \section{The Graphical Processor Unit}
 
@@ -331,7 +329,7 @@ Recently, a new paradigm of supercomputing has arisen. The \gpu, a massively par
 Yet, the \gpu technology, interpreted as some kind of specialized graphic circuit or co-processor, can be tracked back to the 1970s. Once electronic devices started having screens attached to them, it made sense to have some kind of chip translating the CPU information into the analogic signal of the display. It was then only a matter of time before more functionality was put into them. It started as a way to accelerate the display process in early video game hardware, such as arcade systems.
 Storing the data that goes into the screen takes a lot of space and, at the time, RAM memory was expensive (still is, by the way!).
 
-In 1977, the Atari 2600 (one of the first home consoles) could simply not afford to store the contents of its 160x80 pixel display into its 128 bytes of RAM. Of course, these systems employed some truly creative software tricks to reduce memory usage. However, the numbers just do not add up. Even if we limit ourselves to a monochrome output (so one pixel takes one bit to store), the frame buffer for a 160x80 pixel display takes 1600 bytes\footnote{In contrast, the NVIDIA GTX 980 (the trusty, consumer-grade, GPU that has accompanied my thoughout most of my Ph.D.) has 4 GB of memory and will happily output to a several screens with 4k resolution (4096x2160 pixels).}.
+In 1977, the Atari 2600 (one of the first home consoles) could simply not afford to store the contents of its 160x80 pixel display into its 128 bytes of RAM. Of course, these systems employed some truly creative software tricks to reduce memory usage. However, the numbers just do not add up. Even if we limit ourselves to a monochrome output (so one pixel takes one bit to store), the frame buffer for a 160x80 pixel display takes 1600 bytes\footnote{In contrast, the NVIDIA GTX 980 (the trusty, consumer-grade, GPU that has accompanied me thoughout most of my Ph.D.) has 4 GB of memory and will happily output to a several screens with 4k resolution (4096x2160 pixels).}.
 The solution was not to have a frame buffer at all, but rather to outsource the display operations to a specialized hardware. The Atari 2600's graphic chip had a 128 color palette and allowed developers to use close to 5 sprites to design their 2D games.
 
 These chips were little more than video display chips, but they were the predecesors to the \gpu.
@@ -363,6 +361,7 @@ Luckily, there are ways to translate CUDA code into OpenCL code\footnote{In part
 
 \section{Software for soft matter simulations}
 
+\subsection*{A brief history of molecular dynamics software}
 Particle based computer modelling of soft matter systems has been around since the advent of computers. The use of computers for physical simulation can be tracked back as far as to the 1940's when researches at the Los Alamos national laboratory described the use of the ENIAC\footnote{The first programmable, electronic, generalpurpose digital computer.} for simulating some stochastic physical process\cite{Hurd1985} (the origins of the Monte Carlo method\cite{Johansen2010}). Shortly after, in the 1950's, computational molecular dynamics was born\cite{DeTullio2016}.
 
 One of the first examples of a software package for molecular dynamics is CHARMM, whose initial release dates back to 1983\cite{Brooks1983}. To put it in perspective, Windows 1.0 was released in 1985, the UNIX operating system was disclosed to the public in 1973 and Linux originated in 1991. It is humbling to realize that since 1983 the basic layout of a full-fledge molecular dynamics software package has not changed that much. As a matter of fact, the infrastructure presented in this manuscript shares many of the basic conceptual separations already present in \cite{Brooks1983}.
@@ -371,41 +370,47 @@ It is important to also mention that MPI, one of the first parallel \glspl{API},
 
 Another famous molecular dynamics package is GROMACS, which was released in 1991, with the first version using MPI coming shortly after it's release.
 
-
+\subsection*{The GPU revolution}
 Many of these software packages were born more than a decade before the term \gpu existed and were already quite stablished when the \gpu became a mainstream general purpose computing hardware. Naturally almost all of them have, at least partially, ported their functionalities to be accelerated by a \gpu in some way. However, \gpu programming poses such a wildly orthogonal paradigm that it makes the porting process slow and painful. Most CPU centric molecular dynamics packages are already so complex that redesigning from the ground up to accomodate for the \gpu is not an option and thus their inclusion can become awkward, sometimes causing the so-called software rot.
 
 It is therefore worth it to once in a while start again from a clean slate considering the new environments. One example of this is the general-purpose molecular dynamics software package HOOMD\cite{Anderson2008}. Born around the same time as CUDA itself HOOMD was designed from the ground up with the \gpu in mind. Although HOOMD provides a CPU-only backend it is centered around the \gpu and can work exclusively in it, this is crucial, as communication between the CPU and the \gpu is quite expensive, so much that it can many times negate the benefits of using a \gpu altogether.
 
-Most commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for an user, the only option to interface with the packages is to integrate their simulations in them in their totality. In other words, it is awkward (or stright up not possible) to use these packages as external accelerators for an already stablished code. Of course, a closed ecosystem allows to design the software under less assumptions, easing development. On the other hand, a closed ecosystem misses some opportunities in doing so. For instance, one of the first problems a soft matter software package must solve is the construction of a short ranged particle interaction list (a so-called neighbour list), which usually governs the overall computational cost of a simulation. Creating a public, library-like, interface exposing this list creation algorithm allows an user to take his existing code and accelerate it, as opposed to having to do it the other way around, that is porting the entirety of his simulation to the closed ecosystem.
+\subsection*{Closed vs. Open ecosystems}
+Most commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for an user, the only option to interface with the packages is to encode a simulation in them in its totality. In other words, it is awkward (or stright up not possible) to use these packages as external accelerators for an already established, in-house, code.
 
-\uammd attempts to provide an \emph{open} ecosystem, exposing most of the underlying algorithms in a library-like fashion.
+A closed ecosystem allows to design the software under less assumptions, easing development. On the other hand, a closed ecosystem misses some opportunities in doing so. For instance, one of the first problems a soft matter software package must solve is the construction of a short ranged particle interaction list (a so-called neighbour list), which usually governs the overall computational cost of a simulation. Creating a public, library-like, interface exposing this list creation algorithm (in what we would call an open ecosystem) allows an user to take his existing code and accelerate it, as opposed to having to do it the other way around, that is porting the entirety of his simulation to the closed ecosystem.
+
+\uammd attempts to provide an \emph{open} ecosystem, exposing most of its underlying algorithms in a library-like fashion.
 Furthermore, while most packages require to be compiled into a binary or library in order to be used, \uammd is a header-only framework. Meaning that the compilation of a source code using parts of \uammd can be seamlessly ingrained along the compilation process of another software.
 
 
-Developing algorithms for the ground up with the GPU architecture in mind is essential. Leverage ultra efficient \gpu \gls{FFT} by developing spectral algorithms. Many times simplicity beats complexity.
-
-State of the art in molecular simulations.
-\todo{continue}
+Developing algorithms for the ground up with the GPU architecture in mind is essential. Leverage ultra efficient \gpu \gls{FFT} by developing spectral algorithms.
 
 \cleardoublepage
 \ctparttext{Description of the UAMMD infrastructure. Importance of fundamentally GPU-driven design.}
 \part{UAMMD: Design and components}\label{pt:uammd}
 
 \chapter{The Fermation of subproblems}
-Consider the development of a software capable of reproducing the dynamics of an ionic solution in a cellular membrane channel. This poses a really convoluted simulation, involving electrostatics, fluctuating hydrodynamics, steric interactions, bonded ligatures, etcetera\footnote{A simulation easily handled by \uammd, by the way.}. As we will see along this manuscript, some of these algorithms are quite complex on their own, depending on a lot of moving parts. The mathematical and theoretical machinery required to model something like that appears to be in the realm of a theory of everything. It surely seems like an intractable feat!.
-We could try to design, from the ground up, a software that can perform this hypothetical simulation. While quite restricted to the specific usecase, the result would even be somewhat flexible. For instance, we could turn off electrostatics by setting the charges of all particles to zero.
+The Trinity test, the first atomic bomb detonation in history was carried out in 1945. The scientist of the Manhattan project dumbfoundedly observed how the detonation unraveled from a base afar. Among them was Enrico Fermi, the so-called architect of the nuclear age, who was 44 at the time. Fermi had absent-mindedly torn apart a sheet of paper moments before the detonation took place and held the pieces in his hands. Fourty seconds after the blast the then withered shockwave hit the crew. At the first sign of the shockwave Fermi, who had placed his hands above his head in expectation, released the paper bits, which landed a couple of meters past him. After a brief moment of meditation, Fermi announced to the crew that the detonation had released about 10 kilotons of energy.
+It took weeks of analyzing the data from the plethora of sensors available on site to confirm Fermi's estimate, which is now believed to have been near 20 kilotons.
 
-However, this top-down approach is fundamentally flawed, we are trying to build the house starting by the roof and losing sight of the forest in the process. The final product will probably have a lot of internal dependencies, many of which are probably unnecesary. In software this means that the code will be hard to adapt or extend.
+Fermi had mastered (and practically invented) these back-of-the-envelope calculations, which are more precise than a guess but are not mathematical proofs. He knew how to subdivide complex, untractable, problems into many small and manageable ones. In order to teach this technique to his students, Fermi prompted them with a kind of question that has become known as a \emph{Fermi problem}. A Fermi problem presents itself as an apparently unanswerable question. For instance: ``\emph{If I attach a blood vial to the wheels of my bike, how fast do I need to go and for how long for the plasma to separate from the blood cells?}'' or ``\emph{How many hairs does a polar bear have?}''. At first sight it seems that we simply do not have enough information at hand to solve these problems. However, if we break them down into small, answerable, subproblems we find that we can give a pretty good estimate in a short time: ``\emph{What is the skin area of a bear?}'', ``\emph{How many hairs per squared centimeter does a bear have?}''. These can in turn be interpreted as Fermi problems in on themselves and further subdivided: ``\emph{What is the average height of a bear?}'', ``\emph{Assuming a bear is somewhat cylindrical, what is it's radius}?'',``\emph{What is the diameter of a hair?}''\footnote{Let us assume bear hairs grow in a near close-packed configuration where each hair is on the order of $20\mu m$ in radius. This yields $1\text{cm}^2/((20\mu m)^2\pi) \sim 100K \text{hairs}/\text{cm}^2$. I have not found the precise number, but we can compare with a sea otter (the mammal with the densest fur) which has between $100-400K \text{hairs}/\text{cm}^2$. This gives me some confidence about the validity of our order of magnitude.}, etc.
 
-We humans are not good with complex things (which is probably the reason why complex and complicated share the same ethimology) and, as it can be glimpsed throughout \uammd, my solution to this problem is often to remove the problem altogether.
+Surely we can apply Fermi's teachings and \emph{Fermate} our endevours into subproblems too.
+Consider the development of a software capable of reproducing the dynamics of an ionic solution in a cellular membrane channel. This poses a really convoluted simulation, involving electrostatics, fluctuating hydrodynamics, steric interactions, bonded ligatures, etcetera\footnote{A simulation easily handled by \uammd, by the way.}. As we will see along this manuscript, some of these algorithms are quite complex on their own, depending on a lot of moving parts. The mathematical and theoretical machinery required to model something like that appears to be in the realm of a theory of everything. It sure sounds as a Fermi problem.
 
-This approach starts by dividing the original problem into subproblems in a hierarchical fashion (see fig. \ref{fig:uammdsketch}). The top of the tree represents the most general (or abstract) aspect of the problem, and subdivisions offer increasingly specific concepts. So instead of designing our framework with an ionic solution in a membrane channel in mind, we start at the top and then hierarchically specialize. What constitutes the ``top'', or \emph{soul}, of the problem is of course highly subjective and thus the contents of the next sections should be considered but merely my humble take on it.
+Still, we could try to design, from the ground up, a software that can perform this hypothetical simulation. 
+However, this top-down approach is fundamentally flawed. The final product will probably have a lot of internal dependencies, many of which are probably unnecesary. In software this means that the code will be hard to adapt, extend or even more scaryingly, to maintain.
+
+We humans are not good with complex things (which is probably the reason why complex and complicated share the same ethimology) and, as it can be glimpsed throughout \uammd, my solution to this problem is often to either Fermate the problem or remove it altogether.
+
+Like we did when counting hairs, we start by dividing the original problem into subproblems in a hierarchical fashion (see fig. \ref{fig:uammdsketch}). The top of the tree represents the most general (or abstract) aspect of the problem, and subdivisions offer increasingly specific concepts. So instead of designing our framework with an ionic solution in a membrane channel in mind, we start at the top and then hierarchically specialize. What constitutes the ``top'', or \emph{soul}, of the problem is of course highly subjective and thus the contents of the next sections should be considered but merely my humble take on it\footnote{Note, however, that I am far from the first to come up with this logical separation. Slightly different separations and with different names are present in basically every molecular dynamics software package.}.
 
 In particular, we can find the root by removing assumptions until we get to a point where only one (or a small number of them) remains. Therefore, we do not design in terms of ``ions'', ``cells'' or ``molecules'', rather in terms of a vague concept called ``particles''.
 
-Of course, this is not an original idea, coming, in part, from the underlying mindset of the famous Fermi estimates by embracing the (redundant) complexity of complex fluids instead of trying to fight it.
+Following Fermi's teachings we embrace the (redundant) complexity of complex fluids instead of trying to fight it.
 
-The \uammd framework takes this KISS\footnote{Keep It Simple, Sir} philosophy very seriously. It is supported on a handful of (deliberately) vague assumptions which can be summarize in four:
+The \uammd framework takes this KISS\footnote{Keep It Simple, Sir} philosophy very seriously. The foundational concepts of \uammd are supported on a handful of (deliberately) vague assumptions which can be summarize in four:
 \begin{enumerate}[label=\textbf{S.\arabic*}]
 \item The \emph{System} assumption: The code will run primarily on a \gpu (the most limiting assumption in the development process).
 \item The \emph{ParticleData} assumption: Simulations are based on the state of ``particles'' (whatever a particle and it's state mean).
@@ -537,7 +542,7 @@ One of the basic theories for coarse graining is embeded in the Fokker-Planck fo
     \label{eq:fpe}
     \partial_t P = -\vec{\partial}_{\vec{x}}\cdot \vec{J}
   \end{equation}
-Where $P_0 := P(\vec{x}_0, t_0)$ is known and $\vec{\partial}_{\vec{x}}\cdot \vec{J} := \nabla_{\vec{x}}\cdot\vec{J} = \sum_i\partial J_i/\partial x_i  $ represents the divergence (note that the derivation is made with respect to the slow variables in general vectors\todo{What does this mean??}).
+Where $P_0 := P(\vec{x}_0, t_0)$ is known and $\vec{\partial}_{\vec{x}}\cdot \vec{J} := \nabla_{\vec{x}}\cdot\vec{J} = \sum_i\partial J_i/\partial x_i  $ represents the divergence (note that the derivation is made with respect to the slow variables by using supervectors, i.e. all the variables and their coordinates\cite{Dhont1996}).
 The probability flux vector, $\vec{J}$ is defined as
 \begin{equation}
   \label{eq:fpeflux}
@@ -695,7 +700,7 @@ In \uammd particles are the relevant simulation entity as specified by the \emph
 
 Adding new particle properties in \uammd amounts to include them in a special list (in the source code \emph{ParticleData.cuh}, to be precise). It is worth to describe the \emph{ParticleData} class in more detail here.
 
-
+\chapter{Working with UAMMD modules}
 
 \section{ParticleData}\label{sec:particledata}
 \uammd is a \gpu software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at an isolated piece of code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu\footnote{The following chapters and the code examples therein assume a certain level of familiarity with \gpu programming and the C++ programming language. A reader not familiar with these concepts can start by reading Appendix \ref{sec:cpp}, which introduces basic notions of both C++ and \gpu programming.}.
@@ -735,7 +740,8 @@ int main(){
 }
 \end{code2}
 
-\chapter{Building an UAMMD module}
+
+\section{Building an UAMMD module}
 
 Throughout this manuscript, we will typically create a module named ``Module'' using a code similar to the one in code \ref{code:module}. ``Module'' will be called, for instance, \emph{VerletNVE} if it is \gls{MD} \emph{Integrator} (see sec. \ref{sec:velocityverlet}) or \emph{BondedForces} if it is a ligature \emph{Interactor} (see sec. \ref{sec:bonds}).
 
@@ -861,7 +867,7 @@ In particular, we start with the case of all particles interacting with every ot
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/sketchUAMMD_interactors}
-  \caption{The next level in the \emph{Interactor} branch of the tree presented at fig. \ref{fig:uammdsketch}. Names in blue represent \uammd modules that can be espacialized with outside logic. For instance, the bonded interactions module is general to any arbitrarily complex potential, which can be provided to the module via the use of metaprogramming.}
+  \caption{The next level in the \emph{Interactor} branch of the tree presented at fig. \ref{fig:uammdsketch}. Names in blue represent \uammd modules that can be specialized with outside logic. For instance, the bonded interactions module is general to any arbitrarily complex potential, which can be provided to the module via the use of metaprogramming.}
   \label{fig:uammdsketch_interactors}
 \end{figure}
 
@@ -985,7 +991,7 @@ int main(){
 \begin{figure}[h]
   \centering
   \includesvg[width=0.7\columnwidth]{gfx/sketchUAMMD_interactor_slr}
-  \caption{Overview of the concepts in the following chapters. Green text represent template arguments, while purple are generic algorithms. Long and short ranged interactions can be specialized from the outside via the \emph{Potential} interface (see Appendix \ref{sec:transverser}).}
+  \caption{Overview of the concepts in the following chapters. Green text represent template arguments, while purple are generic algorithms. Long and short ranged interactions can be specialized from the outside via the \emph{Potential} interface (see Appendix \ref{sec:transverser}). Arrows denote logical dependence.}
   \label{fig:uammdsketch_interactors_slr}
 \end{figure}
 
@@ -1025,12 +1031,12 @@ This results in an overall speedup of 30 compared with the naive algorithm. \tod
 The algorithm is summarized in algorithm \ref{alg:nbody}.
 \begin{algorithm}
   \caption{Shared memory NBody algorithm GPU kernel. Although the number of particles per tile is unconstrained, for simplicity this pseudocode assumes a tile has a size equal to the number of threads per block, with a number of tiles equal to the number of thread blocks.} \label{alg:nbody}
-  \Input{A list of $N$ particles}
+  \Input{A list of $N$ particles (positions, velocities,...)}
   \begin{algorithmic}[1]
     \Require
     \Statex A group of $N_b$ thread blocks with $N_{th}$ threads per block is launched.
     \Statex $N_bN_{th}\ge N$.
-    \Statex A shared memory array with $N_{th}$ size.
+    \Statex A shared memory array with $N_{th}$ elements.
     \Ensure
     \Statex Threads with index larger than $N$ do not participate.
     \State i $\gets$ thread ID \Comment{The index of the particle asigned to this thread.}
@@ -5093,6 +5099,13 @@ Additionally, kernels might call other functions, which must be adorned with the
 The main memory space of the \gpu (the equivalent of the heap memory in the CPU) is called \emph{global memory}. Memory allocated in this memory space is accessible at all times by every thread in a kernel. We use the \mintinline{\ucpp}{cudaMalloc*} family of functions to request global memory, although in practice we have higher level containers available, such as \mintinline{\ucpp}{thrust::device_vector<T>}. Nowadays, it is not a good practice to call \mintinline{\ucpp}{cudaMalloc} directly, similarly as with \mintinline{\ucpp}{malloc/new} vs. \mintinline{\ucpp}{std::vector<T>} in the CPU.
 We can populate the allocated global memory copying data from the CPU via the \mintinline{\ucpp}{cudaMemcpy*} family of functions. As with allocation, a series of higher level functions are available as alternatives. In particular we have \mintinline{\ucpp}{thrust::copy}, which handles CPU-\gpu copies. Additionally, kernels can write or read freely to global memory arrays, with the atomic considerations proper to a parallel environment.
 Similar to the CPU's heap memory, global memory is slow to access (although a series of caches exists to mitigate this).
+See fig. \ref{fig:cudablocks} for a schematic representation of the CUDA threading model. 
+\begin{figure}
+  \centering
+  \includesvg[width=\columnwidth]{gfx/cudablocks}
+  \caption{Representation of the thread geometry for a kernel launch with $2$ blocks of $4$ threads (\emph{blockDim} = (2,2)). Threads inside the same block run concurrently, while different blocks might run desynchronized between them. Each thread has a small local (and private) register memory space. Furthermore, threads inside the same block can share memory among them via the low-latency \emph{shared memory}. All threads can access the same, low-bandwidth, \emph{global memory} space.}
+  \label{fig:cudablocks}
+\end{figure}
 
 \begin{code2}[Creating vectors allocated in the \gpu, populating them and performing the saxpy operation using a kernel.]{label=code:cudakernel}
   #include<thrust/device_vector.h>
