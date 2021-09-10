@@ -701,16 +701,16 @@ In \uammd particles are the relevant simulation entity as specified by the \emph
 Adding new particle properties in \uammd amounts to include them in a special list (in the source code \emph{ParticleData.cuh}, to be precise). It is worth to describe the \emph{ParticleData} class in more detail here.
 
 \chapter{Working with UAMMD modules}
+From this point on in the manuscript we will see descriptions of GPU algorithms and code examples written in CUDA/C++. Although the code examples can be mostly ommited without missing the overall message of the text, understanding the jargon, rationale and details of the described algorithms will require at least basic knowledge of the GPU programming model. If the reader is unfamiliar with either the C++ programming language or the GPU he or she can find an introduction to the basic concepts in Appendix \ref{sec:cpp}. While not a full-fledged guide, Appendix \ref{sec:cpp} has been designed to provide the bare minimum required to understand most of the GPU and programming related concepts laid out in the rest of the manuscript.
 
 \section{ParticleData}\label{sec:particledata}
-\uammd is a \gpu software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at an isolated piece of code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu\footnote{The following chapters and the code examples therein assume a certain level of familiarity with \gpu programming and the C++ programming language. A reader not familiar with these concepts can start by reading Appendix \ref{sec:cpp}, which introduces basic notions of both C++ and \gpu programming.}.
+\uammd is a \gpu software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at an isolated piece of code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu.
 
-The \emph{ParticleData} \uammd class attempts to hide the two memory spaces from the user by handling this memory space internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and an usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up-to-date reference to the data in the correct memory space.
+The \emph{ParticleData} \uammd class\footnote{Note that since \uammd usually exposes a so-called module via a single C++ \emph{class} we will often use the words \emph{class} and \emph{module} as synonyms.} attempts to hide the two memory spaces from the user by handling them internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and an usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up-to-date reference to the data in the correct memory space.
 
-In C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the code crashing.
+In CUDA/C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the program crashing.
 
-
-\emph{ParticleData} can provide handles which give access the different particle properties.
+\emph{ParticleData} can provide handles giving access to the different particle properties.
 
 When requesting a handle to a property from \emph{ParticleData} with the intention of writing the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed. The example code \ref{code:pd} showcases the basic usage of the \emph{ParticleData} class. In particular, showing how to access and modify particle properties.
 
@@ -745,39 +745,32 @@ int main(){
 
 Throughout this manuscript, we will typically create a module named ``Module'' using a code similar to the one in code \ref{code:module}. ``Module'' will be called, for instance, \emph{VerletNVE} if it is \gls{MD} \emph{Integrator} (see sec. \ref{sec:velocityverlet}) or \emph{BondedForces} if it is a ligature \emph{Interactor} (see sec. \ref{sec:bonds}).
 
-The argument of the function \emph{createModule} in example code \ref{code:module}, of type \emph{UAMMD}, is simply an aggregate (a \emph{struct} in C++) of recurrent parameters . In particular, this structure can be defined as in code example \ref{code:uammdstruct}, which will serve as an implicit preamble code for the rest of the examples in this manuscript.
+\begin{code2}[Template code for the creation of a module.]{label=code:module}
+#include<uammd.cuh>
+//Additional includes when necessary. The definition of the UAMMD structure can be found in the next example, which code should be included here.
+//A module named "Module" is created and returned.
+auto createModule(UAMMD sim){
+  //Some parameter preparations...
+  return std::make_shared<Module>(/*Required parameters*/);
+}
+\end{code2}
+
+The argument of the function \emph{createModule} in example code \ref{code:module}, of type \emph{UAMMD}, is simply an aggregate (a \emph{struct} in C++) of recurrent parameters written for this manuscript. In particular, this structure can be defined as in code example \ref{code:uammdstruct}, which will serve as an implicit preamble code for the rest of the examples in this manuscript\footnote{Incidentally, I often use this same construction when writting simulations using \uammd.}.
 
 \begin{code2}[Definition of the UAMMD auxiliar structure created for this manuscript.]
   {label=code:uammdstruct}
 #include<uammd.cuh>
-//This line allows to ommit writting "uammd::"
-// when accessing an uammd-specific type,
-// such as real or ParticleData.
 using namespace uammd; 
-//An aggregate of parameters required 
-// by the relevant modules in the code
+//An aggregate of parameters required by the relevant modules in the code
 struct Parameters{
   //real dt;
   //...
 };
-void foo(int a, Parameters b){
-
-  return a;
-}
+//This structure packs a Parameters along with a ParticleData instance
 struct UAMMD{
   std::shared_ptr<ParticleData> pd;
   Parameters par;
 };
-\end{code2}
-
-\begin{code2}[Template code for the creation of a module.]{label=code:module}
-#include<uammd.cuh>
-//Additional includes when necessary. The definition of the UAMMD structure can be found in the previous example, which code should be included here.
-//A module named "Module" is created and returned.
-auto createModule(UAMMD sim){
-  //Some parameter preparations...
-  return std::make_shared(Module(/*Required parameters*/));
-}
 \end{code2}
 
 \newpage
@@ -903,7 +896,9 @@ using namespace uammd;
 //A class that needs to behave as 
 // an UAMMD Interactor must inherit from it
 class MyInteractor: public Interactor{
-public:
+  public:
+  //The constructor must initialize the base Interactor class, for which a ParticleData instance is required.
+  //Other than that, it can take any necessary arguments (such as a group of parameters).
   MyInteractor(std::shared_ptr<ParticleData> pd):
           Interactor(pd, "MyInteractor"){
     //Any required initialization 
@@ -914,6 +909,8 @@ public:
   // forces, energies and/or virial
   // on the particles
   virtual void sum(Computables comp, cudaStream_t st) override{
+    //"sys" and "pd" are provided by the Interactor base class
+    sys->log<System::MESSAGE>("Computing interaction");
     if(comp.force){
       //Sum forces to each particle
       //For instance, adding a force to the x coordinate
@@ -936,7 +933,7 @@ The \emph{Computables} type in the \emph{sum} function simply contains a list of
 
 Note that \emph{Interactor} is what is called a \emph{pure-virtual} class in C++ (and programming in general). This means that \emph{Interactor} is not a class that can be used by itself (such as, for instance, \emph{ParticleData}). It is a conceptual base class that must be inherited, as in the code \ref{code:interactor}. The same way a \emph{dog} is a type of \emph{animal}, \emph{MyInteractor} in code \ref{code:interactor} is a type of \emph{Interactor}. We will see other examples shortly.
 
-%\uammd offers a series of \emph{Interactors} (discused in the following sections) sometimes exposing a general algorithm that can be specialized (like \emph{PairForces} for particle pair interactions, see sec. \ref{sec:pairforces}) and others exposing particular potentials (like \emph{SpectralEwaldPoisson} for electrostatics, see sec. \ref{sec:tppoisson}).
+Any class inheriting from \emph{Interactor} will have access to an instance of \emph{System} with the name \emph{sys}, that can be used to query properties of the GPU and log messages, and a \emph{ParticleData} instance with the name \emph{pd}.
 
 It is worth mentioning that the \emph{Interactor} interface offers, in addition to what is showcased in code \ref{code:interactor}, a series of optional functionalities, ommited here for simplicity, allowing more sophisticated communication between modules. The reader can learn about these extra capabilities at the online's \uammd documentation (see Appendix \ref{ch:online}).
 
@@ -1151,7 +1148,7 @@ A short range \emph{Interactor} is available in \uammd under the name \emph{Pair
 The \emph{PairForces} module can be specialized for a certain \emph{Potential} (see Appendix \ref{sec:potential}) and \emph{NeighbourList} (see chapter \ref{sec:nlist}).
 
 In the following chapters, we will discuss in detail the different neighbour list strategies.
-\begin{code2}[Creating and returning a short range interaction module. The \emph{Potential} interface are described in Appendix \ref{ch:transverser}.] {label=code:pf}
+\begin{code2}[Creating and returning a short range interaction module. The \emph{Potential} interface is described in Appendix \ref{ch:transverser}.] {label=code:pf}
 #include<uammd.cuh>
 using namespace uammd;
 #include<Interactor/PairForces.cuh>
