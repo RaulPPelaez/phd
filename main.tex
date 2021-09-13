@@ -184,8 +184,29 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \input{FrontBackmatter/Titleback}
 \cleardoublepage\input{FrontBackmatter/Dedication}
 %\cleardoublepage\input{FrontBackmatter/Foreword}
-\cleardoublepage\input{FrontBackmatter/Abstract}
 \cleardoublepage
+%*******************************************************
+% Abstract
+%*******************************************************
+%\renewcommand{\abstractname}{Abstract}
+\pdfbookmark[1]{Abstract}{Abstract}
+% \addcontentsline{toc}{chapter}{\tocEntry{Abstract}}
+\begingroup
+\let\cleardoublepage\relax
+\let\cleardoublepage\relax
+\let\cleardoublepage\relax
+
+\chapter*{English Abstract}
+
+Complex fluids is an umbrella term representing the coexistence between two phases, in our cases of intereset these being a solid and a liquid. A wide range of soft matter systems, many times of biological nature, can be categorized as complex fluids. We often find the presence of a group of certain slow solid, or soft, objects submerged in a solvent comprised by smaller particles with a much faster dynamics. A suspension of colloidal particles in water or a small virus diffusing in the cellular environment are some examples of complex fluids. The dynamics of these kind of systems are more often than not influenced (and sometimes straight-up controlled) by thermal fluctuations and hydrodynamic correlations arising from the elimination of the solvent's degrees of freedom. Additionally, the two-phase coupling often imposes geometrical restrictions that fundamentally alter the dynamics of both the solution and the solvent. Both of these effects require special (and in some occasions altogether novel) mathematical and algorithmical consideration. This thesis attemps to press on the boundaries of numerical simulation of complex fluids. In this manuscript, I present an overview of past, recent and novel algorithms adapted to the GPU, a powerful, massively-parallel hardware recently developed. The culmination of this thesis has resulted in the release of UAMMD, a new software infrastructure for complex fluids simulations in the GPU. Besides the novel tools and methodology, I will also go through some real-life applications of them that have resulted in publications in scientific journals.
+
+\cleardoublepage
+\newpage
+
+\chapter*{Spanish Abstract}
+Complex fluids is an umbrella term representing the coexistence between two phases, in our cases of intereset these being a solid and a liquid. A wide range of soft matter systems, many times of biological nature, can be categorized as complex fluids. We often find the presence of a group of certain slow solid, or soft, objects submerged in a solvent comprised by smaller particles with a much faster dynamics. A suspension of colloidal particles in water or a small virus diffusing in the cellular environment are some examples of complex fluids. The dynamics of these kind of systems are more often than not influenced (and sometimes straight-up controlled) by thermal fluctuations and hydrodynamic correlations arising from the elimination of the solvent's degrees of freedom. Additionally, the two-phase coupling often imposes geometrical restrictions that fundamentally alter the dynamics of both the solution and the solvent. Both of these effects require special (and in some occasions altogether novel) mathematical and algorithmical consideration. This thesis attemps to press on the boundaries of numerical simulation of complex fluids. In this manuscript, I present an overview of past and recent algorithms adapted to the GPU, a recently developed powerful, massively-parallel hardware. The culmination of this thesis has resulted in the release of UAMMD, a new software infrastructure for complex fluids simulations in the GPU. Besides the novel tools and methodology, I will also go through some real life applications that have resulted in publications in scientific journals.
+\cleardoublepage
+\newpage
 \pdfbookmark[1]{Publications}{publications}
 \chapter*{Publications}
 
@@ -193,7 +214,8 @@ The following publications resulted from the development of this work
 %\noindent Put your publications from the thesis here. The packages \texttt{multibib} or \texttt{bibtopic} etc. can be used to handle multiple different bibliographies in your document.
 
 \begin{refsection}[ownpubs]
-    \small
+  \small
+    \expandafter\def\csname blx@maxbibnames\endcsname{99}%
     \nocite{*} % is local to to the enclosing refsection
     \printbibliography[heading=none]
 \end{refsection}
@@ -291,7 +313,7 @@ Thanks y'all.
 \part{Introduction}\label{pt:intro}
 \chapter{Introduction}\label{ch:introduction}
 
-The modeling and simulation of physical systems is always tied to a certain spatio-temporal scale. Usually, studying a system through the lens of a certain scale prevents the exploration of the others.
+The modeling and simulation of physical systems is always tied to a certain spatio-temporal scale (see fig. \ref{fig:sptime-land}). Usually, studying a system through the lens of a certain scale prevents the exploration of the others.
 Choosing the right lens for a problem requires understanding its characteristic times and lengths.
 Say, for instance, that you want to study the flow of a waterfall throughout the next thousand years. It would be a bad decision to employ quantum mechanics for such a feat, as it is a theoretical framework for events that take femtoseconds and angstroms.
 
@@ -300,20 +322,19 @@ The advent of supercomputing in the last two decades has presented the field wit
 Developing new techniques (numerical and theoretical) directly aimed to these new technologies will enable the exploration of regimes previously unreachable, opening the doors to new phenomena.
 Multiscale problems will particularly benefit from the improvements in supercomputing.
 For instance, \cite{virusfullatom2018} to simulate every molecule of a virus capsid submerged in water ($6$ million atoms) in the span of $1\mu s$ ($5\cdot10^8$ simulation steps).
-In another example of these huge simulations, the authors of \cite{fullatombacteria2016} use $100$ million particles to model a chunk of the interior environment of a bacteria for some tens of nanoseconds (around $10^7$ steps).
+As another example of these huge simulations, the authors of \cite{fullatombacteria2016} use $100$ million particles to model a chunk of the interior environment of a bacteria for some tens of nanoseconds (around $10^7$ steps).
 
-These sort of simulations would be impossible without the aid of a super computer and specialized software tools to take advantage of it. Indeed, aside from raw computing power, new fast and efficient numerical schemes (adapted to novel computing architectures) are needed to cover larger spatio-temporal windows in physical modelling. This is precisely the objective of this thesis, which is, in particular, devoted to the development of new algorithms and software tools for the study of complex fluids and biological systems in high performance computing environments.
+These sort of simulations would be impossible without the aid of a super computer and specialized software tools. Indeed, aside from raw computing power, new fast and efficient numerical schemes (adapted to novel computing architectures) are needed to cover larger spatio-temporal windows in physical modelling. This is precisely the objective of this thesis, which is, in particular, devoted to the development of new algorithms and software tools for the study of complex fluids and biological systems in high performance computing environments.
 
 Most of the properties of complex fluids often arise from an intermediate regime, called the \emph{mesoscale}.
+The definition of mesoscale is fuzzy, usually it ranges from a few nanometers (a protein) to $~10\mu m$ (the size of a HeLa cell). Characteristic times range from micro seconds to even minutes.
+The mesoscale poses a series of theoretical and numerical challenges, because it stems from the microscopic spatio-temporal scales and yet it interacts with slower processes over large scales: an optimal challenge for a super computer.
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/scales}
   \caption{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales involved in a biological system or, in general, a complex fluid. Zooming in from the bottom-left we have the blood inside a section of a vein, the plasmic environment in a small drop of blood (where cells, platelettes, viruses, etc are present), a virus, a single protein and finally the individual atoms that compose it along the surrounding fluid particles (water).}
   \label{fig:sptime-land}
 \end{figure}
-
-The definition of mesoscale is fuzzy, but normally deals with scales ranging from $50-100nm$ (a typical virus) to $~10\mu m$ (the size of a HeLa cell). Characteristic times go from micro seconds to even minutes.
-The mesoscale poses a series of theoretical and numerical challenges, because it stems from the microscopic spatio-temporal scales and yet it interacts with slower processes over large scales: a perfect fit for a super computer.
 
 \section{The Graphical Processor Unit}
 
@@ -352,10 +373,10 @@ Now developers aiming for the \gpu did not have to be experts in hacking a certa
 
 The birth of CUDA became a pivotal moment in high performance computing, opening the doors to a revolution in several fields such as medical analysis, bioinformatics, machine learning, economic market analysis, molecular dynamics and more.
 
-In this thesis, we will push the boundaries of \gpu computing by developing and implementing old and new algorithms for the modelling of soft matter systems into a new infrastructure called \uammd. \uammd is designed from the ground up with the \gpu in mind and is written in CUDA/C++.
+In this thesis, we will push the boundaries of \gpu computing by developing and implementing old and new algorithms for the modelling of soft matter systems into a new infrastructure called \uammd. \uammd is designed from scratch with the \gpu in mind and is written in CUDA/C++.
 
 One of the main critiques to CUDA is that it is a close sourced, propietary environment that can only be compiled for NVIDIA's own \glspl{GPU}. This restricts CUDA code to only a subset of \gpu hardware.
-In 2009, an open standard called OpenCL\cite{Stone2010} was born (from the creators of OpenGL) as an alternative to CUDA. Although implementations of OpenCL exist for almost any hardware (including GPUs from NVIDIA and AMD, CPUs, FPGAs,...) its adoption has been slow, partly due to an aggressive marketing campaign from NVIDIA to sell CUDA as the better alternative\footnote{Since the birth of CUDA, NVIDIA has been promoting it by donating GPUs to researchers, giving away a plethora of CUDA courses all around the world and more.}. The general sentiment in the community has always been that OpenCL should win as the de facto \gls{GPGPU}-\gls{API} in the long term. However, it simply has not happend yet.
+In 2009, an open standard called OpenCL\cite{Stone2010} was born (from the creators of OpenGL) as an alternative to CUDA. Although implementations of OpenCL exist for almost any hardware (including GPUs from NVIDIA and AMD, CPUs, FPGAs,...) its adoption has been slow, partly due to an aggressive marketing campaign from NVIDIA to sell CUDA as the better alternative\footnote{Since the birth of CUDA, NVIDIA has been promoting it by donating GPUs to researchers, giving away a plethora of CUDA courses all around the world and more.}. The general feeling in the community has always been that OpenCL should win as the de facto \gls{GPGPU}-\gls{API} in the long term. However, it simply has not happend yet.
 Luckily, there are ways to translate CUDA code into OpenCL code\footnote{In particular, the HIP library works as a thin wrapper over CUDA/OpenCL, allowing to write code that can be compiled for any of the \glspl{API}.} and, given that the paradigms of both \glspl{API} are quite similar, it is fairly straight-forward to port CUDA code to OpenCL. Therefore, in the future, porting the software infrastructure presented in this manuscript to OpenCL would be mainly painless and will not require changes to the public \gls{API}. So, even though at the time of writing \uammd is restricted to run on NVIDIA's hardware, it is possible to adapt it so that it runs on virtually any parallel hardware.
 
 
@@ -371,9 +392,11 @@ It is important to also mention that MPI, one of the first parallel \glspl{API},
 Another famous molecular dynamics package is GROMACS, which was released in 1991, with the first version using MPI coming shortly after it's release.
 
 \subsection*{The GPU revolution}
-Many of these software packages were born more than a decade before the term \gpu existed and were already quite stablished when the \gpu became a mainstream general purpose computing hardware. Naturally almost all of them have, at least partially, ported their functionalities to be accelerated by a \gpu in some way. However, \gpu programming poses such a wildly orthogonal paradigm that it makes the porting process slow and painful. Most CPU centric molecular dynamics packages are already so complex that redesigning from the ground up to accomodate for the \gpu is not an option and thus their inclusion can become awkward, sometimes causing the so-called software rot.
+Many of these software packages were born more than a decade before the term \gpu existed and were already quite stablished when the \gpu became a mainstream general purpose computing hardware. Naturally almost all of them have, at least partially, ported their functionalities to be accelerated by a \gpu in some way. However, \gpu programming poses such a wildly orthogonal paradigm that it makes the porting process slow and painful. Most CPU-centric molecular dynamics packages are already so complex that redesigning from the ground up to accomodate for the \gpu is not an option and thus their inclusion can become awkward, sometimes causing the so-called software rot.
 
 It is therefore worth it to once in a while start again from a clean slate considering the new environments. One example of this is the general-purpose molecular dynamics software package HOOMD\cite{Anderson2008}. Born around the same time as CUDA itself HOOMD was designed from the ground up with the \gpu in mind. Although HOOMD provides a CPU-only backend it is centered around the \gpu and can work exclusively in it, this is crucial, as communication between the CPU and the \gpu is quite expensive, so much that it can many times negate the benefits of using a \gpu altogether.
+
+The \gpu offers mind-blowing raw computing power when used correctly. Developing new algorithms and software infrastructures from scratch particularlydesigned for the \gpu architechture therefore essential to exploit this amazing technology to the fullest. This starts by taking the whole computation to the \gpu in order to avoid the communication cost. On the other hand, at a library level, one of the most powerful tools exposed by the \gpu is the \gls{FFT}. It just so happens that the algorithms to compute the Fourier transform numerically are a perfect fit for the \gpu. We will exploit this by devising pseudo-spectral algorithms in which the mayority of the computations take place in Fourier space.
 
 \subsection*{Closed vs. Open ecosystems}
 Most commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for an user, the only option to interface with the packages is to encode a simulation in them in its totality. In other words, it is awkward (or stright up not possible) to use these packages as external accelerators for an already established, in-house, code.
@@ -384,33 +407,34 @@ A closed ecosystem allows to design the software under less assumptions, easing 
 Furthermore, while most packages require to be compiled into a binary or library in order to be used, \uammd is a header-only framework. Meaning that the compilation of a source code using parts of \uammd can be seamlessly ingrained along the compilation process of another software.
 
 
-Developing algorithms for the ground up with the GPU architecture in mind is essential. Leverage ultra efficient \gpu \gls{FFT} by developing spectral algorithms.
-
+%Developing algorithms for the ground up with the GPU architecture in mind is essential. Leverage ultra efficient \gpu \gls{FFT} by developing spectral algorithms.
+\newpage
 \cleardoublepage
-\ctparttext{Description of the UAMMD infrastructure. Importance of fundamentally GPU-driven design.}
+\ctparttext{An overview of the UAMMD infrastructure.}
 \part{UAMMD: Design and components}\label{pt:uammd}
 
 \chapter{The Fermation of subproblems}
 The Trinity test, the first atomic bomb detonation in history was carried out in 1945. The scientist of the Manhattan project dumbfoundedly observed how the detonation unraveled from a base afar. Among them was Enrico Fermi, the so-called architect of the nuclear age, who was 44 at the time. Fermi had absent-mindedly torn apart a sheet of paper moments before the detonation took place and held the pieces in his hands. Fourty seconds after the blast the then withered shockwave hit the crew. At the first sign of the shockwave Fermi, who had placed his hands above his head in expectation, released the paper bits, which landed a couple of meters past him. After a brief moment of meditation, Fermi announced to the crew that the detonation had released about 10 kilotons of energy.
 It took weeks of analyzing the data from the plethora of sensors available on site to confirm Fermi's estimate, which is now believed to have been near 20 kilotons.
 
-Fermi had mastered (and practically invented) these back-of-the-envelope calculations, which are more precise than a guess but are not mathematical proofs. He knew how to subdivide complex, untractable, problems into many small and manageable ones. In order to teach this technique to his students, Fermi prompted them with a kind of question that has become known as a \emph{Fermi problem}. A Fermi problem presents itself as an apparently unanswerable question. For instance: ``\emph{If I attach a blood vial to the wheels of my bike, how fast do I need to go and for how long for the plasma to separate from the blood cells?}'' or ``\emph{How many hairs does a polar bear have?}''. At first sight it seems that we simply do not have enough information at hand to solve these problems. However, if we break them down into small, answerable, subproblems we find that we can give a pretty good estimate in a short time: ``\emph{What is the skin area of a bear?}'', ``\emph{How many hairs per squared centimeter does a bear have?}''. These can in turn be interpreted as Fermi problems in on themselves and further subdivided: ``\emph{What is the average height of a bear?}'', ``\emph{Assuming a bear is somewhat cylindrical, what is it's radius}?'',``\emph{What is the diameter of a hair?}''\footnote{Let us assume bear hairs grow in a near close-packed configuration where each hair is on the order of $20\mu m$ in radius. This yields $1\text{cm}^2/((20\mu m)^2\pi) \sim 100K \text{hairs}/\text{cm}^2$. I have not found the precise number, but we can compare with a sea otter (the mammal with the densest fur) which has between $100-400K \text{hairs}/\text{cm}^2$. This gives me some confidence about the validity of our order of magnitude.}, etc.
+Fermi had mastered (and practically invented) these back-of-the-envelope calculations, which are more precise than a guess but are not mathematical proofs. He knew how to subdivide complex, untractable, problems into many small and manageable ones. In order to teach this technique to his students, Fermi prompted them with a kind of question that has become known as a \emph{Fermi problem}. A Fermi problem presents itself as an apparently unanswerable question. For instance: ``\emph{If I attach a blood vial to the wheels of my bike, how fast do I need to go and for how long for the plasma to separate from the blood cells?}'' or ``\emph{How many hairs does a polar bear have?}''. At first sight it seems that we simply do not have enough information at hand to solve these problems. However, if we break them down into small, answerable, subproblems we find that we can give a pretty good estimate in a short time: ``\emph{What is the skin area of a bear?}'', ``\emph{How many hairs per squared centimeter does a bear have?}''. These can in turn be interpreted as Fermi problems in on themselves and further subdivided: ``\emph{What is the average height of a bear?}'', ``\emph{Assuming a bear is somewhat cylindrical, what is it's radius}?'',``\emph{What is the diameter of a hair?}''\footnote{Let us assume bear hairs grow in a near close-packed configuration (it's cold at the poles, you know) where each hair is on the order of $20\mu m$ in radius. This yields $1\text{cm}^2/((20\mu m)^2\pi) \sim 100K \text{hairs}/\text{cm}^2$. I have not found the precise number, but we can compare with a sea otter (the mammal with the densest fur) which has between $100-400K \text{hairs}/\text{cm}^2$. This gives me some confidence about the validity of our order of magnitude.}, etc.
 
 Surely we can apply Fermi's teachings and \emph{Fermate} our endevours into subproblems too.
 Consider the development of a software capable of reproducing the dynamics of an ionic solution in a cellular membrane channel. This poses a really convoluted simulation, involving electrostatics, fluctuating hydrodynamics, steric interactions, bonded ligatures, etcetera\footnote{A simulation easily handled by \uammd, by the way.}. As we will see along this manuscript, some of these algorithms are quite complex on their own, depending on a lot of moving parts. The mathematical and theoretical machinery required to model something like that appears to be in the realm of a theory of everything. It sure sounds as a Fermi problem.
 
 Still, we could try to design, from the ground up, a software that can perform this hypothetical simulation. 
-However, this top-down approach is fundamentally flawed. The final product will probably have a lot of internal dependencies, many of which are probably unnecesary. In software this means that the code will be hard to adapt, extend or even more scaryingly, to maintain.
+However, this top-down approach is fundamentally flawed. The final product will probably have a lot of internal dependencies, many of which are probably unnecesary. In software this means that the code will be hard to adapt, extend or even more scary, to maintain.
 
-We humans are not good with complex things (which is probably the reason why complex and complicated share the same ethimology) and, as it can be glimpsed throughout \uammd, my solution to this problem is often to either Fermate the problem or remove it altogether.
+We humans are not good with complex things (which is probably the reason why complex and complicated share the same ethimology) and, as it can be glimpsed throughout \uammd, my solution to this problem is often to either Fermate it or remove it altogether.
 
 Like we did when counting hairs, we start by dividing the original problem into subproblems in a hierarchical fashion (see fig. \ref{fig:uammdsketch}). The top of the tree represents the most general (or abstract) aspect of the problem, and subdivisions offer increasingly specific concepts. So instead of designing our framework with an ionic solution in a membrane channel in mind, we start at the top and then hierarchically specialize. What constitutes the ``top'', or \emph{soul}, of the problem is of course highly subjective and thus the contents of the next sections should be considered but merely my humble take on it\footnote{Note, however, that I am far from the first to come up with this logical separation. Slightly different separations and with different names are present in basically every molecular dynamics software package.}.
 
 In particular, we can find the root by removing assumptions until we get to a point where only one (or a small number of them) remains. Therefore, we do not design in terms of ``ions'', ``cells'' or ``molecules'', rather in terms of a vague concept called ``particles''.
-
 Following Fermi's teachings we embrace the (redundant) complexity of complex fluids instead of trying to fight it.
 
-The \uammd framework takes this KISS\footnote{Keep It Simple, Sir} philosophy very seriously. The foundational concepts of \uammd are supported on a handful of (deliberately) vague assumptions which can be summarize in four:
+% The \uammd framework takes this KISS\footnote{Keep It Simple, Sir} philosophy very seriously.
+
+The foundational concepts of \uammd are supported on a handful of (deliberately) vague assumptions which can be summarize in four:
 \begin{enumerate}[label=\textbf{S.\arabic*}]
 \item The \emph{System} assumption: The code will run primarily on a \gpu (the most limiting assumption in the development process).
 \item The \emph{ParticleData} assumption: Simulations are based on the state of ``particles'' (whatever a particle and it's state mean).
@@ -425,10 +449,10 @@ These are the four pilars depicted in fig. \ref{fig:uammdsketch}. The software f
   \caption{The basic hierarchy of concepts (and code) in \uammd, represented by a series of modules connected by arrows that convey the direction of the data flow. \emph{System} holds information about the actual physical hardware, and all the entities below rely on it to interact with the environment. \emph{ParticleData} (a ``real class'' in the code) stores all the information about the particles in the simulation, such as positions ($\vec{r}$), velocities ($\vec{v}$), mass, etc, as well as other properties like the current forces acting on it ($\vec{F}$), energy ($E$) or virial ($T$). Modules below (explained later) can request, at their leisure, a list with any of the particles properties. \emph{Integrators} and \emph{Interactors} are interfaces (called virtual classes in programming terms), are in charge of, respectively, forwarding the simulation one step in time and computing the forces, energies and/or virials acting on each particle. These ``Interfaces'' (drawn in red) are abstract objects that cannot be instanced on their own but rather must be inherited. For instance, Brownian Dynamics (section. \ref{sec:bd}) would be an \emph{Integrator}, while a module that computes gravitational forces would be an \emph{Interactor}.}
   \label{fig:uammdsketch}
 \end{figure}
-\todo{Add something about gpu arch in System in the fig, gpu arch, ncores,...}
-Excluding the first assumption, which is unrelated to physics, it is straight forward to see that our initial ionic solution simulation fits in this criteria. As a bonus, we have ended up with a basis that also describes things like ``a gas of argon atoms'', ``a group of planets orbiting a star'' or ``a virus filled with proteins exploding due to the force exerted on it by an AFM tip''\footnote{An oddly specific example describing a real study that is being carried out with \uammd at the moment of writing by a collaborator group.}.
+%\todo{Add something about gpu arch in System in the fig, gpu arch, ncores,...}
+Excluding the first assumption, which is unrelated to physics, it is straight-forward to see that our initial ionic solution simulation fits into this criterium. As a bonus, we have ended up with a basis that also describes things like ``a gas of argon atoms'', ``a group of planets orbiting a star'' or ``a virus filled with proteins exploding due to the force exerted on it by an AFM tip''\footnote{An oddly specific example describing a real study that is being carried out with \uammd at the moment of writing by a collaborator group.}.
 
-At the top of the tree in fig. \ref{fig:uammdsketch} we find the \emph{System} object which takes care of setting up the computational environment for the rest of players. We discuss \emph{System} in mode detail in sec. \ref{sec:system}.
+At the top of the tree in fig. \ref{fig:uammdsketch} we find the \emph{System} object which takes care of setting up the computational environment for the rest of players. Usually the user does not need to interact with this object, which is automatically started when needed. \uammd's online documentation can be visited to learn more about the \emph{System} object (see Appendix \ref{ch:online})
 
 The second assumption is represented in the code base via the \emph{ParticleData} object, which we discuss in \ref{sec:dynmol}.
 
@@ -455,10 +479,9 @@ In other words, conceptual complexity and problem specificity should increase on
 \chapter{It's in the name}\label{ch:design}
 
 It is common knowledge that a good software starts with a good acronym. \uammd stands for Universally Adaptable Multiscale Molecular Dynamics in an attempt to abridge the simple-yet-powerful four assumptions in the previous chapter\footnote{Naturally, the fact that the acronym for the Universidad Autonoma de Madrid is there is merely a coincidence}. Each of the words carries a different aspect of the framework's philosophy. In this chapter, we will discuss each of them.
-\section{Universality}
+\section{\uppercase{\textbf{U}}niversality}
 
-Complex fluids are one of the prime examples of a multiphysics system. As such, multiphysics are deeply ingrained part of \uammd. Our framework can potentially take into account physical phenomena emerging from fields like electrostatics, thermodynamics, hydrodynamics and more.
-
+Complex fluids are one of the prime examples of a multiphysics system. As such, multiphysics are deeply ingrained part of \uammd. Our framework can potentially take into account physical phenomena emerging from seemingly disparate fields.
 One of the key features for \emph{universality} is to be able to communicate between Eulerian (fields) and Lagrangian (``particles'') descriptions. This hybrid approach permits \uammd to efficiently solve problems involving hydrodynamics, electrostatics, magnetism, light-matter interactions, and more... 
   
 %Although we focus on the dynamics of particles, which have a Lagrangian description, using an intermediate Eulerian description is a possibility in these situations.
@@ -466,9 +489,9 @@ In chapter \ref{sec:bdhi}, we will describe a series of Eulerian-Lagrangian algo
 
 Quantum physics have not been mentioned yet and for the time being we have limited our toolset to the classical world. Thus, staying in the realm of classical physics could be consider a fifth (soft) assumption.
 
-It is however importatn to stress that the central (class) object in \uammd are the particles (see below). In fact, the fourth assumption in chapter \ref{pt:uammd} states that particles are expected to interact between them or via an external influence. When particles are submerged in a fluid, its effect on the former can be considered an external influence. Even when the fluid itself is also affected by the presence particles, as is the case with hydrodynamics.
+It is however important to stress that the central (class) object in \uammd are the particles (see below). In fact, the fourth assumption in chapter \ref{pt:uammd} states that particles are expected to interact between them or via an external influence. When particles are submerged in a fluid, its effect on the former can be considered an external influence. Even when the fluid itself is also affected by the presence particles, as is the case with hydrodynamics.
 
-\section{Adaptability}
+\section{\uppercase{\textbf{A}}daptability}
 
 
 \begin{figure}[h]
@@ -504,7 +527,7 @@ The modularity of \uammd is reflected directly in the code, where modules can be
 Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Interactor} (short range, bonded,...), all modules in \uammd can be created and stored individually.
 %The \emph{ParticleData} object here, which is the direct expression in code of the second assumption, will be described in detail in sec. \ref{sec:particledata}.
 %\todo{Maybe switch the order of the code examples here. In fact, join them both and say that the preamble is going to be omited. Take both code examples below ParticleData. Specify ``Module'' is an Integrator or an Interactor.}
-\section{Multiscale}
+\section{\uppercase{\textbf{M}}ultiscale}
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/landscape}
@@ -514,7 +537,7 @@ Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Inte
 \begin{figure}[h]
   \centering
   \includesvg[width=0.7\columnwidth]{gfx/multiscale}
-  \caption{The different levels of coarse grained description available in \uammd for soft matter simulations.}
+  \caption{The different levels of coarse grained description available in \uammd for soft matter simulations. $\vec{q}_i$ represents the positions of particles, $\vec{u}_i$ their velocity. $\vec{v}(\vec{r},t)$ represents an Eulerian fluid velocity, $M(\vec{q}_{ij})$ a mobility tensor and $\xi(\vec{q}_{ij})$ a friction kernel.}
   \label{fig:multiscale}
 \end{figure}
 
@@ -693,7 +716,7 @@ Combining the Einstein (eq. \eqref{eq:einsteinrel}) and Stokes (eq. \eqref{eq:st
 a manifestation of eq. \eqref{eq:einsteinrel} in the case of a single no-slip sphere moving through a fluid at rest.
 
 
-\section{Molecular Dynamics}\label{sec:dynmol}
+\section{\uppercase{{\bfseries M}}olecular \uppercase{\textbf{D}}ynamics}\label{sec:dynmol}
 Thus far we have used the term ``particle'' without explicitly defining it. We interpret a particle as an arbitrarily coarsed-grained simulation unit (atoms, groups of atoms, colloids, groups of colloids, buckets of water, planets...). In this sense, the term molecular dynamics is not refered to the numerical simulation technique (described in sec. \ref{sec:md}) rather should be interpreted as \emph{dynamics-of-molecules}, or more appropriately, particles.
 
 In \uammd particles are the relevant simulation entity as specified by the \emph{ParticleData} class (see section \ref{sec:particledata}). When a fluid is present (either implicit or explicitly) it is only as a medium to move the particles. As such, \emph{Integrators} evolve the particles dynamics that interact via \emph{Interactors}. However, our loose description of a particle allows asigning to them any kind of properties. For instance, in the simulation of an ideal gas of atoms, desribing the positions, velocities and masses of the atoms might be enough. But in a more sophisticated situation, like a solution of charged colloidal particles, we can include forces, energies, charges, torques, angular velocities, radius, etc.
@@ -876,11 +899,14 @@ Stars in a galaxy attract each other over an infinetely long range of space, whi
 Even if particles are somehow oblivious to each other, they might interact with some other thing, like fluid particles being repelled by a wall.
 Each kind of interaction requires a different approach, and figuring out how to efficiently compute it in a \gpu is a field on itself. 
 In this chapter we will see some of the strategies that can be employed and how they are implemented in \uammd.
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.7\columnwidth]{gfx/sketchUAMMD_interactor_slr}
+  \caption{Overview of the concepts in the following chapters. Green text represent template arguments, while purple are generic algorithms. Long and short ranged interactions can be specialized from the outside via the \emph{Potential} interface (see Appendix \ref{sec:transverser}). Arrows denote logical dependence.}
+  \label{fig:uammdsketch_interactors_slr}
+\end{figure}
 
-
-
-Let start by describing \uammd's \emph{Interactor} interface in detail.
-
+Let start by describing \uammd's \emph{Interactor} interface in detail and then proceed to descend to the \emph{Interactor} logical branch in fig. \ref{fig:uammdsketch}, for which the next downward leafs are depicted in fig. \ref{fig:uammdsketch_interactors_slr}. In particular, we will discuss the long range branch in chapter \ref{sec:nbody} and the short range branch in chapter \ref{sec:shortrange}.
 \section{The Interactor interface} \label{sec:interactor}
 
 \emph{Interactor} encapsulates the concept of a group of particles interacting, either with each other or with some external influence.
@@ -985,12 +1011,6 @@ int main(){
 
 \chapter{Long range interactions}\label{sec:nbody}
 
-\begin{figure}[h]
-  \centering
-  \includesvg[width=0.7\columnwidth]{gfx/sketchUAMMD_interactor_slr}
-  \caption{Overview of the concepts in the following chapters. Green text represent template arguments, while purple are generic algorithms. Long and short ranged interactions can be specialized from the outside via the \emph{Potential} interface (see Appendix \ref{sec:transverser}). Arrows denote logical dependence.}
-  \label{fig:uammdsketch_interactors_slr}
-\end{figure}
 
 Say we are set to simulate a galaxy, so far away from others that it can be safely assumed their action is negligible. Say we want to simulate the dynamics of each of the $N$ stars in this galaxy. Gravity is the dominating interaction between each star, sadly it decays slowly enough to be considered an infinitely ranged one. The gravity potential can be written as follows
 \begin{equation}
@@ -998,8 +1018,15 @@ Say we are set to simulate a galaxy, so far away from others that it can be safe
   U(r) = G\frac{m_1m_2}{r}
 \end{equation}
 Where $G$ is the gravitational constant and $m_1$, $m_2$ are the masses of each particle.
-In this case, if we want to compute the force acting on a star due to the presence of all the others we must check each and everyone of them. This leads to a lot of interactions to check, more precisely $N^2$ of them. Of course, there are more sophisticated ways of performing such a computation, such as fast multipole methods \cite{fmm} or Ewald splitting (which will be discussed on section \ref{ewald}). But some times these techniques are not a possibility so it is valuable to see how to efficiently handle this computations.
+In this case, if we want to compute the force acting on a star due to the presence of all the others we must check each and everyone of them. This leads to a lot of interactions to check, more precisely $N^2$ of them (see fig. \ref{fig:nbodycon}). Of course, there are more sophisticated ways of performing such a computation, such as fast multipole methods \cite{fmm} or Ewald splitting (which will be discussed on section \ref{ewald}). But some times these techniques are not a possibility so it is valuable to see how to efficiently handle this computations.
 Furthermore this computation is a really good fit for a \gls{GPU} as we are going to see.
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.75\columnwidth]{gfx/nbodycon}
+  \caption{Five particles (black circles) must interact with every other (represented by red lines) in a NBody interaction. There are $N(N-1)=20$ lines, since self interactions are not depicted here.}
+  \label{fig:nbodycon}
+\end{figure}
+
 \section{The NBody algorithm}
 The naive parallel algorithm that checks, for each particle, every other would simply assign a particle (or a group of them) to a thread and then iterate over the rest is summarized in algorithm \ref{alg:nbodynaive}.
 \begin{algorithm}[H]
@@ -1025,8 +1052,8 @@ This is highly benefitial, since global memory accesses incur a high latency (in
 Once the tile has been processed, the next one is loaded. This process is repeated until no particles remain (note that the last tile can potentially be smaller than the rest).
 The optimal size of a tile will be an optimization parameter also depending on the required shared memory per particle, being the number of threads in a block (or a multiple of it) a good default.
 This results in an overall speedup of 30 compared with the naive algorithm. \todo{Maybe a figure comparing here?}
-The algorithm is summarized in algorithm \ref{alg:nbody}.
-\begin{algorithm}
+The algorithm is summarized in algorithm \ref{alg:nbody} and a schematic representation of the process is presented in fig. \ref{fig:nbody}.
+\begin{algorithm}[H]
   \caption{Shared memory NBody algorithm GPU kernel. Although the number of particles per tile is unconstrained, for simplicity this pseudocode assumes a tile has a size equal to the number of threads per block, with a number of tiles equal to the number of thread blocks.} \label{alg:nbody}
   \Input{A list of $N$ particles (positions, velocities,...)}
   \begin{algorithmic}[1]
@@ -1053,8 +1080,15 @@ The algorithm is summarized in algorithm \ref{alg:nbody}.
 \end{algorithm}
 
 Note that the computation as described here is not restricted to computing forces or energies between particles, it might be used for widely different computations that can be encoded as an nbody operation (like a dense matrix-vector product).
-
 \uammd acknowledges this generality via the \emph{Transverser} interface (see Appendix \ref{sec:transverser}), that can be used to specialize these algorithms.
+
+\begin{figure}[H]
+  \centering
+  \includesvg[width=0.75\columnwidth]{gfx/nbody}
+  \caption{Representation of algorithms \ref{alg:nbodynaive} (upper half of the figure) and \ref{alg:nbody} (bottom half). Two thread blocks ($b_{0,1}$), with two threads each ($t_{0,1,2,3}$), have to process four particles ($p_{0,1,2,3}$). Each thread must go through all particles and fetch some arbitrary information for each of them (i.e. positions, velocities and/or any other data required by the computation), represented by colored lines. The naive algorithms does not make use of the shared memory space available to threads in the same block and thus each thread needs to read all particles. On the other hand, the shared algorithm does leverage the shared memory space. In particular, each particle must be fetched only once per block (as opposed to once per thread in the naive algorithm). This is depicted by the reduced number of colored lines in the lower side of the figure.}
+  \label{fig:nbody}
+\end{figure}
+
 \subsection*{Use in UAMMD}
 There are three ways to access this algorithm depending on the usage:
 \begin{enumerate}
@@ -1062,8 +1096,9 @@ There are three ways to access this algorithm depending on the usage:
 \item Applying a \emph{Transverser} to the particles in \emph{ParticleData}.
 \item As an \emph{Interactor} to compute forces, energies and/or virials. This is done by providing the \emph{PairForces} module with a  \emph{Potential} with an infinite cut off distance. We will come back to \emph{PairForces} in the chapter for short ranged interactions, as it can also work with short ranged potentials.
 \end{enumerate}
-The \emph{Transverser} and \emph{Potential} interfaces are described in detail in Appendix \ref{ch:transverser}.
 An example of each one is available in code \ref{code:nbody}.
+The \emph{Transverser} and \emph{Potential} interfaces are described in detail in Appendix \ref{ch:transverser}.
+
 \begin{code2}[Usage examples of the three different ways the NBody algorithm is exposed in \uammd. The \emph{Transverser} and \emph{Potential} interfaces are described in Appendix \ref{ch:transverser}.]{label=code:nbody}
 #include<uammd.cuh>
 using namespace uammd;
@@ -1121,7 +1156,7 @@ Which results in this expression for the force at a certain distance $\vec{r}$ b
 Where $r = ||\vec{r}||$ is the modulus of the distance vector. The characteristic length, $\sigma$, and energy, $\epsilon$, are typically used as natural units in simulations.
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{lj}
+  \includegraphics[width=0.75\textwidth]{lj}
   \caption{The Lennard-Jones potential described in eq. \ref{eq:lj}}
   \label{fig:lj}
 \end{figure}
