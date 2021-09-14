@@ -1070,7 +1070,6 @@ keywords = {Particle-mesh, Spreading, Interpolation, Sparse matrices, GPU, Warp 
 abstract = {The particle-mesh spreading operation maps a value at an arbitrary particle position to contributions at regular positions on a mesh. This operation is often used when a calculation involving irregular positions is to be performed in Fourier space. We study several approaches for particle-mesh spreading on GPUs. A central concern is the use of atomic operations. We are also concerned with the case where spreading is performed multiple times using the same particle configuration, which opens the possibility of preprocessing to accelerate the overall computation time. Experimental tests show which algorithms are best under which circumstances.}
 }
 
-
 @article{Balboa2012,
 author = {Balboa Usabiaga, Florencio and Bell, John B. and Delgado-Buscalioni, Rafael and Donev, Aleksandar and Fai, Thomas G. and Griffith, Boyce E. and Peskin, Charles S.},
 title = {Staggered Schemes for Fluctuating Hydrodynamics},
@@ -1498,4 +1497,45 @@ volume={12},
 number={3},
 pages={66-73},
 doi={10.1109/MCSE.2010.69}
+}
+@Article{Hijon2010,
+author ="Hijón, Carmen and Español, Pep and Vanden-Eijnden, Eric and Delgado-Buscalioni, Rafael",
+title  ="Mori–Zwanzig formalism as a practical computational tool",
+journal  ="Faraday Discuss.",
+year  ="2010",
+volume  ="144",
+issue  ="0",
+pages  ="301-322",
+publisher  ="The Royal Society of Chemistry",
+doi  ="10.1039/B902479B",
+url  ="http://dx.doi.org/10.1039/B902479B",
+abstract  ="An operational procedure is presented to compute explicitly the different terms in the generalized Langevin equation (GLE) for a few relevant variables obtained within Mori–Zwanzig formalism. The procedure amounts to introducing an artificial controlled parameter which can be tuned in such a way that the so-called projected dynamics becomes explicit and the GLE reduces to a Markovian equation. The projected dynamics can be realised in practice by introducing constraints{,} and it is shown that the Green–Kubo formulae computed with these dynamics do not suffer from the plateau problem. The methodology is illustrated in the example of star polymer molecules in a melt using their center of mass as relevant variables. Through this example{,} we show that not only the effective potentials{,} but also the friction forces and the noise play a very important role in the dynamics."}
+
+@incollection{Zarate2006,
+title = {Chapter 3 - Fluctuations in fluids in thermodynamic equilibrium},
+editor = {José M. {Ortiz de Zárate} and Jan V. Sengers},
+booktitle = {Hydrodynamic Fluctuations in Fluids and Fluid Mixtures},
+publisher = {Elsevier},
+address = {Amsterdam},
+pages = {39-62},
+year = {2006},
+isbn = {978-0-444-51515-5},
+doi = {https://doi.org/10.1016/B978-044451515-5/50003-X},
+url = {https://www.sciencedirect.com/science/article/pii/B978044451515550003X},
+author = {José M. {Ortiz de Zárate} and Jan V. Sengers}
+}
+
+@article{Balboa2013,
+  title = {Minimal model for acoustic forces on Brownian particles},
+  author = {Balboa Usabiaga, F. and Delgado-Buscalioni, R.},
+  journal = {Phys. Rev. E},
+  volume = {88},
+  issue = {6},
+  pages = {063304},
+  numpages = {16},
+  year = {2013},
+  month = {Dec},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevE.88.063304},
+  url = {https://link.aps.org/doi/10.1103/PhysRevE.88.063304}
 }
