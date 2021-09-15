@@ -1632,7 +1632,7 @@ In a bottom-up manner, refering to the complexity of the numerical methods, we s
 \end{figure}
 
 
-\chapter{The Integrator interface}\label{sec:integrator}
+\section{The Integrator interface}\label{sec:integrator}
 We introduced the \emph{Integrator} concept back in chapter \ref{ch:design}, where we adhered to it the responsability of taking the simulation to the next time step. In this chapter, we will discus in detail \uammd's \emph{Integrator} software interface. Similar to \emph{Interactor}, \emph{Integrator} is a purely virtual C++ class that must be inherited (specialized). Instead of providing functions to compute forces (\emph{Interactor}), \emph{Integrator} exposes functions to take the simulation to the next time step. Additionally, \emph{Integrators} hold a list of \emph{Interactors} that they can use at their leissure to obtain up-to-date forces, energies and/or virials for each particle.
 
 An arbitrary number of \emph{Interactors} instances can be added to an \emph{Integrator} (e.g. short ranged forces, bonded forces...) via its member function \mintinline{\ucpp}{Integrator::addInteractor();}. Source code \ref{code:integratorex} contains an example showcasing how to add an interaction to an \emph{Integrator}. On the other hand, source code \ref{code:integrator} is an example on how to create a novel \emph{Integrator} (parallel to the example \ref{code:interactor} for \emph{Interactors}).
@@ -3289,7 +3289,7 @@ Where we recall that each component of a vector is defined on it's own grid (see
 
 %In general, \gls{BC}s in the previous methods have to be introduced via the Green's function in eq. \eqref{eq:bdhimob}. However, this Green's function might be unknown or simply non analytic. We can discretize and solve eq. \eqref{eq:bdhibdrelation} directly to have more fine control over the \gls{BC}s.
 
-\section{Fluctuating Immersed Boundary (FIB) in triply periodic systems}
+\section{Fluctuating Immersed Boundary (FIB) in triply periodic systems}\label{sec:fib}
 Recently, a new spatio-temporal solver for the Stokes equation has been presented, based on the \gls{IBM} and similar to the \gls{FCM}\cite{Delong2014}. This framework, refered to as \gls{FIB}, is generic for any geometry (via direct discretization of the differential operators in eq. \eqref{eq:stokesoper}). However, here we will only take a few key ideas from it to implement another triply periodic solver for equation \eqref{eq:stokes}. In particular, we will make use of the new temporal integrators introduced in\cite{Delong2014}. Another difference between this algorithm and \gls{FCM} (as presented in sec. \ref{sec:fcm}) is the use of a staggered grid (see sec. \ref{sec:staggered}).
 
 Using \gls{PBC} greatly simplifies the algorithm in \cite{Delong2014} to something very similar to the \gls{FCM}, since, as discussed in sec. \ref{sec:bdhi} the Stokes operator has a straight-forward form in Fourier space (see eq. \eqref{eq:stokesoperfou}).
@@ -3332,33 +3332,35 @@ For convenience, we can now write the discrete version of the projection operato
   \fou{\oper{P}}(\vec{k}) = \left(\mathbb{I} - \frac{\vec{k}_{\text{eff}}\otimes\vec{k}_{\text{eff}}}{k_{\text{eff}}^2}\right)
 \end{equation}
 \subsection*{Temporal integration}
-\todo{Add the midpoint schemes to the section for BD integration schemes}
-\begin{itemize}
-\item Two new temporal integrators: Most useful to discretize thermal drift, but it is strictly zero for us. 
-  \begin{itemize}
-  \item Midpoint predictor-corrector: Requires a single Stokes solve but two interpolations
-    \begin{equation}
-      \begin{aligned}
-        &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n})\\
-        &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}\\
-        &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \dt\oper{J}^{n+\half}\vec{\fvel}
-      \end{aligned}
-    \end{equation}
+\todo{Add the midpoint schemes to the section for BD integration schemes?}
+The \gls{FIB}, as presented in \cite{Delong2014}, comes with two new temporal integrator schemes particularly aimed to ease the discretization of thermal drift term. However, in our triply periodic implementation the thermal drift term is strictly zero. Nonetheless we will describe these integration schemes since they can come in handy in the future. On the other hand, even when the thermal drift is mathematically zero in the continuum limit it is possible that our discretization causes some spurious drift, in which case it should also be included in our description.
+Taking into account that there are other sources of error it might be worth to avoid the extra work involved in the thermal drift computation (which amounts to two extra spreading operations).\uammd's implementation acknowledges this by computing the thermal drift using random finite differences (as described in section \ref{sec:bdhicon}) and providing a parameter to switch its inclusion on or off.
 
-  \item Improved midpoint predictor-corrector: Linearized additive noise. Requires two Stokes solves
-    \begin{equation}
-      \begin{aligned}
-        &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n_1})\\
-        &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}\\
-        &\tilde{\vec{\fvel}}= \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}\left[\mathfrak{F}\oper{S}^{n+\half}\vec{F}^{n+\half} + \fou{\nabla\cdot}\left(\fou{\mathcal{Z}}^{n_1} +  \fou{\mathcal{Z}}^{n_2}\right)\right]\\
-        &\vec{\ppos}^{n+1}= \vec{\ppos}^n + \dt\oper{J}^{n+\half}\tilde{\vec{\fvel}}
-      \end{aligned}      
-    \end{equation}
-    \item The divergence operator is discretized according to the spatial discretization (see for instance eq. \eqref{eq:staggereddiv} in a staggered grid).
-  \end{itemize}
-  
-\end{itemize}
+\subsubsection*{Simple predictor corrector}
+This first-order weak accurate midpoint scheme requires a single Stokes solve and interpolating fluid velocities twice (at the current time, $t=n$, and the mid point, $t=n+1/2$).
+\begin{equation}
+  \begin{aligned}
+    &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n})\\
+    &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}\\
+    &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \dt\oper{J}^{n+\half}\vec{\fvel}
+  \end{aligned}
+\end{equation}
+\todo{Something more about it...}
+\subsubsection*{Improved predictor corrector}
+We can achieve second-order accuracy in exchange for an additional Stokes solve by improving the estimation of the velocity at the midpoint. The update rule in this case is 
+\begin{equation}
+  \begin{aligned}
+    &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n_1})\\
+    &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}\\
+    &\tilde{\vec{\fvel}}= \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}\left[\mathfrak{F}\oper{S}^{n+\half}\vec{F}^{n+\half} + \half\fou{\nabla\cdot}\left(\fou{\mathcal{Z}}^{n_1} +  \fou{\mathcal{Z}}^{n_2}\right)\right]\\
+    &\vec{\ppos}^{n+1}= \vec{\ppos}^n + \dt\oper{J}^{n+\half}\tilde{\vec{\fvel}}
+  \end{aligned}      
+\end{equation}
+The divergence operator, which application is required in real space to compute the noise term, is discretized according to the spatial discretization (see for instance eq. \eqref{eq:staggereddiv} in a staggered grid). Similarly for the rest of the diferential operators which are applied in Fourier space.
+
+Since in a staggered grid each component of the velocity is defined in a different grid but with the exact same geometry there is no need for special considerations when Fourier transforming the fluid forcing or velocities using the \gls{FFT} (see Appendix \ref{ch:appendixa}).
 \subsection*{Use in UAMMD}
+Usage of the \gls{FIB} is reminiscent of other \gls{BD} \emph{Integrators} we have seen thus far. In the current case there is an additional parameter, \mintinline{\ucpp}{scheme}, which allows to choose between either of the two integration schemes described in the previous section.
 
 \begin{code2}[Example of the creation of a \emph{FIB} \emph{Integrator} module.]{label=code:fib}
 #include<uammd.cuh>
@@ -3382,38 +3384,63 @@ auto createIntegratorFIB(UAMMD sim){
 
 
 \section{Comparing the different spreading kernels for BDHI}\label{sec:kernelcomp}
-\todo{Graph comparing the different methods using several interpolation kernels}
+As explained in previous sections using different kernels will yield slightly different regularizations of the near field hydrodynamics. In particular, the specific shape of the kernel will have an effect on the hydrodynamic radius when performing the convolution in eq. \eqref{eq:bdhimob}. In this section we will explore the relation between the different kernels showcased in section \ref{sec:ibm} and the resulting hydrodynamic radius. \todo{dont really like this intro}
+
+The spatial discretization (collocated vs. staggered grid) will also influence the hydrodynamic radius, so we will make a separation between the both.
+Finally, some kernels must be truncated at a certain distance hurting accuracy.
+Since the domain is periodic in the three directions it is straight-forward to see that any possible effect of the kernels on the grid will be the same for any cell. Thus, we just need to measure in one of the cells, or more appropriately, fold our results to an unit cell and average.
+In particular, we will study the variance of the hydrodynamic radius inside a cell to determine both the accuracy (translational invariance) and the relation between the grid size, $h$, and the hydrodynamic radius, $a$\footnote{We are assuming a cubic domain in which cells in all directions have the same length.}. It is possible the following relations are slightly renormalized in the case of non-cubic cells. However, the self mobility is not well defined anyway in non-cubic periodic domains\todo{Rafa check invent}. As a matter of fact, if a particle is being pulled on the plane in a box with increasingly large size in the perpendicular direction its in-plane self mobility monotonically increases up to infinity\cite{Vogele2016}\footnote{An effect that is well captured by all the periodic methods we have seen thus far.}.
+
+The self mobility of a single particle being pulled inside a periodic cubic domain of size $L$ is computed using the well known periodic correction for the Stokes drag of a sphere\cite{Hasimoto1959},
+\begin{equation}
+  M_{0}(a,L) = \frac{1}{6\pi\eta a}\left[1-b\frac{a}{L} + \frac{4\pi}{3}\left(\frac{a}{L}\right)^3 - c \left(\frac{a}{L}\right)^6\right].
+\end{equation}
+Where the factors $b$ and $c$ are
+\begin{equation}
+  \begin{aligned}
+  b &:= 2.83729748,\\
+  c &:= \frac{16\pi^2}{45} + 23.85.
+  \end{aligned}
+\end{equation}
+We test accuracy by measuring the translational invariance through the self mobility of a particle being pulled in an arbitrary direction. In particular, we measure the variance of the hydrodynamic radius (computing $a = 6\pi\eta M_{0}$) inside a grid cell.
+We define the error as
+\begin{equation}
+  \label{hydroerr}
+  E_a(\vec{r}) = \left|1 - \frac{a(\vec{r})M_{0}}{6\pi\eta}\right|.
+\end{equation}
+
+
+\subsection*{Regular grids}
+We will test using the \gls{FCM} with the different kernels since the \gls{PSE} is tied to the Gaussian kernel.
 
 \begin{itemize}
-\item We use the variance of the hydrodynamic radius inside a cell to determine the accuracy of the methods
-\item We need to compute numerically the relation between $h$ and $a$. Since the spatial discretization is different in \gls{FCM} and \gls{FIB} the hydrodynamic radius will be regularized differently\todo{some explanation pls}.
-  \item For FCM:
+\item In the case of BM the relation is different for each $n_s$ and $\beta$. A different support is chosen for each tolerance.
+\item For Peskin just compute the self mobility and fix $a := a_{\text{measured}}/h$
   \begin{itemize}
-  \item In the case of BM the relation is different for each $n_s$ and $\beta$. A different support is chosen for each tolerance.
-  \item For Peskin just compute the self mobility and fix $a := a_{\text{measured}}/h$
-  \item For FCM:
-    \begin{itemize}
-    \item Peskin 3pt gives $a=(1\pm 0.01) h$
-    \item Peskin 4pt gives $a=(1.31\pm 0.001) h$
-    \item Peskin 6pt gives $a=(1.5195 \pm 0.0002) h$
-    \item Gaussian gives $a=h \sqrt{\pi} g_u$. Where we set the upsampling large enough to satisfy a given tolerance. In particular we set
-      \begin{equation}
-        g_u(\epsilon) := \text{min}\left(0.55 -0.11 \log_{10}(3\epsilon), 1.65\right)
-      \end{equation}
-      Which is just an empirical fit.
-      The Gaussian kernel is truncated at a distance $r_c$ so that $\phi_G(r_c) < \epsilon$.
-    \end{itemize}
+  \item Peskin 3pt gives $a=(1\pm 0.01) h$
+  \item Peskin 4pt gives $a=(1.31\pm 0.001) h$
+  \item Peskin 6pt gives $a=(1.5195 \pm 0.0002) h$
   \end{itemize}
-\item For FIB
-  \begin{itemize}
-  \item Peskin 3pt gives $a=(0.910\pm 0.005)h$
-  \item Peskin 4pt gives $a=(1.265\pm 0.002)h$
-  \item Peskin 6pt gives $a=(1.4830 \pm 0.0001 )h$
-  \end{itemize}
-\item In general using a staggered grid requires a smaller grid to get the same hydrodynamicRadius (with a similar translational invariance) than a collocated one. On the other hand, spreading/interpolation to an staggered grid requires to approximately triple the cost, since each component of the velocity is spreaded to a different set of cells (there is some overlap, which makes the cost slightly less than triple). So while the cost of the FFT will be slightly inferior, the potential gains will be occluded by the increased cost in spreading. In the case of a triply periodic system, using a staggered grid via the \gls{FIB} is thus not worth it in general.
-\item All test are carried out with single precision (to measure the error in a ``real-life'' setting) in an RTX3080 \gpu.
-\item Peskin kernels are always better than Gaussians with the same support. Furthermore requiring a smaller grid.
-\item PSE always uses a Gaussian, and the tolerance is chosen along with the splitting parameter so it is meaningless to talk about accuracy vs. kernel support in that case.
+\item In contrast with the Peskin kernels for the Gaussian we are free to choose how fine the grid is (which we refer to as upsampling) and a truncation distance. Both parameters will affect the overall accuracy of the spreading and interpolation. The Gaussian gives $a=h \sqrt{\pi} g_u$, where we set the upsampling large enough to satisfy a given tolerance. In particular we set
+  \begin{equation}
+    g_u(\epsilon) := \text{min}\left(0.55 -0.11 \log_{10}(3\epsilon), 1.65\right)
+  \end{equation}
+  Which is just an empirical fit.
+  The Gaussian kernel is truncated at a distance $r_c$ so that $\phi_G(r_c) < \epsilon$. The author of \cite{Keaveny2014} provides an in-depth analysis of the discretization errors of the Gaussian kernel.
+\end{itemize}
+
+\begin{figure}
+\label{fig:ibm_hydrovar}
+\includegraphics[width=\textwidth]{gfx/ibm_hydrodeviation}  
+  \caption{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean substracted. Since the signal is symmetric only the range $[0.5, 1]h$ is presented.}
+\end{figure}
+
+\subsection*{Staggered grids}
+We will test using the \gls{FIB}.
+\begin{itemize}
+\item Peskin 3pt gives $a=(0.910\pm 0.005)h$
+\item Peskin 4pt gives $a=(1.265\pm 0.002)h$
+\item Peskin 6pt gives $a=(1.4830 \pm 0.0001 )h$
 \end{itemize}
 \begin{figure}
   \centering
@@ -3423,95 +3450,97 @@ auto createIntegratorFIB(UAMMD sim){
   \subcaptionbox{Gaussian 10pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_10pt}}\label{fig:ibm_gauss10pt}
   \caption{Variance of the hydrodynamic radius inside a cell (2D slice at $z=L/2+h/2$ of a 3D system) for different kernels in \gls{FCM}. Test were carried out in a cubic box of size $L=32a$.}
 \end{figure}
-We test accuracy by measuring the translational invariance through the self mobility, $M_0$, of a particle being pulled. In particular, we measure the variance of the hydrodynamic radius (using $a = 6\pi\eta M_{0}$) inside a grid cell.
-Error is computed as
-\begin{equation}
-  \label{hydroerr}
-  E_a(\vec{r}) = \left|1 - \frac{a(\vec{r})M_{0}}{6\pi\eta}\right|
-\end{equation}
-Where the self mobility is computed using the well known periodic correction for the Stokes drag of a sphere\cite{Hasimoto1959}.
 
-\begin{equation}
-  M_{0}(a,L) = \frac{1}{6\pi\eta a}\left[1-b\frac{a}{L} + \frac{4\pi}{3}\left(\frac{a}{L}\right)^3 - c \left(\frac{a}{L}\right)^6\right]
-\end{equation}
-Where the factors $b$ and $c$ are
-\begin{equation}
-  \begin{aligned}
-  b &:= 2.83729748\\
-  c &:= \frac{16\pi^2}{45} + 23.85
-  \end{aligned}
-\end{equation}
-\begin{figure}
-\label{fig:ibm_hydrovar}
-\includegraphics[width=\textwidth]{gfx/ibm_hydrodeviation}  
-  \caption{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean substracted. Since the signal is symmetric only the range $[0.5, 1]h$ is presented.}
-\end{figure}
+\begin{itemize}
+\item In general using a staggered grid requires a smaller grid to get the same hydrodynamicRadius (with a similar translational invariance) than a collocated one. On the other hand, spreading/interpolation to an staggered grid requires to approximately triple the cost, since each component of the velocity is spreaded to a different set of cells (there is some overlap, which makes the cost slightly less than triple). So while the cost of the FFT will be slightly inferior, the potential gains will be occluded by the increased cost in spreading. In the case of a triply periodic system, using a staggered grid via the \gls{FIB} is thus not worth it in general.
+\item All test are carried out with single precision (to measure the error in a ``real-life'' setting) in an RTX3080 \gpu.
+\item Peskin kernels are always better than Gaussians with the same support. Furthermore requiring a smaller grid.
+\item PSE always uses a Gaussian, and the tolerance is chosen along with the splitting parameter so it is meaningless to talk about accuracy vs. kernel support in that case.
+\end{itemize}
 
 
 \section{Inertial Coupling Method (ICM)}\label{ch:icm}
+Thus far we have neglected the intertial terms in eq. \eqref{eq:navierstokes} and focused on the Stokes level (in what we call \gls{BDHI}). In this last chapter about triply periodic hydrodynamics we will explore an algorithm, refered to as \gls{ICM}\cite{Balboa2014}, that allows to reintroduce inertia. In particular, we will consider both the temporal and convective intertial terms in eq. \eqref{eq:navierstokes}.
 
-\begin{itemize}
-\item This is the algorithm described in \cite{Balboa2014}, but we neglect the excess mass of the particles.
-\item Spatial discretization is done in an staggered grid, similar to FIB.
-\item We recover the inertial terms in eq. \eqref{eq:navierstokes}. Using the projection method described in sec. \ref{sec:bdhi} we get
-  \begin{equation}
-    \dot{\vec{\fvel}} = \rho^{-1} \oper{P}\left(\vec{\mathfrak{f}} + \tilde{\vec{f}}\right)
-  \end{equation}
-  Where the new force, $\vec{\mathfrak{f}}$, includes the advective and diffusive terms
-  \begin{equation}
-    \vec{\mathfrak{f}} = -\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel}) + \eta\nabla^2\vec{\fvel}
-  \end{equation}
+Note, however, that we will not consider particle inertial terms coming from an excess mass of the particles, i.e we consider neutrally buoyant particles with $m_e := m - \rho\Delta V = 0$. This implies that the particles still follow the local fluid velocity exactly and particles reach terminal velocity instantaneously. As demonstrated in \cite{Balboa2014} particle inertial effects can be reintroduced as a constraint via a Lagrange multiplier.
 
-\item We apply the projection operator in Fourier space, as we did in, for instance, sec. \ref{sec:fcm}. However, since we now have to solve the temporal variation of the velocity and we have non-linear terms, the diffusive and advective terms are be evaluated in real space. In ICM, the divergence of the noise is also evaluated in real space.
-\item Temporal discretization: Second-order accuracy (since we assume there is no excess mass) mid point predictor-corrector scheme
-  \begin{equation}
-    \label{eq:icmalgo}
-    \begin{aligned}
-      &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}^n\\
-      &\rho\frac{\vec{\fvel}^{n+1} - \vec{\fvel}^n}{\dt} = \oper{P}\left(\vec{\mathfrak{f}}^{n+\half} + \tilde{\vec{f}}^{n+\half} \right)\\
-      &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^{n+\half}\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right)
+We will use the same staggered grid spatial discretization as in \gls{FIB} (see chapter \ref{sec:staggered}).
+Using the proyection method descibed in chapter \ref{sec:bdhi}, we can write eq. \eqref{eq:navierstokes} as
+\begin{equation}
+  \dot{\vec{\fvel}} = \rho^{-1} \oper{P}\left(\vec{\mathfrak{f}} + \tilde{\vec{f}}\right).
+\end{equation}
+Where we have introduced a new fluid forcing,
+\begin{equation}
+  \vec{\mathfrak{f}} = -\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel}) + \eta\nabla^2\vec{\fvel},
+\end{equation}
+that includes the advective and diffusive terms to simplify the notation.
+We apply the projection operator in Fourier space, as we did in, for instance, sec. \ref{sec:fcm}. Since we now have to solve the temporal variation of the velocity and we have non-linear terms, the diffusive and advective terms will be evaluated in real space. In the \gls{ICM}, the divergence of the noise is also evaluated in real space.
+
+We use a second-order accurate\footnote{A non-zero excess mass will demote the scheme to first-order accuracy.} predictor-corrector scheme for temporal discretization. We can discretize the coupled fluid-particle equations as
+\begin{equation}
+  \label{eq:icmalgo}
+  \begin{aligned}
+    &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}^n,\\
+    &\rho\frac{\vec{\fvel}^{n+1} - \vec{\fvel}^n}{\dt} = \oper{P}\left(\vec{\mathfrak{f}}^{n+\half} + \tilde{\vec{f}}^{n+\half} \right),\\
+    &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^{n+\half}\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right).
   \end{aligned}
 \end{equation}
-
-\item Temporal discretization is similar to the mid point predictor-corrector schemes in FIB, but the convective term is discretized using a second order explicit Adams-Bashforth method (eq. 35 in \cite{Balboa2014}).
-  \begin{equation}
-    \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n+\half} = \frac{3}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n - \half \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n-1}
-  \end{equation}
-  Advection is therefore stored each step to be reused in the next.
-  
-  The diffusive term is discretized to second-order by
-  \begin{equation}
-    \nabla^2\vec{\fvel}^{n+\half} = \half\nabla^2\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right)
-  \end{equation}
-
-  Replacing these equations into \eqref{eq:icmalgo} and solving for the velocity at $n+1$ leads to the full form of the velocity solve, depending only on the velocity from previous time steps
-
-  \begin{equation}
-    \label{eq:icmfluidvel}
-    \begin{aligned}
-      &\vec{\fvel}^{n+1} = \tilde{\oper{P}}\vec{g}^n =\tilde{\oper{P}}\Big[    \left(\frac{\rho}{\dt}\mathbb{I} + \frac{\eta}{2}\nabla^2\right)\vec{\fvel}^n- \\
-      & \frac{3\dt}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n - \frac{\dt}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n-1}+\\
-    &\oper{S}\vec{F}^{n+\half} + \nabla\cdot\mathcal{Z}^n \Big]
+Which requres to evaluate the non-linear fluid forcing terms at mid step (i.e advection and diffusion).
+This discretization is similar to the mid point predictor-corrector schemes in \gls{FIB} but the convective term is discretized using a second order explicit Adams-Bashforth method (eq. 35 in \cite{Balboa2014}),
+\begin{equation}
+  \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n+\half} = \frac{3}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n - \half \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n-1}.
+\end{equation}
+Advection is therefore stored each step to be reused in the next.
+The diffusive term is similarly discretized to second-order by
+\begin{equation}
+  \nabla^2\vec{\fvel}^{n+\half} = \half\nabla^2\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right).
+\end{equation}
+Replacing both equations into \eqref{eq:icmalgo} and solving for the velocity at $n+1$ leads to the full form of the velocity solve, depending only on the velocity from previous time steps
+\begin{equation}
+  \label{eq:icmfluidvel}
+  \begin{aligned}
+    &\vec{\fvel}^{n+1} = \tilde{\oper{P}}\vec{g}^n =\tilde{\oper{P}}\Big[    \left(\frac{\rho}{\dt}\mathbb{I} + \frac{\eta}{2}\nabla^2\right)\vec{\fvel}^n- \\
+    & \frac{3\dt}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n - \frac{\dt}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n-1}+\\
+    &\oper{S}\vec{F}^{n+\half} + \nabla\cdot\mathcal{Z}^n \Big].
   \end{aligned}
 \end{equation}
 Where the modified projection operator is defined as
 \begin{equation}
-  \tilde{\oper{P}} :=\left(\frac{\rho}{\dt}\mathbb{I} - \frac{\eta}{2}\nabla^2\right)^{-1}\oper{P} 
+  \tilde{\oper{P}} :=\left(\frac{\rho}{\dt}\mathbb{I} - \frac{\eta}{2}\nabla^2\right)^{-1}\oper{P}
 \end{equation}
-And is applied in Fourier space.
-\item The full algorithm can be summarized as follows:
-  \begin{enumerate}
-  \item Take particle positions to time $n+\half$: $\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}^n$ 
-  \item Spread particles to the staggered grid: $\oper{S}\vec{F}^{n+\half}$
-  \item Compute and store advection: $\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n$
-  \item Compute the rest of the terms in $\vec{g}$ in eq. \eqref{eq:icmfluidvel}, using the just computed advective term in addition to the one stored in the previous step.
-  \item Take $\vec{g}$ to Fourier space and apply $\tilde{\oper{P}}$: $\fou{\vec{\fvel}}^{n+1} = \fou{\tilde{\oper{P}}}\fou{\vec{g}}$
-  \item Take $\fou{\vec{\fvel}}^{n+1}$ back to real space.
-  \item Evaluate particle positions at $n+1$ by interpolating: $\vec{\ppos}^{n+1} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^{n+\half}\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right)$
-  \end{enumerate}
-Since we are describing a triply periodic algorithm, we can use the discrete form of the differential operators for a staggered grid devised in previous sections (see sec. \ref{sec:staggered} and \ref{sec:fib}). 
-\item Some test of the algorithm, maybe the MSD of a particle? or a high Reynolds plot of the fluid velocity around a sphere
-\end{itemize}
+and is applied in Fourier space.
+The full algorithm can be summarized as follows:
+\begin{enumerate}
+\item Take particle positions to time $n+\half$: $\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}^n$.
+\item Spread particles to the staggered grid: $\oper{S}\vec{F}^{n+\half}$.
+\item Compute and store advection: $\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n$.
+\item Compute the rest of the terms in $\vec{g}$ in eq. \eqref{eq:icmfluidvel}, using the just computed advective term in addition to the one stored in the previous step.
+\item Take $\vec{g}$ to Fourier space and apply $\tilde{\oper{P}}$: $\fou{\vec{\fvel}}^{n+1} = \fou{\tilde{\oper{P}}}\fou{\vec{g}}$.
+\item Take $\fou{\vec{\fvel}}^{n+1}$ back to real space.
+\item Evaluate particle positions at $n+1$ by interpolating: $\vec{\ppos}^{n+1} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^{n+\half}\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right)$.
+\end{enumerate}
+Since we are describing a triply periodic algorithm, we can use the discrete form of the differential operators for a staggered grid devised in previous sections (see sec. \ref{sec:staggered} and \ref{sec:fib}).
+
+\todo{Some test of the algorithm, maybe the MSD of a particle? or a high Reynolds plot of the fluid velocity around a sphere}
+
+\subsection*{Use in UAMMD}
+Usage of the \emph{ICM} \emph{Integrator} requires a list of the familiar parameters for hydrodynamics thus far plus the fluid density, which for the first time plays a role.
+
+\begin{code2}[Example of the creation of a \emph{ICM} \emph{Integrator} module.]{label=code:icm}
+#include<uammd.cuh>
+#include<Integrator/Hydro/ICM.cuh>
+//A function that creates and returns an ICM integrator
+auto createIntegratorICM(UAMMD sim){
+  Hydro::ICM::Parameters par;
+  par.temperature = sim.par.temperature;
+  par.viscosity = sim.par.viscosity; //Fluid viscosity
+  par.density = sim.par.density;   //Fluid density
+  par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
+  par.dt = sim.par.dt;
+  par.box = Box(sim.par.L);
+  return std::make_shared<Hydro::ICM>(sim.pd, par);
+}
+\end{code2}
 
 \chapter{Monte Carlo}
 Monte Carlo schemes available in \uammd
