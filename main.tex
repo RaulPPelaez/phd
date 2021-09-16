@@ -730,12 +730,10 @@ From this point on in the manuscript we will see descriptions of GPU algorithms 
 \uammd is a \gpu software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at an isolated piece of code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu.
 
 The \emph{ParticleData} \uammd class\footnote{Note that since \uammd usually exposes a so-called module via a single C++ \emph{class} we will often use the words \emph{class} and \emph{module} as synonyms.} attempts to hide the two memory spaces from the user by handling them internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and an usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up-to-date reference to the data in the correct memory space.
-
 In CUDA/C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the program crashing.
 
 \emph{ParticleData} can provide handles giving access to the different particle properties.
-
-When requesting a handle to a property from \emph{ParticleData} with the intention of writing the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed. The example code \ref{code:pd} showcases the basic usage of the \emph{ParticleData} class. In particular, showing how to access and modify particle properties.
+When requesting a handle to a property from \emph{ParticleData} with the intention of writing the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed. Furthermore, trying to use a handle for a different intention than requested (choosing the GPU as the device but accesing from the CPU or writing to a handle that was requested for reading) will result in either undefined behavior or the code crashing\footnote{Whenever is possible \uammd will throw an exception instead of crashing.}. The example code \ref{code:pd} showcases the basic usage of the \emph{ParticleData} class. In particular, showing how to access and modify particle properties.
 
 \begin{code2}[Creating an using an instance of \emph{ParticleData}.]
   {label=code:pd}
@@ -750,14 +748,15 @@ int main(){
   //A handle to any existing 
   // property can be requested like this
   auto positions = pd->getPos(access::cpu, access::write);
-  //The fourth element of the position represents a "type"
-  // and it is largely ignored by uammd
+  //Positions are stored as a 4-dimensional number with elements x,y,z,w
+  //The fourth element of the, w, represents a "color" or "type" and is largely ignored by uammd
+  //Lets set some position to x=1, y=2, z=3 and w=0.
   positions[someIndex] = {1,2,3,0}; //Legal access
   auto masses = pd->getMass(access::gpu, access::write);
-  //Illegal access, not a GPU function!
+  //This would be an illegal access, since masses was requested for the GPU.
   masses[someIndex] = 1.0;
   auto charges = pd->getCharge(access::cpu, access::read);
-  //Illegal access, intended for reading!
+  //This would be an illegal access, since charges was requested for reading.
   charges[someIndex] = -1.0;
   return 0;
 }
@@ -958,7 +957,7 @@ class MyInteractor: public Interactor{
 
 The \emph{Computables} type in the \emph{sum} function simply contains a list of boolean values describing the needs of the caller (which will typically be an \emph{Integrator}). As of today, an \emph{Interactor} can be asked to compute only forces, energies and or virials acting on the particles. The \emph{Computables} structure exists also to facilitate the future inclusion of additional quantities to the \emph{Interactor} responsibilities.
 
-Note that \emph{Interactor} is what is called a \emph{pure-virtual} class in C++ (and programming in general). This means that \emph{Interactor} is not a class that can be used by itself (such as, for instance, \emph{ParticleData}). It is a conceptual base class that must be inherited, as in the code \ref{code:interactor}. The same way a \emph{dog} is a type of \emph{animal}, \emph{MyInteractor} in code \ref{code:interactor} is a type of \emph{Interactor}. We will see other examples shortly.
+Note that \emph{Interactor} is what is called a \emph{pure-virtual} class in C++ (and programming in general). This means that \emph{Interactor} is not a class that can be used by itself (such as, for instance, \emph{ParticleData}). It is a conceptual base class that must be inherited\footnote{See Appendix \ref{sec:cpp} for more information about C++ classes an inheritance.}, as in the code \ref{code:interactor}. The same way a \emph{dog} is a type of \emph{animal}, \emph{MyInteractor} in code \ref{code:interactor} is a type of \emph{Interactor}. We will see other examples shortly.
 
 Any class inheriting from \emph{Interactor} will have access to an instance of \emph{System} with the name \emph{sys}, that can be used to query properties of the GPU and log messages, and a \emph{ParticleData} instance with the name \emph{pd}.
 
@@ -1002,6 +1001,7 @@ int main(){
   //Periodicity can be set independently for each direction. 1 meaning periodic and 0 aperiodic
   box.setPeriodicity(1,1,0);
   //The unit cell goes from -L/2 to L/2 in each direction.
+  //Lets store in a variable a position just outside the unit cell.
   real3 position_outside_box = {0.5*lx+1, 0, 0};
   //Given that we have set the box as periodic in X, the position will be folded to the other side of the domain
   real3 position_in_box = box.apply_pbc(position_outside_box);
@@ -1050,7 +1050,7 @@ The number of particles per tile is restricted by the amount of shared memory av
 Then the tile is processed by the thread block, in principle, with all threads accessing the same shared memory elements in lock-step.
 This is highly benefitial, since global memory accesses incur a high latency (in the order of hundreds of clock cycles). In contrast, loading a value from shared memory yields a near register-memory performance ($\sim 4$ cycles for shared memory and $\sim 1$ cycle for register memory). Since each thread's global memory acceses are reused by the rest, the latency of the former is hidden. In particular, if the tile size is equal to the number of threads in a block, $N_{th}$, (so each threads loads only one particle), the global memory latency is effectively reduced $N_{th}$-fold.
 
-Once the tile has been processed, the next one is loaded. This process is repeated until no particles remain (note that the last tile can potentially be smaller than the rest).
+Once the tile has been processed, the next tile is loaded. This process is repeated until no particles remain (note that the last tile can potentially be smaller than the rest).
 The optimal size of a tile will be an optimization parameter also depending on the required shared memory per particle, being the number of threads in a block (or a multiple of it) a good default.
 This results in an overall speedup of 30 compared with the naive algorithm. \todo{Maybe a figure comparing here?}
 The algorithm is summarized in algorithm \ref{alg:nbody} and a schematic representation of the process is presented in fig. \ref{fig:nbody}.
@@ -1215,8 +1215,8 @@ auto createPairForcesWithPotential(UAMMD sim, Potential pot){
 
 \begin{figure}[h]
   \centering
-  \includesvg[width=0.5\columnwidth]{gfx/nlist}
-  \caption{A depiction of a neighbour list in a section of a particle distribution. Particles inside the blue circle (of radius $r_c$) are neighbours of the red particle. The Verlet list strategy (section \ref{sec:verletlist}) defines a second safety radius, $r_s$, that can be leveraged to reuse the list even after particles have moved.}
+  \includesvg[width=\columnwidth]{gfx/nlist}
+  \caption{A depiction of a neighbour list in a section of a particle distribution (left). Particles inside the blue circle (of radius $r_c$) are neighbours of the red particle. The Verlet list strategy (section \ref{sec:verletlist}) defines a second safety radius, $r_s$, that can be leveraged to reuse the list even after particles have moved. In the worst-case scenario of the red particle and another particle just outside $r_s$ approaching each other (right), the list will be invalidated only when each has moved $r_t = \half(r_s-r_c)$ since the last rebuild.}
   \label{fig:nlist}
 \end{figure}
 
@@ -1256,19 +1256,21 @@ This allows to unify any neighbour algorithm into a common interface. However, s
 \section{The NeighbourContainer interface}\label{sec:ncontainer}
 A \emph{NeighbourContainer} is an interface that can provide, for each particle, each of its neighbours. It does not provide any guarantees besides this, which means that as long as it provides the neighbours using the common interface, it does not have to actually construct a list\footnote{The CellList in sec. \ref{sec:celllist} actually exploits this by traversing the $27$ cells around a given particle without actually constructing a neighbour list}. Contrary to a \emph{Transverser}, instead of providing the neighbour list with a certain logic, a \emph{NeighbourContainer} allows to request the traversal information \emph{from} the list. A summary of the usage of a \emph{NeighbourContainer} can be found in code \ref{code:ncontainer}.
 
-The \emph{NeighbourContainer} interface comes works the assumption that the underlying neighbour list can have an internal indexing of the particles and an internal copy of the positions in this order. We will see the origin of this assumption shortly.
+The \emph{NeighbourContainer} interface works under the assumption that the underlying neighbour list can have an internal indexing of the particles and an internal copy of the positions in this order. We will see the rationale of this assumption shortly.
 It loosely behaves as a C++ standard container, providing \emph{begin} and \emph{end} methods returning forward input iterators to the first and last neighbours. This means that the neighbour container of a certain particle can only be advanced in sequential order starting from the first neighbour.
 By using this interface we can write code that will work for any neighbour list algorithm.
 
 \begin{code2}
-  [A CUDA kernel that uses a \emph{NeighbourContainer} to go though all the neighbours of each particle. This code is a manifestation of the pseudo code in Algorithm \ref{alg:nlist}.]
+  [A CUDA kernel that uses a \emph{NeighbourContainer} to go though all the neighbours of each particle (when launched with as many threads as particles). This code is a manifestation of the pseudo code in Algorithm \ref{alg:nlist}.]
 {label=code:ncontainer}
 //The actual type name of the container
 //  will be different for each type of list
 template<class NeighbourContainer>
-__global__ void traverseNeighbours(NeighbourContainer &nc,
-                                   int N){
+__global__ void traverseNeighbours(NeighbourContainer &nc, int N){
+  //This kernel has to be launched with at least N threads so tid goes from 0 to N-1.
   const int tid = blockIdx.x*blockDim.x + threadIdx.x;
+  //We have to filter out any surplus threads
+  if(tid >= N) return;                                   
   //Set the container to provide the list 
   // of neighbours of particle tid.
   //Note that tid is the internal indexing of the container
@@ -1309,8 +1311,8 @@ Lets now see the different \gpu algorithms implemented in \uammd.
 \section{Cell list}\label{sec:celllist}
 
 This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA and published in the acclaimed book GPU Gems 3\cite{Nguyen2008}. It is reminiscent of the classic CPU linked cells algorithm\cite{Allen2017} and in some ways and adaptation of it to the \gpu architecture. This algorithm is the standard in \gls{GPU} cell list generation and lot of works can be found describing it or variations from it\cite{Anderson2008}\cite{Dominguez2011}\cite{Howard2016}\cite{Brown2011}. In particular, our approach to building a cell list shares a lot of similarities with the one described in\cite{Tang2014}.
-The main idea behind the cell list is to perform a spatial binning and asign a hash to each particle according to the bin it is in. If we then sort these hashes we get a list in which all the particles in a given cell are contiguous. By accessing, for a certain particle, the particles in the $27$ surrounding cells we can find its neighbours without checking too many false positives. Ideally, for a given particle, we would want to check the distance only with the $N_{neigh}$ particles that lie at a distance closer (or equal) than the cut off distance, $r_{c}$. Thus requiring to check a volume of $V_{min}=\frac{4}{3}\pi r_{c}^3$. However, as the cell list partitions space in cubes of side $r_{c}$, a volume of $V_{cl} = 27r_{c}^3$ around each particle is visited.
-Assuming the particles are uniformly distributed, the cell list will, in average, check a number of innecesary particles that scales as $N_{cl}/N_{neigh} = V_{cl}/V_{min} \approx 6$. Although the cell list requires to, potentially, visit more than $6$ times the number of particles as strictly required its construction and traversal are so efficient that it is usually worth it.
+The main idea behind the cell list is to perform a spatial binning and asign a hash to each particle according to the bin it is in. If we then sort these hashes we get a list in which all the particles in a given cell are contiguous. By accessing, for a certain particle, the particles in the $27$ surrounding cells we can find its neighbours without checking too many false positives. Ideally, for a given particle, we would want to check the distance only with the $N_{neigh}$ particles that lie at a distance closer (or equal) than the cut off distance, $r_{c}$. Thus requiring to check a volume of $V_{min}=\frac{4}{3}\pi r_{c}^3$. However, as the cell list partitions the space in cubes of side $r_{c}$, a volume of $V_{cl} = 27r_{c}^3$ around each particle has to be visited.
+Assuming the particles are uniformly distributed, the cell list will, in average, checks a number of innecesary particles that scales as $N_{cl}/N_{neigh} = V_{cl}/V_{min} \approx 6$. Although the cell list potentially requires to visit more than $6$ times the number of particles as strictly required, its construction and traversal are so efficient that it is usually worth it.
 We are going to describe the algorithm for a rectangular box of side $\vec{L}=(L_x, L_y, L_z)$ with a cut off distance $r_{c}$. This requires to partition the domain into a number of cells $\vec{n}=\textrm{floor}(\vec{L}/r_{c}) = (n_x, n_y, n_z)$. Where \emph{floor} represents the integer part of the argument. It is important to ensure the resulting cell size is at least the cut off radius, so that $\vec{l} = \vec{L}/\vec{n} \ge r_{c}$.
 
 It is possible to reduce the cell size in exchange for visiting more neighbouring cells ($126$ if $l=r_{c}/2$), which will also reduce the number of false positives neighbour checks. However, testing suggests that this is in general not worth doing\cite{Anderson2008}.
@@ -1386,7 +1388,7 @@ The most efficient way to perform this sorting operation in a \gpu (as far as th
 
 \subsection*{Constructing the cell list}
 By construction, positions lying in the same cell are contigous in the array of positions sorted by hash. We can construct a cell list by finding the indices such that the cell of that index is different from the previous one. If we store the indices for the first and last particle in each cell, we can later use them to access the range of particles in it.
-This is an easily parallelizable operation, we can simply assign a thread to each particle and ask wheter its cell is different from the cell of the previous particle in the list. If this is the case, we know that this particle is the first in its cell (and store it in the \emph{cellStart} array) and also the last of the previous one\footnote{Not actually the last but the next one, we can either make the convention that particles in cell $c_i$ go from \emph{cellStart}$[c_i]$ to \emph{cellEnd}$[c_i]$ or to \emph{cellEnd}$[c_i]-1$, in \uammd we choose the later.} (and store it in the \emph{cellEnd} array). The procedure is listed in algorithm \ref{alg:fillcl}.
+This is an easily parallelizable operation, we can simply assign a thread to each particle and ask wheter its cell is different from the cell of the previous particle in the list. If this is the case, we know that this particle is the first in its cell (and store it in the \emph{cellStart} array) and also the last of the previous one\todo{Hablar con rafa, que dice que no se entiende el footnote}\footnote{Not actually the last but the next one, we can either make the convention that particles in cell $c_i$ go from \emph{cellStart}$[c_i]$ to \emph{cellEnd}$[c_i]$ or to \emph{cellEnd}$[c_i]-1$, in \uammd we choose the later.} (and store it in the \emph{cellEnd} array). The procedure is listed in algorithm \ref{alg:fillcl}.
 \begin{algorithm}
   \caption{Constructing a cell list from a list of sorted-by-hash positions.} \label{alg:fillcl}
   \textbf{Input:} Grid information, a list of $N$ postions sorted by hash\\
@@ -1421,7 +1423,7 @@ There are two main ways to construct a Cell List in \uammd (and the other neighb
 \item Through the \uammd ecosystem.
   We can provide a \emph{CellList} with a \emph{ParticleData} and let it take care of when rebuilding is needed.
 \item Outside the ecosystem.
-  Some use cases might benefit from a way to access the algorithm as less intrusively as possible. In particular a user might be interested in constructing the cell list while being in control of the list of position required to do so (without \emph{ParticleData}).
+  Some use cases might benefit from a way to access the algorithm as less intrusively as possible. In particular a user might be interested in constructing the cell list for a list of positions not handled by \emph{ParticleData}.
 \end{itemize}
 The example code \ref{code:cellist} shows how to construct and traverse a cell list using both methods.
 
@@ -1471,11 +1473,11 @@ void constructListWithPositions(Iterator positions,
 In both cases the internal structure of the cell list can be requested to facilitate any usage outside the proposed interfaces for neighbour traversing. In the case of the cell list, this means having access to an ordered list containing the indices of the particle s in each cell. Remembering that the cell list works by binning the domain, assigning a hash to each position according to the bin they are in and then sorting this hash list.
 As explained in sec. \ref{sec:celllist}, the cell list algorithm mainly stores two arrays containing the indices of the particles for each cell.
 However, there are some technical implementation details that we will discuss now.
-As part of the construction algorithm we need to sort the hashed positions into a, potentially, different order than the input positions. This allows us to easily identify the particles in each cell. Furthermore this has the fortunate side effect of providing us with a sorted positions array with the interesting property that particles that are close in space happen to be close (in average) in memory. In order to take advantage of this \emph{CellList} constructs the list based on the indices in this auxiliar array and provides it along the rest of the arrays.
-A really good vidual representation of the data locality benefits of using this sorted positions for traversal can be found in fig. 6 in \cite{Tang2014}.
+As part of the construction algorithm we need to sort the hashed positions into a, potentially, different order than the input positions. This allows us to easily identify the particles in each cell. Furthermore this has the fortunate side effect of providing us with a sorted positions array with the interesting property that particles that are close in space happen to be close (in average) in memory. In order to take advantage of this possibility, \emph{CellList} constructs the list based on the indices in this auxiliar array and provides it along the rest of the arrays.
+A really good visual representation of the data locality benefits of using this sorted positions for traversal can be found in fig. 6 of \cite{Tang2014}.
 
-Additionally, if the total number of cells is too large in particle configurations that result in a lot of empty cells, cleaning up the \emph{cellStart} array can become a large part of the total runtime. In order to overcome this, instead of cleaning the array (which incurs visiting each element in the array and setting it to a certain value), \emph{CellList} simply invalidates all the list in $O(1)$ time by interpreting any value lower than a certain threshold (called \emph{VALID\_CELL}) as the cell being empty.
-This value starts being $0$ in the first update and is increased by the number of particle in each following update. When \emph{VALID\_CELL} is close to overload the maximum value representable by a C++ unsigned integer \emph{cellStart} is then cleaned and \emph{VALID\_CELL} goes back to $0$.
+Additionally, if the total number of cells is too large in particle configurations that results in a lot of empty cells; The process of cleaning up the \emph{cellStart} array can become a large part of the total runtime. In order to overcome this, instead of cleaning the array (which incurs visiting each element in the array and setting it to a certain value), \emph{CellList} simply invalidates all the list in $O(1)$ time by interpreting any value lower than a certain threshold (called \emph{VALID\_CELL}) as the cell being empty.
+This value starts being $0$ in the first update and it is increased by the number of particles in each following update. When \emph{VALID\_CELL} is close to overload the maximum value representable by a C++ unsigned integer \emph{cellStart} is then cleaned and \emph{VALID\_CELL} goes back to $0$.
 Lets describe the full contents of the \emph{struct} returned by the \emph{CellList} method \mintinline{\ucpp}{CellList::getCellListData()}.
 \begin{itemize}
 \item\mintinline{\ucpp}{Grid grid}:
@@ -1502,7 +1504,7 @@ r_t = \frac{r_{s}-r_{c}}{2}.
 \end{equation}
 See fig. \ref{fig:nlist}.
 
-Constructing the list has therefore a cost given by the cost of traversing the cell list (but larger due to the extra memory writes). Once it is constructed, the number of false positives will depend on the safety radius, $r_s$. In particular, assuming an uniform distribution of particles, the number of false positives will be given by $N_s/N_{\text{neigh}} = V_s/V_{\text{neigh}} = r_s^3/r_c^3$. In order to get a number of false positives similar to the ones checked by the cell list (in which $N_{cl}/N_{\text{neigh}} \approx 6$) we would need to set $r_s > 1.8r_c$, which results in a threshold distance of $r_t = 0.4r_c$. Assuming the cut off radius is the typical one for the \gls{LJ} potential (see sec. \ref{sec:lj}) this means that the list does not have to be reconstructed until one particle has diffused more than $r_t = \sigma$ from its starting position. Assuming each position update typically moves a particle less than $1\%\sigma$ this means that the list is rebuilt only every several hundred steps.
+Constructing the list has therefore a cost given by the cost of traversing the cell list (but larger due to the extra memory writes). Once it is constructed, the number of false positives will depend on the safety radius, $r_s$. In particular, assuming an uniform distribution of particles, the number of false positives will be given by $N_s/N_{\text{neigh}} = V_s/V_{\text{neigh}} = r_s^3/r_c^3$. In order to get an optimal number of false positives, similar to the ones checked by the cell list (in which $N_{cl}/N_{\text{neigh}} \approx 6$) we would need to set $r_s > 1.8r_c$, which results in a threshold distance of $r_t = 0.4r_c$. Assuming the cut off radius is the typical one for the \gls{LJ} potential ($r_c \sim 2.5\sigma$, see sec. \ref{sec:lj}) this means that the list does not have to be reconstructed until one particle has diffused more than $r_t \sim \sigma$ from its starting position. Assuming each position update typically moves a particle less than $1\%\sigma$ this means that the list is rebuilt only every several hundred steps.
 
 On the other hand, the cost of constructing the neighbour list from the cell list also increases with $r_s$. There is therefore a trade-off between the compensated cost of list construction over many steps and the artificially inflated traversal cost. The optimal safety radius should be tuned for each type of simulation by inspecting how the timing depends on it. For instance, in a really dense system where particles are mostly still the optimal safety radius will be wildly different from a gas of rapidly diffusing particles. A good default is usually around $r_s\approx 1.1r_c$. 
 
@@ -1524,12 +1526,12 @@ On the other hand, we can request \emph{VerletList} to provide its internal stru
 \item\mintinline{\ucpp}{int* numberNeighbours}:
   The number of neighbours for each particle in sortPos.
 \item\mintinline{\ucpp}{StrideIterator particleStride}:
-  For a given index, returns the index of its first neighbour in the list.
+  For a given particle index, $i$, \mintinline{\ucpp}{particleStride[i]} holds the index of its first neighbour in \mintinline{\ucpp}{neighbourList}. \mintinline{\ucpp}{StrideIterator} is a random access iterator\footnote{In particular, in the current implementation this iterator simply returns, for a given index $i$, \mintinline{\ucpp}{maxNeighboursPerParticle*i}.}.
 \item\mintinline{\ucpp}{int* neighbourList}:
   The actual neighbour list. The neighbour $j$ for particle with index $i$ (of a maximum of \mintinline{\ucpp}{j=numberNeighbours[i]}) is located at \mintinline{\ucpp}{neighbourList[particleStride[i] + j];}.
 \end{itemize}
 
-Note that the particle stride (or offset) is not necessarily a full fledged array. The reason for this is that the offset might just be the same for all particles. In \uammd's current implementation, the particle stride is simply the maximum number of neighbours per particle (see the initial discussion in chapter \ref{sec:nlist}). However, this interface allows for the possibility of compacting the list in the future, with a similar behavior as the \emph{cellStart} array in \emph{CellList}.
+Note that, as evidenced by its type name, the particle stride (or offset) is not necessarily a raw array but rather a generic C++ random access iterator (that behaves as a raw array for most purposes). For instance the offset might just be the same for all particles. In \uammd's current implementation, the particle stride is simply the maximum number of neighbours per particle (see the initial discussion in chapter \ref{sec:nlist}). However, this interface allows for the possibility of compacting the list in the future, with a similar behavior as the \emph{cellStart} array in \emph{CellList}.
 
 \begin{code2}[The different ways of using a Verlet List in \uammd. The \emph{Transverser} interface, already used in chapter \ref{sec:nbody}, is described in detail in Appendix \ref{ch:transverser}. Note that the \emph{Transverer} and \emph{NeighbourContainer} options are identical to the case of a \emph{CellList}.]{label=code:verletlist}
 #include<uammd.cuh>
@@ -3485,7 +3487,7 @@ We use a second-order accurate\footnote{A non-zero excess mass will demote the s
     &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^{n+\half}\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right).
   \end{aligned}
 \end{equation}
-Which requres to evaluate the non-linear fluid forcing terms at mid step (i.e advection and diffusion).
+Which requires to evaluate the non-linear fluid forcing terms at mid step (i.e advection and diffusion).
 This discretization is similar to the mid point predictor-corrector schemes in \gls{FIB} but the convective term is discretized using a second order explicit Adams-Bashforth method (eq. 35 in \cite{Balboa2014}),
 \begin{equation}
   \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n+\half} = \frac{3}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n - \half \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n-1}.
