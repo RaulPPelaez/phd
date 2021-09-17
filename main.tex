@@ -379,6 +379,31 @@ One of the main critiques to CUDA is that it is a close sourced, propietary envi
 In 2009, an open standard called OpenCL\cite{Stone2010} was born (from the creators of OpenGL) as an alternative to CUDA. Although implementations of OpenCL exist for almost any hardware (including GPUs from NVIDIA and AMD, CPUs, FPGAs,...) its adoption has been slow, partly due to an aggressive marketing campaign from NVIDIA to sell CUDA as the better alternative\footnote{Since the birth of CUDA, NVIDIA has been promoting it by donating GPUs to researchers, giving away a plethora of CUDA courses all around the world and more.}. The general feeling in the community has always been that OpenCL should win as the de facto \gls{GPGPU}-\gls{API} in the long term. However, it simply has not happend yet.
 Luckily, there are ways to translate CUDA code into OpenCL code\footnote{In particular, the HIP library works as a thin wrapper over CUDA/OpenCL, allowing to write code that can be compiled for any of the \glspl{API}.} and, given that the paradigms of both \glspl{API} are quite similar, it is fairly straight-forward to port CUDA code to OpenCL. Therefore, in the future, porting the software infrastructure presented in this manuscript to OpenCL would be mainly painless and will not require changes to the public \gls{API}. So, even though at the time of writing \uammd is restricted to run on NVIDIA's hardware, it is possible to adapt it so that it runs on virtually any parallel hardware.
 
+\section{Basic concepts of GPU programming}
+The \gpu (usually refered to simply as \emph{device}) works as a massively parallel co-processor, with thousands of (relatively slow) cores, independent of the rest of the system for most uses and purposes. It runs instructions independently (and in principle asynchronously) from the CPU (refered to as the \emph{host}). More importantly, the \gpu has its own memory space which is separated from the system RAM. The device cannot access the host memory (and viceversa). If information must be shared between each other an explicit memory copy has to be issued, which incurs a synchronization barrier and is in general a (relatively) slow process. In this section, we will discuss how this properties are taken into account and how they affect the programming model.
+
+From a programmatic point of view, we can access the \gpu capabilities using CUDA, which extends C++ (by introducing new keywords and an \gls{API}) to accomodate for the particular programming model of a \gpu\footnote{There are other ways to program a \gpu, such as OpenACC\cite{openacc} or OpenCL\cite{opencl}, but we will stick to CUDA.}.
+%Note, however, that this Appendix is not intended to be a CUDA programming guide (the reader can look online for a plethora of CUDA learning resources), but just an introduction to the particularities that come with coding for the \gpu.
+
+CUDA exposes the many cores of the \gpu via a series of logical groupings of workers (which in turn map to the hardware cores). The most basic computing unit is called a \emph{thread}, which can execute a single instruction at a time. A group of threads (typically around $128$ and inferior to $1024$) is called a \emph{thread-block}. Finally, several blocks are grouped into a \emph{grid}.
+
+Although it is not required, threads inside a block excel when executing the same set of instructions in lock-step. In particular, blocks are composed of groups of 32 threads called \emph{warps}. Threads in a warp must execute the same instructions at the same time (but not necessarily acting on the same data).
+On the other hand, CUDA offers no guarantee regarding the execution order or blocks.
+
+The main memory space of the \gpu (the equivalent of the heap memory in the CPU) is called \emph{global memory}. Memory allocated in this memory space is accessible at all times by every thread in a kernel. 
+Similar to the CPU's heap memory, global memory is slow to access (although a series of caches exists to mitigate this).
+Each thread has its own small, fast access, local memory space (called \emph{register} memory) which is somewhat equivalent to the \emph{stack} in the CPU.
+Finally, CUDA exposes another high bandwidth memory space that is private to each block but accessible for all threads within. It is the \emph{shared} memory space, as threads in a block are able to share information idrectly through it.
+
+See fig. \ref{fig:cudablocks} for a schematic representation of the CUDA threading model.
+\begin{figure}
+  \centering
+  \includesvg[width=\columnwidth]{gfx/cudablocks}
+  \caption{Representation of the thread geometry for a kernel launch with $2$ blocks of $4$ threads (\emph{blockDim} = (2,2)). Threads inside the same block run concurrently, while different blocks might run desynchronized between them. Each thread has a small local (and private) register memory space. Furthermore, threads inside the same block can share memory among them via the low-latency \emph{shared memory}. All threads can access the same, low-bandwidth, \emph{global memory} space.}
+  \label{fig:cudablocks}
+\end{figure}
+
+CUDA allows us to write small programs, called kernels, that we can then launch to run on the \gpu. The instructions in a kernel are executed by a grid of threads, whose size can be customized per launch. Appendix \ref{ch:appendixa} offers an introduction to programming GPU code using C++ and CUDA.
 
 \section{Software for soft matter simulations}
 
@@ -537,7 +562,7 @@ Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Inte
 \begin{figure}[h]
   \centering
   \includesvg[width=0.7\columnwidth]{gfx/multiscale}
-  \caption{The different levels of coarse grained description available in \uammd for soft matter simulations. $\vec{q}_i$ represents the positions of particles, $\vec{u}_i$ their velocity. $\vec{v}(\vec{r},t)$ represents an Eulerian fluid velocity, $M(\vec{q}_{ij})$ a mobility tensor and $\xi(\vec{q}_{ij})$ a friction kernel.}
+  \caption{The different levels of coarse grained description available in \uammd for soft matter simulations. $\vec{q}_i$ represents the positions of particles, $\vec{u}_i$ their velocity. $\vec{v}(\vec{r},t)$ represents an Eulerian fluid velocity, $M(\vec{q}_{ij})$ a mobility tensor and $\xi(\vec{q}_{ij})$ a friction kernel. Arrows represent standard routes for the formal bottom-up derivation using coarse-graining theory. In order, we have: (1) in \cite{Camargo2018}, (2) in \cite{Hijon2010} and (3) in \cite{Dhont1996}.}
   \label{fig:multiscale}
 \end{figure}
 
@@ -721,80 +746,22 @@ Thus far we have used the term ``particle'' without explicitly defining it. We i
 
 In \uammd particles are the relevant simulation entity as specified by the \emph{ParticleData} class (see section \ref{sec:particledata}). When a fluid is present (either implicit or explicitly) it is only as a medium to move the particles. As such, \emph{Integrators} evolve the particles dynamics that interact via \emph{Interactors}. However, our loose description of a particle allows asigning to them any kind of properties. For instance, in the simulation of an ideal gas of atoms, desribing the positions, velocities and masses of the atoms might be enough. But in a more sophisticated situation, like a solution of charged colloidal particles, we can include forces, energies, charges, torques, angular velocities, radius, etc.
 
-Adding new particle properties in \uammd amounts to include them in a special list (in the source code \emph{ParticleData.cuh}, to be precise). It is worth to describe the \emph{ParticleData} class in more detail here.
 
-\chapter{Working with UAMMD modules}
-From this point on in the manuscript we will see descriptions of GPU algorithms and code examples written in CUDA/C++. Although the code examples can be mostly ommited without missing the overall message of the text, understanding the jargon, rationale and details of the described algorithms will require at least basic knowledge of the GPU programming model. If the reader is unfamiliar with either the C++ programming language or the GPU he or she can find an introduction to the basic concepts in Appendix \ref{sec:cpp}. While not a full-fledged guide, Appendix \ref{sec:cpp} has been designed to provide the bare minimum required to understand most of the GPU and programming related concepts laid out in the rest of the manuscript.
 
-\section{ParticleData}\label{sec:particledata}
-\uammd is a \gpu software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at an isolated piece of code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu.
 
-The \emph{ParticleData} \uammd class\footnote{Note that since \uammd usually exposes a so-called module via a single C++ \emph{class} we will often use the words \emph{class} and \emph{module} as synonyms.} attempts to hide the two memory spaces from the user by handling them internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and an usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up-to-date reference to the data in the correct memory space.
-In CUDA/C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the program crashing.
+\chapter{Initial remarks and overview}
 
-\emph{ParticleData} can provide handles giving access to the different particle properties.
-When requesting a handle to a property from \emph{ParticleData} with the intention of writing the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed. Furthermore, trying to use a handle for a different intention than requested (choosing the GPU as the device but accesing from the CPU or writing to a handle that was requested for reading) will result in either undefined behavior or the code crashing\footnote{Whenever is possible \uammd will throw an exception instead of crashing.}. The example code \ref{code:pd} showcases the basic usage of the \emph{ParticleData} class. In particular, showing how to access and modify particle properties.
+Let us go through the different numerical techniques that are used to simulate the different sections of the spatio-temporal landscape.
 
-\begin{code2}[Creating an using an instance of \emph{ParticleData}.]
-  {label=code:pd}
-#include<uammd.cuh>
-using namespace uammd; 
-int main(){
-  //Creation requires a number of particles
-  int numberParticles = 1e6;
-  auto pd = std::make_shared<ParticleData>(numberParticles);
-  //An arbitrary particle index
-  int someIndex = rand()%numberParticles;
-  //A handle to any existing 
-  // property can be requested like this
-  auto positions = pd->getPos(access::cpu, access::write);
-  //Positions are stored as a 4-dimensional number with elements x,y,z,w
-  //The fourth element of the, w, represents a "color" or "type" and is largely ignored by uammd
-  //Lets set some position to x=1, y=2, z=3 and w=0.
-  positions[someIndex] = {1,2,3,0}; //Legal access
-  auto masses = pd->getMass(access::gpu, access::write);
-  //This would be an illegal access, since masses was requested for the GPU.
-  masses[someIndex] = 1.0;
-  auto charges = pd->getCharge(access::cpu, access::read);
-  //This would be an illegal access, since charges was requested for reading.
-  charges[someIndex] = -1.0;
-  return 0;
-}
-\end{code2}
 
-Besides working as a multi container, \emph{ParticleData} offers a series of functionalities overlooked here for simplicity (the reader can find more information in Appendix \ref{ch:online}). However, it is worth mentioning that \emph{ParticleData} has the ability to spatially hash and sort particles to increase data locality when accesing the particles properties.
+We can distinguish between two families of numerical techniques, particle (Lagrangian) and grid (Eulerian-Lagrangian) based methods.
+%The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
+%In some way require another, all algorithms have to take into account interactions between particles.
 
-\section{Building an UAMMD module}
+%In chapter \ref{ch:design} we introduced the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned and specialized in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch.
+As stated in chapter \ref{ch:design} (see fig. \ref{fig:uammdsketch}) the central work-piece in \uammd are the particles. The \emph{Integrator} solves the time-evolution of the particles and to that end, it requires the driving interactions (e.g. forces) which are, in turn, provided by the \emph{Interactors}. For this reason, from the code perspective ``forces'' and ``velocities'' respectively pertain to \emph{Interactor} and \emph{Integrator} concepts. Grid-based methods generally consist on solving \glspl{PDE} for some spatio-temporal field in a mesh, i.e. in an Eulerian framework. \uammd deploys Eulerian solvers for several purposes: i) to obtain the velocity field of the solvent in Eulerian-Lagrangian hydrodynamics and ii) to solve the force field generated by a distribution of source charges. Both schemes are based on pseudo-spectral methods, which shall be first introduced when explaining hydrodynamic \emph{Integrators} in Chapter \ref{sec:bdhi}. The \emph{Interactor} dealing with electrostatics in \uammd (pseudospectral Poisson solver) is explained later, in Chapter \ref{sec:tppoisson}.
 
-Throughout this manuscript, we will typically create a module named ``Module'' using a code similar to the one in code \ref{code:module}. ``Module'' will be called, for instance, \emph{VerletNVE} if it is \gls{MD} \emph{Integrator} (see sec. \ref{sec:velocityverlet}) or \emph{BondedForces} if it is a ligature \emph{Interactor} (see sec. \ref{sec:bonds}).
 
-\begin{code2}[Template code for the creation of a module.]{label=code:module}
-#include<uammd.cuh>
-//Additional includes when necessary. The definition of the UAMMD structure can be found in the next example, which code should be included here.
-//A module named "Module" is created and returned.
-auto createModule(UAMMD sim){
-  //Some parameter preparations...
-  return std::make_shared<Module>(/*Required parameters*/);
-}
-\end{code2}
-
-The argument of the function \emph{createModule} in example code \ref{code:module}, of type \emph{UAMMD}, is simply an aggregate (a \emph{struct} in C++) of recurrent parameters written for this manuscript. In particular, this structure can be defined as in code example \ref{code:uammdstruct}, which will serve as an implicit preamble code for the rest of the examples in this manuscript\footnote{Incidentally, I often use this same construction when writting simulations using \uammd.}.
-
-\begin{code2}[Definition of the UAMMD auxiliar structure created for this manuscript.]
-  {label=code:uammdstruct}
-#include<uammd.cuh>
-using namespace uammd; 
-//An aggregate of parameters required by the relevant modules in the code
-struct Parameters{
-  //real dt;
-  //...
-};
-//This structure packs a Parameters along with a ParticleData instance
-struct UAMMD{
-  std::shared_ptr<ParticleData> pd;
-  Parameters par;
-};
-\end{code2}
 
 \newpage
 
@@ -869,23 +836,80 @@ struct UAMMD{
 
 \part{A voyage through numerical space-time}
 
-Let us go through the different numerical techniques that are used to simulate the different sections of the spatio-temporal landscape.
 
 
-We can distinguish between two families of numerical techniques, particle (Lagrangian) and grid (Eulerian-Lagrangian) based methods.
-%The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
-%In some way require another, all algorithms have to take into account interactions between particles.
+From this point on in the manuscript we will see descriptions of GPU algorithms and code examples written in CUDA/C++. Although the code examples can be mostly ommited without missing the overall message of the text, understanding the jargon, rationale and details of the described algorithms will require at least basic knowledge of the GPU programming model. If the reader is unfamiliar with either the C++ programming language or the GPU he or she can find an introduction to the basic concepts in Appendix \ref{sec:cpp}. While not a full-fledged guide, Appendix \ref{sec:cpp} has been designed to provide the bare minimum required to understand most of the GPU and programming related concepts laid out in the rest of the manuscript.
 
-%In chapter \ref{ch:design} we introduced the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned and specialized in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch.
-As stated in chapter \ref{ch:design} (see fig. \ref{fig:uammdsketch}) the central work-piece in \uammd are the particles. The \emph{Integrator} solves the time-evolution of the particles and to that end, it requires the driving interactions (e.g. forces) which are, in turn, provided by the \emph{Interactors}. For this reason, from the code perspective ``forces'' and ``velocities'' respectively pertain to \emph{Interactor} and \emph{Integrator} concepts. Grid-based methods generally consist on solving \glspl{PDE} for some spatio-temporal field in a mesh, i.e. in an Eulerian framework. \uammd deploys Eulerian solvers for several purposes: i) to obtain the velocity field of the solvent in Eulerian-Lagrangian hydrodynamics and ii) to solve the force field generated by a distribution of source charges. Both schemes are based on pseudo-spectral methods, which shall be first introduced when explaining hydrodynamic \emph{Integrators} in Chapter \ref{sec:bdhi}. The \emph{Interactor} dealing with electrostatics in \uammd (pseudospectral Poisson solver) is explained later, in Chapter \ref{sec:tppoisson}. In this Chapter we will explain the remaining \emph{Interactors}, which are generic (i.e. which can be externally specialized), indicated in Fig. \ref{fig:uammdsketch_interactors} in blue.
-%\end{itemize}
-In particular, we start with the case of all particles interacting with every other in chapter \ref{sec:nbody}. In chapter \ref{sec:shortrange} we discuss the optimization opportunities that arise when this interaction has a short range (compared to the typical particle size). After, in Chapter \ref{sec:bonded} we explore the case of particles being joined by spring-like ligatures (be it in pairs, triplets, cuadruplets, etc). Finally, in chapter \ref{sec:external} we briefly discuss the simple case of particles interacting with an unespecified external influence that does not depend on the rest of the particles.
-\begin{figure}[h]
-  \centering
-  \includesvg[width=\columnwidth]{gfx/sketchUAMMD_interactors}
-  \caption{The next level in the \emph{Interactor} branch of the tree presented at fig. \ref{fig:uammdsketch}. Names in blue represent \uammd modules that can be specialized with outside logic. For instance, the bonded interactions module is general to any arbitrarily complex potential, which can be provided to the module via the use of metaprogramming.}
-  \label{fig:uammdsketch_interactors}
-\end{figure}
+\section{Building an UAMMD module}
+
+Throughout this manuscript, we will typically create a module named ``Module'' using a code similar to the one in code \ref{code:module}. ``Module'' will be called, for instance, \emph{VerletNVE} if it is \gls{MD} \emph{Integrator} (see sec. \ref{sec:velocityverlet}) or \emph{BondedForces} if it is a ligature \emph{Interactor} (see sec. \ref{sec:bonds}).
+
+\begin{code2}[Template code for the creation of a module.]{label=code:module}
+#include<uammd.cuh>
+//Additional includes when necessary. The definition of the UAMMD structure can be found in the next example, which code should be included here.
+//A module named "Module" is created and returned.
+auto createModule(UAMMD sim){
+  //Some parameter preparations...
+  return std::make_shared<Module>(/*Required parameters*/);
+}
+\end{code2}
+
+The argument of the function \emph{createModule} in example code \ref{code:module}, of type \emph{UAMMD}, is simply an aggregate (a \emph{struct} in C++) of recurrent parameters written for this manuscript. In particular, this structure can be defined as in code example \ref{code:uammdstruct}, which will serve as an implicit preamble code for the rest of the examples in this manuscript\footnote{Incidentally, I often use this same construction when writting simulations using \uammd.}. It is important to stress that all the code examples in this manuscript can be compiled     the codes have been written in a tutorial purpose \todo{clarify}. In order to compile the rest of the examples from this point on, the snippet in code \ref{code:uammdstruct} must be placed (copy/pasted) before the code in the example and the relevant parameters added to the \emph{Parameters} structure.
+
+\begin{code2}[Definition of the UAMMD auxiliar structure created for this manuscript. All the other examples need this snippet as a preamble to compile.]
+  {label=code:uammdstruct}
+#include<uammd.cuh>
+using namespace uammd; 
+//An aggregate of parameters required by the relevant modules in the code
+struct Parameters{
+  //real dt;
+  //...
+};
+//This structure packs a Parameters along with a ParticleData instance
+struct UAMMD{
+  std::shared_ptr<ParticleData> pd;
+  Parameters par;
+};
+\end{code2}
+
+\section{ParticleData}\label{sec:particledata}
+\uammd is a \gpu software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at an isolated piece of code. The separation of memory spaces can become a nuissance specially when dealing with quantities that must naturally be accesed from both the CPU and the \gpu.
+
+The \emph{ParticleData} \uammd class\footnote{Note that since \uammd usually exposes a so-called module via a single C++ \emph{class} we will often use the words \emph{class} and \emph{module} as synonyms.} attempts to hide the two memory spaces from the user by handling them internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and an usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up-to-date reference to the data in the correct memory space.
+In CUDA/C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the program crashing.
+
+\emph{ParticleData} can provide handles giving access to the different particle properties.
+When requesting a handle to a property from \emph{ParticleData} with the intention of writing the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property being out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed. Furthermore, trying to use a handle for a different intention than requested (choosing the GPU as the device but accesing from the CPU or writing to a handle that was requested for reading) will result in either undefined behavior or the code crashing\footnote{Whenever is possible \uammd will throw an exception instead of crashing.}. The example code \ref{code:pd} showcases the basic usage of the \emph{ParticleData} class. In particular, showing how to access and modify particle properties.
+
+\begin{code2}[Creating an using an instance of \emph{ParticleData}.]
+  {label=code:pd}
+#include<uammd.cuh>
+using namespace uammd; 
+int main(){
+  //Creation requires a number of particles
+  int numberParticles = 1e6;
+  auto pd = std::make_shared<ParticleData>(numberParticles);
+  //An arbitrary particle index
+  int someIndex = rand()%numberParticles;
+  //A handle to any existing 
+  // property can be requested like this
+  auto positions = pd->getPos(access::cpu, access::write);
+  //Positions are stored as a 4-dimensional number with elements x,y,z,w
+  //The fourth element of the, w, represents a "color" or "type" and is largely ignored by uammd
+  //Lets set some position to x=1, y=2, z=3 and w=0.
+  positions[someIndex] = {1,2,3,0}; //Legal access
+  auto masses = pd->getMass(access::gpu, access::write);
+  //This would be an illegal access, since masses was requested for the GPU.
+  masses[someIndex] = 1.0;
+  auto charges = pd->getCharge(access::cpu, access::read);
+  //This would be an illegal access, since charges was requested for reading.
+  charges[someIndex] = -1.0;
+  return 0;
+}
+\end{code2}
+Adding new particle properties in \uammd amounts to include them in a special list (in the source code \emph{ParticleData.cuh}, to be precise). Many particle properties are already available in this list at the time of writing, such as positions, velocities, forces, mass, radius and many more. Each particle is assigned a name when \emph{ParticleData} is created. \emph{ParticleData} refers to this special property as ``Id'' (and exposes it just like the rest, with a corresponding \mintinline{\ucpp}{getId(access::gpu, access::read);} function). The name, or id, property has the unique quality of being unmutable, meaning that it can only be requested for reading. \uammd can under some circunstances change (reorder) the memory location of the particles\footnote{For instance to increase the data locality in memory for particles close in physical space.} (so that a particle named \emph{id} that started at some index \emph{i} would no longer be located at index \emph{i}). Naturally, it is possible to prompt \emph{ParticleData} for the index of a particle given its name\footnote{The \emph{ParticleData} member function \mintinline{\ucpp}{getIdOrderedIndices();} returns an array that stores the memory location (index) of a particle given its name (AKA id).} (the reader can refer to the online \uammd documentation, see Appendix \ref{ch:online}, to learn more about this). Note that in general in a GPU-centric algorithm, when we assign a worker (be it a thread or a thread block) to each particle, given that each worker runs asynchronously with the rest the specific order of the particles in memory becomes irrelevant from an algorithmic point of view.
+
+Besides working as a multi container, \emph{ParticleData} offers a series of functionalities overlooked here for simplicity (the reader can find more information in Appendix \ref{ch:online}). However, it is worth mentioning that \emph{ParticleData} has the ability to spatially hash and sort particles to increase data locality when accesing the particles properties.
 
 %\todo{Maybe reference to the different chapters in fig. \ref{fig:uammdsketch_interactors}?}
 %The Poisson leaf in fig. \ref{fig:uammdsketch_interactors} deals with electrostatics and involves a series of numerical techniques that will not be discussed until much later in this manuscript. Thus, we simply mention it here and defer its description to chapter \ref{ch:tppoisson}.
@@ -898,7 +922,18 @@ The important thing about particles is that when several of them are present, th
 Stars in a galaxy attract each other over an infinetely long range of space, while two argon atoms will repell each other at close range.
 Even if particles are somehow oblivious to each other, they might interact with some other thing, like fluid particles being repelled by a wall.
 Each kind of interaction requires a different approach, and figuring out how to efficiently compute it in a \gpu is a field on itself. 
-In this chapter we will see some of the strategies that can be employed and how they are implemented in \uammd.
+In this chapter we will see some of the strategies that can be employed and how they are implemented in \uammd. Figure \ref{fig:uammdsketch_interactors} shows the next level of the \emph{Interactor} branch in fig. \ref{fig:uammdsketch}.
+Most \uammd \emph{Interactors} are generic (i.e. which can be externally specialized), indicated in Fig. \ref{fig:uammdsketch_interactors} in blue.
+
+We start with the case of all particles interacting with every other in chapter \ref{sec:nbody}. In chapter \ref{sec:shortrange} we discuss the optimization opportunities that arise when this interaction has a short range (compared to the typical particle size). After, in Chapter \ref{sec:bonded} we explore the case of particles being joined by spring-like ligatures (be it in pairs, triplets, cuadruplets, etc). Finally, in chapter \ref{sec:external} we briefly discuss the simple case of particles interacting with an unespecified external influence that does not depend on the rest of the particles.
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=\columnwidth]{gfx/sketchUAMMD_interactors}
+  \caption{The next level in the \emph{Interactor} branch of the tree presented at fig. \ref{fig:uammdsketch}. Names in blue represent \uammd modules that can be specialized with outside logic. For instance, the bonded interactions module is general to any arbitrarily complex potential, which can be provided to the module via the use of metaprogramming.}
+  \label{fig:uammdsketch_interactors}
+\end{figure}
+
 \begin{figure}[h]
   \centering
   \includesvg[width=0.7\columnwidth]{gfx/sketchUAMMD_interactor_slr}
@@ -906,7 +941,7 @@ In this chapter we will see some of the strategies that can be employed and how 
   \label{fig:uammdsketch_interactors_slr}
 \end{figure}
 
-Let start by describing \uammd's \emph{Interactor} interface in detail and then proceed to descend to the \emph{Interactor} logical branch in fig. \ref{fig:uammdsketch}, for which the next downward leafs are depicted in fig. \ref{fig:uammdsketch_interactors_slr}. In particular, we will discuss the long range branch in chapter \ref{sec:nbody} and the short range branch in chapter \ref{sec:shortrange}.
+Let start by describing \uammd's \emph{Interactor} interface in detail and then proceed to descend to the \emph{Interactor} logical branch in fig. \ref{fig:uammdsketch}, for which the next downward leafs are depicted in fig. \ref{fig:uammdsketch_interactors}. In particular, we will focus on discussing the long range branch in chapter \ref{sec:nbody} and the short range branch in chapter \ref{sec:shortrange} (depicted in figure \ref{fig:uammdsketch_interactors_slr}).
 \section{The Interactor interface} \label{sec:interactor}
 
 \emph{Interactor} encapsulates the concept of a group of particles interacting, either with each other or with some external influence.
@@ -1086,7 +1121,7 @@ Note that the computation as described here is not restricted to computing force
 \begin{figure}[H]
   \centering
   \includesvg[width=0.75\columnwidth]{gfx/nbody}
-  \caption{Representation of algorithms \ref{alg:nbodynaive} (upper half of the figure) and \ref{alg:nbody} (bottom half). Two thread blocks ($b_{0,1}$), with two threads each ($t_{0,1,2,3}$), have to process four particles ($p_{0,1,2,3}$). Each thread must go through all particles and fetch some arbitrary information for each of them (i.e. positions, velocities and/or any other data required by the computation), represented by colored lines. The naive algorithms does not make use of the shared memory space available to threads in the same block and thus each thread needs to read all particles. On the other hand, the shared algorithm does leverage the shared memory space. In particular, each particle must be fetched only once per block (as opposed to once per thread in the naive algorithm). This is depicted by the reduced number of colored lines in the lower side of the figure.}
+  \caption{Representation of algorithms \ref{alg:nbodynaive} (upper half of the figure) and \ref{alg:nbody} (bottom half). Two thread blocks ($b_{0,1}$), with two threads each ($t_{0,1,2,3}$), have to process four particles ($p_{0,1,2,3}$). Each thread must go through all particles and fetch some arbitrary information for each of them (i.e. positions, velocities and/or any other data required by the computation), represented by colored lines. The naive algorithms does not make use of the shared memory space available to threads in the same block and thus each thread needs to read all particles. On the other hand, the shared algorithm benefits from the shared memory space. In particular, each particle must be fetched only once per block (as opposed to once per thread in the naive algorithm). This is depicted by the reduced number of colored lines in the lower side of the figure.}
   \label{fig:nbody}
 \end{figure}
 
@@ -1319,15 +1354,15 @@ It is possible to reduce the cell size in exchange for visiting more neighbourin
 \begin{figure}
   \centering
   \includesvg[width=\columnwidth]{gfx/celllist1}
-  \caption{Representation of the spatial binning for a 2D distribution of particles. The particle demarked as $i$ lies in the cell with coordinates $(1,2)$, this coordinates will then be used to assign a hash to particle $i$. The dotted red line represents the order given by the space-filling curve, starting in the (0,0) cell.}
+  \caption{Representation of the spatial binning for a 2D distribution of particles. The particle demarked as $i$ lies in the cell with coordinates $(1,2)$, this coordinates will then be used to assign a hash to particle $i$. The dotted red line represents the order given by the space-filling curve, starting in the (0,0) cell. Blue particles lie in arbitrary indices, AKA memory locations, (blue numbers). After hashing the positions according to the red dashed line and sorting, particle positions of particles in the same cell are stored contigously in \emph{sortPos} (right), particles inside the same cell have an undetermined order. Solid red lines mark the end of a cell or equivalently, the start of the next one, information that is stored in the \emph{cellStart} and \emph{cellEnd} arrays.}
   \label{fig:cl1}
 \end{figure}
-
+\todo{Put an example of the of cellStart etc in the figure}
 The algorithm for the cell list construction can be summarized in three separated steps
 \begin{enumerate}
-\item Hash the positions according to the cell (bin) they lie in
-\item Sort the positions and hashes using the hashes as key
-\item Identify where each cell starts and ends in the sorted positions array
+\item Hash (label) the particles according to the cell (bin) they lie in.
+\item Sort the particles and hashes using the hashes as the ordering label (technically this is known as sorting by key). So that particles with positions lying in the same cell become contiguous in memory.
+\item Identify where each cell starts and ends in the sorted particle positions array.
 \end{enumerate}
 After these steps we end up with enough information to visit the $27$ neighbour cells of a given particle.
 We have to compute the assigned cell of a given position at several points during the algorithm. Doing this is straight forward; For a position inside the domain, $x \in [0, L)$, the bin asigned to it is $i = \textrm{floor}(x/n_x) \in [0, n_x- 1]$. It is important to notice that a particle located at exactly $x = L$ will be asigned the cell with index $n_x$, special consideration must be taken into account to avoid this situation. In particular, in a periodic domain, a particle at $x=L$ should be assigned to the cell $i=0$\footnote{Although this might sound evident, it is an easy to miss detail and the consequences resulting from its omission will haunt a naive developer for weeks (or so I am told).}.
@@ -1388,7 +1423,7 @@ The most efficient way to perform this sorting operation in a \gpu (as far as th
 
 \subsection*{Constructing the cell list}
 By construction, positions lying in the same cell are contigous in the array of positions sorted by hash. We can construct a cell list by finding the indices such that the cell of that index is different from the previous one. If we store the indices for the first and last particle in each cell, we can later use them to access the range of particles in it.
-This is an easily parallelizable operation, we can simply assign a thread to each particle and ask wheter its cell is different from the cell of the previous particle in the list. If this is the case, we know that this particle is the first in its cell (and store it in the \emph{cellStart} array) and also the last of the previous one\todo{Hablar con rafa, que dice que no se entiende el footnote}\footnote{Not actually the last but the next one, we can either make the convention that particles in cell $c_i$ go from \emph{cellStart}$[c_i]$ to \emph{cellEnd}$[c_i]$ or to \emph{cellEnd}$[c_i]-1$, in \uammd we choose the later.} (and store it in the \emph{cellEnd} array). The procedure is listed in algorithm \ref{alg:fillcl}.
+This is an easily parallelizable operation, we can simply assign a thread to each particle and ask wheter its cell is different from the cell of the previous particle in the list. If this is the case, we know that this particle is the first in its cell (and store it in the \emph{cellStart} array) and also the last of the previous cell (and store it in the \emph{cellEnd} array). The procedure is listed in algorithm \ref{alg:fillcl}.
 \begin{algorithm}
   \caption{Constructing a cell list from a list of sorted-by-hash positions.} \label{alg:fillcl}
   \textbf{Input:} Grid information, a list of $N$ postions sorted by hash\\
@@ -1870,7 +1905,7 @@ The next natural after \gls{MD} equations is the so-called \gls{LD}.
 
 In section \ref{sec:fpe} we introduced the Fokker-Plack formalism, which coarse grains the effects of a series of fast variables into a drift and diffussion coefficients, enabling us to leave in our description only the slow relevant variables.
 
-At the Langevin level of description, the dynamics of the solvent molecules (e.g. water) are orders of magnitude faster than the solute particles. In particular, the submerged particles are so much slower that hydrodynamic interactions are effectively instantaneous, leaving the positions and momenta of the particles as relevant variables. The dynamics of the solute particles are governed by a so-called Langevin equation, a manifestation of the \gls{FPE} that is often described as ``\gls{MD} with a thermostat''.
+At the Langevin level of description, the dynamics of the solvent molecules (e.g. water) are orders of magnitude faster than the solute particles, leaving the positions and momenta of the solute particles as relevant variables. The dynamics of the solute particles are governed by a so-called Langevin equation, a manifestation of the \gls{FPE} that is often described as ``\gls{MD} with a thermostat''.
 %The solvent particles are removed entirely, the idea is that the motion of the solvent particles (water) is much faster than that of the submerged objects. Furthermore, the size of the simulation units is much larger than the size of the solvent particles. Instead of simulating a time scale fast enough to keep track of each individual collision between a slow object and a solvent particle we assume that between one instant and the next so many solvent particles have collided with the object that we can consider it an stochastic process.
 %In \gls{LD} submerged particles experience a random force stemming from the collisions of all the surrounding solvent particles. Additionally, the solvent particles produce a friction that goes against the movement of the submerged particles.
 %In this sense \gls{LD} only models the viscous behavior of the solvent, disregarding any electrostatic or hydrodynamic phenomena.
@@ -1893,7 +1928,7 @@ The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \
 
 When we introduced the Fokker-Planck formalism in chapter \ref{sec:fpe} we saw that when a system dissipates energy, for instance, due to a force like the drag force in eq. \eqref{eq:langevin}, the fluctuation-dissipation theorem states that there must be an opposite process that reintroduces this energy via thermal fluctuations. Otherwise the system would spontaneously freeze or heat.
 
-We can use eq. \eqref{eq:fpefdbal} to elucidate the relation between the drag, $\xi$ and the noise in eq. \eqref{eq:langevin} by defining the single particle drift coefficient as $\widetilde{\vec{D}}^{(1)} := -\gamma \vec{\pvel}$. The dynamic ``matrix'' (in this case being just a value) is then $H = \gamma$. We can now write eq. \eqref{eq:fpefdbal} in the small time interval limit, which yields
+We can use eq. \eqref{eq:fpefdbal} to elucidate the relation between the drag, $\xi$ and the noise in eq. \eqref{eq:langevin} by defining the single particle drift coefficient as $\widetilde{\vec{D}}^{(1)} := -\gamma \vec{\pvel}$. The dynamic ``matrix'' (in this case being just a scalar) is then $H = \gamma$. We can now write eq. \eqref{eq:fpefdbal} in the small time interval limit, which yields
 \begin{equation}
   \label{eq:langeD2}
   D^{(2)} = \gamma\sigma_{\text{eq}}.
@@ -2093,18 +2128,18 @@ auto createIntegratorVerletNVT(UAMMD sim){
 \end{code2}
 
 
-The Langevin model makes several assumptions to arrive at eq. \eqref{eq:langevinfull}. At long time, hydrodynamic effects due to momentum propagation of the solvent (leading to long time tails in the velocity correlation of the particle) are neglected. The dynamics of short times $\tau<\gamma/m$ are also wrong, as memory effects in the noise forces start to matter. We will see in following chapters how to improve the long time limit.
+The Langevin model makes several assumptions to arrive at eq. \eqref{eq:langevinfull}. At long time, hydrodynamic effects due to momentum propagation of the solvent (leading to long time tails in the velocity correlation of the particle) are neglected. The dynamics of short times $\tau<\gamma/m$ are also wrong, as memory effects in the noise forces start to matter at fast small scales. While solving these small scale effects requires to explicitly describe the solvent-solute forces using \gls{MD}, we will see in following chapters how to improve the long time limit introducing the solvent hydrodynamics.
 
 \chapter{Dissipative Particle Dynamics}\label{ch:dpd}
-One of the most popular techniques used to reintroduce some of the degrees of freedom lost with \gls{LD} is \gls{DPD}. This coarse graining technique can be used to go further in the spatio-temporal scale by choosing groups of fluid particles as the simulation unit, sitting in between microscopic (as in \gls{MD}) and macroscopic (hydrodynamic) descriptions.
-In \gls{DPD} particles interact via a soft potential, modeling the interaction between two large groups of fluid particles.
-\gls{DPD} aims to conserve the local momentum via a special thermostat, introducing pairwise dissipative and random forces. Local momemtum conservation results in the emergence of macroscopic hydrodynamic effects. These momentum conserving forces can then be tuned to reproduce not only thermodynamics, but also dynamical and rheological properties of diverse complex fluids.
-The equations of motion in \gls{DPD} have the same functional form as \gls{LD} and can be in fact considered as a momentum-conserving generalization of \gls{LD}.
+One of the most popular techniques used to reintroduce some of the degrees of freedom lost with \gls{LD} is \gls{DPD}. This coarse graining technique can be used to go further in the spatio-temporal scale by choosing groups of fluid particles as the simulation unit, sitting in between microscopic (as in \gls{MD}) and macroscopic (hydrodynamic) descriptions. In practice \gls{DPD} is a Langevin approach where friction acts by pairs of particles and conserves momentum. \gls{DPD} equations can be defined from the microscopic Hamiltonian using coarse-grain theory\cite{Hijon2010}.
+In the standard \gls{DPD} particles interact via a soft potential, modeling the interaction between two large groups of fluid particles.
+In many instances\cite{BuscalioniPolymers} \gls{DPD} is used as a momentum-conserving thermostat, which thus permits to include hydrodynamics (contrary to a single Langevin approach). Local momemtum conservation results in the emergence of macroscopic hydrodynamic effects. These momentum conserving forces can then be tuned to reproduce not only thermodynamics, but also dynamical and rheological properties of diverse complex fluids.
+The equations of motion in \gls{DPD} have the same functional form as \gls{LD} and can be in fact considered as a momentum-conserving generalization of \gls{LD}. In fact, it can also be derived from the Fokker-Planck formalism\cite{Dunweg}. The \gls{SDE} for \gls{DPD} reads,
 \begin{equation}
   \label{eq:dpddyn}
-  m\vec{a} = \vec{F^c} + \vec{F^d} + \vec{F^r}
+  m\vec{a} = \vec{F^c} + \vec{F^d} + \vec{F^r}.
 \end{equation}
-In \gls{DPD} the three forces are traditionally expressed as,
+Where the three forces are traditionally expressed as,
 \begin{equation}
   \label{eq:dpdforces}
   \begin{aligned}
@@ -2123,7 +2158,7 @@ The weight function $\omega(r)$ is a soft repulsive force usually defined as
     0 & r\ge r_{c}
   \end{cases}
 \end{equation}
-Where $r_{c}$ is a cut off distance. The strength parameter, $\alpha$, can in principle be different for each pair of particles ,$i$-$j$, but for simplicity we will assume it is the same for every pair. In fact, the conservative force, $\vec{F}_c$ can be generalized to the gradient of an effective potential\cite{Hijon2010}.
+Where $r_{c}$ is a cut off distance. The strength parameter, $\alpha$, can in principle be different for each pair of particles ,$i$-$j$, but for simplicity we will assume it is the same for every pair. In fact, the conservative force, $\vec{F}_c$ can be derived from a bottom-up approach, resulting in the gradient of an effective potential\cite{Hijon2010}.
 
 Numerical integration of the \gls{SDE} \eqref{eq:dpddyn} is tricky for the same reasons as with eq. \eqref{eq:langevin}. We have already described some methods of solving such an equation in sec. \ref{sec:gronbechjensen}. However, the Gronbech-Jensen method is not valid for \gls{DPD} since in this case the forces depend on the velocities of the particles. A simple modification can be made, sacrificing stability, by approximating the velocity to just first order in eq. \eqref{eq:gsfinal}, so that the velocity depends only on the force for the current step. Unfortunately, this leads to artifacts in the transport properties and unnacceptable temperature drifts. There are several strategies in the literature trying to overcome this, usually presented as modifications of the velocity Verlet algorithm. A good summary can be found at\cite{Leimhuler2015}. These methods include empirical tweaks to velocity Verlet via a free parameter\cite{Groot1997}, a self consistent correction to the velocity to avoid the temperature drift\cite{Pagonabarraga1998} or a recomputation of the dissipative forces after the velocity update\cite{Besold2000}.
 All of these methods improve the accuracy of the predicted transport properties and response functions in exchange for increase computational cost. 
@@ -2187,11 +2222,12 @@ Where the fluctuations, $\delta\vec{\ppos}$, are given by eq. \eqref{eq:fpesdefl
 As discussed in sec \ref{sec:einstein} we can in define the drift coefficients in a general way as
 \begin{equation}
   \label{eq:bddrift}
-\vec{D}^{(1)} := -\tens{M}\vec{\partial}_{\vec{\ppos}}U(\vec{\ppos}),
+\vec{D}^{(1)} := -\tens{M}\vec{\partial}_{\vec{\ppos}}U(\vec{\ppos}) + \vec{v}_d(\vec{\ppos}),
 \end{equation}
-where $U$ represents in this case the potential energy acting on the particles. The mobility tensor, $\tens{M}$, encodes in its elements the hydrodynamic correlations between the different particles necessary to transform the forces acting on them into displacements.
+where $U$ represents in this case the potential energy acting on the particles and $\vec{v}_d(\vec{\ppos})$ represents the drift of a base flow moving the particles along. Let us focus on the potential force term, which involves the dissipative part of  the dynamics, encoded in the mobility tensor. The mobility tensor, $\tens{M}$, encodes in its elements the hydrodynamic correlations between the different particles necessary to transform the forces acting on them into displacements.
 The mobility tensor is then related to the diffusion coefficients via the Einstein relation (see sec. \ref{sec:einstein}),
 \begin{equation}
+  \label{eq:bdeinstein}
   \tens{D}(\vec{\ppos}) = \kT \tens{M}(\vec{\ppos}).
 \end{equation}
 The Einstein relation coupled with the condition in eq. \eqref{eq:bdfluc} hints the mobility tensor to be symmetric and positive semi-definite, so that we can define a tensor $\tens{B}$ such that
@@ -2203,23 +2239,23 @@ In general, the mobility matrix will be a function of all the particles in the s
 We can then write the equations of \gls{BD} as
 \begin{equation}
   \label{eq:bdfull}
-  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT\tens{M}}d\vec{\noise} + \kT\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}dt.
+  d\vec{\ppos} = \vec{v}_d(\vec{\ppos}) + \tens{M}\vec{F}dt + \sqrt{2\kT\tens{M}}d\vec{\noise} + \kT\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}dt.
 \end{equation}
 Where $\vec{F} = -\vec{\partial}_{\vec{\ppos}}U$ are the forces acting on the particles and the (so-called) Brownian motion, $d\vec{\noise}$, is a collection of Wienner increments with zero mean and
 \begin{equation}
-\left\langle d\noise_{ij}(t)d\noise_{ij}(t') \right\rangle = dt\delta_{t,t'}\delta_{ij}.
+\left\langle d\noise_{i}^\alpha(t)d\noise_{j}^\beta(t') \right\rangle = dt\delta(t-t')\delta_{ij}\delta_{\alpha\beta}.
 \end{equation}
 It is worth noticing that the physical origin of the noise, $d\vec{\noise}$, is no longer just a random force coming from an additive action of many collisions with solvent particles, but the average of a series of stochastic displacements over a long period of time $\dt \gg \tau_l$.
 
-The last term in eq. \eqref{eq:bdfull}, known as the thermal drift term, can be non zero in cases where the compressibility of the fluid has to be taken into account\todo{RAFA help me here pls}. However, in isotropic and irrotational hydrodynamic fields, this term is usually zero and can thus be ommited from the description.
+The last term in eq. \eqref{eq:bdfull}, known as the thermal drift term, can be non zero in cases where rigid particle constraints are imposed\cite{Westwood2021} or due to the presence of boundaries\cite{Pelaez2018,Aleks,Buscalioni}. However, in isotropic and irrotational hydrodynamic fields, this term is usually zero and can thus be ommited from the description.
 
-In practice, the actual form of the mobility matrix can be obtained by directly measuring the hydrodynamic correlations in an experiment\todo{RAFA help me here pls}. However, in some cases it is possible to obtain analytical expressions for $\tens{M}$. In future chapters we will study several analytical instances of $\tens{M}$ in various regimes.
+In practice, the actual form of the mobility matrix can be obtained by directly measuring correlations between random displacements of different particles\cite{Panzuela2018} in an experiment, simply by applying eqs. \eqref{eq:bdfluc} and \eqref{eq:bdeinstein}. However, in the case of solutes in a Newtonian fluid it is possible to obtain analytical expressions for $\tens{M}$ using standard hydrodynamic theory. In future chapters we will study several analytical instances of $\tens{M}$ in various regimes.
 
 For the time being, we will focus on the simple case of the mobility being non-zero only in the diagonal (neglecting hydrodynamic interactions). Furthermore, we assume the self mobility is equal for all particles so that $\tens{M}(\vec{\ppos}, \vec{\ppos}') = M\mathbb{I} = M_0$. Hydrodynamics will then be reintroduced in chapter \ref{sec:bdhi}. This order allows us to introduce the stochastic numerical integration schemes and their use in \uammd before dealing with the full mobility tensor, which calls for a series of numerical techniques that will be introduced later.
 
-As discussed in sec. \ref{sec:einstein}, in the case of a no-slip sphere of radius $a$ moving inside a fluid with viscosity $\eta$ the self mobility is $M_0 = (6\pi\eta a)^{-1}$.
+As discussed in sec. \ref{sec:einstein}, in the case of a no-slip sphere of radius $a$ moving inside a fluid with viscosity $\eta$ the bare self-mobility is $M_0 = (6\pi\eta a)^{-1}$.
 
-Since the mobility is just a number in the non hydrodynamic case, the thermal drift disapears and eq. \eqref{eq:bdfull} is greatly simplified, leaving
+Since the bare self-mobility is just a number when mutual hydrodynamic interactions are not considered, the thermal drift trivially disapears and eq. \eqref{eq:bdfull} is greatly simplified, leaving
 \begin{equation}
   \label{eq:bd}
   d\vec{\ppos} = M\vec{F}dt + \sqrt{2\kT M}d\vec{\noise},
@@ -2332,6 +2368,7 @@ Mid Point updates the simulation with the following rule
     &\vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^{n+1/2}\dt + \sqrt{D}\left[\vec{\mathcal{\noise}}^{n_1}  + \vec{\mathcal{\noise}}^{n_2}\right]
   \end{aligned}
 \end{equation}
+Where both instances of the noise ($n_1$ and $n_2$) are uncorrelated.
 \todo{Compare all algorithms by showing a g(r) with different time steps}
 \subsection*{Use in UAMMD}
 Using the \gls{BD} \emph{Integrators} is quite similar to the rest we have seen so far. An example code is available in code \ref{code:bd}. The same interface joins all the \gls{BD} integrators we saw in this chapter.
@@ -2360,10 +2397,7 @@ auto createIntegratorBD(UAMMD sim){
 
 \chapter{Hydrodynamic Interactions}\label{sec:bdhi}
 In our discussion about \gls{BD} in chapter \ref{sec:bd} we neglected hydrodynamic interactions by considering only the diagonal terms of the mobility tensor in eq. \eqref{eq:bdfull} (the so-called self-mobility). We considered the effect of the solvent on the submerged particles without considering the opposite interaction. Particles disturb the fluid around them, which in turn has an effect on the rest. When the hydrodynamic displacements are no longer neglegible (for instance, due to the density of colloidal particles increasing), the full form of the mobility tensor must be taken into account. Alternatively, hydrodynamic effects can be taken into account (to some extent) by particle solvers equipped with local momentum conservation (such as \gls{DPD}, see chapter \ref{ch:dpd}). However, \gls{DPD} (and \gls{SPH}) explicitly solve the solvent particle dynamics (or some coarse-grained version of them). Furthermore, the \gls{DPD} and \gls{SPH} methods lie in the inertial regime of the solvent, forcing us to describe a fast time scale that might be of no interest in a given model, in particular the sound and viscous momentum propagation (vorticity). Thus far we have taken a bottom-up approach, starting by modeling the dynamics of the solvent particles themselves and then eliminating degrees of freedom aided by the Fokker-Planck formalism. This enabled us to elucidate eq. \eqref{eq:bdfull}, giving us some clues about the mobility matrix and more importantly, relating it with the diffusion via the fluctuation-dissipation balance. It is worth now to take a top-down approach by considering the hydrodynamics of the solvent and then bridge the gap back to \gls{BD}, which will give us more information about the actual form of the mobility.
-
-In the spirit of \gls{BD}, we also assume that the friction time $\tau_F = m/\xi$ is quite small compared with any other physical process. In other words, we assume particles are neutrally buoyant and disregard inertial effects of them ($\dot{\vec{\pvel}} = 0$). As demonstrated in \cite{Balboa2014}, the inertial effects of the particles due also to a non zero excess mass can be reintroduced via a Lagrange multiplier, $\lambda$, by introducing the constraint $(m + m_e) \dot{\vec{\pvel}} = \vec{F} - \lambda$ (being $m_e = m - \rho\Delta V$ the excess mass of the particle). For neutrally buoyant particles and $t\gg\tau_F$, $\dot{\vec{\pvel}}\rightarrow 0$ and $\vec{F} = \lambda$, thus the force acting on the particle is directly transfered to the fluid.
-
-
+\section*{Fluid dynamics}
 We start by considering the more general incompressible steady Navier-Stokes equations. Then, we will introduce the action of the particles as a force-density on the fluid (propagated by a smoothed delta-like function centered around each particle). We now study how this force propagates to the rest of the fluid.
 
 We will take the non-inertial regime for the dynamics of both the fluid and the particles to connect with \gls{BD} while taking into account hydrodynamic correlations. In section \ref{ch:icm} we consider the fluid inertial regime.
@@ -2376,9 +2410,9 @@ The incompressible Navier-Stokes equations can be written as
     \nabla\cdot\vec{\fvel} &= 0
   \end{aligned}
 \end{equation}
-Where $\vec{\fvel}(\vec{\fpos}, t)$ represents the velocity field of the fluid, $\pi$ the pressure, $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid (which can arise from its coupling with a series of submerged particles).
+Where $\vec{\fvel}(\vec{\fpos}, t)$ represents the velocity field of the fluid, $\pi$ the pressure, $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid (which we shall show that can arise from its coupling with a series of submerged particles).
 
-The fluctuating stress tensor, $\mathcal{Z}(\vec{\fpos}, t)$, must comply with the fluctuation-dissipation balance (see sec. \ref{sec:fdb}) by presenting the following statistical properties\cite{Zarate2006}
+The fluctuating hydrodynamic description (Landau-Lipshizt) includes a stress tensor, $\mathcal{Z}(\vec{\fpos}, t)$, which must comply with the fluctuation-dissipation balance (see sec. \ref{sec:fdb}) according to the following statistical properties\cite{Zarate2006}
 \begin{equation}
   \begin{aligned}
 &  \langle \mathcal Z_{ij}\rangle = 0\\
@@ -2386,11 +2420,26 @@ The fluctuating stress tensor, $\mathcal{Z}(\vec{\fpos}, t)$, must comply with t
 \end{aligned}
 \end{equation}
 Where $i,j,k,m$ represent the different coordinates.
-In order to generalize the notation for eq. \eqref{eq:navierstokes}, we introduce the fluctuations into the fluid forcing term, defining $\tilde{\vec{f}} := \vec{f} + \nabla\cdot\mathcal{Z}$.
+In order to generalize the notation for eq. \eqref{eq:navierstokes}, we will sometimes introduce the fluctuations into the fluid forcing term, defining $\tilde{\vec{f}} := \vec{f} + \nabla\cdot\mathcal{Z}$.
+\section*{Particle dynamics}
+In the spirit of \gls{BD}, we also assume that the friction time $\tau_F = m/\xi$ is quite small compared with any other physical process. In other words, we assume particles are neutrally buoyant and disregard their inertia ($\dot{\vec{\pvel}} = 0$). As demonstrated in \cite{Balboa2014}, the inertial effects of the particles due also to a non zero excess mass can be reintroduced via a Lagrange multiplier, $\lambda$, (which enforces $\vec{\pvel} = \vec{\fvel}$). Physically, $\lambda$ is the net force that the particle exerts on the fluid which, in turn (third Newton law) exerts a force $-\lambda$ to the particle. The particle's equation of motion is then
+\begin{equation}
+  \label{eq:inertiallagrande}
+(m_p) \dot{\vec{\pvel}} = \vec{F} - \lambda.
+\end{equation}
+The particle mass, $m_p$, can be decomposed as $m_p := m + m_e$, where $m=\rho\Delta V$ is the mass of the fluid displaced by the particle and $m_e$ is the so-called excess mass. Note that $m_e=0$ for neutrally buoyant particles, and in this case $\vec{F} = \lambda$, thus any force acting on the particle (external fields, particle-particle interactions, etc) is instantaneously and completely transfered to the fluid.
+
+
+The fluid momentum equation will then be (neglecting convection),
+\begin{equation}
+\rho \partial_t\vec{\fvel} = -\nabla \pi + \eta \nabla^2\vec{\fvel} + \vec{f}.
+\end{equation}
+
+Therefore $\vec{f(\vec{\fpos}-\vec{\ppos})}$ is a force distribution (force per unit volume) related to the particle presence. As a first piece of information, the first moment of such distribution (the so-called stokeslet) is $\int\vec{f(\vec{\fpos}-\vec{\ppos})}d\vec{\fpos}^3 = \lambda$. Further moments of $f$ can be used to provide torques (rotlet) and stress (stresslet) effects arising from the particles.
 
 \section*{The Stokes limit}
 
-If we take the overdamped limit (where fluid inertial terms are neglected) of eq. \eqref{eq:navierstokes} we get the so-called Stokes equations
+If we take the overdamped limit (where fluid transient term $\partial_t \vec{\fvel}$ is neglected) of eq. \eqref{eq:navierstokes} we get the so-called Stokes equations
 \begin{equation}
   \label{eq:stokes}
   \begin{aligned}
@@ -2454,9 +2503,9 @@ Figure \ref{fig:oseen} contains a visual representation of the Oseen tensor.
 \end{figure}
 
 \section*{Coupling with particles}
-Eq. \eqref{eq:bdhivel} and its solution with the Green's function in eq. \eqref{eq:greenstokes} constitute a formalism to translate between forces and velocities in the fluid. This will permit us to connect the effect of the forces on the particles on their correlated motion.
+Eqs. \eqref{eq:bdhivel} and \eqref{eq:greenstokes} constitute a formalism to translate forces to velocities and permits to unveil their correlated displacements.
 
-In the following derivation we are going to use a generalized delta function, $\delta_a(\vec{r})$. More properly a distribution of compact support.
+In the following derivation we are going to describe the particle effect on the fluid using a generalized delta function, $\delta_a(\vec{r})$. In particular, the force distribution is set as $\vec{f}(\vec{fpos}) = \lambda \delta_a(\vec{\fpos})$. More properly, $\delta_a(\vec{\fpos})$ is a distribution of compact support.
 
 The symbol $\delta_a$ is used here to indicate that this kernel will usually be a smooth smeared delta function. The subscript $a$ refers to the hydrodynamic radius of the particle, related to the typical size of the particle around of which the kernel distributes the particle force, or any other extensive quantity (e.g acoustic forces\cite{Balboa2013}, torques, etc).
 
@@ -2465,16 +2514,16 @@ We impose an instantaneous coupling between the particles and their surrounding 
   \label{eq:bdhifvel}
   \vec{\pvel}_i= \oper{J}_{\vec{\ppos}_i}\vec{\fvel} =\int{\delta_a(\vec{\ppos}_i - \vec{\fpos})\vec{\fvel}(\vec{\fpos})d\vec{\fpos}}.
 \end{equation}
+So that $\delta_a(\vec{\ppos}$ is also used  to interpolate fluid properties to the particle ``laguage''
+The operator $\oper{J}$ is called interpolation operator. Eq. \eqref{eq:bdhivel} states that the velocity of the particle is equal to the local average of the fluid velocity.
 
-The use of the interpolation operator, $\oper{J}$, states that the velocity of the particle is equal to the local average of the fluid velocity.
-
-The reverse of interpolation is spreading, i.e  communicating particle forces, $\vec{F}$, to the fluid. Although not compulsory, the same kernel $\delta_a$ is employed. We compute the force density acting on the fluid at a given point $\vec{\fpos}$ in space by spreading the forces of all particles to that point, so
+The reverse of interpolation is spreading. As stated, we compute the force density acting on the fluid at a given point $\vec{\fpos}$ in space by spreading the forces of all particles according to
 \begin{equation}
   \label{eq:spreadoper}
   \vec{f}(\vec{\fpos}) = \oper{S}(\vec{\fpos})\vec{F} = \sum_i\delta_a(\vec{\fpos}-\vec{\ppos}_i)\vec{F}_i,
 \end{equation}
 where we have strectched the notation by interpreting $\vec{F} := \{\vec{F}_1,\dots,\vec{F}_N\}$.
-The benefit of using the same kernel to spread and interpolate is that it makes both operations adjoint, $\oper{J} = \oper{S}^*$, which is required in the following derivation.
+The benefit of using the same kernel to spread and interpolate is that it makes both operations adjoint, $\oper{J} = \oper{S}^*$, which is required in the following derivation\cite{Delong2014}.
 
 The physical volume $\Delta V$ of the particle is related to the kernel via
 \begin{equation}
@@ -2485,7 +2534,7 @@ We will discuss spreading and interpolation in more detail in sec. \ref{sec:ibm}
 
 \section{Connection with Brownian Dynamics}\label{sec:bdhicon}
 
-We can now write an equation for the displacements (velocities) of a group of particles
+We can now write an equation for the displacements (velocities) of a group of particles using eqs. \eqref{eq:bdhivel} and \eqref{eq:bdhivel}
 \begin{equation}
   \label{eq:bdhibdrelation}
   \frac{d\vec{q}_i}{dt} = \vec{u}_i = \eta^{-1}\oper{J}_{\vec{\ppos}_i}\oper{L}(\oper{S}\vec{F} + \nabla\cdot\mathcal Z)
@@ -2565,7 +2614,7 @@ This is an expression of the fact that the mobility is usually isotropic and tra
 %\end{equation}
 
 The mobility tensors elucidated thus far have zero divergence (due to the incompressibility of the three dimensional flow). However, it is important to take the thermal drift term in eq. \eqref{eq:bdfull} into account since even for these cases, certain spatio-temporal discretizations could result in the mobility having an spurious thermal drift. Furthermore, divergence will be non-zero in other geometries (like the confined systems in sec. \ref{sec:q2D}).
-Although in the use cases throughout this manuscript thermal drift does not pose a significant computational challenge, certain solvers (for instance, when computing hydrodynamic correlations of rigid bodies\cite{Rigidbody}), for which the application of the Stokes solution operator (or alternatively the evaluation of the mobility) is particularly expensive can result in the thermal drift term having a non-trivial cost.
+Although in the use cases throughout this manuscript thermal drift does not pose a significant computational challenge, certain solvers (for instance, when computing hydrodynamic correlations of rigid bodies\cite{Westwood2021}), for which the application of the Stokes solution operator (or alternatively the evaluation of the mobility) is particularly expensive can result in the thermal drift term having a non-trivial cost.
 One of the most widespread generic approaches for computing the thermal drift term is to use the so-called Random Finite Differences (RFD)\cite{Delong2014}, where the divergence of the mobility is computed as
 \begin{equation}
   \label{eq:rfd}
@@ -2576,7 +2625,9 @@ Here $\vec{\noise}$ is a vector of random Gaussian numbers with zero mean and un
 Note that evaluating eq. \eqref{eq:rfd} requires two Stokes/mobility solves. It is possible to skip one of them by evaluating the derivative of the kernel\cite{Delong2014}.
 
 \chapter{Hydrodynamics in open boundaries}
-Although our mathematical framework is not limited to it, thus far the mobility matrices we have computed explicitly (in eqs. \eqref{eq:rpy} and \eqref{eq:bdhioseen}) correspond to systems with open boundaries (since they come from applying the unbounded Green's function in eq. \eqref{eq:greenstokes}). Lets first see how to solve eq. \eqref{eq:bdfull} by using the unbounded \gls{RPY} mobility and then explore other strategies that can be used when assuming periodic boundary conditions.
+Although our mathematical framework is not limited to it, thus far the mobility matrices we have computed explicitly (in eqs. \eqref{eq:rpy} and \eqref{eq:bdhioseen}) correspond to systems with open boundaries (since they come from applying the unbounded Green's function in eq. \eqref{eq:greenstokes}). Lets first see how to solve eq. \eqref{eq:bdfull} (rewritten here for the readers help),
+$$  d\vec{\ppos} =\tens{M}\vec{F}dt + \sqrt{2\kT\tens{M}}d\vec{\noise} + \kT\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}dt,$$
+by using the unbounded \gls{RPY} mobility and then explore other strategies that can be used when assuming periodic boundary conditions.
 
 The fluctuating term in eq. \eqref{eq:bdfull} involves finding the square root of the mobility as defined in eq. \eqref{eq:mobsqrt}.
 This requires that the mobility matrix is positive definite. Note that the \gls{RPY} tensor is positive definite for all particle configurations, whereas the Oseen tensor becomes non positive definite at short distances.
@@ -2856,7 +2907,7 @@ When looping through the cells inside the support of a particle, using the strat
   \end{algorithmic}
 \end{algorithm}
 
-The interaction between a cell $j$ and a particle $i$ is mediated via the kernel $\delta_a(\vec{\ppos}_i-\vec{\fpos}_j)$, in principle, this would incur $n_s^3$ evaluations of the kernel for spreading or interpolation. However, we can reduce it to just $3n_s$ by using the first postulate in eq. \eqref{eq:peskinseparable} and storing $\phi$ for each direction before the loop. We can then just multiply the stored evaluations of $\phi$ in each direction to get $\delta_a$. Algorithm \ref{alg:precomputeKernel} contains details on how to do this.
+The interaction between a cell $j$ and a particle $i$ is mediated via the kernel $\delta_a(\vec{\ppos}_i-\vec{\fpos}_j)$, in principle, this would incur $n_s^3$ evaluations of the kernel for spreading or interpolation. However, if the kernels are separable (by the first postulate in eq. \eqref{eq:peskinseparable}) we can reduce it to just $3n_s$ and storing $\phi$ for each direction before the loop. We can then just multiply the stored evaluations of $\phi$ in each direction to get $\delta_a$. Algorithm \ref{alg:precomputeKernel} contains details on how to do this.
 
 \begin{algorithm}[H]
   \caption{Precomputing the kernel and accessing it via linear indices. See alg. \ref{visitneigh}}
@@ -2878,7 +2929,7 @@ The interaction between a cell $j$ and a particle $i$ is mediated via the kernel
   \end{algorithmic}
 \end{algorithm}
 
-Our goal now is to devise an efficient, \gpu friendly, version of spreading/interpolation. In serial, we can simply apply \ref{alg:visitneigh} to each particle to get a fairly efficient algorithm. However, a direct paralelization of this approach by assigning a worker to each particle is not possible for spreading. In this case two particles could write at the same time to the same cell, resulting in a race condition. This can be circumvented by ensuring line \ref{alg:visitspread} in alg. \ref{alg:visitneigh} is an atomic operation.
+Our goal now is to devise an efficient, \gpu friendly, version of spreading/interpolation. In serial, we can simply apply \ref{alg:visitneigh} to each particle to get a fairly efficient algorithm. However, a direct paralelization of this approach by assigning a worker to each particle is not possible for spreading. In this case two particles could write at the same time to the same cell, resulting in a race condition. This can be circumvented by ensuring that line \ref{alg:visitspread} in alg. \ref{alg:visitneigh} is an \emph{atomic} operation\footnote{An \emph{atomic} operation is that which is required to be carried out by a single thread a a time. Allowing several workers (threads) to modify (for instance by reading, modifying and then writing) the same memory location at the same time can result in some of the information being lost (for instance when a second thread reads while the first is still modyfing). CUDA comes with a great GPU atomic library, which has become more and more efficient with time. CUDA atomics have come to a point in which, in the absence of collisions (two threads trying to access the same memory location), the overhead of using atomics is almost neglegible.}.
 
 Another solution is to traverse per cell instead of per particle, usually refered to as mesh-based approaches. Each cell is assigned to a worker, which then traverses all nearby particles. This requires to construct a cell list. While this approach is free of atomic operations (which can hurt performance if a lot of collisions happen) it makes the algorithm scale with the number of cells and will be inefficient in low density systems (or in configurations with large density disparities), where many cells are empty. On the other hand, CUDA atomic operations have come a long way, presenting almost no overhead when there are no collisions. Furthermore, a per-cell approach does not allow to take advantage of eq. \eqref{eq:peskinseparable} easily, increasing the number of kernel evaluations to $n_s^3$.
 For our typical use, the few corner cases in which the per-cell approach is more optimal are not worth enough to consider this option.
@@ -2886,7 +2937,7 @@ For our typical use, the few corner cases in which the per-cell approach is more
 There is not a best-for-all algorithm regarding spreading, a review of several mesh-based methods is available at\cite{Guo2015}.
 We usually have to spread quasi uniform configurations in 3D and we typically deal with a few million number of particles, which makes a per-particle approach the overall best option (see figure \ref{fig:ibmcomp}).
 
-Recently, a new \gpu-friendly algorithm has been developed\cite{Shih2021} that uses an hybrid approach by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken until each thread block deals with a subproblem with up to a maximum number of particles (see fig. 1 in \cite{Shih2021}) to aide with load-balancing. Subproblems are then spreaded into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems are reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Although this is a promising algorithm testing suggest, for a single \gpu, that it is best suited for large and dense systems (with more than $~2$ million particles) and 2D grids (see fig. \ref{fig:ibmcomp}).
+Recently, a new \gpu-friendly algorithm has been developed\cite{Shih2021} that uses an hybrid approach by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken until each thread block deals with a subproblem with up to a maximum number of particles (see fig. 1 in \cite{Shih2021}) to aide with load-balancing. Subproblems are then spreaded into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems are reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Testing suggest that, for a single \gpu, this new strategy is only worth for large and dense systems (with more than $~2$ million particles) and 2D grids (see fig. \ref{fig:ibmcomp}). Although it is arguably the best algorithm at the time of writing if one wants to take advantage of several GPUs.
 
 \subsubsection*{Spreading algorithm}
 We suggest a particle-based approach, presenting subtle differences with the existing ones\cite{Shih2021}\cite{Guo2015}\cite{Fiore2017}, specifically tailored for the \gpu. We assign a thread block to each particle, each thread in the block will spread to a different cell atomically. Since all threads in the block handle the same particle all the per-particle information can be stored in shared memory. This includes the $3n_s$ evaluations of the kernel, which can be precomputed into shared memory collaboratively by all threads(see algorithm \ref{alg:precomputeKernelSM}). We refer to this method as BPP (for block-per-particle)\footnote{Changing algorithm \ref{alg:visitneigh} into a block-per-particle kernel amounts to assigning different elements of the cell loop to different threads, in the same way as in passing from algorithm \ref{alg:precomputeKernel} to \ref{alg:precomputeKernelSM}.}. This is in contrast with the naive \emph{GM} algorithm in \cite{Shih2021}, where a thread is assigned to a particle and the kernel is stored in (the scarce) \emph{register} memory. We refer to this method as TPP (thread-per-particle). Given the scarcity of register memory, storing $3n_s$ values in it could easily result in register spilling, thus, we will also consider recomputing the kernel ($n_s^3$ times) when using TPP.
@@ -4940,7 +4991,10 @@ int foo(int a){
 int main(){
   int value = foo(12);
   //value holds the integer 24
-  //The type of the variable, int, can be replaced by auto
+  //The type of the variable, int, can be replaced by auto.
+  //For instance,
+  auto value2 = foo(12);
+  //The type of value2 is automatically deduced to be "int"
   return 0;
 }
 \end{code2}
@@ -4950,8 +5004,7 @@ By default, a C++ source code will have access only to the basic rules of the la
 
 \begin{code2}[The classic Hello World program in C++. Once executed, it will print ``Hello world'' to the terminal.] {label=code:hello}
   #include<iostream> //Includes std::cout and std::endl
-  //Uncommenting the line below permits to omit
-  // the std::
+  //Uncommenting the line below permits to omit writing std::
   //using namespace std;
   int main(){    
     std::cout<<"Hello world"<<std::endl;    
@@ -4994,6 +5047,7 @@ In the author's personal programming style, structs are usually used to serve as
     par.var1 = 1.0;
     //Create an instance of the object MyClass
     MyClass c;
+    //This "c" is created here as an instance of MyClass
     //Call it's member "print".
     c.print();
     return 0;  
@@ -5046,10 +5100,10 @@ Let us showcase the lifespan of a variable by creating some instances inside dif
       //Again, the name "c" is available because it was not currently in scope
     }//"c" goes out of scope
 
-    MyClass someVariable; //This is an illegal name, because there is already a variable in scope with this name
-    
+    //MyClass someVariable; //This is an illegal name, because there is already a variable in scope with this name
+    MyClass someVariable2;
     return 0;
-  }
+  }//someVariable2 is released here and its destrutor is called
 \end{code2}
 
 \subsection*{Object inheritance}
@@ -5151,31 +5205,13 @@ In \uammd, templates are used extensively to generalize modules. For instance, t
 \subsection*{Other keywords}
 The \mintinline{\ucpp}{const} keyword simply informs the reader (and compiler) that the value of the accompanying variable cannot be modified after its declaration. When appearing in the signature of an object's member function, it conveys that the function will not modify the state of the object in any way.
 
+\section{Basics rules of CUDA programming}
+CUDA is an extension of C++. All the language rules we have seen thus far also apply to CUDA. CUDA introduces some new keywords and an \gls{API}.
 
-\section{Basic concepts of GPU programming}
-The \gpu (usually refered to as \emph{device}) works as a massively parallel co-processor, with thousands of (relatively slow) cores, independent of the rest of the system for most uses and purposes. It runs instructions independently (and in principle asynchronously) from the CPU (refered to as the \emph{host}). More importantly, the \gpu has its own memory space which is separated from the system RAM. The device cannot access the host memory (and viceversa). If information must be shared between each other an explicit memory copy has to be issued, which incurs a synchronization barrier and is in general a (relatively) slow process. In this section, we will discuss how this properties are taken into account and how they affect the programming model.
-
-From a programmatic point of view, we can access the \gpu capabilities using CUDA, which extends C++ (by introducing new keywords and an \gls{API}) to accomodate for the particular programming model of a \gpu\footnote{There are other ways to program a \gpu, such as OpenACC\cite{openacc} or OpenCL\cite{opencl}, but we will stick to CUDA.}. Note, however, that this Appendix is not intended to be a CUDA programming guide (the reader can look online for a plethora of CUDA learning resources), but just an introduction to the particularities that come with coding for the \gpu.
-
-CUDA exposes the many cores of the \gpu via a series of logical groupings of workers (which in turn map to the hardware cores). The most basic computing unit is called a \emph{thread}, which can execute a single instruction at a time. A group of threads (typically inferior to $1024$) is called a \emph{block}. Finally, blocks are grouped into a \emph{grid}.
-
-Although it is not required, threads inside a block excel when executing the same set of instructions in lock-step. In particular, blocks are composed of groups of 32 threads called \emph{warps}. Threads in a warp must execute the same instructions at the same time (but not necessarily acting on the same data).
-
-CUDA allows us to write small programs, called kernels, that we can then launch to run on the \gpu. The instructions in a kernel are executed by a grid of threads, whose size can be customized per launch. 
-
-We use the keyword \mintinline{\ucpp}{__global__} to mark a C++ function as a CUDA kernel, which must return a \mintinline{\ucpp}{void}, a kernel must be called with a special syntax and specifying the thread grid geometry (see example code \ref{code:cudakernel}).
-Additionally, kernels might call other functions, which must be adorned with the \mintinline{\ucpp}{__device__} attribute\footnote{The \mintinline{\ucpp}{__host__} attribute also exist. A function adorned with both device and host attributes can be called from both the device and the host.}.
-
-The main memory space of the \gpu (the equivalent of the heap memory in the CPU) is called \emph{global memory}. Memory allocated in this memory space is accessible at all times by every thread in a kernel. We use the \mintinline{\ucpp}{cudaMalloc*} family of functions to request global memory, although in practice we have higher level containers available, such as \mintinline{\ucpp}{thrust::device_vector<T>}. Nowadays, it is not a good practice to call \mintinline{\ucpp}{cudaMalloc} directly, similarly as with \mintinline{\ucpp}{malloc/new} vs. \mintinline{\ucpp}{std::vector<T>} in the CPU.
+We use the \mintinline{\ucpp}{cudaMalloc*} family of functions to request global memory, although in practice we have higher level containers available, such as \mintinline{\ucpp}{thrust::device_vector<T>}. Nowadays, it is not a good practice to call \mintinline{\ucpp}{cudaMalloc} directly, similarly as with \mintinline{\ucpp}{malloc/new} vs. \mintinline{\ucpp}{std::vector<T>} in the CPU.
 We can populate the allocated global memory copying data from the CPU via the \mintinline{\ucpp}{cudaMemcpy*} family of functions. As with allocation, a series of higher level functions are available as alternatives. In particular we have \mintinline{\ucpp}{thrust::copy}, which handles CPU-\gpu copies. Additionally, kernels can write or read freely to global memory arrays, with the atomic considerations proper to a parallel environment.
-Similar to the CPU's heap memory, global memory is slow to access (although a series of caches exists to mitigate this).
-See fig. \ref{fig:cudablocks} for a schematic representation of the CUDA threading model. 
-\begin{figure}
-  \centering
-  \includesvg[width=\columnwidth]{gfx/cudablocks}
-  \caption{Representation of the thread geometry for a kernel launch with $2$ blocks of $4$ threads (\emph{blockDim} = (2,2)). Threads inside the same block run concurrently, while different blocks might run desynchronized between them. Each thread has a small local (and private) register memory space. Furthermore, threads inside the same block can share memory among them via the low-latency \emph{shared memory}. All threads can access the same, low-bandwidth, \emph{global memory} space.}
-  \label{fig:cudablocks}
-\end{figure}
+We use the keyword \mintinline{\ucpp}{__global__} to mark a C++ function as a CUDA kernel, which must return a \mintinline{\ucpp}{void} (i.e do not return a value), a kernel must be called with a special syntax and specifying the thread grid geometry (see example code \ref{code:cudakernel}).
+Additionally, kernels might call other functions, which must be adorned with the \mintinline{\ucpp}{__device__} attribute\footnote{The \mintinline{\ucpp}{__host__} attribute also exist. A function adorned with both device and host attributes can be called from both the device and the host.}.
 
 \begin{code2}[Creating vectors allocated in the \gpu, populating them and performing the saxpy operation using a kernel.]{label=code:cudakernel}
   #include<thrust/device_vector.h>
@@ -5192,8 +5228,10 @@ See fig. \ref{fig:cudablocks} for a schematic representation of the CUDA threadi
   __global__ void saxpy(float a, const float *x, float *y, int n){
     //Built in variables are available in kernels to compute things like a unique id for each thread in the grid
     int id = blockIdx.x*blockDim.x + threadIdx.x;
+    //The variable "id" lives in the thread-local, AKA register, memory space.
     //In case the kernel is launched with more threads than elements.
     if(id>=n) return;
+    //The contents of the input arrays, x and y, live in the global memory space
     y[id] = saxpy_element(a, x[id], y[id]);
   }
   
