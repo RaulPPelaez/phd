@@ -7,6 +7,7 @@
 headinclude,footinclude,cleardoublepage=empty,abstract=on,
 BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 ]{scrreprt}
+\usepackage[utf8]{inputenc}
 \usepackage{todonotes}
 \usepackage{xspace} 
 \usepackage{courier}
@@ -54,7 +55,6 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \usepackage{bm}
 \usepackage{hyperref}
 \usepackage[acronym]{glossaries}
-\usepackage[utf8]{inputenc}
 \usepackage{pgfplots}
 \usepackage{subcaption}
 \usepackage{enumitem}
@@ -321,8 +321,8 @@ Mathematical frameworks and numerical techniques have been devised for the explo
 The advent of supercomputing in the last two decades has presented the field with new powerful tools to leverage. For the first time we have more computing power than what our techniques are capable of handling. 
 Developing new techniques (numerical and theoretical) directly aimed to these new technologies will enable the exploration of regimes previously unreachable, opening the doors to new phenomena.
 Multiscale problems will particularly benefit from the improvements in supercomputing.
-For instance, \cite{virusfullatom2018} to simulate every molecule of a virus capsid submerged in water ($6$ million atoms) in the span of $1\mu s$ ($5\cdot10^8$ simulation steps).
-As another example of these huge simulations, the authors of \cite{fullatombacteria2016} use $100$ million particles to model a chunk of the interior environment of a bacteria for some tens of nanoseconds (around $10^7$ steps).
+For instance, \cite{Hadden2018} to simulate every molecule of a virus capsid submerged in water ($6$ million atoms) in the span of $1\mu s$ ($5\cdot10^8$ simulation steps).
+As another example of these huge simulations, the authors of \cite{Rochaix2019} use $100$ million particles to model a chunk of the interior environment of a bacteria for some hundreds of nanoseconds (around $10^7$ steps).
 
 These sort of simulations would be impossible without the aid of a super computer and specialized software tools. Indeed, aside from raw computing power, new fast and efficient numerical schemes (adapted to novel computing architectures) are needed to cover larger spatio-temporal windows in physical modelling. This is precisely the objective of this thesis, which is, in particular, devoted to the development of new algorithms and software tools for the study of complex fluids and biological systems in high performance computing environments.
 
@@ -380,15 +380,14 @@ In 2009, an open standard called OpenCL\cite{Stone2010} was born (from the creat
 Luckily, there are ways to translate CUDA code into OpenCL code\footnote{In particular, the HIP library works as a thin wrapper over CUDA/OpenCL, allowing to write code that can be compiled for any of the \glspl{API}.} and, given that the paradigms of both \glspl{API} are quite similar, it is fairly straight-forward to port CUDA code to OpenCL. Therefore, in the future, porting the software infrastructure presented in this manuscript to OpenCL would be mainly painless and will not require changes to the public \gls{API}. So, even though at the time of writing \uammd is restricted to run on NVIDIA's hardware, it is possible to adapt it so that it runs on virtually any parallel hardware.
 
 \section{Basic concepts of GPU programming}
-The \gpu (usually refered to simply as \emph{device}) works as a massively parallel co-processor, with thousands of (relatively slow) cores, independent of the rest of the system for most uses and purposes. It runs instructions independently (and in principle asynchronously) from the CPU (refered to as the \emph{host}). More importantly, the \gpu has its own memory space which is separated from the system RAM. The device cannot access the host memory (and viceversa). If information must be shared between each other an explicit memory copy has to be issued, which incurs a synchronization barrier and is in general a (relatively) slow process. In this section, we will discuss how this properties are taken into account and how they affect the programming model.
+The \gpu is a pivotal concept in this work and, as such, it is worth introducing here its basic computing model. Doing so will enable the unfamiliar reader to better grasp the importance of designing algorithms specific for the \gpu and the new hardships that arise when approaching it from a CPU-centric world. Note, however, that this is merely an introduction to the particularities that come with coding for the \gpu and will probably not contain enough information for an unfamiliar reader to be able to write \gpu code. Appendix \ref{sec:cpp} contains a more in depth introduction to programming C++ and CUDA, although a plethora of arbitrarily-detailed tutorials and courses are freely available on the web that should be taken into account.
 
-From a programmatic point of view, we can access the \gpu capabilities using CUDA, which extends C++ (by introducing new keywords and an \gls{API}) to accomodate for the particular programming model of a \gpu\footnote{There are other ways to program a \gpu, such as OpenACC\cite{openacc} or OpenCL\cite{opencl}, but we will stick to CUDA.}.
+The \gpu (usually refered to simply as \emph{device}) works as a massively parallel co-processor, with thousands of (relatively slow) cores (workers), independent of the rest of the system for most uses and purposes. The \gpu runs instructions independently (and in principle asynchronously) from the CPU (refered to as the \emph{host}). More importantly, the \gpu has its own memory space which is separated from the system RAM. The device cannot access the host memory directly (and viceversa)\footnote{This is not entirely true anymore for recent CUDA versions via the so-called Unified Virtual Addressing (UVA) system. However, this advanced functionality is beyond the scope of this work and, in any case, \uammd only makes use of it in very specific instances.}. If information has to be shared between each other an explicit memory copy has to be issued, which incurs a synchronization barrier and is in general a slow process. In this section, we will discuss how these properties are taken into account and how they affect the programming model.
+
+From a programmatic point of view, we can access the \gpu capabilities using CUDA, which extends C++ (by introducing new keywords and an \gls{API}) to accomodate for the particular programming model of a \gpu\footnote{There are other ways to program a \gpu, such as OpenACC\cite{openacc} or OpenCL\cite{Stone2010}, but we will stick to CUDA.}.
 %Note, however, that this Appendix is not intended to be a CUDA programming guide (the reader can look online for a plethora of CUDA learning resources), but just an introduction to the particularities that come with coding for the \gpu.
 
 CUDA exposes the many cores of the \gpu via a series of logical groupings of workers (which in turn map to the hardware cores). The most basic computing unit is called a \emph{thread}, which can execute a single instruction at a time. A group of threads (typically around $128$ and inferior to $1024$) is called a \emph{thread-block}. Finally, several blocks are grouped into a \emph{grid}.
-
-Although it is not required, threads inside a block excel when executing the same set of instructions in lock-step. In particular, blocks are composed of groups of 32 threads called \emph{warps}. Threads in a warp must execute the same instructions at the same time (but not necessarily acting on the same data).
-On the other hand, CUDA offers no guarantee regarding the execution order or blocks.
 
 The main memory space of the \gpu (the equivalent of the heap memory in the CPU) is called \emph{global memory}. Memory allocated in this memory space is accessible at all times by every thread in a kernel. 
 Similar to the CPU's heap memory, global memory is slow to access (although a series of caches exists to mitigate this).
@@ -396,14 +395,26 @@ Each thread has its own small, fast access, local memory space (called \emph{reg
 Finally, CUDA exposes another high bandwidth memory space that is private to each block but accessible for all threads within. It is the \emph{shared} memory space, as threads in a block are able to share information idrectly through it.
 
 See fig. \ref{fig:cudablocks} for a schematic representation of the CUDA threading model.
-\begin{figure}
+\begin{figure}[H]
   \centering
   \includesvg[width=\columnwidth]{gfx/cudablocks}
   \caption{Representation of the thread geometry for a kernel launch with $2$ blocks of $4$ threads (\emph{blockDim} = (2,2)). Threads inside the same block run concurrently, while different blocks might run desynchronized between them. Each thread has a small local (and private) register memory space. Furthermore, threads inside the same block can share memory among them via the low-latency \emph{shared memory}. All threads can access the same, low-bandwidth, \emph{global memory} space.}
   \label{fig:cudablocks}
 \end{figure}
 
-CUDA allows us to write small programs, called kernels, that we can then launch to run on the \gpu. The instructions in a kernel are executed by a grid of threads, whose size can be customized per launch. Appendix \ref{ch:appendixa} offers an introduction to programming GPU code using C++ and CUDA.
+Although it is not required, threads inside a block excel when executing the same set of instructions in lock-step. In particular, blocks are composed of groups of 32 threads called \emph{warps}. Threads in a warp will execute (at the hardware level) the same instructions at the same time, but not necessarily acting on the same data (in what is known as a SIMD model). The CUDA compiler will happily process code in which each thread in a warp executes different code (using conditional branches), but the actual executable will simply \emph{emulate} this behavior by making all threads execute all branches and discarding the results for the ones that should not have been executed. Naturally, this so-called branch divergence (or simply divergence) greatly hurts performance\footnote{Furthermore, GPUs do not have branch-prediction as opposed to the CPU, where branch-prediction is one of the pillars of CPU architecture.}. Therefore, conditional-branches that result in divergent code in CUDA must be avoided whenever possible. Note that, on the other hand, divergence does not occur when all the threads in a given warp enter the same branch. Figure \ref{fig:branchdivergence} contains a depiction of branch divergence.
+\begin{figure}[H]
+  \centering
+  \includesvg[width=\columnwidth]{gfx/branchdivergence}
+  \caption{Representation of a divergent branch. The 32 threads conforming a warp (curvy arrows) encounter a piece of divergent code (a conditional branch that separates threads in the same warp). When divergent code is encountered each branch is executed in serial (as opposed, for instance, to a parallel CPU code), execution does not continue until all threads have concluded processing all branches since all threads in the same warp must execute instructions in lock-step.}
+  \label{fig:branchdivergence}
+\end{figure}
+
+On the other hand, CUDA offers no guarantee regarding the execution order or blocks.
+
+
+
+CUDA allows us to write small programs, called kernels, that we can then launch to run on the \gpu. The instructions in a kernel are executed by a grid of threads, whose size can be customized per launch. Appendix \ref{sec:cpp} offers an introduction to programming GPU code using C++ and CUDA.
 
 \section{Software for soft matter simulations}
 
@@ -701,7 +712,7 @@ Where the fluctuating part must satisfy eq. \eqref{eq:fpesdefluc}. Furthermore, 
 In future chapters, we will apply the Fokker-Planck formalism to the different levels of detail described in fig. \ref{fig:multiscale} and its related discussion.
 
 \subsection{Einstein relation}\label{sec:einstein}
-An extremely important relation between the transport coefficients appearing in $\vec{D}^{(1)}$ and the diffusion $\tens{D}^{(2)}$ can be derived from the equilibrium state, $\vec{J} = 0$ in eq. \eqref{eq:fpeflux}. This relation was first defined by Einstein\cite{EinsteinRelation} with arguments similar to those exposed in what follows.
+An extremely important relation between the transport coefficients appearing in $\vec{D}^{(1)}$ and the diffusion $\tens{D}^{(2)}$ can be derived from the equilibrium state, $\vec{J} = 0$ in eq. \eqref{eq:fpeflux}. This relation was first defined by Einstein\cite{Einstein1905} with arguments similar to those exposed in what follows.
 
 Consider the zero flux condition $\vec{J}=0$, which is solved by the equilibrium distribution $P_{\text{eq}}(\vec{x})$ (independent on time)
 \begin{equation}
@@ -1054,7 +1065,7 @@ Say we are set to simulate a galaxy, so far away from others that it can be safe
   U(r) = G\frac{m_1m_2}{r}
 \end{equation}
 Where $G$ is the gravitational constant and $m_1$, $m_2$ are the masses of each particle.
-In this case, if we want to compute the force acting on a star due to the presence of all the others we must check each and everyone of them. This leads to a lot of interactions to check, more precisely $N^2$ of them (see fig. \ref{fig:nbodycon}). Of course, there are more sophisticated ways of performing such a computation, such as fast multipole methods \cite{fmm} or Ewald splitting (which will be discussed on section \ref{ewald}). But some times these techniques are not a possibility so it is valuable to see how to efficiently handle this computations.
+In this case, if we want to compute the force acting on a star due to the presence of all the others we must check each and everyone of them. This leads to a lot of interactions to check, more precisely $N^2$ of them (see fig. \ref{fig:nbodycon}). Of course, there are more sophisticated ways of performing such a computation, such as fast multipole methods \cite{Greengard1987} or Ewald splitting (which will be discussed on section \ref{ewald}). But some times these techniques are not a possibility so it is valuable to see how to efficiently handle this computations.
 Furthermore this computation is a really good fit for a \gls{GPU} as we are going to see.
 \begin{figure}[h]
   \centering
@@ -1332,9 +1343,9 @@ Lets start with the naive way to construct a neighbour list; Using algorithm \re
 If for some reason we ought to traverse all neighbour pairs several times before the particles change positions this tactic is already a win over simply using algorithm \ref{alg:nbody}. However, it negates one of the reasons for using a neighbour list, reducing the complexity of the overall operation from $O(N^2)$ to $O(kN)$ (with $k<<N$). We can now traverse the list in $O(kN)$ operations, but construction still requires going through every pair anyway.
 Still, it is worth to go through the data format of this list since we can make use of it in the future. When it comes to the data format of a neighbour list we can typically find three ways of storing the neighbours of each particle:
 \begin{enumerate}
-\item Store the list in a particle major format\cite{hoomd}\cite{lammps}\todo{CHECK REFERENCES}.
+\item Store the list in a particle major format\cite{Anderson2008}\cite{Plimpton1995}.
   This format stores all the neighbours of each particle contigously in a matrix of size $N$x$n_{max}$, where $n_{max}$ is a maximum number of neighbours allowed for a single particle. This can result in a lot of wasted space if there are large disparities in the number of neighbours per particle. On the other hand, having all the neighbours stored contigously can be cache friendly in certain arquitectures or traversal strategies. The number of neighbours per particle can be encoded in a second list or via a special value in the main list (like $-1$). In a \gpu, if we are to process the neighbours by assigning a thread block to each particle, this can be cache friendly, since contigous threads in a warp will access contigous elements in the list.
-\item Store the list in a neighbour major format \cite{gromacs}\todo{CHECK}.
+\item Store the list in a neighbour major format \cite{Berendsen1995}.
   This format has the same storage requirements as the previous one. The only difference is that instead of storing the neighbours for each particle contigously, we store contigously one single neighbour for all particles. Starting at the $N$ element we find the next neighbour for every particle and so on until the $n_{max}$ neighbour is reached. The same storage waste concerns are present for this format. In a \gpu, if the traversal is carried out assigning a thread per particle, this is the most cache friendly strategy, since contigous threads will fetch contigous elements. In \uammd this is the chosen format when a neighbour list is constructed. 
   As before, the number of neighbours per particle can be stored in an auxiliar array.
 \item Compact any of the above lists.\todo{Who does this?}
@@ -1747,7 +1758,7 @@ Our goal is to integrate numerically eq. \eqref{eq:md}. Starting from the state 
 
 The so-called finite-difference methods are the most commonly employed techniques to achieve this.
 \section{Finite-difference methods}
-Finite-difference methods\cite{fdm} solve \gls{ODE} or \gls{PDE} by approximating the derivative operators with finite differences.
+Finite-difference methods\cite{Grossmann2007} solve \gls{ODE} or \gls{PDE} by approximating the derivative operators with finite differences.
 We can employ this idea to solve both spatial and temporal discretized differentiation operators. Thus far we are only interested in solving temporal derivatives, such as the one in eq. \eqref{eq:md}.
 The derivative of a function, $f$, is defined as
 \begin{equation}
@@ -1769,12 +1780,12 @@ Most of the integration techniques we will use make use of this trick.
 Lets see how we can leverage this technique to solve eq. \eqref{eq:md}.
 \subsection{Euler Methods}\label{sec:euler}
 
-If we truncate eq. \eqref{eq:fdmtaylor} at order $\dt$ we get the so called Euler method\cite{euler}, which approximates the integral as
+If we truncate eq. \eqref{eq:fdmtaylor} at order $\dt$ we get the so called Euler method\cite{Butcher2016}, which approximates the integral as
 \begin{equation}
   \label{eq:basiceuler}
   f^{n+1} = f^n + \dot{f}^n\dt
 \end{equation}
-Which yields a solver with $O(\dt)$ accuracy\cite{euleraccuracy}.
+Which yields a solver with $O(\dt)$ accuracy\cite{Butcher2016}.
 It is worth exploring here a different derivation of the Euler method using the definition of integral instead of derivative. We can apply the fundamental theorem of calculus to get
 \begin{equation}
   \label{eq:eulerftc}
@@ -1787,9 +1798,9 @@ On the other hand, we can approximate the integral using the left Riemann sum wi
 \end{equation}
 By combining eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} we arrive to \eqref{eq:basiceuler} again.
 This derivation will come in handy later when describing integration schemes for equations with terms that cannot be approximated by eq. \eqref{eq:fdmtaylor}.
-Furthermore, eq. \eqref{eq:eulerriemman} opens the door to a family of numerical integrators based on improving this approximation by using more intervals between $t$ and $t+\dt$. Some examples are the Runge-Kutta methods\cite{rk4} or the so-called linear multistep methods, such as the Adams Bashforth\cite{adamsbashforth} family of algorithms.
+Furthermore, eq. \eqref{eq:eulerriemman} opens the door to a family of numerical integrators based on improving this approximation by using more intervals between $t$ and $t+\dt$. Some examples are the Runge-Kutta methods or the so-called linear multistep methods, such as the Adams Bashforth family of algorithms\cite{Butcher2016}.
 Often these methods improve numerical stability at the cost of evaluating the function derivative (in our case meaning the force) several times per time step. Given that in a \gls{MD} simulation this is, often by orders of magnitude, the most expensive part of the computation we wont be making use of them for the time being.
-Finally, there are several modifications to the Euler algorithm that can improve its stability, such as the backward Euler\cite{backwardeuler}, the exponential Euler\cite{exponentialEuler}.
+Finally, there are several modifications to the Euler algorithm that can improve its stability, such as the backward Euler\cite{Butcher2016} or the exponential Euler\cite{Butcher2016}.
 We will expand into Euler methods in section \ref{sec:bd}.
 For now, we can use it to integrate eq. \eqref{eq:md} to get the velocity and the positions
 \begin{equation}
@@ -1800,8 +1811,8 @@ For now, we can use it to integrate eq. \eqref{eq:md} to get the velocity and th
 \end{aligned}
 \end{equation}
 Where $\vec{\pvel} := \dot{\vec{\ppos}}$ represents the velocity of the molecule.
-The Euler integrator as defined above is not symplectic\cite{symplectic} and as such presents several stability issues that make it non practical as compared with other strategies that will be discussed shortly. In particular, not being symplectic makes it unsuitable for our main goal, energy conservation\cite{eulerdrift}. On the other hand it is a first order method and lowering the time step too much to improve accuracy leads to numerical rounding errors (due to floating point accuracy).
-However, we can make a small modification to the Euler method to make it symplectic\cite{HairerNumericalIntegration}
+The Euler integrator as defined above is not symplectic\cite{Hairer2006} and as such presents several stability issues that make it non practical as compared with other strategies that will be discussed shortly. In particular, not being symplectic makes it unsuitable for our main goal, energy conservation\cite{Hairer2006}. On the other hand it is a first order method and lowering the time step too much to improve accuracy leads to numerical rounding errors (due to floating point accuracy).
+However, we can make a small modification to the Euler method to make it symplectic\cite{Hairer2006}
 \begin{equation}
   \label{eq:semiimpliciteuler}
   \begin{aligned}
@@ -1809,9 +1820,9 @@ However, we can make a small modification to the Euler method to make it symplec
     \vec{\ppos}^{n+\half} &\approx& \vec{\ppos}^n + \half\vec{\pvel}^{n+\half}\dt
   \end{aligned}
 \end{equation}
-This mid-point scheme leads to the semi implicit Euler scheme\cite{semiimplicitEuler}. While symplectic, this algorithm effectively requires two force evaluations per step (interpreting step as going from $t$ to $t+\dt$) and it is still a first order method.
+This mid-point scheme leads to the semi implicit Euler scheme. While symplectic, this algorithm effectively requires two force evaluations per step (interpreting step as going from $t$ to $t+\dt$) and it is still a first order method.
 In order to efficiently solve eq. \eqref{eq:md} we need a symplectic and memory conserving algorithm that offers good numerical stability while requiring to evaluate the forces only once per step.
-The most widespread algorithm for \gls{MD} is the so-called velocity Verlet method\cite{mdvelocityverlet}, a second order algorithm that needs the forces only once per step.
+The most widespread algorithm for \gls{MD} is the so-called velocity Verlet method\cite{Allen2017}, a second order algorithm that needs the forces only once per step.
 \section{The velocity Verlet algorithm}\label{sec:velocityverlet}
 Instead of truncating eq. \eqref{eq:fdmtaylor} at $O(\dt)$ as we did with Euler lets now truncate it at $O(\dt^3)$ and write the expressions for the positions at $t+\dt$ and $t-\dt$
 \begin{eqnarray}
@@ -1924,7 +1935,7 @@ Finally, the third term represents the fluctuations produced by the fast and con
 
 %This random term transforms eq. \eqref{eq:langevin} into an stochastic differential equation, in which special care must be taken when integrating.
 
-The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$. Additionally, $\xi$ can be formally derived from a Green-Kubo relation involving the integral of the solvent-solute force time-correlation\cite{greenkubo}. Its value is often approximated by the Stokes (macroscopic) value $\xi=6\pi\eta a$, of a particle of radius $a$ in a solvent with viscosity $\eta$ (see eq. \eqref{eq:stokesrel} and discussion in section \ref{sec:einstein}).
+The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$. Additionally, $\xi$ can be formally derived from a Green-Kubo relation involving the integral of the solvent-solute force time-correlation\cite{Green1954,Kubo1957}. Its value is often approximated by the Stokes (macroscopic) value $\xi=6\pi\eta a$, of a particle of radius $a$ in a solvent with viscosity $\eta$ (see eq. \eqref{eq:stokesrel} and discussion in section \ref{sec:einstein}).
 
 When we introduced the Fokker-Planck formalism in chapter \ref{sec:fpe} we saw that when a system dissipates energy, for instance, due to a force like the drag force in eq. \eqref{eq:langevin}, the fluctuation-dissipation theorem states that there must be an opposite process that reintroduces this energy via thermal fluctuations. Otherwise the system would spontaneously freeze or heat.
 
@@ -1998,7 +2009,7 @@ Where we have defined $\vec{\beta} := \sqrt{2\xi\kT}\vec{\noise}$.
 %\begin{equation}
 %  B = 2m\gamma k_BT
 %\end{equation}
-Technically, eqs. \eqref{eq:noisemean} and \eqref{eq:noiseautocorr} would be compatible with any random distribution for the noise, $\vec{\noise}$, that has zero mean and variance $dt$. However, as the noise term comes from the action of countless independent random variables (collisions with the solvent particles) the central limit theorem\cite{centrallimittheorem} applies. Thus, it is convenient to choose $\vec{\noise}$ as a Gaussian white noise (i.e. a Wienner process)\cite{dunweg}.
+Technically, eqs. \eqref{eq:noisemean} and \eqref{eq:noiseautocorr} would be compatible with any random distribution for the noise, $\vec{\noise}$, that has zero mean and variance $dt$. However, as the noise term comes from the action of countless independent random variables (collisions with the solvent particles) the central limit theorem\cite{Feller1968} applies. Thus, it is convenient to choose $\vec{\noise}$ as a Gaussian white noise (i.e. a Wienner process)\cite{dunweg1991}.
 
 %
 %Finally, we can rewrite eq. \eqref{eq:langevin} as
@@ -2053,7 +2064,7 @@ In the Itô interpretation, this integral is defined as the limit in probability
   \int_0^tf(t')d\noise(t') = \lim_{n\rightarrow\infty}\sum_{i=0}^nf(t^{i-1}) (\noise(t^i) - \noise({t^{i-1}}))
 \end{equation}
 Where $t_i\in [0, t]$.
-It can be shown that this limit converges in probability\cite{itoconvergence}.
+It can be shown that this limit converges in probability\cite{Cohen2015}.
 
 %Lets refer to the last term as
 %\begin{equation}
@@ -2134,7 +2145,7 @@ The Langevin model makes several assumptions to arrive at eq. \eqref{eq:langevin
 One of the most popular techniques used to reintroduce some of the degrees of freedom lost with \gls{LD} is \gls{DPD}. This coarse graining technique can be used to go further in the spatio-temporal scale by choosing groups of fluid particles as the simulation unit, sitting in between microscopic (as in \gls{MD}) and macroscopic (hydrodynamic) descriptions. In practice \gls{DPD} is a Langevin approach where friction acts by pairs of particles and conserves momentum. \gls{DPD} equations can be defined from the microscopic Hamiltonian using coarse-grain theory\cite{Hijon2010}.
 In the standard \gls{DPD} particles interact via a soft potential, modeling the interaction between two large groups of fluid particles.
 In many instances\cite{BuscalioniPolymers} \gls{DPD} is used as a momentum-conserving thermostat, which thus permits to include hydrodynamics (contrary to a single Langevin approach). Local momemtum conservation results in the emergence of macroscopic hydrodynamic effects. These momentum conserving forces can then be tuned to reproduce not only thermodynamics, but also dynamical and rheological properties of diverse complex fluids.
-The equations of motion in \gls{DPD} have the same functional form as \gls{LD} and can be in fact considered as a momentum-conserving generalization of \gls{LD}. In fact, it can also be derived from the Fokker-Planck formalism\cite{Dunweg}. The \gls{SDE} for \gls{DPD} reads,
+The equations of motion in \gls{DPD} have the same functional form as \gls{LD} and can be in fact considered as a momentum-conserving generalization of \gls{LD}. In fact, it can also be derived from the Fokker-Planck formalism\cite{dunweg1991}. The \gls{SDE} for \gls{DPD} reads,
 \begin{equation}
   \label{eq:dpddyn}
   m\vec{a} = \vec{F^c} + \vec{F^d} + \vec{F^r}.
@@ -2493,7 +2504,7 @@ The inverse transform of eq. \eqref{eq:greenstokes} can be computed analytically
   \label{eq:bdhioseen}
 \tens{O}(\vec{r}) := \frac{1}{8\pi\eta r}\left(\mathbb{I} - \frac{\vec{r}\otimes\vec{r}}{r^2}\right)
 \end{equation}
-This solution is known as the Oseen tensor\cite{Oseen}, the response of a three dimensional unbounded fluid at rest at infinity to a delta forcing.
+This solution is known as the Oseen tensor\cite{Lisicki2013}, the response of a three dimensional unbounded fluid at rest at infinity to a delta forcing.
 Figure \ref{fig:oseen} contains a visual representation of the Oseen tensor.
 \begin{figure}
   \centering
@@ -5630,13 +5641,21 @@ For convenience, we present here a list of all the modules available in \uammd a
 
 \section{Integrators}
 
+asdas
+
 \section{Interactors}
+
+asdasda
 
 \section{Other modules}
 
+adasdas
 
+\newpage
 
 \printbibliography[heading=bibintoc]
+
+\newpage
 
 \cleardoublepage\input{FrontBackmatter/Declaration}
 \cleardoublepage\input{FrontBackmatter/Colophon}

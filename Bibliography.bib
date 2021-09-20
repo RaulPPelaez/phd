@@ -1,6 +1,4 @@
-% Encoding: windows-1252
 
-@Comment{jabref-meta: databaseType:bibtex;}
 @article{cuda,
 author = {Nickolls, John and Buck, Ian and Garland, Michael and Skadron, Kevin},
 title = {Scalable Parallel Programming with CUDA: Is CUDA the Parallel Programming Model That Application Developers Have Been Waiting For?},
@@ -183,7 +181,7 @@ keywords = {multigrid, numerical simulation, conjugate gradient, fluid simulatio
   doi={10.1109/SC.2004.26}
  }
 
-@article {virusfullatom2018,
+@article {Hadden2018,
 article_type = {journal},
 title = {All-atom molecular dynamics of the HBV capsid reveals insights into biological function and cryo-EM resolution limits},
 author = {Hadden, Jodi A and Perilla, Juan R and Schlicksup, Christopher John and Venkatakrishnan, Balasubramanian and Zlotnick, Adam and Schulten, Klaus},
@@ -502,6 +500,19 @@ url = {https://www.sciencedirect.com/science/article/pii/S0010465510005102},
 author = {W. Michael Brown and Peng Wang and Steven J. Plimpton and Arnold N. Tharrington},
 keywords = {Molecular dynamics, GPU, Hybrid parallel computing},
 abstract = {The use of accelerators such as graphics processing units (GPUs) has become popular in scientific computing applications due to their low cost, impressive floating-point capabilities, high memory bandwidth, and low electrical power requirements. Hybrid high-performance computers, machines with more than one type of floating-point processor, are now becoming more prevalent due to these advantages. In this work, we discuss several important issues in porting a large molecular dynamics code for use on parallel hybrid machines – (1) choosing a hybrid parallel decomposition that works on central processing units (CPUs) with distributed memory and accelerator cores with shared memory, (2) minimizing the amount of code that must be ported for efficient acceleration, (3) utilizing the available processing power from both multi-core CPUs and accelerators, and (4) choosing a programming model for acceleration. We present our solution to each of these issues for short-range force calculation in the molecular dynamics package LAMMPS, however, the methods can be applied in many molecular dynamics codes. Specifically, we describe algorithms for efficient short range force calculation on hybrid high-performance machines. We describe an approach for dynamic load balancing of work between CPU and accelerator cores. We describe the Geryon library that allows a single code to compile with both CUDA and OpenCL for use on a variety of accelerators. Finally, we present results on a parallel test cluster containing 32 Fermi GPUs and 180 CPU cores.}
+}
+@article{Plimpton1995,
+title = {Fast Parallel Algorithms for Short-Range Molecular Dynamics},
+journal = {Journal of Computational Physics},
+volume = {117},
+number = {1},
+pages = {1-19},
+year = {1995},
+issn = {0021-9991},
+doi = {https://doi.org/10.1006/jcph.1995.1039},
+url = {https://www.sciencedirect.com/science/article/pii/S002199918571039X},
+author = {Steve Plimpton},
+abstract = {Three parallel algorithms for classical molecular dynamics are presented. The first assigns each processor a fixed subset of atoms; the second assigns each a fixed subset of inter-atomic forces to compute; the third assigns each a fixed spatial region. The algorithms are suitable for molecular dynamics models which can be difficult to parallelize efficiently—those with short-range forces where the neighbors of each atom change rapidly. They can be implemented on any distributed-memory parallel machine which allows for message-passing of data between independently executing processors. The algorithms are tested on a standard Lennard-Jones benchmark problem for system sizes ranging from 500 to 100,000,000 atoms on several parallel supercomputers--the nCUBE 2, Intel iPSC/860 and Paragon, and Cray T3D. Comparing the results to the fastest reported vectorized Cray Y-MP and C90 algorithm shows that the current generation of parallel machines is competitive with conventional vector supercomputers even for small problems. For large problems, the spatial algorithm achieves parallel efficiencies of 90% and a 1840-node Intel Paragon performs up to 165 faster than a single Cray C9O processor. Trade-offs between the three algorithms and guidelines for adapting them to more complex molecular dynamics simulations are also discussed.}
 }
 @article{Tang2014,
 title = {Accelerating dissipative particle dynamics simulations on GPUs: Algorithms, numerics and applications},
@@ -1208,17 +1219,6 @@ eprint = {
   year = {2017},
 }
 
-@article{Panzuela2018,
-  title = {Solvent Hydrodynamics Enhances the Collective Diffusion of Membrane Lipids},
-  author = {Panzuela, S. and Delgado-Buscalioni, R.},
-  journal = {Phys. Rev. Lett.},
-  volume = {121},
-  issue = {4},
-  pages = {048101},
-  numpages = {6},
-  year = {2018},
-}
-
 @article{Bleibel2015,
   title={3D hydrodynamic interactions lead to divergences in 2D diffusion},
   author={Bleibel, Johannes and Dom{\'\i}nguez, Alvaro and Oettel, Martin},
@@ -1562,8 +1562,139 @@ eprint = {
 
 }
 
+
+@misc{Westwood2021,
+      title={A generalised drift-correcting time integration scheme for Brownian suspensions of rigid particles with arbitrary shape}, 
+      author={Timothy A Westwood and Blaise Delmotte and Eric E Keaveny},
+      year={2021},
+      eprint={2106.00449}
+}
+
+
+
+
+
+@misc{openacc,
+  title={Cray Inc. and NVIDIA and the Portland Group: The openacc application programming interface, v1. 0 (November 2011)},
+  author={Enterprise, CAPS}
+}
+
+@book{Grossmann2007,
+author = {Grossmann, Christian and Roos, Hans-Görg and Stynes, Martin},
+year = {2007},
+month = {01},
+pages = {},
+title = {Numerical treatment of partial differential equations. Revised translation of the 3rd German edition of ‘Numerische Behandlung partieller Differentialgleichungen’ by Martin Stynes},
+isbn = {978-3-540-71582-5},
+doi = {10.1007/978-3-540-71584-9}
+}
+
+@book{Butcher2016,
+  address = {Hoboken, New Jersey},
+  author = {Butcher, John C.},
+  biburl = {https://www.bibsonomy.org/bibtex/28115e9d37a83a4618b14e2d9c6b654ef/gdmcbain},
+  doi = {10.1002/9781119121534},
+  edition = {Third},
+  isbn = {9781119121503},
+  publisher = {Wiley},
+  title = {Numerical Methods for Ordinary Differential Equations},
+  url = {https://onlinelibrary.wiley.com/doi/book/10.1002/9781119121534},
+  year = 2016
+}
+
+@book{Hairer2006,
+author = {Hairer, Ernst and Lubich, Christian and Wanner, Gerhard},
+year = {2006},
+month = {01},
+pages = {},
+title = {Geometric numerical integration. Structure-preserving algorithms for ordinary differential equations. 2nd ed},
+volume = {31},
+isbn = {3-540-30663-3},
+journal = {vol. 31. Springer Science & Business Media, 2006.},
+doi = {10.1007/3-540-30666-8}
+}
+
+@article{Greengard1987,
+author = {Greengard, L. and Rokhlin, V.},
+title = {A Fast Algorithm for Particle Simulations},
+year = {1987},
+issue_date = {December 1, 1987},
+publisher = {Academic Press Professional, Inc.},
+address = {USA},
+volume = {73},
+number = {2},
+issn = {0021-9991},
+url = {https://doi.org/10.1016/0021-9991(87)90140-9},
+doi = {10.1016/0021-9991(87)90140-9},
+journal = {J. Comput. Phys.},
+month = dec,
+pages = {325-348},
+numpages = {24}
+}
+
+@article{Green1954,
+author = {Green,Melville S. },
+title = {Markoff Random Processes and the Statistical Mechanics of Time‐Dependent Phenomena. II. Irreversible Processes in Fluids},
+journal = {The Journal of Chemical Physics},
+volume = {22},
+number = {3},
+pages = {398-413},
+year = {1954},
+doi = {10.1063/1.1740082},
+URL = {https://doi.org/10.1063/1.1740082},
+eprint = {https://doi.org/10.1063/1.1740082}
+}
+@article{Kubo1957,
+author = {Kubo ,Ryogo},
+title = {Statistical-Mechanical Theory of Irreversible Processes. I. General Theory and Simple Applications to Magnetic and Conduction Problems},
+journal = {Journal of the Physical Society of Japan},
+volume = {12},
+number = {6},
+pages = {570-586},
+year = {1957},
+doi = {10.1143/JPSJ.12.570},
+URL = {https://doi.org/10.1143/JPSJ.12.570},
+eprint = {https://doi.org/10.1143/JPSJ.12.570}
+}
+
+
+
+@book{Feller1968,
+  title={An Introduction to Probability Theory and Its Applications, Volume 1},
+  author={Feller, V. and Feller, W.},
+  isbn={9780471257080},
+  lccn={68011708},
+  series={A Wiley publication in mathematical statistics},
+  url={https://books.google.es/books?id=mfRQAAAAMAAJ},
+  year={1968},
+  publisher={Wiley}
+}
+@book{Cohen2015,
+  title={Stochastic Calculus and Applications},
+  author={Cohen, S.N. and Elliott, R.J.},
+  isbn={9781493936816},
+  series={Probability and Its Applications},
+  url={https://books.google.es/books?id=VYQvjwEACAAJ},
+  year={2015},
+  publisher={Springer New York}
+}
+
+@article{dunweg1991,
+author = {DÜNWEG, BURKHARD and PAUL, WOLFGANG},
+title = {BROWNIAN DYNAMICS SIMULATIONS WITHOUT GAUSSIAN RANDOM NUMBERS},
+journal = {International Journal of Modern Physics C},
+volume = {02},
+number = {03},
+pages = {817-827},
+year = {1991},
+doi = {10.1142/S0129183191001037},
+URL = {https://doi.org/10.1142/S0129183191001037},
+eprint = {https://doi.org/10.1142/S0129183191001037},
+    abstract = { We point out that in a Brownian dynamics simulation it is justified to use arbitrary distribution functions of random numbers if the moments exhibit the correct limiting behavior prescribed by the Fokker-Planck equation. Our argument is supported by a simple analytical consideration and some numerical examples: We simulate the Wiener process, the Ornstein-Uhlenbeck process and the diffusion in a Φ4 potential, using both Gaussian and uniform random numbers. In these examples, the rate of convergence of the mean first exit time is found to be nearly identical for both types of random numbers. }
+}
+
 @article{Camargo2018,
-author = {Camargo,Diego  and de la Torre,J. A.  and Duque-Zumajo,D.  and Español,Pep  and Delgado-Buscalioni,Rafael  and Chejne,Farid },
+author = {Camargo, Diego  and de la Torre, J. A.  and Duque-Zumajo, D.  and Español, Pep  and Delgado-Buscalioni,Rafael  and Chejne, Farid},
 title = {Nanoscale hydrodynamics near solids},
 journal = {The Journal of Chemical Physics},
 volume = {148},
@@ -1571,36 +1702,21 @@ number = {6},
 pages = {064107},
 year = {2018},
 doi = {10.1063/1.5010401},
-
-URL = { 
-        https://doi.org/10.1063/1.5010401
-    
-},
-eprint = { 
-        https://doi.org/10.1063/1.5010401
-    
+URL = {https://doi.org/10.1063/1.5010401},
+eprint = {https://doi.org/10.1063/1.5010401}
 }
 
-@misc{Westwood2021,
-      title={A generalised drift-correcting time integration scheme for Brownian suspensions of rigid particles with arbitrary shape}, 
-      author={Timothy A Westwood and Blaise Delmotte and Eric E Keaveny},
-      year={2021},
-      eprint={2106.00449},
-      archivePrefix={arXiv},
-      primaryClass={physics.comp-ph}
-}
 
-@article{Panzuela2018,
-  title = {Solvent Hydrodynamics Enhances the Collective Diffusion of Membrane Lipids},
-  author = {Panzuela, S. and Delgado-Buscalioni, R.},
-  journal = {Phys. Rev. Lett.},
-  volume = {121},
-  issue = {4},
-  pages = {048101},
-  numpages = {6},
-  year = {2018},
-  month = {Jul},
-  publisher = {American Physical Society},
-  doi = {10.1103/PhysRevLett.121.048101},
-  url = {https://link.aps.org/doi/10.1103/PhysRevLett.121.048101}
+
+@article{Einstein1905,
+author = {Einstein, A.},
+title = {\"Uber die von der molekularkinetischen Theorie der W\"arme geforderte Bewegung von in ruhenden Fl\"ussigkeiten suspendierten Teilchen},
+journal = {Annalen der Physik},
+volume = {322},
+number = {8},
+pages = {549-560},
+doi = {10.1002/andp.19053220806},
+url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/andp.19053220806},
+eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/andp.19053220806},
+year = {1905}
 }
