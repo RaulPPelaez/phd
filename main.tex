@@ -12,7 +12,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \usepackage{xspace} 
 \usepackage{courier}
 \usepackage{lmodern}
-
+\usepackage{titletoc}
 \def\ucpp{uammd_cpp_lexer.py:UAMMDCppLexer -x}
 %\def\ucpp{cuda}
 
@@ -26,26 +26,45 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
   fontsize=\small,
   breaklines
 }
-
-
-%, number within=section
-\newtcblisting[list inside=lol, auto counter, list type={lstlisting}]{code2}[2][]{
-  colback=white,
-  colbacktitle=white,
-  coltitle=black,
-  breakable,
-  pad at break*=0mm,
-  listing only,
-  listing engine=minted,
-  title={\textbf{Source Code \thetcbcounter:} ~#1},
-  minted language=\ucpp,
-  enhanced jigsaw,
-  minipage boxed title,
-  attach boxed title to bottom center={xshift=0mm,yshift=-1mm},
-  boxed title style={size=small, blanker},
-  center title,
-  #2
+\usepackage[tocindentauto]{tocstyle}
+\usepackage{chngcntr}
+\AtBeginDocument{% the counter is defined later
+  \counterwithout{lstlisting}{chapter}%
 }
+\renewcommand\lstlistlistingname{List of Codes}
+\renewcommand\lstlistingname{\textbf{Source Code}}
+\AtBeginDocument{
+  \newtcblisting[list inside=lol, auto counter, list type={lstlisting}, blend into=listings]{code2}[2][]{
+    colback=white,
+    colbacktitle=white,
+    coltitle=black,
+    breakable,
+    pad at break*=0mm,
+    listing only,
+    listing engine=minted,
+    listing remove caption=true,
+    title={~#1},
+    minted language=\ucpp,
+    enhanced jigsaw,
+    minipage boxed title,
+    attach boxed title to bottom center={xshift=0mm,yshift=-1mm},
+    boxed title style={size=small, blanker},
+    center title,
+    #2
+  }
+}
+
+%\makeatletter
+%\AtBeginDocument{%
+%\renewcommand\lstlistoflistings{\bgroup
+%  \let\contentsname\lstlistlistingname
+%  \def\l@lstlisting##1##2{\@dottedtocline{1}{-1.5em}{-2.3em}{##1}{##2}}
+%  \let\lst@temp\@starttoc \def\@starttoc##1{\lst@temp{lol}}%
+%  \tableofcontents \egroup}
+%}
+%\makeatother
+
+
 \input{classicthesis-config}
 \usepackage{amsmath}
 \usepackage{algorithm}
@@ -60,7 +79,6 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \usepackage{enumitem}
 \graphicspath{{./gfx/}}
 
-%\usepackage{svg}
 \newcommand{\executeiffilenewer}[3]{
   \ifnum
   \pdfstrcmp{\pdffilemoddate{#1}}{\pdffilemoddate{#2}}>0
@@ -168,7 +186,8 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 
 \addbibresource{Bibliography.bib}
 
-%\hyphenation{put special hyphenation here}
+% \hyphenation{put special hyphenation here}
+
 
 \begin{document}
 \frenchspacing
@@ -289,8 +308,9 @@ Thanks y'all.
     \phantomsection
     \addcontentsline{toc}{chapter}{\lstlistlistingname}
     \pdfbookmark[1]{\lstlistlistingname}{lol}
-    \lstlistoflistings
 
+    %\lstlistoflistings
+    \tcblistof[\section*]{lol}{List of Codes}
     \vspace{8ex}
 
     %*******************************************************
@@ -300,10 +320,10 @@ Thanks y'all.
     \pdfbookmark[1]{Acronyms}{acronyms}
  %   \markboth{\spacedlowsmallcaps{Acronyms}}{\spacedlowsmallcaps{Acronyms}}
 %    \chapter*{Acronyms}
-    \printglossary[type=\acronymtype]
+    \printglossary[type=\acronymtype,nonumberlist]
 \endgroup
 \glsresetall
-
+\newpage
 \cleardoublepage
 \pagestyle{scrheadings}
 \pagenumbering{arabic}
@@ -559,28 +579,29 @@ All the utilities in \uammd, including \emph{Interactors}, \emph{Integrators}, n
 
 In the past, we have explored this facet of the project by providing to collaborators some of our utilities and solvers as stand alone Python interfaces.
 
-The modularity of \uammd is reflected directly in the code, where modules can be created independently of each other as in the example code \ref{code:module}.
+The modularity of \uammd is reflected directly in the code, where modules can be created independently of each other as it will be evidenced by the example codes throughout this manuscript.
 Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Interactor} (short range, bonded,...), all modules in \uammd can be created and stored individually.
 %The \emph{ParticleData} object here, which is the direct expression in code of the second assumption, will be described in detail in sec. \ref{sec:particledata}.
 %\todo{Maybe switch the order of the code examples here. In fact, join them both and say that the preamble is going to be omited. Take both code examples below ParticleData. Specify ``Module'' is an Integrator or an Interactor.}
-\section{\uppercase{\textbf{M}}ultiscale}
+\section{\uppercase{\textbf{M}}ultiscale}\label{sec:multiscale}
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/landscape}
   \caption{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales invovled in a biological system or, in general, a complex fluid. Image courtesy of Rafael Delgado-Buscalioni.}
   \label{fig:landscape}
 \end{figure}
+
+Describing a given system in a reductionist manner, by solving the dynamics of every atom involved, is of course unfeasible. The \uammd infrastructure can accomodate for several levels of description by making use of coarse graning techniques. Coarse graining allows to realistically describe a system using fewer degrees of freedom.
+In general, a level of description is tied to a certain time scale and is characterized by a series of relevant variables coupled via a (usually stochastic) dynamic equation.
+
+Although \uammd is not restricted to it, this work is mainly devoted to the study of soft matter systems. In this regard we can identify a series of clearly separated levels of description. It is worth to summarize them here since during this manuscript many of them will be discussed in detail and are furthermore available as \uammd \emph{Integrator} modules. A representation of the different levels of description is available in fig. \ref{fig:multiscale}, while the numerical methods employed to numerically study each of them can be seen in fig. \ref{fig:sptime-land}. Figure \ref{fig:landscape} provides an overview of the different fields of soft matter simulation and its characteristic spatio-temporal scales. We can distinguish between the following levels of description (from most to least detailed):
 \begin{figure}[h]
   \centering
-  \includesvg[width=0.7\columnwidth]{gfx/multiscale}
+  \includesvg[width=\columnwidth]{gfx/multiscale}
   \caption{The different levels of coarse grained description available in \uammd for soft matter simulations. $\vec{q}_i$ represents the positions of particles, $\vec{u}_i$ their velocity. $\vec{v}(\vec{r},t)$ represents an Eulerian fluid velocity, $M(\vec{q}_{ij})$ a mobility tensor and $\xi(\vec{q}_{ij})$ a friction kernel. Arrows represent standard routes for the formal bottom-up derivation using coarse-graining theory. In order, we have: (1) in \cite{Camargo2018}, (2) in \cite{Hijon2010} and (3) in \cite{Dhont1996}.}
   \label{fig:multiscale}
 \end{figure}
 
-Describing a given system in a reductionist manner, by solving the dynamics of every atom involved, is of course unfeasible. The \uammd infrastructure can accomodate for several levels of description by making use of coarse graning techniques. Coarse graining allows to realistically describe a system using fewer degrees of freedom.
-In general, a level of description is tied to a certain time scale and is characterized by series of relevant variables coupled via a (usually stochastic) dynamic equation.
-
-Although \uammd is not restricted to it, this work is mainly devoted to the study of soft matter systems. In this regard we can identify a series of clearly separated levels of description. It is worth to summarize them here since during this manuscript many of them will be discussed in detail and are furthermore available as \uammd \emph{Integrator} modules. A representation of the different levels of description is available in fig. \ref{fig:multiscale}, while the numerical methods employed to numerically study each of them can be seen in fig. \ref{fig:sptime-land}. Figure \ref{fig:landscape} provides an overview of the different fields of soft matter simulation and its characteristic spatio-temporal scales. We can distinguish between the following levels of description (from most to least detailed):
 \begin{enumerate}
 \item Microscopic: The relevant variables are the positions and moments of every particle in the system, including the solvent and solute particles. This level is dominated by the mean collision time between the particles, in the order of $\tau \sim 10^{-12} s$. The (purely Lagrangian) Newton equations of motion describe the dynamics of the system and \gls{MD} can be used to solve them. We explore this description in chapter \ref{sec:md}.
 \item Hydrodynamic: The degrees of freedom of the solvent particles are omitted and turned into hydrodynamic fields. The Newton equations for the solute particles are coupled with the (fluctuating) Navier-Stokes equations that describe the solvent in what constitutes an Eulerian-Langrangian description. An infinitesimal region of space represents a group of solvent particles, whose individual degrees of freedom are lost. The characteristic time is now controlled by the speed of sound of the solvent ($\tau \sim 10^{-9}s$) and the vorticity ($\tau \sim 10^{-6}s$). We study the hydrodynamic level in chapter \ref{sec:bdhi}.
@@ -602,10 +623,10 @@ One of the basic theories for coarse graining is embeded in the Fokker-Planck fo
     \partial_t P = -\vec{\partial}_{\vec{x}}\cdot \vec{J}
   \end{equation}
 Where $P_0 := P(\vec{x}_0, t_0)$ is known and $\vec{\partial}_{\vec{x}}\cdot \vec{J} := \nabla_{\vec{x}}\cdot\vec{J} = \sum_i\partial J_i/\partial x_i  $ represents the divergence (note that the derivation is made with respect to the slow variables by using supervectors, i.e. all the variables and their coordinates\cite{Dhont1996}).
-The probability flux vector, $\vec{J}$ is defined as
+The probability flux vector, $\vec{J}$, is defined as
 \begin{equation}
   \label{eq:fpeflux}
-  \vec{J}(\vec{x}, t) := \vec{D}^{(1)}(\vec{x},t)P - \tens{D}^{(2)}(\vec{x}, t) \vec{\partial}_{\vec{x}} P
+  \vec{J}(\vec{x}, t) := \vec{D}^{(1)}(\vec{x},t)P - \tens{D}^{(2)}(\vec{x}, t) \vec{\partial}_{\vec{x}} P.
 \end{equation}
 The first term is called the drift or transport term (being $\vec{D}^{(1)}$ the drift coefficients) and the second one the diffusion term (being $\tens{D}^{(2)}$ the diffusion coefficients). The \gls{FPE} \eqref{eq:fpe} is written in the so-called ``kinetic form'' and comes from truncating the Kramers-Moyal equation at the second term (via the Pawula theorem)\cite{Risken2012}.
 
@@ -618,7 +639,7 @@ The first term is called the drift or transport term (being $\vec{D}^{(1)}$ the 
 %
 The \gls{FPE} in eq. \eqref{eq:fpe} simply represents the conservation of the conditional probability $P(\vec{x},t)d\vec{x}$ of finding a set of variables $\vec{x}$ in the range $[\vec{x}, \vec{x} + d\vec{x}]$. The generality of eq. \eqref{eq:fpe} makes it applicable in a wide range of situations (a suspension of colloidal particles, fluctuations in electrical circuits, mechanical oscillators and chemical reactions just to name a few).
 
-We can use the probability distribution $P$ to compute the the average of a certain function $f(\vec{x}(t))$
+We can use the probability distribution $P$ to compute the the average of a certain function $f(\vec{x}(t))$ as
 
 \begin{equation}
   \left\langle f\right\rangle(t) = \int {P(\vec{x},t) f(\vec{x}) d\vec{x}}.
@@ -633,7 +654,7 @@ Its time evolution can be then expressed as
 The choice of names for the coefficients becomes evident if we now study the first moments of the relevant variables. The first one (the mean) yields
 \begin{equation}
   \label{eq:fpemean}  
-  \frac{d\langle\vec{x}\rangle}{dt} = \underbrace{\left\langle \widetilde{\vec{D}}^{(1)}\right\rangle}_{\text{Drift}} = \overbrace{\left\langle \vec{D}^{(1)}\right\rangle}^{\text{Systematic drift}} + \underbrace{\left\langle \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}\right\rangle}_{\text{Thermal drift}}
+  \frac{d\langle\vec{x}\rangle}{dt} = \underbrace{\left\langle \widetilde{\vec{D}}^{(1)}\right\rangle}_{\text{Drift}} = \overbrace{\left\langle \vec{D}^{(1)}\right\rangle}^{\text{Systematic drift}} + \underbrace{\left\langle \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}\right\rangle}_{\text{Thermal drift}}.
 \end{equation}
 Where $\widetilde{\vec{D}}^{(1)} := \vec{D}^{(1)} + \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}$.
 In the next section, we will see that the second moment, the variance of the relevant variables, is closely related with the diffusion coefficients, $\tens{D}^{(2)}$. It is however straight-forward to study the variance in the case of a single dimension with a variable $x$, where the variance can be written as
@@ -651,7 +672,7 @@ We will see what the \gls{FPE} tells us about the fluctuation-dissipation balanc
 \begin{equation}
 \tens{\sigma} :=\left\langle \delta\vec{x}\otimes\delta\vec{x}\right\rangle,
 \end{equation}
-of the relevant variables. Here $\otimes$ represents the tensor product and $\delta\vec{x} = \vec{x} - \langle\vec{x}\rangle_{\text{eq}}$ is a fluctuation of the relevant variables around their equilibrium averages.
+of the relevant variables. Here $\otimes$ represents the tensor product and $\delta\vec{x} := \vec{x} - \langle\vec{x}\rangle_{\text{eq}}$ is a fluctuation of the relevant variables around their equilibrium averages.
 
 Let us also define the transport coefficients as fluctuations around their equilibrium mean, such that and $\delta\vec{D} := \vec{D} - \langle\vec{D}\rangle_{\text{eq}}$.
 Using eqs. \eqref{eq:fpemean} and \eqref{eq:fpevar}, it can be shown that the time evolution of the covariance is then given by
@@ -673,21 +694,21 @@ The transport coefficients can then be decomposed as
 Where $i$ can refer to the drift or diffusion coefficients.
 Eq. \eqref{eq:fpefdcoeff} allows to approximate
 \begin{equation}
-  \delta\vec{D}^{(1)} = \left.\vec{\partial}_{\vec{x}}\vec{D}^{(1)}\right|_{\text{eq}}\delta\vec{x} + O\left(\delta\vec{x}^2\right)
+  \delta\vec{D}^{(1)} = \left.\vec{\partial}_{\vec{x}}\vec{D}^{(1)}\right|_{\text{eq}}\delta\vec{x} + O\left(\delta\vec{x}^2\right).
 \end{equation}
 Let us now define the dynamic matrix, $\tens{H}$ as
 \begin{equation}
-  \tens{H} := -\vec{\partial}_{\vec{x}}\vec{D}^{(1)}(\bar{\vec{x}},t)
+  \tens{H} := -\vec{\partial}_{\vec{x}}\vec{D}^{(1)}(\bar{\vec{x}},t).
 \end{equation}
 So that
 \begin{equation}
   \label{eq:fpefdhd}
-  \delta\vec{x}\otimes\delta\vec{D}^{(1)} = -\tens{H}\left(\delta\vec{x}\otimes\delta\vec{x}\right) + O\left(\delta\vec{x}^3\right)
+  \delta\vec{x}\otimes\delta\vec{D}^{(1)} = -\tens{H}\left(\delta\vec{x}\otimes\delta\vec{x}\right) + O\left(\delta\vec{x}^3\right).
 \end{equation}
 In a stationary or equilibrium state we have $\partial_t\tens{\sigma} = 0$. Replacing eq. \eqref{eq:fpefdhd} into \eqref{eq:fpefdsigma} in equilibrium yields
 \begin{equation}
   \label{eq:fpefdbal}
-  2\left\langle\tens{D}^{(2)}\right\rangle = \tens{H}\tens{\sigma}_{\text{eq}} + \tens{\sigma}_{\text{eq}}\tens{H}^T
+  2\left\langle\tens{D}^{(2)}\right\rangle = \tens{H}\tens{\sigma}_{\text{eq}} + \tens{\sigma}_{\text{eq}}\tens{H}^T.
 \end{equation}
 This key relation is known as the Fluctuation-Dissipation Balance.
 
@@ -698,14 +719,14 @@ If the time interval is small enough, we can safely assume that the transport co
 Making use of the definition of derivative, we can now write eqs. \eqref{eq:fpefdsigma} and \eqref{eq:fpemean} as
 
 \begin{align}
-    \left\langle\vec{x}\right\rangle(dt) &= \vec{x}_0 + \widetilde{\vec{D}}^{(1)}(\vec{x}_0)dt\label{eq:fpesdemean}\\
-    \tens{\sigma}(dt) &= \left\langle \delta\vec{x}\otimes\delta\vec{x}\right\rangle = 2\tens{D}^{(2)}(\vec{x}_0)dt + O(dt^2)\label{eq:fpesdefluc}
+    \left\langle \vec{x}\right\rangle(dt) &= \vec{x}_0 + \widetilde{\vec{D}}^{(1)}(\vec{x}_0)dt,\label{eq:fpesdemean}\\
+    \tens{\sigma}(dt) &= \left\langle \delta\vec{x}\otimes\delta\vec{x}\right\rangle = 2\tens{D}^{(2)}(\vec{x}_0)dt + O(dt^2).\label{eq:fpesdefluc}
 \end{align}
 
 Note that $\tens{\sigma}(t_0) = 0$ since we know $\vec{x}_0$ exactly. Finally, we can decompose any function into its average and a fluctuation, so that $\vec{x} = \left\langle\vec{x}\right\rangle + \delta\vec{x}$. We can then write an \gls{SDE} for the relevant variables
 \begin{equation}
   \label{eq:fpesde}
-  d\vec{x} = \vec{x}(t_0 + dt) - \vec{x}_0 = \widetilde{\vec{D}}^{(1)}dt + \delta\vec{x}
+  d\vec{x} = \vec{x}(t_0 + dt) - \vec{x}_0 = \widetilde{\vec{D}}^{(1)}dt + \delta\vec{x}.
 \end{equation}
 Where the fluctuating part must satisfy eq. \eqref{eq:fpesdefluc}. Furthermore, the diffusion and drag terms are related via the fluctuation-dissipation balance in eq. \eqref{eq:fpefdbal}.
 
@@ -724,7 +745,7 @@ Thus
   \label{eq:fluxeqln}
 \vec{\partial}_{\vec{x}}\ln \left(P_{\text{eq}}\right) = \frac{\vec{D}^{(1)}(\vec{x})}{\tens{D}^{(2)}(\vec{x})}
 \end{equation}
-Now, quite generally, consider that $\vec{D}^{(1)} = -\tens{M}\vec{\partial}_{\vec{x}}U(\vec{x})$ where $U$ is the free energy of the system, satisfying $P_{\text{eq}} = \frac{1}{Z}\exp\left[-\beta U(\vec{x})\right]$ (or $\vec{\partial}_{\vec{x}}P_{\text{eq}} = -\beta \vec{\partial}_{\vec{x}} U(\vec{x})$) and $\tens{M}(\vec{x})$ is called ``mobility'', as it relates forces ,$\vec{F} = -\vec{\partial}_{\vec{x}}U$, with the displacement created by the systematic drift, $\left\langle d\vec{x}\right\rangle = \tens{M}\vec{F} dt$. Inserting $\vec{D}^{(1)} = -\tens{M}\vec{\partial}_{\vec{x}}U$ into eq. \eqref{eq:fluxeqln} and comparing with the equilibrium result, we conclude that
+Now, quite generally, consider that $\vec{D}^{(1)} = -\tens{M}\vec{\partial}_{\vec{x}}U(\vec{x})$ where $U$ is the free energy of the system, satisfying $P_{\text{eq}} = \frac{1}{Z}\exp\left[-\beta U(\vec{x})\right]$ (or $\vec{\partial}_{\vec{x}}P_{\text{eq}} = -\beta \vec{\partial}_{\vec{x}} U(\vec{x})$) and $\tens{M}(\vec{x})$ is called ``mobility'', as it relates forces, $\vec{F} = -\vec{\partial}_{\vec{x}}U$, with the displacement created by the systematic drift, $\left\langle d\vec{x}\right\rangle = \tens{M}\vec{F} dt$. Inserting $\vec{D}^{(1)} = -\tens{M}\vec{\partial}_{\vec{x}}U$ into eq. \eqref{eq:fluxeqln} and comparing with the equilibrium result, we conclude that
 \begin{equation}
   \frac{\vec{D}^{(1)}(\vec{x})}{\tens{D}^{(2)}(\vec{x})} = \frac{-\tens{M}(\vec{x})\vec{\partial}_{\vec{x}}U}{\tens{D}^{(2)}(\vec{x})} = -\beta\vec{\partial}_{\vec{x}}U
 \end{equation}
@@ -737,7 +758,7 @@ Which is the celebrated Einstein relation. Note that the Einstein relation also 
 
 While the Einstein relation is quite general, in colloidal systems $\tens{M}(\vec{x})$ is calculated from macroscopic (deterministic) hydrodynamics. 
 
-For instance, the mobility of a single (isolated) sphere with no-slip surface moving in a fluid at rest with velocity $\vec{\pvel}$ can be obtained\cite{Dhont1996} by studying the total traction created by the fluid stress its surface, $\vec{F} = \oint\tens{\sigma}\cdot \hat{\vec{n}}dS$ where $\tens{\sigma}$ is the fluid pressure tensor. The result is the celebrated Stokes relation
+For instance, the mobility of a single (isolated) sphere with no-slip surface moving in a fluid at rest with velocity $\vec{\pvel}$ can be obtained\cite{Dhont1996} by studying the total traction created by the fluid stress on its surface, $\vec{F} = \oint\tens{\sigma}\cdot \hat{\vec{n}}dS$ where $\tens{\sigma}$ is the fluid pressure tensor. The result is the celebrated Stokes relation
 \begin{equation}
   \label{eq:stokesrel}
   \vec{F} = -M_0^{-1} \vec{\pvel}
@@ -762,91 +783,37 @@ In \uammd particles are the relevant simulation entity as specified by the \emph
 
 \chapter{Initial remarks and overview}
 
-Let us go through the different numerical techniques that are used to simulate the different sections of the spatio-temporal landscape.
+\todo{Image:
+  Inner level: design, gpu algorithm in detail, implementation. Library like behavior.
+  Middle: Algoritihms providing phsycical mathematical foundation (not that in depth implementation, only usage).
+  External level: User code, enables to use these tools for applied problems, multiphysics. Examples, polymers, optofluidics, QCM, electro chemical impedance.
+  All these tools are black-bloxed modules (input/output modules) that can be used in any other code in a library-like fashion.
+  Inside UAMMD, the communication between the different modules (which is limited to a minimum to reduce internal dependencies) is carried out via the root, ParticleData, and the other foundational modules already introduced in chapter X (see figure sketch).
+
+  Dashed circles represents ongoing work or features that will not be discussed in this manuscript.
+
+  These essential tools are enhanced by the power of templates, which allow an user to introduce new potentials, interpolation kernels,... into the existing modules without modifying them. In many instances it is even possible to generalize the scope of these tools. For instance, spreading/interpolation in a non-regular grid, abuse the neighbour list packing efficiency to perform some novel sparse matrix multiplication. 
+}
 
 
+  
 We can distinguish between two families of numerical techniques, particle (Lagrangian) and grid (Eulerian-Lagrangian) based methods.
 %The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
 %In some way require another, all algorithms have to take into account interactions between particles.
 
 %In chapter \ref{ch:design} we introduced the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned and specialized in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch.
-As stated in chapter \ref{ch:design} (see fig. \ref{fig:uammdsketch}) the central work-piece in \uammd are the particles. The \emph{Integrator} solves the time-evolution of the particles and to that end, it requires the driving interactions (e.g. forces) which are, in turn, provided by the \emph{Interactors}. For this reason, from the code perspective ``forces'' and ``velocities'' respectively pertain to \emph{Interactor} and \emph{Integrator} concepts. Grid-based methods generally consist on solving \glspl{PDE} for some spatio-temporal field in a mesh, i.e. in an Eulerian framework. \uammd deploys Eulerian solvers for several purposes: i) to obtain the velocity field of the solvent in Eulerian-Lagrangian hydrodynamics and ii) to solve the force field generated by a distribution of source charges. Both schemes are based on pseudo-spectral methods, which shall be first introduced when explaining hydrodynamic \emph{Integrators} in Chapter \ref{sec:bdhi}. The \emph{Interactor} dealing with electrostatics in \uammd (pseudospectral Poisson solver) is explained later, in Chapter \ref{sec:tppoisson}.
+As previously stated the central work-piece in \uammd are the particles (see fig. \ref{fig:uammdsketch}). The \emph{Integrator} solves the time-evolution of the particles and to that end, it requires the driving interactions (e.g. forces) which are, in turn, provided by the \emph{Interactors}. For this reason, from the code perspective ``forces'' and ``velocities'' respectively pertain to \emph{Interactor} and \emph{Integrator} concepts. Grid-based methods generally consist on solving \glspl{PDE} for some spatio-temporal field in a mesh, i.e. in an Eulerian framework. \uammd deploys Eulerian solvers for several purposes: i) to obtain the velocity field of the solvent in Eulerian-Lagrangian hydrodynamics and ii) to solve the force field generated by a distribution of source charges. Both schemes are based on pseudo-spectral methods, which shall be first introduced when explaining hydrodynamic \emph{Integrators} in Chapter \ref{sec:bdhi}. The \emph{Interactor} dealing with electrostatics in \uammd (pseudospectral Poisson solver) is explained later, in Chapter \ref{sec:tppoisson}.
 
+The rest of the manuscript is organized in three main parts: In the first one (part \ref{part:voyage}) we will go through the different algorithms techniques used to solve particle interactions and dynamics (as described by the different levels of detail introduced in chapter \ref{sec:multiscale}) with a particular focus on their adaptation and implementation in a \gpu architecture. Whenever a new technique/algorithm is introduced an accompanying code example showing how to use it in \uammd will be present. In the second part (part \ref{pt:algo}) we will go through a series of novel algorithms that have resulted from the development of this thesis. Like before, \uammd code examples will always be accompanying the description of the algorithms. Finally, in the third part (part \ref{pt:applications}) we will see a summary of works (publications in scientific journals) in which \uammd has played a role either as a simulation engine or as an accelerator for an already stablished external code. The manuscript ends with some future directions (chapter \ref{ch:ongoing}) and conclusions (chapter \ref{ch:conclusions}), listing ongoing research and future endevours for the \uammd infrastructure.
+
+\todo{Rafa, something more here?}
 
 
 \newpage
+\cleardoublepage
 
-
-
-%\chapter{Core Components}\label{ch:core}
-%How the design principles are exposed in code. \todo{FILL}
-%\section{System}
-%\todo{FILL}
-%\section{ParticleData}
-%\todo{FILL}
-%\section{ParticleGroup} 
-%
-%\todo{FILL}%
-
-%\chapter{Interfaces}\label{ch:interfaces}
-%This stuff should go organically in the text
-%Generic interfaces desgined to communicate with the core \gls{UAMMD} componentes.
-%\section{Transverser}
-%The Transverser interface. Transform + traverse
-%\section{Potential}
-%To encapsulate Transversers
-%\section{ParameterUpdatable}
-%An interface to communicate changes in parameters
-%
-
-%\chapter{Usage examples throughout this document}\label{sec:uammd_struct}
-%Every time an algorithm available in \uammd is presented it will be acompanied by a section describing how to use it in the codebase.
-%Often this will consist of a function creating and returning an instance of the related module in the following form
-%
-%
-%These examples are meant to serve both as a tutorial and an easily copy-pastable example.
-%The structure \emph{UAMMD}\todo{Use the same format as in the code, so the reader can make the conection with the struct UAMMD in the code} in these examples is not part of \uammd and is meant to group the core components of a typical \uammd code. It can be defined as follows
-%
-%\todo{Make an appendix with basic cpp notions, like shared\_ptr}
-%\begin{minted}{\ucpp}
-%#include<uammd.cuh>
-%//Additional includes when necessary
-%using namespace uammd;
-%//An aggregate of parameters required by the relevant modules in the code
-%struct Parameters{
-%  //real dt;
-%  //...
-%};
-%struct UAMMD{
-%  std::shared_ptr<ParticleData> pd;
-%  std::shared_ptr<ParticleGroup> pg;
-%  Parameters par;
-%};
-%
-%//A function creating an instance of the UAMMD structure
-%UAMMD initializeUAMMD(){
-%  UAMMD sim;
-%  Parameters par;
-%  //Fill out parameters somehow
-%  //par.dt = 0.1;
-%  sim.par = par;
-%  //Set the number of particles some how.
-%  int numberParticles = 1e6;
-%  sim.pd  = std::make_shared<ParticleData>(numberParticles);
-%  //A group with all the particles.
-%  sim.pg = std::make_shared<ParticleGroup>(pd, "All");
-%  return sim;
-%}
-%\end{minted}
-
-%\todo{If at all, this should go to an Appendix}
-%\section{Error handling in UAMMD}\label{sec:uammd_errors}
-%Errors are communicated via C++ exceptions.
-%
-%Examples
-
-\part{A voyage through numerical space-time}
-
+\part{A voyage through numerical space-time}\label{part:voyage}
+\ctparttext{Let us go through the different numerical techniques that are used to simulate the different sections of the spatio-temporal landscape.}
 
 
 From this point on in the manuscript we will see descriptions of GPU algorithms and code examples written in CUDA/C++. Although the code examples can be mostly ommited without missing the overall message of the text, understanding the jargon, rationale and details of the described algorithms will require at least basic knowledge of the GPU programming model. If the reader is unfamiliar with either the C++ programming language or the GPU he or she can find an introduction to the basic concepts in Appendix \ref{sec:cpp}. While not a full-fledged guide, Appendix \ref{sec:cpp} has been designed to provide the bare minimum required to understand most of the GPU and programming related concepts laid out in the rest of the manuscript.
@@ -906,7 +873,7 @@ int main(){
   // property can be requested like this
   auto positions = pd->getPos(access::cpu, access::write);
   //Positions are stored as a 4-dimensional number with elements x,y,z,w
-  //The fourth element of the, w, represents a "color" or "type" and is largely ignored by uammd
+  //The fourth element, w, represents a "color" or "type" and is largely ignored by uammd
   //Lets set some position to x=1, y=2, z=3 and w=0.
   positions[someIndex] = {1,2,3,0}; //Legal access
   auto masses = pd->getMass(access::gpu, access::write);
@@ -2497,7 +2464,7 @@ as the Stokes solution operator to arrive at
 The Green's function, $\tens{G}$, of eq. \eqref{eq:bdhivel} in the case of an unbounded domain can be written in Fourier space as
 \begin{equation}
   \label{eq:greenstokes}
-  \fou{\tens{G}}(\vec{k}) := \eta^{-1}k^{-2}\fou{\oper{P}}(\vec{k})
+  \eta^{-1}\oper{L}(\vec{k})\rightarrow \fou{\tens{G}}(\vec{k}) := \eta^{-1}k^{-2}\fou{\oper{P}}(\vec{k})
 \end{equation}
 The inverse transform of eq. \eqref{eq:greenstokes} can be computed analytically (with the help of some known mathematical relations\cite{Lisicki2013}) to get
 \begin{equation}
@@ -2516,7 +2483,7 @@ Figure \ref{fig:oseen} contains a visual representation of the Oseen tensor.
 \section*{Coupling with particles}
 Eqs. \eqref{eq:bdhivel} and \eqref{eq:greenstokes} constitute a formalism to translate forces to velocities and permits to unveil their correlated displacements.
 
-In the following derivation we are going to describe the particle effect on the fluid using a generalized delta function, $\delta_a(\vec{r})$. In particular, the force distribution is set as $\vec{f}(\vec{fpos}) = \lambda \delta_a(\vec{\fpos})$. More properly, $\delta_a(\vec{\fpos})$ is a distribution of compact support.
+In the following derivation we are going to describe the particle effect on the fluid using a generalized delta function, $\delta_a(\vec{r})$. In particular, the force distribution is set as $\vec{f}(\vec{\fpos}) = \lambda \delta_a(\vec{\fpos})$. More properly, $\delta_a(\vec{\fpos})$ is a distribution of compact support.
 
 The symbol $\delta_a$ is used here to indicate that this kernel will usually be a smooth smeared delta function. The subscript $a$ refers to the hydrodynamic radius of the particle, related to the typical size of the particle around of which the kernel distributes the particle force, or any other extensive quantity (e.g acoustic forces\cite{Balboa2013}, torques, etc).
 
@@ -2525,7 +2492,7 @@ We impose an instantaneous coupling between the particles and their surrounding 
   \label{eq:bdhifvel}
   \vec{\pvel}_i= \oper{J}_{\vec{\ppos}_i}\vec{\fvel} =\int{\delta_a(\vec{\ppos}_i - \vec{\fpos})\vec{\fvel}(\vec{\fpos})d\vec{\fpos}}.
 \end{equation}
-So that $\delta_a(\vec{\ppos}$ is also used  to interpolate fluid properties to the particle ``laguage''
+So that $\delta_a(\vec{\ppos})$ is also used  to interpolate fluid properties to the particle ``laguage''
 The operator $\oper{J}$ is called interpolation operator. Eq. \eqref{eq:bdhivel} states that the velocity of the particle is equal to the local average of the fluid velocity.
 
 The reverse of interpolation is spreading. As stated, we compute the force density acting on the fluid at a given point $\vec{\fpos}$ in space by spreading the forces of all particles according to
@@ -2576,9 +2543,9 @@ The definition in eq. \ref{eq:bdhimobns} allows us to realize that eq. \eqref{eq
 We are now ready to extract more information about the mobility matrix, which is in general a configuration-dependent tensor. In particular, writing eq. \eqref{eq:bdhimobns} as the double convolution with the kernel at the position of two particles yields a pairwise mobility, depending only on the positions of the particles as
 \begin{equation}
   \label{eq:bdhimob}
-  \tens{M}_{ij} = \eta^{-1}\int{\delta_a(\vec{q}_j-\vec{r})\tens{G}(\vec{r}, \vec{r}')\delta_a(\vec{q}_i -\vec{r}')d\vec{r}d\vec{r}'}
+  \tens{M}_{ij} = \eta^{-1}\int{\delta_a(\vec{q}_j-\vec{r})\oper{L}(\vec{r}, \vec{r}')\delta_a(\vec{q}_i -\vec{r}')d\vec{r}d\vec{r}'}
 \end{equation}
-Here $\tens{G}$ is the Green's function of eq. \eqref{eq:stokes} with the particular boundary conditions and unit viscosity.
+Here $\oper{L}$ is the Green's function of eq. \eqref{eq:stokes} with the particular boundary conditions.
 
 The mobility tensor definition in eq. \eqref{eq:bdhimob} is general for any geometry, but for an unbounded fluid, the Green's function is the Oseen tensor in eq. \eqref{eq:bdhioseen} and the resulting mobility (when using $\delta_a:=\delta$) is refered to as the Oseen mobility, so that $\tens{M}_{ij} = \tens{O}(\vec{\ppos}_j - \vec{\ppos}_i)$.
 
@@ -2732,6 +2699,7 @@ Furthermore, the spreading and interpolation algorithms that we are going to dev
 We will discretize the interpolation operator in eq. \eqref{eq:bdhifvel} in a grid as
 
 \begin{equation}
+  \label{eq:interpdiscrete}
   \oper{J}_{\vec{\ppos}_i}\vec{\fvel} = \sum_j{\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{\fvel}_jdV(j)}
 \end{equation}
 
@@ -2875,51 +2843,53 @@ Several other Peskin-like kernels can be found by enforcing other conditions, se
 A comparison of the different kernels in this section can be found in sec. \ref{sec:kernelcomp}.
 
 \subsection{Spreading and interpolation algorithms}
-Lets see how to efficiently spread and interpolate in a \gpu. 
-In a serial implementation of spreading, we can simply sum the contribution, $\delta_a(\vec{\ppos} - \vec{\fpos})\vec{F}$, of each particle to its nearby cells. And in the case of interpolation a similar strategy can be employed, where each particle accumulates quantity $\delta_a(\vec{\ppos} - \vec{\fpos})\vec{v}$ from its nearby cells. Note that here $\vec{F}$ and $\vec{v}$ can refer to forces and velocities or in general any per particle and per cell quantities.
-We can restrict the visited cells to the minimum by knowing the support, $n_s$, of the kernel.
-In a regular grid, we can find the cell of a given particle with position $x \in [-L/2, L/2)$ as $c_x = \floor((x/L + 0.5)n_x)$. From there, it is straight-forward to find the $n_s$ cells in the support at cells $\vec{c} \pm P$ for odd supports (see fig. \ref{fig:ibm2} (top)). It is important to handle even supports separatedly. In this case, a particle at one side of the middle of a cell will need to visit a different set of cells that one at the other side (see fig. \ref{fig:ibm2} (bottom)). Furthermore, if \gls{PBC} are used, it is important to fold the neighbour cells to the $[0, \vec{n})$ range.
+In this chapter we will see how to efficiently spread and interpolate in a \gpu.
+Let us consider that the communication will take place between a set of $N$ particles (AKA markers) with positions $\{\vec{\ppos}_0,\dots,\vec{\ppos}_{N-1}\}$ inside a cubic box of size $L$ and a discrete regular grid with dimensions $n$ in each direction (representing the field). Therefore, each cell in the grid is a cube of size $l := n/L$. The kernel is truncated at some distance $r_c$, which translates to a number of support cells $n_s:=r_c/h$, ensuring that each particle only has to communicate with $n_s^3$ cells in its vicinity. Note that the algorithms described in the following sections can be generalized then to non-cubic boxes, non-regular grids, etc in a straight-forward way.
+
+For convenience we will assume that particles will spread forces, represented with $\vec{F}:=\{\vec{F}_0,\dots,\vec{F}_{N-1}\}$, into a force density field, $\vec{f}_j$ (where $j$ represents a given cell), in the grid. Similarly particles will interpolate a velocity field, $\vec{\fvel}_j$, from the grid into a set per-particle velocities, $\vec{\pvel}:=\{\vec{\pvel}_0,\dots,\vec{\pvel}_{N-1}\}$. Naturally, the algorithms will be generic for any per-particle and per-cell quantity.
+
+We want to devise algorithms for two purposes:
+\begin{enumerate}
+\item Spreading (as defined in eq. \eqref{eq:spreadoper}) for a discrete set of points:
+  \begin{equation}
+    \vec{f}_j = \oper{S}\vec{F} = \sum_i \delta_a(\vec{\fpos}_j-\vec{\ppos}_i) \vec{F}_i.
+  \end{equation}
+\item Interpolation (as defined in eq. \eqref{eq:interpdiscrete}) from a discrete set of points:
+  \begin{equation}
+    \label{eq:interpdiscrete}
+    \vec{u}_i = \oper{J}_{\vec{\ppos}_i}\vec{\fvel} = \sum_j{\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{\fvel}_jdV}
+  \end{equation}
+  Where, owning to the assumption of a regular grid, the quadrature weights, $dV$, are assumed to be the same for all cells in the grid.
+\end{enumerate}
+
+
+In a regular grid, we can find the cell in which a given particle with position $\ppos_\alpha \in [-L/2, L/2)$ (being $\alpha$ any direction) lies using $c_\alpha = \floor((\ppos_\alpha/L + 0.5)n)$. From there, it is straight-forward to find the coordinates of the $n_s^3$ cells in the support of the particle, which are given by
+$$\vec{c}_n \in [\vec{c} - \vec{P}, \vec{c} + \vec{P}].$$
+Where the factor $\vec{P}$ is defined, in each direction $\alpha$, as
+$$
+P_\alpha := n_s/2 + s_\alpha
+$$
+The shift, $s_\alpha$, has to be defined depending on wether the support, $n_s$, is even or odd. In particular, we have
+\begin{equation}
+s_\alpha := \left \{
+\begin{aligned}
+  &0\quad&\text{if}\quad n_s\text{ is odd}\\
+  &\floor(\ppos_\alpha/h - c_\alpha + 0.5) \quad&\text{if}\quad n_s\text{ is even}
+\end{aligned}\right.
+\end{equation}
+Note that this rule for computing $s_\alpha$ only works for a regular grid. In general, we will need to find a rule that returns $0$ if a particle is in one side with respect to the cell center and $1$ otherwise.
+
+It is important to note that if the support is even, the value of the factor $\vec{P}$ in each direction will depend on the specific position of the particle inside the cell (see fig. \ref{fig:ibm2}). On the other hand the definition of $\vec{P}$ works seamlessly even if \gls{PBC} are used, in that case we would simply need to fold the neighbour cells to the $[0, n)$ range (for instance, the rightmost neighbour in the  $x$ direction would be $c_j = mod(c_x + P, n)$).
 
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/ibm2}
-  \caption{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($n_x=5, n_y=n_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation.}
+  \caption{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($n_x=5, n_y=n_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation. In this particular example, the shift, $P$, in the bottom (even) support case will be $2$ for the red particle and $1$ for the blue one.}
   \label{fig:ibm2}  
 \end{figure}
-Algorithm \ref{alg:visitneigh} shows how to handle the case of even supports.
 
-When looping through the cells inside the support of a particle, using the strategy in algorithm \ref{alg:visitneigh} instead of the naive three nested loops results in more integer operations, but reduces the operation to a single loop, reducing conditional logic pressure and facilitating loop unrolling, also giving the compiler more chances for optimization. Furthermore, the traversal order can be tweaked easily by modifying the relation between the linear neighbour index and the cell offsets in lines \ref{alg:visit_ix} and below from algorithm \ref{alg:visitneigh}.
-\todo{Maybe a graph explaining how $n_s=P/2$ works?}
-\begin{algorithm}[H]
-  \caption{Visiting the neighbour cells of a particle, $i$, located at $\vec{\ppos}_i \in [0, L)_{\mathbb R ^3}$ for spreading or interpolation}
-  \label{alg:visitneigh}
-  \begin{algorithmic}[1]
-    \State $\vec{c}_i \gets$ cell of particle $i$ \label{alg:visitneighgetcell}
-    \If{$n_s$ is even}
-    \LeftComment{Shift for even supports. Can be 0 or 1 in each direction}
-    \State $\vec{s} \gets \floor(\vec{\ppos}_i/h - \vec{c}_i + 0.5)$ \Comment{Valid for regular grids}
-    \Else
-    \State $\vec{s} \gets 0$ 
-    \EndIf
-    \State $\vec{P}_s\gets n_s/2 -\vec{s}$ \label{alg:visitneighshift}
-    \State precomputeKernel($\vec{\ppos}_i, \vec{P}_s$) \Comment{See alg. \ref{alg:precomputeKernel}}
-    \For{ $j=0$ until $n_s^3$}
-    \State $i_x \gets \text{mod}(j, n_s)$\label{alg:visit_ix}
-    \State $i_y \gets \text{mod}(j/n_s, n_s)$
-    \State $i_z \gets j/n_s^2$
-    \State $\vec{c}_j \gets \text{fold}(\vec{c}_i + (i_x, i_y, i_z) - \vec{P}_s)$ \Comment{Neighbour cell $\in [0, \vec{n})$}
-    \State $\delta\gets$ fetchKernel($i_x, i_y, i_z$) \Comment{$\delta_a(\vec{q}_i - \vec{c}_j)$, see alg.\ref{alg:precomputeKernel}}
-    \If{Spreading}
-    \State cellQuantity[$\vec{c}_j$] += $dV\delta$ particleQuantity[$\vec{\ppos}_i$] \label{alg:visitspread}
-    \ElsIf{Interpolating}
-    \State particleQuantity[$\vec{p}_i$] += $\delta$ cellQuantity[$\vec{c}_j$]\label{alg:visitinterp}
-    \EndIf
-    \EndFor
-  \end{algorithmic}
-\end{algorithm}
 
-The interaction between a cell $j$ and a particle $i$ is mediated via the kernel $\delta_a(\vec{\ppos}_i-\vec{\fpos}_j)$, in principle, this would incur $n_s^3$ evaluations of the kernel for spreading or interpolation. However, if the kernels are separable (by the first postulate in eq. \eqref{eq:peskinseparable}) we can reduce it to just $3n_s$ and storing $\phi$ for each direction before the loop. We can then just multiply the stored evaluations of $\phi$ in each direction to get $\delta_a$. Algorithm \ref{alg:precomputeKernel} contains details on how to do this.
-
+The interaction between a cell $j$ and a particle $i$ is mediated via the kernel $\delta_a(\vec{\ppos}_i-\vec{\fpos}_j)$, in principle, this would incur $n_s^3$ evaluations of the kernel for spreading or interpolation. However, if the kernels are separable (so that $\delta_a(\vec{r}) = \phi_x(r_x)\phi_y(r_y)\phi_z(r_z)$ by the first postulate in eq. \eqref{eq:peskinseparable}) we can reduce it to just $3n_s$ by precomputing and storing $\phi_X(\ppos^i_x-\fpos^j_x)$ (and similarly for the other directions) for each direction before spreading/interpolating each particle. We can then just multiply the stored evaluations of $\phi_{x/y/z}$ in each direction to get $\delta_a$. Algorithm \ref{alg:precomputeKernel} shows how to take advantage of this optimization via two functions: The first one takes a position inside the unit box and its corresponding cell shift $P$ and stores (in some arrays with an undetermined location) the $3n_s$ necessary kernel evaluations. The second function takes the 3D index of a neighbour cell ($[0, n_s)$ in each direction) and uses the stored kernel evaluations (which assumes the first function has been called already) to compute and return the weight for that neighbour cell. 
 \begin{algorithm}[H]
   \caption{Precomputing the kernel and accessing it via linear indices. See alg. \ref{visitneigh}}
   \label{alg:precomputeKernel}
@@ -2940,18 +2910,60 @@ The interaction between a cell $j$ and a particle $i$ is mediated via the kernel
   \end{algorithmic}
 \end{algorithm}
 
-Our goal now is to devise an efficient, \gpu friendly, version of spreading/interpolation. In serial, we can simply apply \ref{alg:visitneigh} to each particle to get a fairly efficient algorithm. However, a direct paralelization of this approach by assigning a worker to each particle is not possible for spreading. In this case two particles could write at the same time to the same cell, resulting in a race condition. This can be circumvented by ensuring that line \ref{alg:visitspread} in alg. \ref{alg:visitneigh} is an \emph{atomic} operation\footnote{An \emph{atomic} operation is that which is required to be carried out by a single thread a a time. Allowing several workers (threads) to modify (for instance by reading, modifying and then writing) the same memory location at the same time can result in some of the information being lost (for instance when a second thread reads while the first is still modyfing). CUDA comes with a great GPU atomic library, which has become more and more efficient with time. CUDA atomics have come to a point in which, in the absence of collisions (two threads trying to access the same memory location), the overhead of using atomics is almost neglegible.}.
+
+In a serial implementation of spreading, we can simply sum the contribution, $\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{F}_i$, of each particle, $i$, to each of the cells, $j$, in its support by looping. In the case of interpolation a similar strategy can be employed, where each particle accumulates the quantity $\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{v}$ from its nearby cells. Algorithm \ref{alg:visitneigh} summarizes the strategy to spread or interpolate a given particle thus far.
+\begin{algorithm}[H]
+  \caption{Visiting the neighbour cells of a particle, $i$, located at $\vec{\ppos}_i \in [0, L)_{\mathbb R ^3}$ for spreading or interpolation. We define $\vec{u}:=(1,1,1)$ for convenience.}
+  \label{alg:visitneigh}
+  \begin{algorithmic}[1]
+    \State $\vec{c}_i \gets$ cell of particle $i$ \label{alg:visitneighgetcell}
+    \If{$n_s$ is even}
+    \LeftComment{Shift for even supports. Can be 0 or 1 in each direction}
+    \State $\vec{s} \gets \floor(\vec{\ppos}_i/h - \vec{c}_i + 0.5\vec{u})$ \Comment{Valid for regular grids}
+    \Else
+    \State $\vec{s} \gets (0,0,0)$ 
+    \EndIf
+    \State $\vec{P}_s\gets n_s/2\vec{u} -\vec{s}$ \label{alg:visitneighshift}
+    \State precomputeKernel($\vec{\ppos}_i, \vec{P}_s$) \Comment{See alg. \ref{alg:precomputeKernel}}
+    \For{ $j=0$ until $n_s^3$} \label{alg:visitneighloop}
+    \State $i_x \gets \text{mod}(j, n_s)$\label{alg:visit_ix}
+    \State $i_y \gets \text{mod}(j/n_s, n_s)$
+    \State $i_z \gets j/n_s^2$
+    \State $\delta\gets$ fetchKernel($i_x, i_y, i_z$) \Comment{$\delta_a(\vec{q}_i - \vec{c}_j)$, see alg. \ref{alg:precomputeKernel}.}
+    \State $\vec{c}_j \gets \text{fold}(\vec{c}_i + (i_x, i_y, i_z) - \vec{P}_s)$ \Comment{Neighbour cell $\in [0, \vec{n})$.}
+    \If{Spreading}
+    \State cellQuantity[$\vec{c}_j$] += $dV\delta$ particleQuantity[$\vec{\ppos}_i$] \label{alg:visitspread}
+    \ElsIf{Interpolating}
+    \State particleQuantity[$\vec{p}_i$] += $\delta$ cellQuantity[$\vec{c}_j$]\label{alg:visitinterp}
+    \EndIf
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+In serial, we can simply apply algorithm \ref{alg:visitneigh} to each particle to get a fairly efficient algorithm. However, a direct paralelization of this approach by assigning a worker to each particle is not possible for spreading. In this case two particles could write at the same time to the same cell, resulting in a race condition. This race condition can be circumvented by ensuring that line \ref{alg:visitspread} in alg. \ref{alg:visitneigh} is an \emph{atomic} operation\footnote{In a parallel environment, an \emph{atomic} operation enforces that only one thread performs the operation a time. Allowing several workers (threads) to modify (for instance by reading, modifying and then writing) the same memory location at the same time can result in some of the information being lost (for instance when a second thread reads while the first is still modyfing). CUDA comes with a great GPU atomic library, which has become more and more efficient with time. CUDA atomics have come to a point in which, in the absence of collisions (two threads trying to access the same memory location), the overhead of using atomics is almost neglegible.}.
 
 Another solution is to traverse per cell instead of per particle, usually refered to as mesh-based approaches. Each cell is assigned to a worker, which then traverses all nearby particles. This requires to construct a cell list. While this approach is free of atomic operations (which can hurt performance if a lot of collisions happen) it makes the algorithm scale with the number of cells and will be inefficient in low density systems (or in configurations with large density disparities), where many cells are empty. On the other hand, CUDA atomic operations have come a long way, presenting almost no overhead when there are no collisions. Furthermore, a per-cell approach does not allow to take advantage of eq. \eqref{eq:peskinseparable} easily, increasing the number of kernel evaluations to $n_s^3$.
-For our typical use, the few corner cases in which the per-cell approach is more optimal are not worth enough to consider this option.
+We usually have to spread quasi uniform configurations in 3D and we typically deal with a few million number of particles, which makes a per-particle approach the overall best option. Note, however, that there is not a best-for-all algorithm regarding spreading and a mesh based approach will probably have the upper-hand in some situations (probably when highly dense systems are considered).
+For our typical use, the few corner cases in which the per-cell approach is more optimal are not worth enough to consider it as an option. A review of several mesh-based methods is available at\cite{Guo2015}.
 
-There is not a best-for-all algorithm regarding spreading, a review of several mesh-based methods is available at\cite{Guo2015}.
-We usually have to spread quasi uniform configurations in 3D and we typically deal with a few million number of particles, which makes a per-particle approach the overall best option (see figure \ref{fig:ibmcomp}).
-
-Recently, a new \gpu-friendly algorithm has been developed\cite{Shih2021} that uses an hybrid approach by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken until each thread block deals with a subproblem with up to a maximum number of particles (see fig. 1 in \cite{Shih2021}) to aide with load-balancing. Subproblems are then spreaded into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems are reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Testing suggest that, for a single \gpu, this new strategy is only worth for large and dense systems (with more than $~2$ million particles) and 2D grids (see fig. \ref{fig:ibmcomp}). Although it is arguably the best algorithm at the time of writing if one wants to take advantage of several GPUs.
+It is worth mentioning the specific geometry of the loop in line \ref{alg:visitneighloop} of algorithm \ref{alg:visitneigh}. When looping through the cells inside the support of a particle, using the strategy in algorithm \ref{alg:visitneigh} instead of the naive three nested loops results in more integer operations, but reduces the operation to a single loop, reducing conditional logic pressure and facilitating loop unrolling, also giving the compiler more chances for optimization. Furthermore, the traversal order can be tweaked easily by modifying the relation between the linear neighbour index and the cell offsets in lines \ref{alg:visit_ix} and below from algorithm \ref{alg:visitneigh}.
 
 \subsubsection*{Spreading algorithm}
-We suggest a particle-based approach, presenting subtle differences with the existing ones\cite{Shih2021}\cite{Guo2015}\cite{Fiore2017}, specifically tailored for the \gpu. We assign a thread block to each particle, each thread in the block will spread to a different cell atomically. Since all threads in the block handle the same particle all the per-particle information can be stored in shared memory. This includes the $3n_s$ evaluations of the kernel, which can be precomputed into shared memory collaboratively by all threads(see algorithm \ref{alg:precomputeKernelSM}). We refer to this method as BPP (for block-per-particle)\footnote{Changing algorithm \ref{alg:visitneigh} into a block-per-particle kernel amounts to assigning different elements of the cell loop to different threads, in the same way as in passing from algorithm \ref{alg:precomputeKernel} to \ref{alg:precomputeKernelSM}.}. This is in contrast with the naive \emph{GM} algorithm in \cite{Shih2021}, where a thread is assigned to a particle and the kernel is stored in (the scarce) \emph{register} memory. We refer to this method as TPP (thread-per-particle). Given the scarcity of register memory, storing $3n_s$ values in it could easily result in register spilling, thus, we will also consider recomputing the kernel ($n_s^3$ times) when using TPP.
+Regarding particle-based spreading algorithms, we will consider three main strategies that we will refer to as Block Per Domain (BPD), Block Per Particle (BPP) and Thread Per Particle (TPP).
+\subsubsection*{Thread Per Particle (TPP)}
+Let us start with the \emph{naive} version of the algorithm in which we assign a thread to each particle and then simply apply algorithm \ref{alg:visitneigh}, summing the particles contributions atomically to the grid data as previously discussed. In order to precompute and store kernel we distinguish between two options:
+\begin{enumerate}
+\item TPP (register): Store the kernel evaluations in the (scarce) \emph{register} memory. Given the scarcity of register memory, storing $3n_s$ values in it could easily result in register spilling\footnote{In a given CUDA kernel, when more register memory than available is requested, the compiler stores the excess in global memory. This is known as \emph{register spilling}. Naturally, register spilling should be avoided at all costs, since accessing global memory is orders of magnitude slower than register memory.}.
+\item TPP (recompute): We do not take advantage of the kernel separation and simply recompute the kernel whenever is needed (in particular $n_s^3$ times).
+\end{enumerate}
+
+
+\subsubsection*{Block Per Domain (BPD)}
+Recently, a new \gpu-friendly algorithm has been developed\cite{Shih2021} that uses an hybrid strategy, lying in between particle and grid based approachs, by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken until each thread block deals with a subproblem with up to a maximum number of particles (see fig. 1 in \cite{Shih2021}) to aide with load-balancing. Subproblems are then spreaded into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems is reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Testing suggest that, for a single \gpu, the new strategy in \cite{Shih2021} is only worth for large and dense systems (with more than $~2$ million particles) and 2D grids (see fig. \ref{fig:ibmcomp}). Although it is arguably the best algorithm at the time of writing if one wants to take advantage of several GPUs.
+
+\subsubsection*{Block Per Particle (BPP)}
+We suggest a particle-based approach, presenting subtle differences with the existing ones\cite{Shih2021}\cite{Guo2015}\cite{Fiore2017}, specifically tailored for the \gpu. We assign a thread block to each particle, each thread in the block will spread to a different cell atomically. Since all threads in the block handle the same particle, all the per-particle information can be stored in shared memory. This includes the $3n_s$ evaluations of the kernel, which can be precomputed into shared memory collaboratively by all threads in the same block (see algorithm \ref{alg:precomputeKernelSM}). We refer to this method as BPP (for block-per-particle)\footnote{Changing algorithm \ref{alg:visitneigh} into a block-per-particle kernel amounts to assigning different elements of the cell loop to different threads, in the same way as in passing from algorithm \ref{alg:precomputeKernel} to \ref{alg:precomputeKernelSM}.}.
+
+
 \todo{improve alg so a different thread is asigned to each dir} 
 \begin{algorithm}[H]
   \caption{Precomputing the kernel in GPU shared memory. See alg. \ref{visitneigh}}
@@ -2974,14 +2986,17 @@ We suggest a particle-based approach, presenting subtle differences with the exi
 
 In BPP, only one of the threads (tipically the first one) needs to fetch the particle position and quantity to spread and compute its information (lines \ref{alg:visitneighgetcell} to \ref{alg:visitneighshift} in alg. \ref{alg:visitneigh}).
 One benefit of assigning a block per particle is that it is guaranteed that no atomic collisions will occur for threads in the same block. Since the execution order of blocks is not guaranteed the chances of atomic collisions between blocks are reduced in average.
-In a thread-per-particle approach, if the particles are sorted randomly in memory chances of atomic collision are reduced at the expense of worse access pattern (for reading particles are writting to cells). On the other hand, particles sorted by spatial hash (close in space means close in memory) will result in faster fetching, but increased chance of atomic overlap\footnote{In \uammd, particles can be sorted using the Z-morton hash (see sec. \ref{sec:particledata}) easily.}.
+In a thread-per-particle approach, if the particles are sorted randomly in memory chances of atomic collision are reduced at the expense of worse access pattern (both when reading particles and writting to cells).
+
+On the other hand, particles sorted by spatial hash (close in space means close in memory) would result in faster fetching, but increased chance of atomic overlap\footnote{In \uammd, particles can be sorted using the Z-morton hash (see sec. \ref{sec:particledata}) easily.}.
 %In general there will be a battle between these two effects (coalescence vs. atomic overlap).
 Our block-per-particle algorithm hides these issues to an extent, since only one thread in each block will fetch a particle and atomic overlap is reduced by design.
 However, testing suggests that particle sorting via spatial hashing dramatically improves performance (an overall speedup of $\times 7$ for TPP and $\times 2$ for BPP\todo{graph with these claims?}). Suggesting that atomic overlap is far less important than a cache-friendly memory access pattern.
 The storage layout of the grid data can also influence the performance of the algorithm. In particular, using a space filling curve (as the one in sec. \ref{sec:celllist}) could improve the access pattern in both spreading and interpolation\cite{Shih2021}. However, this has not been considered in this work, were a linear index is always considered so that the data for cell with indices $(i,j,k)$ is located at element $i+(j+kn_y)n_x$ in the relevant array\footnote{Note however, that the software interface for this module allows for an arbitrary ordering of the grid data, as we will later see}. This ordering comes imposed by the usual relation between spreading/interpolation and spectral methods in fluctuating hydrodynamics, which requires using \gls{FFT} libraries that benefit from (or are restricted to) it.
 
-We compare the described TPP and BPP algorithms with the hybrid SM in \cite{Shih2021} in fig. \ref{fig:ibmcomp}, measuring the performance of spreading one number per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible.
-
+We compare the described TPP and BPP algorithms with the hybrid SM in \cite{Shih2021} in fig. \ref{fig:ibmcomp}, measuring the performance of spreading one scalar per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible.
+\todo{Figure comparing spreading a 3 vector with uammd and 3 times the cost of Shih.}
+\todo{Explain that float4 fetching costs the same as a single float, so we can exploit it by storing Fxyz and spreading at once}
 \begin{figure}[h]
   \centering
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens1_2080ti}}
@@ -2996,6 +3011,7 @@ Another interesting behavior in fig. \ref{fig:ibmcomp} is that the TPP algorithm
 Furthermore, the BPP algorithm is optimal for ``small'' systems, our typical range of application (below 2 million particles).
 
 \subsubsection*{Interpolation algorithm}
+Interpolation is inherently a more efficient operation than spreading, since no atomic operations are required and, moreover, we only need to read the grid data. 
 When traversing per particle, interpolation does not require atomic operations (see alg. \ref{alg:visitneigh}). The worker asigned to a particle can accumulate the result of the interaction with nearby particles into a local variable and then write it to the global result array. Furthermore, interpolation requires only $N$ write operations, while spreading requires to perform $n_s^3N$ atomic writes. This makes interpolation inherently more efficient.
 The same TPP vs BPP arguments from spreading can be broadly employed here, prompting for a BPP approach. In this case, each thread in the block assigned to a given particle will compute the interaction with one (or several) cells, storing the result in a thread local register.
 When all threads in the block have finished, the local results are reduced into a final result, which is then written to global memory by a single thread (usually the first one).
@@ -3016,7 +3032,7 @@ The \emph{IBM} module in \uammd exposes the spreading and interpolation algorith
 
 This interface is quite generic, allowing to spread or gather in a wide variety of situations. The geometry of the grid is abstracted via the \emph{Grid} object (see sec. \ref{sec:uammdgrid}) so non regular grids can be used. By default, the module will assume that data for cell $(i,j,k)$ is located at index $i+(j+kn_y)n_x$, but any indexing can be used by providing the module with a functor whose parenthesis operator takes $(i,j,k)$ and returns the index in the grid data array.
 
-The types of the grid and particle data arrays are templated, any random access iterator can be provided as long as the value type of the grid data is convertible to the one of the particle data (and viceversa). So one can, for instance, compute the quantity to spread on the fly without storing it.
+The types of the grid and particle data arrays are templated. In fact any random access iterator can be provided as long as the value type of the grid data is convertible to the one of the particle data (and viceversa) and any two given elements can be summed. So one can, for instance, using a \emph{transform iterator},  compute the quantity to spread on the fly without storing or reading anything. For additional information on C++ templates and iterators, see Appendix \ref{sec:cpp}.
 
 The gather operation can take an additional functor whose parenthesis operator takes the coordinates of a given cell and a grid object and returns the quadrature weights for that cell.
 
@@ -4633,97 +4649,99 @@ Besides having to include the first images, this part of the algorithm is then i
 Let us split far field potential
 
 \section{How to use in UAMMD}
-\newpage
-\cleardoublepage
-\ctparttext{Collection of tools and algorithms useful in soft matter simulations.}
-\part{GPU enabled post processing}\label{pt:tools}
-
-\begin{itemize}
-\item The unreasonable convenience of an UNIX-like environment. The pipe as a connector between operations.
-\item The UNIX phylosophy of do one thing and one thing only.
-\end{itemize}
-
-\chapter{Radial Distribution Function}
-\chapter{Mean Square Displacement}
-\chapter{Fast Correlations}
-\chapter{Fast Histogram}
-\chapter{FFT}
-
-
-\chapter{Superpunto}
-\begin{figure}[H]
-  \label{fig:spunto}
-  \centering
-  \includegraphics[width=\textwidth]{gfx/shotlogo}
-  \caption{A screenshot of a \gls{LJ} fluid quenched to a low temperature made with superpunto. The simulation contains $10$ million particles, which are being rendered to the screen at about 30 frames per second in a GTX 980 \gpu.}
-\end{figure}
-
-\begin{itemize}
-\item Superpunto, a particle visualizator.
-\item Explain the need for a fast particle visualizer with a super simple format and pipe capabilities. Real time visualization using the pipe.
-  
-\end{itemize}
-
-\section{Format}
-inputfile should have the following structure:
-\begin{minted}{\ucpp}
-#Lx=X;Ly=Y;Lz=Z; Comments are used to separate frames, you can force the size of the simulation box starting the comment as in this example. All three L must be provided
-X1 Y1 Z1 r1 c1 Vx Vy Vz#You can comment here aswell! If your file has more than
-X2 ...         #8 columns, the rest will be ignored!
-.
-.
-.
-\# frame=2
-X1 Y1 Z1 r1 c1 Vx Vy Vz
-.
-.
-.
-\# frame = 3
-\end{minted}
-
-\section{Graphical Techniques}
-
-\begin{itemize}
-\item Instanced drawing with OpenGL 4.5
-\item The G-buffer technique
-\item Lighting model.
-\item Screen space ambient oclussion (SSAO).
-\end{itemize}
-
-\section{Controls}
-
-\begin{itemize}
-\item  Movement:
-  \begin{itemize}
-  \item Move with WASD, E and Q to tilt and Shift/Ctrl to go up/Down
-  \item Use +/- to increase/decrease the speed
-  \item Look around holding ALT and moving the mouse
-  \item Rotate the world in XYZ using 123/456    
-  \end{itemize}
-\item Frame control:
-  \begin{itemize}
-  \item Press Space to go to the next frame, R to the previous
-  \item Press T to go to the last frame, B takes you to the first one
-  \item Press M to play the frames at 60 FPS, M again to pause
-  \item Press C to take a screenshot in png
-  \item Press L to play and record to a mp4 until L is pressed again
-  \end{itemize}
-\end{itemize}
-\subsection*{Options}
-\begin{itemize}
-\item --record :  Makes a movie of all the frames in file and generates a .mp4
-\item --frames-between-screenshots X : Number of frames skipped between screenshots when recording (default = 2)
-\item --background R G B : Background color in RGB, default R=G=B=0.0
-\item --palette X : Change the color palette
-\item --RGB : Read colors as hex values in BGR (as integers) (0xFF=red=255). Overrides palette
-\item --nobox : Do not render the bounding box.
-\item --noaxis : Do not render axis labels.
-\item --resolution X Y : Set the resolution (AKA window size). Default is 800x800          
-\end{itemize}
-
 
 \newpage
 \cleardoublepage
+%\ctparttext{Collection of tools and algorithms useful in soft matter simulations.}
+%\part{GPU enabled post processing}\label{pt:tools}
+%
+%\begin{itemize}
+%\item The unreasonable convenience of an UNIX-like environment. The pipe as a connector between operations.
+%\item The UNIX phylosophy of do one thing and one thing only.
+%\end{itemize}
+%
+%\chapter{Radial Distribution Function}
+%\chapter{Mean Square Displacement}
+%\chapter{Fast Correlations}
+%\chapter{Fast Histogram}
+%\chapter{FFT}
+%
+%
+%\chapter{Superpunto}
+%\begin{figure}[H]
+%  \label{fig:spunto}
+%  \centering
+%  \includegraphics[width=\textwidth]{gfx/shotlogo}
+%  \caption{A screenshot of a \gls{LJ} fluid quenched to a low temperature made with superpunto. The simulation contains $10$ million particles, which are being rendered to the screen at about 30 frames per second in a GTX 980 \gpu.}
+%\end{figure}
+%
+%\begin{itemize}
+%\item Superpunto, a particle visualizator.
+%\item Explain the need for a fast particle visualizer with a super simple format and pipe capabilities. Real time visualization using the pipe.
+%  
+%\end{itemize}
+%
+%\section{Format}
+%inputfile should have the following structure:
+%\begin{minted}{\ucpp}
+%#Lx=X;Ly=Y;Lz=Z; Comments are used to separate frames, you can force the size of the simulation box starting the comment as in this example. All three L must be provided
+%X1 Y1 Z1 r1 c1 Vx Vy Vz#You can comment here aswell! If your file has more than
+%X2 ...         #8 columns, the rest will be ignored!
+%.
+%.
+%.
+%\# frame=2
+%X1 Y1 Z1 r1 c1 Vx Vy Vz
+%.
+%.
+%.
+%\# frame = 3
+%\end{minted}
+%
+%\section{Graphical Techniques}
+%
+%\begin{itemize}
+%\item Instanced drawing with OpenGL 4.5
+%\item The G-buffer technique
+%\item Lighting model.
+%\item Screen space ambient oclussion (SSAO).
+%\end{itemize}
+%
+%\section{Controls}
+%
+%\begin{itemize}
+%\item  Movement:
+%  \begin{itemize}
+%  \item Move with WASD, E and Q to tilt and Shift/Ctrl to go up/Down
+%  \item Use +/- to increase/decrease the speed
+%  \item Look around holding ALT and moving the mouse
+%  \item Rotate the world in XYZ using 123/456    
+%  \end{itemize}
+%\item Frame control:
+%  \begin{itemize}
+%  \item Press Space to go to the next frame, R to the previous
+%  \item Press T to go to the last frame, B takes you to the first one
+%  \item Press M to play the frames at 60 FPS, M again to pause
+%  \item Press C to take a screenshot in png
+%  \item Press L to play and record to a mp4 until L is pressed again
+%  \end{itemize}
+%\end{itemize}
+%\subsection*{Options}
+%\begin{itemize}
+%\item --record :  Makes a movie of all the frames in file and generates a .mp4
+%\item --frames-between-screenshots X : Number of frames skipped between screenshots when recording (default = 2)
+%\item --background R G B : Background color in RGB, default R=G=B=0.0
+%\item --palette X : Change the color palette
+%\item --RGB : Read colors as hex values in BGR (as integers) (0xFF=red=255). Overrides palette
+%\item --nobox : Do not render the bounding box.
+%\item --noaxis : Do not render axis labels.
+%\item --resolution X Y : Set the resolution (AKA window size). Default is 800x800          
+%\end{itemize}
+%
+%
+%\newpage
+%\cleardoublepage
+
 \part{New physics and applications}\label{pt:applications}
 \begin{itemize}
 \item In this part we showcase the works that resulted from this thesis.
@@ -4849,7 +4867,7 @@ We investigate tank-treading and breathing dynamics of individual star molecules
 \chapter{Simulations of dynamically cross-linked actin networks}
 Simulations in this work are accelerated by \uammd's neighbour list capabilities.
 
-\chapter{Ongoing work and future directions}
+\chapter{Ongoing work and future directions}\label{ch:ongoing}
 
 \begin{itemize}
 \item Juan aragones DPD
@@ -4859,7 +4877,7 @@ Simulations in this work are accelerated by \uammd's neighbour list capabilities
 \item multi gpu
 \end{itemize}
 
-\chapter{Conclusions}
+\chapter{Conclusions}\label{ch:conclusions}
 
 asdasdas
 \todo{ What should I say here?}
@@ -5211,10 +5229,11 @@ In addition of inheritance, C++ offers another way of writing generic code calle
 
 In \uammd, templates are used extensively to generalize modules. For instance, the \emph{PairForces} module (see example code \ref{code:pf}) is templated for both the potential and the neighbour list.
 
-
-
 \subsection*{Other keywords}
 The \mintinline{\ucpp}{const} keyword simply informs the reader (and compiler) that the value of the accompanying variable cannot be modified after its declaration. When appearing in the signature of an object's member function, it conveys that the function will not modify the state of the object in any way.
+
+\subsection*{Iterators}
+\todo{Fill this section}
 
 \section{Basics rules of CUDA programming}
 CUDA is an extension of C++. All the language rules we have seen thus far also apply to CUDA. CUDA introduces some new keywords and an \gls{API}.
