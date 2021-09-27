@@ -183,6 +183,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 
 \newcommand{\corr}{\text{corr}}
 \newcommand{\dpr}{\text{\tiny DP}}
+\newcommand{\qtd}{\text{\tiny q2D}}
 
 \addbibresource{Bibliography.bib}
 
@@ -2948,30 +2949,25 @@ For our typical use, the few corner cases in which the per-cell approach is more
 It is worth mentioning the specific geometry of the loop in line \ref{alg:visitneighloop} of algorithm \ref{alg:visitneigh}. When looping through the cells inside the support of a particle, using the strategy in algorithm \ref{alg:visitneigh} instead of the naive three nested loops results in more integer operations, but reduces the operation to a single loop, reducing conditional logic pressure and facilitating loop unrolling, also giving the compiler more chances for optimization. Furthermore, the traversal order can be tweaked easily by modifying the relation between the linear neighbour index and the cell offsets in lines \ref{alg:visit_ix} and below from algorithm \ref{alg:visitneigh}.
 
 \subsubsection*{Spreading algorithm}
-Regarding particle-based spreading algorithms, we will consider three main strategies that we will refer to as Block Per Domain (BPD), Block Per Particle (BPP) and Thread Per Particle (TPP).
+Regarding \gpu friendly parallelizations of particle-based spreading algorithms, we will consider three main strategies that we will refer to as Block Per Domain (BPD), Block Per Particle (BPP) and Thread Per Particle (TPP). After describing the different algorithms we will compare their performance.
 \subsubsection*{Thread Per Particle (TPP)}
-Let us start with the \emph{naive} version of the algorithm in which we assign a thread to each particle and then simply apply algorithm \ref{alg:visitneigh}, summing the particles contributions atomically to the grid data as previously discussed. In order to precompute and store kernel we distinguish between two options:
+Let us start with the \emph{naive} version of the algorithm in which we assign a thread to each particle and then simply apply algorithm \ref{alg:visitneigh}, summing the particles contributions atomically to the grid data as previously discussed. Each thread must then evaluate the kernel as many times as needed for its assigned particle. We deal with the kernel evaluations in two different ways:
 \begin{enumerate}
-\item TPP (register): Store the kernel evaluations in the (scarce) \emph{register} memory. Given the scarcity of register memory, storing $3n_s$ values in it could easily result in register spilling\footnote{In a given CUDA kernel, when more register memory than available is requested, the compiler stores the excess in global memory. This is known as \emph{register spilling}. Naturally, register spilling should be avoided at all costs, since accessing global memory is orders of magnitude slower than register memory.}.
-\item TPP (recompute): We do not take advantage of the kernel separation and simply recompute the kernel whenever is needed (in particular $n_s^3$ times).
+\item \textbf{TPP (register)}: Store the $3n_s$ kernel evaluations (making use of the optimization in Algorithm \ref{alg:precomputeKernel}) in each thread's \emph{register} memory. Given the scarcity of register memory, storing $3n_s$ values in it could easily result in register spilling\footnote{In a given CUDA kernel, when more register memory than available is requested, the compiler stores the excess in global memory. This is known as \emph{register spilling}. Naturally, register spilling should be avoided at all costs, since accessing global memory is orders of magnitude slower than register memory.}. This algorithm is refered to as \emph{GM} in \cite{Shih2021}.
+\item \textbf{TPP (recompute)}: We do not take advantage of the kernel separation at all and simply recompute the kernel whenever is needed (in particular $n_s^3$ times). This naturally increases arithmetic pressure compared with the register version. However, as a general rule, GPUs are much more forgiving to extra arithmetic operations than they are to extra memory traffic. Thus exchanging memory for arithmetics is usually a good call.
 \end{enumerate}
-
-
-\subsubsection*{Block Per Domain (BPD)}
-Recently, a new \gpu-friendly algorithm has been developed\cite{Shih2021} that uses an hybrid strategy, lying in between particle and grid based approachs, by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken until each thread block deals with a subproblem with up to a maximum number of particles (see fig. 1 in \cite{Shih2021}) to aide with load-balancing. Subproblems are then spreaded into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems is reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Testing suggest that, for a single \gpu, the new strategy in \cite{Shih2021} is only worth for large and dense systems (with more than $~2$ million particles) and 2D grids (see fig. \ref{fig:ibmcomp}). Although it is arguably the best algorithm at the time of writing if one wants to take advantage of several GPUs.
+While assigning a thread to a particle sounds like a reasonable separation of tasks, in doing so we are missing out on the intra-thread-block collaborative capabilities of the GPU (such as the shared memory space). Furthermore, in TPP threads in the same block are dealing with different particles, so there is no mechanism in place reducing the chance of atomic collisions. If the particles assigned to two adjacent threads happen to be close in space, there will be a high chance that at some point these two threads try to write to the same cells in the grid. Luckily there is a yet more fine-grained parallelization hidden in this algorithm that happens to be perfectly suited for the GPU architecture. This parallelization emerges when assigning an entire thread block to a particle as we will discuss now.
 
 \subsubsection*{Block Per Particle (BPP)}
-We suggest a particle-based approach, presenting subtle differences with the existing ones\cite{Shih2021}\cite{Guo2015}\cite{Fiore2017}, specifically tailored for the \gpu. We assign a thread block to each particle, each thread in the block will spread to a different cell atomically. Since all threads in the block handle the same particle, all the per-particle information can be stored in shared memory. This includes the $3n_s$ evaluations of the kernel, which can be precomputed into shared memory collaboratively by all threads in the same block (see algorithm \ref{alg:precomputeKernelSM}). We refer to this method as BPP (for block-per-particle)\footnote{Changing algorithm \ref{alg:visitneigh} into a block-per-particle kernel amounts to assigning different elements of the cell loop to different threads, in the same way as in passing from algorithm \ref{alg:precomputeKernel} to \ref{alg:precomputeKernelSM}.}.
-
-
-\todo{improve alg so a different thread is asigned to each dir} 
-\begin{algorithm}[H]
-  \caption{Precomputing the kernel in GPU shared memory. See alg. \ref{visitneigh}}
+We suggest a particle-based approach, presenting subtle differences with the existing ones\cite{Shih2021}\cite{Guo2015}\cite{Fiore2017}, specifically tailored for the \gpu. We assign a thread block to each particle and then make each thread in the block spread to a different cell atomically. Since all threads in the block handle the same particle, all the per-particle information can be stored in shared memory. This includes the $3n_s$ evaluations of the kernel, which can be precomputed into shared memory collaboratively by all threads in the same block (see algorithm \ref{alg:precomputeKernelSM}, a slight modification to algorithm \ref{alg:precomputeKernel} that takes this parallelization into account). The available shared memory is much larger than register memory so in this instance storing the $3n_s$ evaluations is not an issue. We refer to this method as block-per-particle (BPP)\footnote{Changing algorithm \ref{alg:visitneigh} into a block-per-particle geometry amounts to assigning different elements of the cell loop to different threads, in the same way as in passing from algorithm \ref{alg:precomputeKernel} to \ref{alg:precomputeKernelSM}.}.
+%\todo{improve alg so a different thread is asigned to each dir} 
+\begin{algorithm}[h]
+  \caption{Precomputing the kernel in GPU shared memory collaboratively. This algorithm is quite similar to alg. \ref{alg:precomputeKernel}, but each element in the loop is asigned to a different thread in the block. The arrays $phi_{X/Y/Z}$ are located in shared memory.}
   \label{alg:precomputeKernelSM}
   \begin{algorithmic}[1]
     \Function{precomputeKernelSM}{$\vec{\ppos} \in [0, L)_{\mathbb R^3}$, $\vec{P}_s$}
     \State $\vec{c} \gets$ cell of $\vec{\ppos}$
-    \For{$i=$threadIdx.x until $n_s$ by blockIdx.x}    
+    \For{$i=$threadIdx.x until $n_s$ \textbf{by} blockIdx.x}    
     \State $\vec{c}_s \gets \vec{c} - \vec{P}_s + (i,i,i)$
     \State $\vec{r} \gets \text{dist}(\vec{c}_s, \vec{\ppos})$ \Comment{Distance to cell $\vec{c}_s$ in each direction}
     \State Store $\phi_X[i] \gets \phi(\vec{r}_x/h)/h$
@@ -2983,41 +2979,51 @@ We suggest a particle-based approach, presenting subtle differences with the exi
   \end{algorithmic}
 \end{algorithm}
 
-
 In BPP, only one of the threads (tipically the first one) needs to fetch the particle position and quantity to spread and compute its information (lines \ref{alg:visitneighgetcell} to \ref{alg:visitneighshift} in alg. \ref{alg:visitneigh}).
 One benefit of assigning a block per particle is that it is guaranteed that no atomic collisions will occur for threads in the same block. Since the execution order of blocks is not guaranteed the chances of atomic collisions between blocks are reduced in average.
 In a thread-per-particle approach, if the particles are sorted randomly in memory chances of atomic collision are reduced at the expense of worse access pattern (both when reading particles and writting to cells).
 
-On the other hand, particles sorted by spatial hash (close in space means close in memory) would result in faster fetching, but increased chance of atomic overlap\footnote{In \uammd, particles can be sorted using the Z-morton hash (see sec. \ref{sec:particledata}) easily.}.
-%In general there will be a battle between these two effects (coalescence vs. atomic overlap).
-Our block-per-particle algorithm hides these issues to an extent, since only one thread in each block will fetch a particle and atomic overlap is reduced by design.
-However, testing suggests that particle sorting via spatial hashing dramatically improves performance (an overall speedup of $\times 7$ for TPP and $\times 2$ for BPP\todo{graph with these claims?}). Suggesting that atomic overlap is far less important than a cache-friendly memory access pattern.
-The storage layout of the grid data can also influence the performance of the algorithm. In particular, using a space filling curve (as the one in sec. \ref{sec:celllist}) could improve the access pattern in both spreading and interpolation\cite{Shih2021}. However, this has not been considered in this work, were a linear index is always considered so that the data for cell with indices $(i,j,k)$ is located at element $i+(j+kn_y)n_x$ in the relevant array\footnote{Note however, that the software interface for this module allows for an arbitrary ordering of the grid data, as we will later see}. This ordering comes imposed by the usual relation between spreading/interpolation and spectral methods in fluctuating hydrodynamics, which requires using \gls{FFT} libraries that benefit from (or are restricted to) it.
+On another consideration we can sort particles in memory by spatial hash (so that close in space also means close in memory) which results in faster fetching of the grid data, but increased chance of atomic overlap\footnote{In \uammd, particles can be sorted using the Z-morton hash (see sec. \ref{sec:particledata}) easily.}. In general, there will be a trade-off between these two effects.
 
-We compare the described TPP and BPP algorithms with the hybrid SM in \cite{Shih2021} in fig. \ref{fig:ibmcomp}, measuring the performance of spreading one scalar per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible.
+However, our block-per-particle algorithm hides these issues (effect of particle sorting and atomic overlap) to an extent, since only one thread in each block will fetch a particle and atomic overlap is reduced by design.
+
+Still, testing suggests that particle sorting via spatial hashing dramatically improves performance (an overall speedup of $\times 7$ for TPP and $\times 2$ for BPP). Suggesting that atomic overlap is far less important than a cache-friendly memory access pattern\footnote{Which goes to show how far have CUDA atomics went.}.
+The storage layout of the grid data can also influence the performance of the algorithm. In particular, using a space filling curve (as the one in sec. \ref{sec:celllist}) could improve the access pattern in both spreading and interpolation\cite{Shih2021}. However, this has not been considered in this work, were a linear index is always used (so that the data for cell with indices $(i,j,k)$ is located at element $i+(j+kn_y)n_x$ in the relevant array)\footnote{Note however, that the software interface for this module allows for an arbitrary ordering of the grid data, as we will later see.}. This ordering comes imposed by the usual relation between spreading/interpolation and spectral methods in fluctuating hydrodynamics, which requires using \gls{FFT} libraries that benefit from (or are restricted to) it.
+
+
+\subsubsection*{Block Per Domain (BPD)}
+Recently, a new \gpu-friendly algorithm has been developed\cite{Shih2021} that uses an hybrid strategy, lying in between particle and grid based approachs, by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken again until each thread block deals with a subproblem with up to a maximum number of particles (see fig. 1 in \cite{Shih2021}) to aide with load-balancing. Subproblems are then spreaded into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems is reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Testing suggest that, for a single \gpu, the new strategy in \cite{Shih2021} is only worth for large and dense systems (with more than $~2$ million particles) and 2D grids (see fig. \ref{fig:ibmcomp}). Although it is arguably the best algorithm at the time of writing if one wants to take advantage of several GPUs.
+We refer to this algorithm as Block Per Domain (BPD), although the authors of \cite{Shih2021} refer to it as \emph{SM} (from shared memory). It is worth noting that the authors of the BPD algorithm do take into account the previously introduced separable-kernel optimization.
+
+\subsection*{Performance comparison of the spreading algorithms}
+It is worth mentioning that, although particle sorting usually takes a neglegible amount of the runtime, in the \uammd implementation sorting is carried away by \emph{ParticleData} independently of wether spreading/interpolation is present (since sorting is benefitial in several other sections of the codebase, like neighbour traversing). In this sense, the overhead of sorting is hidden. Nonetheless, for the sake of fairness, sorting time is included as part of the runtime in the performance figures.
+
+Finally, the \uammd implementation presents another benefit when compared to others seen in the wild. In particular when refering to spreading/interpolating several quantities at once (such as forces/velocities). The general strategy when dealing with vectorial quantities (or simply several scalars) is to run the algorithm as many times as there are components. This is related to the AoS (array-of-structures) vs SoA (structure-of-arrays) debate. In general terms, it is best to take an SoA approach in the GPU, which calls for the usual spread-many-times strategy. However, there is one crucial caveat to this rule worth taking into account: In complex fluid simulations we usually deal with vectorial quantities with $3$ or $4$ elements (i.e. positions, forces+energies...), which happen to be special in NVIDIA GPUs\footnote{And probably in the GPU architecture in general.}. In particular, CUDA presents especial load/store instructions that fetch/write $128$ bits from memory (the space for $4$ floats). In SoA we would store and treat each component separately, so that reading the (for instance) position of a particle would take $3$ instructions. If we store the positions in an array composed by groups of $4$ floats\footnote{A series of vectorial types names \emph{realX} (with X being 2,3 or 4) are available in \uammd. For instance, the type \emph{real4} containing $4$ scalars.} (an AoS approach) we only need a single instruction to load all three coordinates (and we get a fourth number to leverage for free). Using vector types allows to make the cost of spreading/interpolation $4$ values at the same time much cheaper than repeating the operation $4$ times. \uammd's spreading/interpolation implementation interface is templated for any random access iterator\footnote{See Appendix \ref{sec:cpp} for more information on C++ iterators.} containing the per-partcile and per-cell data as long as the type of the elements follows a certain set of sane rules (in particular, that the values of the iterator can be added together and that the per-particle type can be converted to the per-cell type when required\footnote{\uammd's vector types come with a large set of algebraic overloads. In general, any operation that can be used in an scalar also works for vector types in a per-element manner. For instance, the result of multiplying two \emph{real4} values $a$ and $b$ will be, $c = (a_xb_x, a_yb_y, a_zb_z, a_wb_w)$.}).
+
+We compare the TPP and BPP algorithms with the hybrid BPD (or \emph{SM} in \cite{Shih2021}) in fig. \ref{fig:ibmcomp}, measuring the performance of spreading one scalar per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible.
+
 \todo{Figure comparing spreading a 3 vector with uammd and 3 times the cost of Shih.}
 \todo{Explain that float4 fetching costs the same as a single float, so we can exploit it by storing Fxyz and spreading at once}
 \begin{figure}[h]
   \centering
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens1_2080ti}}
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens0.1_2080ti}}
-\caption{Performance comparison between the different spreading schemes considered for two different densities. Particles are distributed uniformly in a cubic grid and spreaded with a support $n_s=8$ using a Gaussian kernel. The considered algorithms are: A block-per-particle (BPP), the algorithm used in \uammd. A thread-per-particle (TPP) precomputing the kernel to register memory (register, similar to \emph{GM-sort} in Shih2021\cite{Shih2021}) and recomputing it (recompute). Finally, timing for the \emph{SM} algorithm in \cite{Shih2021} is also presented. Performance data was gathered in an RTX2080Ti \gpu using single precision. The crossover between BPP and SM happens at around $2$ million particles in both cases.}
-  \label{fig:ibmcomp}  
+\caption{Performance comparison between the different spreading schemes considered for two different densities. Particles are distributed uniformly in a cubic grid and spreaded with a support $n_s=8$ using a Gaussian kernel. A single scalar is spreaded per particle. The considered algorithms are: A block-per-particle (BPP), the algorithm used in \uammd. A thread-per-particle (TPP) precomputing the kernel to register memory (register, similar to \emph{GM-sort} in Shih2021\cite{Shih2021}) and recomputing it (recompute). Finally, timing for the BDP algorithm (\emph{SM} in \cite{Shih2021}) is also presented. Performance data was gathered in an RTX2080Ti \gpu using single precision. The crossover between BPP and SM happens at around $2$ million particles in both cases.}
+\label{fig:ibmcomp}
 \end{figure}
+The first thing to notice is that for the TPP algorithm recomputing the kernel is always better than storing in register memory, supporting the idea that register spilling is far more important here than arithmetic pressure. Furthermore, the BPP strategy is consistently twice as fast as the naive algorithm, TPP (recompute). One strategy for reducing the cost of recomputing in TPP (in cases where the kernel evaluation is expensive) could be to tabulate the kernel into a global memory array\footnote{The \uammd utility \emph{TabulatedFunction} can be employed here. This tool mimics the old CUDA textures, allowing to tabulate a function inside a range and then interpolate it at any point in between.}.
 
-The performance of our BPP algorithm is robust to changes in density (see fig. \ref{fig:ibmcomp})\footnote{Although not shown, we see that the time per particle remains constant even with high densities, like 10 particles per cell, which results in ~200 million particles for a grid with $n_x=n_y=n_z=256$.}, being the time per particle in both cases almost identical for all grid sizes. This supports the idea of atomic operations being far less important than it seems at first, since more particles per cell should result in more atomic overlap. Furthermore, this trend is maintained across different kernel supports (only $n_s=8$ is shown in fig. \ref{fig:ibmcomp}). In other words, we see a perfect linear scaling with the number of particles across all tested scenarios.
-Another interesting behavior in fig. \ref{fig:ibmcomp} is that the TPP algorithm is always more performant when the kernel is recomputed. This is most likely due to register spilling stemming from the $3n_s$ values that must be stored, which forces local variables to be stored and fetched from slow global memory. One strategy for reducing the cost of recomputing in TPP (in cases where the kernel evaluation is expensive) could be to tabulate the kernel into a global memory array\footnote{The \uammd utility \emph{TabulatedFunction} can be employed here. This tool mimics the old CUDA textures, allowing to tabulate a function inside a range and then interpolate it at any point in between.}.
+The performance of our BPP algorithm (and also TPP, for that matter) is robust to changes in density (see fig. \ref{fig:ibmcomp})\footnote{Although not shown, we see that the time per particle remains constant even with high densities, like 10 particles per cell, which results in ~200 million particles for a grid with $n_x=n_y=n_z=256$.}, being the time per particle in both cases almost identical for all grid sizes. This supports the idea of atomic operations being far less important than it seems at first, since more particles per cell should result in more atomic overlap. Furthermore, this trend is maintained across different kernel supports (only $n_s=8$ is shown in fig. \ref{fig:ibmcomp}). In other words, we see a perfect linear scaling with the number of particles across all tested scenarios.
 
-Furthermore, the BPP algorithm is optimal for ``small'' systems, our typical range of application (below 2 million particles).
+The BPP algorithm is therefore optimal for ``small'' or dilute systems, our typical range of application (a few million particles with some kind of steric repulsion).
 
 \subsubsection*{Interpolation algorithm}
-Interpolation is inherently a more efficient operation than spreading, since no atomic operations are required and, moreover, we only need to read the grid data. 
-When traversing per particle, interpolation does not require atomic operations (see alg. \ref{alg:visitneigh}). The worker asigned to a particle can accumulate the result of the interaction with nearby particles into a local variable and then write it to the global result array. Furthermore, interpolation requires only $N$ write operations, while spreading requires to perform $n_s^3N$ atomic writes. This makes interpolation inherently more efficient.
+Interpolation is inherently a more efficient operation than spreading, since no atomic operations are required and, moreover, we only need to read the grid data (see alg. \ref{alg:visitneigh}). The worker asigned to a particle can accumulate the result of the interaction with nearby particles into a local variable and then write it to the global result array. Furthermore, interpolation requires only $N$ write operations, while spreading requires to perform $n_s^3N$ atomic writes.
 The same TPP vs BPP arguments from spreading can be broadly employed here, prompting for a BPP approach. In this case, each thread in the block assigned to a given particle will compute the interaction with one (or several) cells, storing the result in a thread local register.
 When all threads in the block have finished, the local results are reduced into a final result, which is then written to global memory by a single thread (usually the first one).
-A naive block reduction involves the first thread fetching the local values from the rest of the threads (via shared memory or with CUDA shuffle intrinsics) and then performing a dumb sum. However, using \emph{cub}'s\cite{cub} \emph{BlockReduce} utility proves to be a vastly superior alternative.
+A naive block reduction involves the first thread fetching the local values from the rest of the threads (via shared memory or with CUDA shuffle intrinsics) and then performing a dumb sum. However, using \emph{cub}'s\cite{cub} \emph{BlockReduce} utility proves to be a vastly superior alternative\footnote{With \emph{cub} the reduction algorithm will be different depending on a series of factors (GPU architecture, data type, number of elements...).}.
 
-Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the same situation as fig. \ref{fig:ibmcomp}. Timings present a good linearlity with the number of particles and are almost independent from the density 
+Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the same situation as fig. \ref{fig:ibmcomp}. Timings present a good linearlity with the number of particles and are almost independent from the density. 
 \todo{Differences maybe due to block size?, should be faster I would say}
 \begin{figure}[h]
   \centering
@@ -3803,8 +3809,8 @@ Up until now, we have not included the action of the thermal drift in the \gls{F
 \begin{equation}
   \label{eq:q2Ddriftconv}
   \begin{aligned}
-    \partial_{\vec{\ppos}}\tens{M}_{ij}=& \int\delta_a(\vec{\ppos_i} -\vec{r})\nabla\cdot\tens{G}(\vec{r},\vec{r}')\delta_a(\vec{\ppos_j} -\vec{r})d\vec{r}d\vec{r}' =\\
-     &\int\delta_a(\vec{\ppos_i} -\vec{r})\tens{G}(\vec{r},\vec{r}')\nabla\delta_a(\vec{\ppos_j} -\vec{r})d\vec{r}d\vec{r}'    
+    \partial_{\vec{\ppos}}\tens{M}_{ij}=& \int\delta_a(\vec{\ppos_i} -\vec{r})\nabla\cdot\tens{G}(\vec{r}-\vec{r}')\delta_a(\vec{\ppos_j} -\vec{r})d\vec{r}d\vec{r}' =\\
+     &\int\delta_a(\vec{\ppos_i} -\vec{r})\tens{G}(\vec{r}-\vec{r}')\nabla\delta_a(\vec{\ppos_j} -\vec{r})d\vec{r}d\vec{r}'    
 \end{aligned}
 \end{equation}
 
@@ -3829,7 +3835,7 @@ Interestily enough, interpreting the thermal drift as an external force gives us
 \end{equation}
 Which yields a zero divergence in true 3D and true 2D. However, in quasi 2D we have
 \begin{equation}
-  \nabla\cdot\tens{M}_{\text{q2D}} \approx \frac{1}{8\pi\eta r}\frac{\vec{r}}{r^3} \text{ for } r\gg a
+  \nabla\cdot\tens{M}_{\qtd} \approx \frac{1}{8\pi\eta r}\frac{\vec{r}}{r^3} \text{ for } r\gg a
 \end{equation}
 Using eq. \eqref{eq:q2Ddrifasforce} we can see that this is equivalent to having the particles interact via a repulsive electrostatic potential
 \begin{equation}
@@ -3838,47 +3844,76 @@ Using eq. \eqref{eq:q2Ddrifasforce} we can see that this is equivalent to having
 \end{equation}
 It is important to keep in mind, though, that this force is stochastic in nature and is in fluctuation-dissipation balance with the thermal fluctuations. The physical origin of this effective force comes from the rapid momentum transport perpendicular to the plane, which makes the plane in the flow behave with an effective non zero compressibility. This makes the quasi 2D system inherently different from a distribution of charges. In fact, since hydrodynamics will not change the equilibrium properties, these equations still describe, in the absence of other particle interactions, an ideal gas without structure. Nevertheless, this interpretation allows us to see the dramatic (purely hydrodynamic) effect of the confining force in the plane flow and highlights the necessity of including the thermal drift into the quasi 2D description.
 
-We can now compute the Green's function in quasi 2D by convolving the 3D Oseen tensor in eq. \eqref{eq:bdhioseen} with a Gaussian and integrating it analytically along the $z$ direction
-
+Let us rewrite here the particle velocity equation \eqref{eq:bdhibdrelation} for the quasi 2D case,
+\begin{equation}
+  \label{eq:q2dbdhirel}
+  \frac{d\vec{\ppos}_i}{dt} = \oper{J}_{\vec{\ppos}_i}\left[\tens{G}_{\qtd}\left(\oper{S}\vec{F} + \vec{\partial}\oper{S}(\kT)\right) + \vec{w}(\vec{\fpos}, t)\right]
+%  \begin{aligned}
+  %&\int{\delta_a(\vec{\ppos}_i-\vec{r}')\left[\sum_j\tens{G}_{\qtd}(\vec{r}', \vec{r}'')\left[\delta_a(\vec{\ppos}_i-\vec{r}'')\vec{F}_j + \kT\vec{\partial}(\delta_a)(\vec{\ppos}_j-\vec{r}')\right]d\vec{r}'}d\vec{r}'' + \vec{w}(\vec{\ppos}_i, t) }
+%\end{aligned}
+\end{equation}
+Here we have put the fluctuating part, $\vec{w}$, aside. The fluctuating stress tensor ($\tens{Z}$ in eq. \eqref{eq:bdhibdrelation}) and its divergence are described in three dimensions. In the quasi 2D case we do not have an easy mechanism to project the stress tensor into the plane in order to keep a fully two dimensional description. Instead, we will use the fluctuation-dissipation balance to generate a stochastic fluid velocity directly.
+It is important to note that the gradient of the spreading operator in eq. \eqref{eq:q2dbdhirel} is taken in the plane in which diffusion happens (i.e two dimensions). Similarly, we would like for spreading and interpolation to also take place in the two-dimensional confining plane.
+In order to do that, we preconvolve the three dimensional Green's function of the Stokes equation (i.e the Oseen tensor in eq. \eqref{eq:bdhioseen})  in the third direction leveraging the fact that, by construction, there are no particle forces in the third direction and particles remain strictly in the plane. In Fourier space, this amounts to defining the quasi 2D Green's function as the integral of the Oseen tensor multiplied by the square of the spreading kernel (a Gaussian),
 \begin{equation}
   \label{eq:q2dGreenintegral}
   \begin{aligned}
-  \fou{\tens{G}}_{\text{q2D}}(\vec{k} = (k_x, k_y)) &= \frac{1}{2\pi\eta}\int_{k_z} \frac{dk_z}{(k')^2}\exp\left(-\frac{a^2k_z^2}{\pi}\right)\left( \mathbb{I} - \frac{\vec{k}'\otimes\vec{k}'}{(k')^2}\right) \\
-  &= \eta^{-1}\left(g_k(k)\vec{k}_{\perp}\otimes\vec{k}_{\perp} + f_k(k)\vec{k}\otimes\vec{k}\right)
+  \fou{\tens{G}}_{\qtd}(\vec{k} = (k_x, k_y)) &= \frac{1}{2\pi\eta}\int_{k_z} \frac{dk_z}{(k')^2}\exp\left(-\frac{a^2k_z^2}{\pi}\right)\left( \mathbb{I} - \frac{\vec{k}'\otimes\vec{k}'}{(k')^2}\right) \\
+  &= \eta^{-1}\left(g_k(ka)\vec{k}_{\perp}\otimes\vec{k}_{\perp} + f_k(ka)\vec{k}\otimes\vec{k}\right).
 \end{aligned}
 \end{equation}
-Where $\vec{k}' = (k_x, k_y, k_z)$ is the three dimensional wavenumber and we recall that unless stated otherwise, in quasi 2D vectors are defined in $\mathbb{R}^2$. Additionally $\vec{k}_\perp := \vec{k}\times\hat{z} = (k_y, -k_x)$ is a vector perpendicular to $\vec{k}$. Note that we also had to convolve with the Gaussian kernel in the $z$ direction, since it is not included in our purely 2D description. The convolution with the $(x,y)$ kernel is performed explicitly via spreading in \gls{FCM}.
+Where $\vec{k}' = (k_x, k_y, k_z)$ is the three dimensional wavenumber and we recall that unless stated otherwise, in quasi 2D vectors are defined in $\mathbb{R}^2$. Additionally $\vec{k}_\perp := \vec{k}\times\hat{z} = (k_y, -k_x)$ is a vector perpendicular to $\vec{k}$.
+The convolution with the $(x,y)$ kernel is performed explicitly via spreading in \gls{FCM}.
 Note that this has restricted our algorithm to a Gaussian kernel, with its advantages and disadvantages. However, a different kernel can be used if it has an analytical Fourier form that allows the integral in eq. \eqref{eq:q2dGreenintegral} to be solved analytically\footnote{The anaylical form of eq. \eqref{eq:q2dGreenintegral} is not actually needed if somehow $f_k$ and $g_k$ are tabulated.}.
-
 Solving eq. \eqref{eq:q2dGreenintegral} yields
 \begin{equation}
   \label{eq:q2dfg}
   \begin{aligned}
-    g_{k}\left(k\right) & = \frac{1}{2}\left[1-{\erf}\left(\frac{ka}{\sqrt{\pi}}\right)\right]\exp\left(\frac{k^2a^2}{\pi}\right)\\
-    f_{k}\left(k\right) & = \left(\frac{1}{2} - \frac{k^{2}a^2}{\pi}\right)g_k(k) - \frac{ka}{2\pi}
+    g_{k}\left(K\right) & = \frac{1}{2K^3}\left[1-{\erf}\left(\frac{K}{\sqrt{\pi}}\right)\right]\exp\left(\frac{K^2}{\pi}\right)\\
+    f_{k}\left(K\right) & = \left(\frac{1}{2} - \frac{K^{2}}{\pi}\right)g_k(K) - \frac{1}{2\pi K^3}
   \end{aligned}  
 \end{equation}
-
-We can also write the Green's function for true 2D by redefining $f_k$ and $g_k$ (by simply not integrating in $z$ nor convolving with the kernel in $z$)
+We can also write the Green's function for true 2D by redefining $f_k$ and $g_k$ (just the Oseen tensor in 2D)
 \begin{equation}
   \label{eq:t2dfg}
   \begin{aligned}
-    g_{k}\left(k\right) & = 0\\
-    f_{k}\left(k\right) & = \frac{1}{k}
+    g_{k}\left(K\right) & = 0\\
+    f_{k}\left(K\right) & = \frac{a}{K^4}
   \end{aligned}  
 \end{equation}
+The Green's function \eqref{eq:q2dGreenintegral} is purely two-dimensional, allowing to reuse the \gls{FCM} machinery without the third direction altogether.
+
 \todo{Rafa, aqui puedo añadir G para saffman, tienes alguna referencia por ahi?, quizas esto deberia ir mas en ``future directions''}
 
-This concludes all the modifications to the \gls{FCM} (as described in sec. \ref{sec:fcm}) required to simulate a quasi 2D system. Note that by using eq. \eqref{eq:t2dfg} instead of eq. \eqref{eq:q2dfg} our algorithm is also capable of simulating a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known\footnote{Note that the analytical expression is not actually needed and it could be, for instance, computed numerically and then tabulated}. For instance, the Saffman mobility could be used to model the diffusion of proteins in a lipid membrane\cite{Saffman}.
+Using eq. \eqref{eq:t2dfg} instead of eq. \eqref{eq:q2dfg} allows for our algorithm to simulate a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known\footnote{Note that the analytical expression is not actually needed and it could be, for instance, computed numerically and then tabulated}. For instance, the Saffman mobility could be used to model the diffusion of proteins in a lipid membrane\cite{Saffman}.
 
-Finally, for convenience, we can use a similar trick as we did for \gls{PSE} in eq. \eqref{eq:psenoise} to separate the contributions of the noise in eq. \eqref{eq:fcmvel} as
-
+As previously discussed, the mobility tensor corresponding to eq. \eqref{eq:q2dGreenintegral} can be written as
+\begin{equation}
+  \tens{M}_{\qtd} = \oper{J}\tens{G}_{\qtd}\oper{S}.
+\end{equation}
+On the other hand, as previously discussed, we know that fluctuation-dissipation mandates that the stochastic particle displacements,
+\begin{equation}
+\tilde{\vec{\pvel}}_i := \oper{J}_{\vec{\ppos}_i}\vec{w},
+\end{equation}
+must be related with the mobility as
+\begin{equation}
+  \langle\tilde{\vec{\pvel}}_i\otimes\tilde{\vec{\pvel}}_i\rangle = 2\kT \tens{M}_{\qtd}
+\end{equation}
+Equivalently, we can write the fluctuation-dissipation relation for the fluid velocity in Fourier space,
+\begin{equation}
+  \label{eq:q2dfdb}
+  \left\langle\fou{\vec{w}}\otimes \fou{\vec{w}}\right\rangle = 2\kT \fou{\tens{G}}_{\qtd}
+\end{equation}
+Finally, it is straight-forward to devise a functional form for the stocastich fluid velocity that satisfies eq. \eqref{eq:q2dfdb}.
+We can use a similar trick as we did for \gls{PSE} in eq. \eqref{eq:psenoise} to separate the contribution of the noise in two,
 \begin{equation}
   \begin{aligned}
-    \fou{\tens{Z}}_k := \sqrt{\frac{2\kT}{\eta k^3}}\left(\sqrt{f_k(k)}\vec{k}_\perp\fou{\tens{Z}}^1_k + \sqrt{g_k(k)}\vec{k}\fou{\tens{Z}}^2_k\right)
+    \fou{\vec{w}}(\vec{k}, t) := \sqrt{\frac{2\kT}{\eta}}\left(\sqrt{f_k(ka)}\vec{k}_\perp\fou{\tens{Z}}^1_k + \sqrt{g_k(ka)}\vec{k}\fou{\tens{Z}}^2_k\right).
   \end{aligned}
 \end{equation}
 Where $\fou{\tens{Z}}^{1,2}_k$ are independent Wienner processes. The same concerns about the delicate conjugacy properties of the noise we discussed in sec. \ref{sec:fcm} are applicable here.
+
+We now have all the necessary ingredients to apply the \gls{FCM} framework and solve eq. \eqref{eq:q2dbdhirel} for the particle velocities.
 % This integral can be done analitically to give
 %\begin{equation}
 %  \fou{\tens{M}}_{\text{q2D}} = \frac{1}{\eta k^3}\left( \half\vec{k}_{\perp}\otimes\vec{k}_{\perp} + \frac{1}{4}\vec{k}\otimes\vec{k}\right)
@@ -3886,12 +3921,10 @@ Where $\fou{\tens{Z}}^{1,2}_k$ are independent Wienner processes. The same conce
 
 
 \subsubsection*{Use in UAMMD}
-\begin{itemize}
-\item This is used as the rest of the \emph{Integrators}
-\item A templated base class BDHI::BDHI2D can be specialized for any 2D greens function by providing $f_k$ and $g_k$, see the online documentation for more information. The aliases BDHI::True2D and BDHI::Quasi2D are provided for the hydrodynamic kernels described in the previous section.
-\item Tolerance controls the support of the Gaussian kernels and the size of the grid similarly as in \gls{FCM}.\todo{This is not actually implemented, it is just hardcoded to 1e-4}
-\end{itemize}
-\todo{I could implement the same thing for FCM, generalizing the module for any $f_k$ and $g_k$ as long as they do not have thermal drift, which is not implemented in 3D. Maybe this could be done for FIB, where thermal drift is obtained via RFD.}
+The quasi 2D \gls{FCM} described in the previous section is availabla as an \emph{Integrator} in \uammd. The particular module, called \mintinline{\ucpp}{BDHI::BDHI2D} is templated for any 2D Green's function by providing $f_k$ and $g_k$ (from eq. \eqref{eq:q2dGreenintegral}) through a special structure (refer the online documentation for more information). The aliases \mintinline{\ucpp}{BDHI::True2D} and \mintinline{\ucpp}{BDHI::Quasi2D} are provided as specializations of the base class for the hydrodynamic kernels described in the previous section (true 2D and quasi 2D respectively).
+The translational invariance of the hydrodynamic radius is kept below a certain threshold via the tolerance parameter, which controls the support of the Gaussian kernels and the dimensions of the grid.
+The rest of the input parameters are similar to the ones required for the rest of the hydrodynamic modules we have seen thus far.
+%\todo{I could implement the same thing for FCM, generalizing the module for any $f_k$ and $g_k$ as long as they do not have thermal drift, which is not implemented in 3D. Maybe this could be done for FIB, where thermal drift is obtained via RFD.}
 \begin{code2}[Example of the creation of a quasi 2D \emph{Integrator}.]{label=code:q2D}
 #include<uammd.cuh>
 #include<Integrator/Hydro/BDHI_quasi2D.cuh>
@@ -3916,15 +3949,24 @@ auto createIntegratorQ2D(UAMMD sim){
 \newpage
 
 \chapter{Hydrodynamics in doubly periodic geometries}\label{sec:dpstokes}
-We develop an algorithm to solve the incompressible Stokes equation \eqref{eq:stokes} without fluctuations in a \gls{DP} domain of size $L_{x,y}$ (we will assume $L_x=L_y$, which can then be easily generalized). Thus, we want to solve
+Thus far we have seen how to compute hydrodynamic displacements in domains that are either triply periodic (periodic in the three directions) or two dimensional and periodic in the plane. In the case of quasi 2D, where the particles are constrained to a plane, the boundary conditions for the fluid in the perpendicular directions are open, while in true 2D both the fluid and the particles exists in the plane. We refer to a domain as \gls{DP} when it is periodic in the plane directions ($x,y$) but aperiodic in the perpendicular one ($z$). In this sense the quasi 2D algorithm in chapter \ref{sec:q2D} can be regarded as a \gls{DP} algorithm. However, the afforementioned algorithm only allows to simulate environments in which the submerged particles diffuse in two dimensions (for instance, a fluid-fluid interface). If we are looking to model a system lying in between the triply periodic and quasi 2D regimes, for instance a lipid membrane (see fig. \ref{fig:dpstokessketch}), currently our only option is to perform a triply periodic simulation and do some kind of finite-size analysis, measuring the relevant properties with an increasignly large simulation domain size in the perpendicular direction. Of course, given that the algorithmic complexity of all our pseudo-spectral algorithms scales linearly with the volume of the domain (or more appropriately, with the number of cells in the grid), the triply periodic approach is not optimal.
+\begin{figure}[h]
+  \centering
+  \includesvg[width=\columnwidth]{gfx/dpstokes_sketch}
+  \caption{Representation of a lipid membrane inside a doubly periodic domain. The \glspl{BC} can be customized at the domain limits ($z=0,H$) to be either open or have no-slip walls.}
+  \label{fig:dpstokessketch}
+\end{figure}
+
+We propose a novel pseudo-spectral \gls{FCM}-like algorithm, with a wildly different approach to the ones we have seen thus far, that allows to compute the hydrodynamic displacements of a suspension of colloids inside a \gls{DP} domain with arbitrary boundary conditions in the third direction.
+In particular, we will see how to solve the incompressible Stokes equation \eqref{eq:stokes} without fluctuations in a \gls{DP} domain of size $L_{x,y}$ (we will assume $L_x=L_y$, which can then be easily generalized). Thus, we want to solve
 \begin{equation}
   \label{eq:dpstokes}
   \begin{aligned}
     &\nabla p_{\dpr} - \eta\nabla^2\vec{\fvel}_{\dpr} = \vec{f}\\
-    &\nabla\cdot\vec{\fvel}_{\dpr} = 0
+    &\nabla\cdot\vec{\fvel}_{\dpr} = 0,
 \end{aligned}
 \end{equation}
-With $z\in(-\infty, \infty)$ and free-space \glspl{BC} in $z$, assuming that $\vec{\fvel}_{\dpr}$ is bounded as $|z|\rightarrow\infty$. The plane $(x,y)$ is periodic as in quasi 2D.
+with $z\in(-\infty, \infty)$ and a certain set of \glspl{BC} (that will be introduced shortly) in $z$, assuming that $\vec{\fvel}_{\dpr}$ is bounded as $|z|\rightarrow\infty$. The plane $(x,y)$ is periodic as in quasi 2D.
 
 Here $p$ is the pressure and the fluid forcing includes the particle forces and torques (similarly as with \gls{FCM} in sec. \ref{sec:fcm})
 \begin{equation}
@@ -3948,7 +3990,7 @@ Our solver is periodic in the plane $(x,y)$ (as in quasi 2D). In the $z$ directi
     \vec{\fvel}_{\dpr}(z=H) = 0.
   \end{equation}
 \end{enumerate}
-The unbounded mode allows to simulate systems were particles are not restricted to a plane, so $\delta>0$. Additionally the other modes can be used in a variety of simulations. For instance, the bottom wall mode can be used to model the hydrodynamics of a Quarts Crystal Microbalance (QCM)\todo{More about it?}.
+The unbounded mode allows to simulate systems were particles are not restricted to a plane, so $\delta>0$. Additionally the other modes can be used in a variety of simulations. For instance, the bottom wall mode can be used to model the hydrodynamics of a Quartz Crystal Microbalance (QCM)\todo{More about it?}.
 
 In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\notin [-H,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by substracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
 \begin{equation}
@@ -5132,7 +5174,7 @@ Let us showcase the lifespan of a variable by creating some instances inside dif
     //MyClass someVariable; //This is an illegal name, because there is already a variable in scope with this name
     MyClass someVariable2;
     return 0;
-  }//someVariable2 is released here and its destrutor is called
+  }//someVariable2 is released here and its destructor is called
 \end{code2}
 
 \subsection*{Object inheritance}
@@ -5169,7 +5211,7 @@ Given that the area of a \emph{Polygon} object is meaningless, we can mark it's 
     auto a = s.area();
     Circle c;
     auto a2 = c.area();
-    //Polygon pol; //Illegal, pure virtual object cannot be instanciated.
+    //Polygon pol; //Illegal, a pure virtual class cannot be instanciated.
     return 0;  
   }
 \end{code2}
@@ -5216,8 +5258,7 @@ In addition of inheritance, C++ offers another way of writing generic code calle
   int main(){
     Square s;
     Circle c;
-    //The getAreaOf function now works any type that provides a function called
-    // area
+    //The getAreaOf function now works any type that provides a function called area
     double as = getAreaOf(s);
     double ac = getAreaOf(c);    
     double var = 1.0;
@@ -5234,6 +5275,19 @@ The \mintinline{\ucpp}{const} keyword simply informs the reader (and compiler) t
 
 \subsection*{Iterators}
 \todo{Fill this section}
+\begin{figure}
+  \centering
+  \includesvg[width=\columnwidth]{gfx/iterator}
+  \caption{The different kinds of C++ iterators. Iterators can be either for input (reading), output (writing) or both (read/write). The most generic type of iterator is called \emph{Random Access} and allows for arbitrary access to its elements. Below, a \emph{Bidirectional} constraints the access to be always next to the previously accesed element. In other words, a \emph{Bidirectional} iterator can only issued to advance or regress one element at a time. Finally, the most restricted iterator kind, the \emph{Forward} iterator, can only be accesed element by element in order. }
+  \label{fig:iterator}
+\end{figure}
+
+\begin{itemize}
+\item In C++, \emph{Iterators} are a type of object that \emph{points} to an element in a range of elements (such as a container or pseudo-container) and has the ability to \emph{iterate} through the elements of that range. The canonical example of an iterator is a pointer to the first element of an array. We can use a pointer to iterate through the contents of the array. However, like many things in programming, the internal workings of a certain iterator are irrelevant as long as the iterator presents its expected behavior. In other words, iterators work ``as is''. For instance, a \emph{constant} input iterator works by always returning the same value, regardless of what ``element'' in the ``container'' it is pointing to, as if it was iterating over an infinite sized array filled with the same number. In practice, a constant input iterator would be implemented as simply returning the same number all the time, without requiring any underlying memory to be allocated or present.
+  
+\item Iterators play a central role in connecting algorithms with containers in C++.
+\item Several categories of iterators exists (see fig. \ref{fig:iterator}) depending on the functionality they provide.
+\end{itemize}
 
 \section{Basics rules of CUDA programming}
 CUDA is an extension of C++. All the language rules we have seen thus far also apply to CUDA. CUDA introduces some new keywords and an \gls{API}.
