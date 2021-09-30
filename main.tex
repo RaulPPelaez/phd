@@ -433,9 +433,9 @@ Although it is not required, threads inside a block excel when executing the sam
 
 On the other hand, CUDA offers no guarantee regarding the execution order or blocks.
 
+CUDA allows us to write small programs, called kernels, that we can then launch to run on the \gpu. The instructions in a kernel are executed by a grid of threads, whose size can be customized per launch. Appendix \ref{sec:cpp} offers an introduction to programming \gpu code using C++ and CUDA.
 
-
-CUDA allows us to write small programs, called kernels, that we can then launch to run on the \gpu. The instructions in a kernel are executed by a grid of threads, whose size can be customized per launch. Appendix \ref{sec:cpp} offers an introduction to programming GPU code using C++ and CUDA.
+%Finally, it is worth mentioning here the concept of \gpu architectures in CUDA. In general, with each release of a new \gpu hardware series comes a new \emph{architecture}. New architectures bring new functionality and require 
 
 \section{Software for soft matter simulations}
 
@@ -781,29 +781,35 @@ In \uammd particles are the relevant simulation entity as specified by the \emph
 
 
 
-
 \chapter{Initial remarks and overview}
 
 \todo{Image:
   Inner level: design, gpu algorithm in detail, implementation. Library like behavior.
   Middle: Algoritihms providing phsycical mathematical foundation (not that in depth implementation, only usage).
   External level: User code, enables to use these tools for applied problems, multiphysics. Examples, polymers, optofluidics, QCM, electro chemical impedance.
-  All these tools are black-bloxed modules (input/output modules) that can be used in any other code in a library-like fashion.
-  Inside UAMMD, the communication between the different modules (which is limited to a minimum to reduce internal dependencies) is carried out via the root, ParticleData, and the other foundational modules already introduced in chapter X (see figure sketch).
 
   Dashed circles represents ongoing work or features that will not be discussed in this manuscript.
-
-  These essential tools are enhanced by the power of templates, which allow an user to introduce new potentials, interpolation kernels,... into the existing modules without modifying them. In many instances it is even possible to generalize the scope of these tools. For instance, spreading/interpolation in a non-regular grid, abuse the neighbour list packing efficiency to perform some novel sparse matrix multiplication. 
 }
 
+This manuscript encases three distinct, somewhat interleaved, narratives: Physics, algorithms and their implementations in a GPU (always under UAMMD).
+The gross of the author's contribution to the field has gone into the implementation (i.e UAMMD), which is not thoroughly discussed here. In UAMMD's online documentation (see Appendix \ref{ch:online}) the weight tends to be more shifted towards implementation. A reader with special interest in the implementation of a particular module should have the UAMMD code base at hand when going through the module's chapter in this manuscript. The UAMMD codebase is thoroughly documented, many times in an almost pedagogical manner.
+Most chapters beyond this point have a corresponding UAMMD module and are organized as follows; First the physical problem to solve is introduced and its mathematical foundations are laid out. Then, the relevant algorithms are discussed. If the discussed algorithm contains some novel aspects its implementation is described in detail. Regardless, each chapter ends with an usage example of the module under the UAMMD infrastructure.
 
-  
-We can distinguish between two families of numerical techniques, particle (Lagrangian) and grid (Eulerian-Lagrangian) based methods.
+%We can distinguish between two families of numerical techniques, particle (Lagrangian) and grid (Eulerian-Lagrangian) based methods.
 %The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
 %In some way require another, all algorithms have to take into account interactions between particles.
 
 %In chapter \ref{ch:design} we introduced the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned and specialized in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch.
 As previously stated the central work-piece in \uammd are the particles (see fig. \ref{fig:uammdsketch}). The \emph{Integrator} solves the time-evolution of the particles and to that end, it requires the driving interactions (e.g. forces) which are, in turn, provided by the \emph{Interactors}. For this reason, from the code perspective ``forces'' and ``velocities'' respectively pertain to \emph{Interactor} and \emph{Integrator} concepts. Grid-based methods generally consist on solving \glspl{PDE} for some spatio-temporal field in a mesh, i.e. in an Eulerian framework. \uammd deploys Eulerian solvers for several purposes: i) to obtain the velocity field of the solvent in Eulerian-Lagrangian hydrodynamics and ii) to solve the force field generated by a distribution of source charges. Both schemes are based on pseudo-spectral methods, which shall be first introduced when explaining hydrodynamic \emph{Integrators} in Chapter \ref{sec:bdhi}. The \emph{Interactor} dealing with electrostatics in \uammd (pseudospectral Poisson solver) is explained later, in Chapter \ref{sec:tppoisson}.
+
+\begin{figure}[h!]
+  \centering
+  \includesvg[width=\columnwidth]{gfx/outline}
+  \caption{A bird's eye of the different conceptual layers of the UAMMD infrastructure. Many (but not all) of the implemented modules are represented inside the red circle, we will discuss all of them through this manuscript. At the innermost level, the library level, we have the basic tools and algorithms in which the rest of the project is supported on. The next layer is the solver layer, with modules for particle interaction and dynamics. In general, all these modules are black-bloxed (input/output modules) that can be used in any other code in a library-like fashion as external accelerators (specially the ones at the library level). Outside the red circle we find the application layer, in which several of the inner tools are joined to study the physics of a new system. For instance, to study the phenomenon of electro chemical impedance we need electrostatics (interactions) and hydrodynamics (dynamics) in a slit channel (chapters \ref{ch:dppoisson} and \ref{sec:dpstokes} respectively), the modules inside blue circles are connected first to construct the interaction and dynamics modules, which in turn are used to construct a simulation.}
+  \label{fig:overview}
+\end{figure}
+
+Figure \ref{fig:overview} presents an overview of the different layers of UAMMD, listing most of the tools (modules) that we will discuss in future chapters. These essential tools are enhanced by the power of C++ templates, which allow an user to introduce new potentials, interpolation kernels,... into the existing modules without modifying them. In many instances it is even possible to generalize the scope of these tools. For instance, spreading/interpolation in a non-regular grid (discussed in chapter \ref{sec:ibm}), or abusing a neighbour list's (chapter \ref{sec:nlist}) packing efficiency to perform some novel sparse matrix multiplication. Inside UAMMD, the communication between the different modules (which is limited to a minimum to reduce internal dependencies) is carried out via the root, \emph{ParticleData}, and the other foundational modules already introduced in chapter \ref{ch:design} (see fig. \ref{fig:uammdsketch}).
 
 The rest of the manuscript is organized in three main parts: In the first one (part \ref{part:voyage}) we will go through the different algorithms techniques used to solve particle interactions and dynamics (as described by the different levels of detail introduced in chapter \ref{sec:multiscale}) with a particular focus on their adaptation and implementation in a \gpu architecture. Whenever a new technique/algorithm is introduced an accompanying code example showing how to use it in \uammd will be present. In the second part (part \ref{pt:algo}) we will go through a series of novel algorithms that have resulted from the development of this thesis. Like before, \uammd code examples will always be accompanying the description of the algorithms. Finally, in the third part (part \ref{pt:applications}) we will see a summary of works (publications in scientific journals) in which \uammd has played a role either as a simulation engine or as an accelerator for an already stablished external code. The manuscript ends with some future directions (chapter \ref{ch:ongoing}) and conclusions (chapter \ref{ch:conclusions}), listing ongoing research and future endevours for the \uammd infrastructure.
 
@@ -811,6 +817,7 @@ The rest of the manuscript is organized in three main parts: In the first one (p
 
 
 \newpage
+
 \cleardoublepage
 
 \part{A voyage through numerical space-time}\label{part:voyage}
@@ -2374,6 +2381,81 @@ auto createIntegratorBD(UAMMD sim){
 \end{code2}
 
 
+\section{Metropolis Adjusted Langevin Algorithm (MALA)}
+Sometimes we are not interested in the dynamics of a simulation, rather we are looking to sampling equilibrium steps or simply reaching equilibrium as soon as possible. In these instances the \gls{BD} machinery previously introduced might not be the optimal strategy. We can use Monte Carlo methods to sample equilibrium configurations, alas Monte Carlo methods often prove to be challenging to parallelize, moreover to a degree as fine as required in a \gpu. For instance, proposing a new configuration in the standard Metropolis Monte Carlo algorithm consists on moving just one particle at a time and in order to correctly measure the total energy change of the system the rest of the system must not change during the process, virtually seriallizing the algorithm. One simple parallelization is to sample new configurations by randomly moving all the particles. However, the chances of this new configuration being more favorable or altogether valid are, at most, slim.
+The Metropolis Adjusted Langevin Algorithm (MALA) attempts to increase the acceptance chance of moving all the particles in the system by guiding the sampling process using the particle forces in addition to the total system energy change. In this regard, the MALA algorithm can also be refered to as a Force Biased Metropolis Monte Carlo scheme.
+\todo{FALTA CITA}
+ A step in MALA amounts to performing a \gls{BD} simulation step and then use the positions, forces and energies of the old and new configurations to decide wether to accept it or not with a Metropolis-like probability. Let us now study the MALA acceptance rule in detail.
+
+We can interpret the Euler-Maruyama Brownian Dynamics scheme in eq. \eqref{eq:eulermaruyama} (with unit self mobility, $M=1$) as a Markov chain with a transition kernel following a strictly positive probability transition density defined as
+\begin{equation}
+  \label{eq:malakernel}
+  p( \vec{Q}^n, \vec{Q}^{n+1}) = (4\pi \kT\dt)^{3/2}\exp\left(\frac{\left|\vec{Q}^{n+1} - \vec{Q}^n + \dt\vec{F}^n\right|^2}{4\kT\dt}\right)
+\end{equation}
+Where $\vec{Q}^n:={\vec{\ppos}_1^n, \vec{\ppos}^n_2, ..., \vec{\ppos}^n_N}$ represents the positions of all particles at time step $n$.
+%This is refered to as the unadjusted Langevin algorithm\cite{Roberts1996}.
+On the other hand, the Langevin equation \eqref{eq:bd} in equilibrium presents a probability density given by
+\begin{equation}
+  \label{eq:malatarget}
+  \pi(\vec{Q}) = Z^{-1}\exp\left(-\frac{U(\vec{Q})}{kT}\right)
+\end{equation}
+Where the entropy is defined as $Z = \int\exp\left(-U(\vec{Q})/\kT\right)$ and $U(\vec{Q})$ is the internal energy (such that $\vec{F} = -\nabla U$).
+
+Once we have a proposed transition kernel (eq. \eqref{eq:malakernel}) and and a target probability density (the equilirbium one in eq. \eqref{eq:malatarget}) we can use the Metropolis-Hastings method to design an updating scheme, refered to as MALA\cite{Roberts1996}\cite{Besag1994}.
+
+Instead of sampling configurations using the Euler-Maruyama scheme (as discussed in sec. \ref{sec:bd}) we now propose a new configuration using eq. \eqref{eq:eulermaruyama} as
+\begin{equation}
+  \widetilde{\vec{Q}}^{n+1} = \vec{Q}^n + \dt\vec{F}^n + \sqrt{2\kT\dt}\vec{\widetilde{\mathcal{W}}}^n
+\end{equation}
+
+And accept it with a Metropolis probability given by
+
+\begin{equation}
+  \alpha(\vec{Q}^n, \widetilde{\vec{Q}}^{n+1}) = \text{min}\left(\frac{p(\widetilde{\vec{Q}}^{n+1},\vec{Q}^{n})\pi(\widetilde{\vec{Q}}^{n+1})}{p(\vec{Q}^{n}, \widetilde{\vec{Q}}^{n+1})\pi(\vec{Q}^{n})}\right)
+\end{equation}
+
+Numerically, this can be done by drawing an uniform random number $\xi^n \in [0,1]$ and accepting the new configuration only if $\xi^n<\alpha(\vec{Q}^n, \widetilde{\vec{Q}}^{n+1})$.
+
+In contrast with the naive Metropolis-Hasting algorithm, that blindly proposes configurations, MALA proposes configurations that always have a higher propability in $\pi$, increasing the chances of acceptance.
+
+We are not restricted to using the same value for $\dt$ in all steps, since in an MCMC algorithm $\dt$ has lost its meaning as a \emph{time step} and it is now simply a parameter describing the \emph{distance} in phase space between two given configurations. As such we can tune it to get a desired configuration acceptance ratio.
+With MALA we are not solving the dynamics of the system, rather sampling equilibrium configurations (or moving the system towards equilibrium). We can use the MALA algorithm and its ability to handle any $\dt$ for thermalization or to get a running simulation ``unstuck''. For instance, if a simulation of hard spheres (modeled with some hard potential, such as the WCA in sec. \ref{sec:lj}) has reached reached an invalid configuration due to thermal fluctuations (i.e. two particles overlapping, which promptly causes the simulation to ``explode'') the MALA algorithm could be used to safely move the simulation away from this state (since MALA will mostly modify the state of the configuration only when a new configuration is more favorable).
+
+Although MALA proves to be useful for thermalizing or initializing simulations, testing suggests that hard steric repulsion between particles (like LJ) require such a small time step to ensure a reasonable acceptance ratio that the algorithm becomes unusable in practice. In these cases using \gls{BD} directly is preferable.
+
+In order to tune the jump step ($\dt$) to ensure a certain acceptance ratio in average, we measure the acceptance ratio every once in a while, if it is lower than the target the jump step is decreased (and increased if it is larger). We increase the jump step slowly (a 2\% increase) and decrease it fast (a 10\%) as it is usually done in optimization algorithms.
+
+Another disadvantage of MALA is that usually the energy change coming from moving all particles in the system grows, in average, with the number of particles. This results in the optimal jump step decreasing with the number of particles. Thus beating the purpose.
+\begin{figure}[H]
+  \label{fig:malastep}
+  \centering    
+  \subcaptionbox{Soft potential}{\includegraphics[width=0.49\textwidth]{gfx/malasoft}}\label{fig:malastepsoft}
+  \subcaptionbox{LJ potential}{\includegraphics[width=0.49\textwidth]{gfx/malalj}}\label{fig:malasteplj}
+  \caption{Optimal time step in MALA for several acceptance ratios and number of particles using a soft repulsive potential (left) and a hard steric WCA interaction (right). Naturally, a higher acceptance ratio (corresponding $1$ to accepting all configurations and $0$ never accepting) results in a lower $\dt$. A by-product of the MALA algorithm comparing the total energy change is that $\dt$ depends on the number of particles so that more particles result in a lower optimal $\dt$.}
+\end{figure}
+
+\subsection*{Use in UAMMD}
+The MALA algorithm is available in \uammd as an \emph{Integrator} module. Its usage is similar to the ones we have seen thus far. The MALA module will query its \emph{Interactors} for both force and energy (whereas, for instance, \gls{BD}, will only request forces).
+MALA will autotune the step size ($\dt$) to ensure a given acceptance ratio.
+\begin{code2}[Example of the creation of a MALA \emph{Integrator} module.]{label=code:mala}
+#include<uammd.cuh>
+#include<Integrator/MonteCarlo/ForceBiased.cuh>
+using namespace uammd;
+//A function that creates and returns a MALA integrator
+auto createIntegratorMALA(UAMMD sim){   
+  MC::ForceBiased::Parameters par;
+  //Inverse of temperature
+  par.beta = 1.0/sim.par.temperature;	
+  //Initial step length.
+  //It will be optimized according to the target acceptance ratio
+  par.stepSize = sim.par.dt;
+  //Desired acceptance ratio 
+  par.acceptanceRatio = sim.par.accRatio;
+  auto mala = std::make_shared<MC::ForceBiased>(sim.pd, par);
+  return mala;
+}
+\end{code2}
+
 \chapter{Hydrodynamic Interactions}\label{sec:bdhi}
 In our discussion about \gls{BD} in chapter \ref{sec:bd} we neglected hydrodynamic interactions by considering only the diagonal terms of the mobility tensor in eq. \eqref{eq:bdfull} (the so-called self-mobility). We considered the effect of the solvent on the submerged particles without considering the opposite interaction. Particles disturb the fluid around them, which in turn has an effect on the rest. When the hydrodynamic displacements are no longer neglegible (for instance, due to the density of colloidal particles increasing), the full form of the mobility tensor must be taken into account. Alternatively, hydrodynamic effects can be taken into account (to some extent) by particle solvers equipped with local momentum conservation (such as \gls{DPD}, see chapter \ref{ch:dpd}). However, \gls{DPD} (and \gls{SPH}) explicitly solve the solvent particle dynamics (or some coarse-grained version of them). Furthermore, the \gls{DPD} and \gls{SPH} methods lie in the inertial regime of the solvent, forcing us to describe a fast time scale that might be of no interest in a given model, in particular the sound and viscous momentum propagation (vorticity). Thus far we have taken a bottom-up approach, starting by modeling the dynamics of the solvent particles themselves and then eliminating degrees of freedom aided by the Fokker-Planck formalism. This enabled us to elucidate eq. \eqref{eq:bdfull}, giving us some clues about the mobility matrix and more importantly, relating it with the diffusion via the fluctuation-dissipation balance. It is worth now to take a top-down approach by considering the hydrodynamics of the solvent and then bridge the gap back to \gls{BD}, which will give us more information about the actual form of the mobility.
 \section*{Fluid dynamics}
@@ -2386,7 +2468,7 @@ The incompressible Navier-Stokes equations can be written as
   \label{eq:navierstokes}
   \begin{aligned}
     \overbrace{\underbrace{\rho\dot{\vec{\fvel}}}_{\text{time}} +\underbrace{\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})}_{\text{convection}}}^{\text{fluid inertia}} + \underbrace{\nabla \pi}_{\text{internal stress}} &= \underbrace{\eta \nabla^2\vec{\fvel}}_{\text{diffusion}} + \underbrace{\vec{f} + \nabla\cdot \mathcal{Z}}_{\text{external stress}}\\
-    \nabla\cdot\vec{\fvel} &= 0
+    \nabla\cdot\vec{\fvel} &= 0\quad\mathllap{\underbrace{\phantom{\nabla\cdot\vec{\fvel} = 0}}_{\text{incompressibility}}}
   \end{aligned}
 \end{equation}
 Where $\vec{\fvel}(\vec{\fpos}, t)$ represents the velocity field of the fluid, $\pi$ the pressure, $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid (which we shall show that can arise from its coupling with a series of submerged particles).
@@ -2987,7 +3069,7 @@ On another consideration we can sort particles in memory by spatial hash (so tha
 
 However, our block-per-particle algorithm hides these issues (effect of particle sorting and atomic overlap) to an extent, since only one thread in each block will fetch a particle and atomic overlap is reduced by design.
 
-Still, testing suggests that particle sorting via spatial hashing dramatically improves performance (an overall speedup of $\times 7$ for TPP and $\times 2$ for BPP). Suggesting that atomic overlap is far less important than a cache-friendly memory access pattern\footnote{Which goes to show how far have CUDA atomics went.}.
+Still, testing suggests that particle sorting via spatial hashing dramatically improves performance (an overall speedup of $\times 7$ for TPP and $\times 2$ for BPP). Suggesting that atomic overlap is far less important than a cache-friendly memory access pattern\footnote{Which goes to show how far have CUDA atomics have come.}.
 The storage layout of the grid data can also influence the performance of the algorithm. In particular, using a space filling curve (as the one in sec. \ref{sec:celllist}) could improve the access pattern in both spreading and interpolation\cite{Shih2021}. However, this has not been considered in this work, were a linear index is always used (so that the data for cell with indices $(i,j,k)$ is located at element $i+(j+kn_y)n_x$ in the relevant array)\footnote{Note however, that the software interface for this module allows for an arbitrary ordering of the grid data, as we will later see.}. This ordering comes imposed by the usual relation between spreading/interpolation and spectral methods in fluctuating hydrodynamics, which requires using \gls{FFT} libraries that benefit from (or are restricted to) it.
 
 
@@ -2998,7 +3080,10 @@ We refer to this algorithm as Block Per Domain (BPD), although the authors of \c
 \subsection*{Performance comparison of the spreading algorithms}
 It is worth mentioning that, although particle sorting usually takes a neglegible amount of the runtime, in the \uammd implementation sorting is carried away by \emph{ParticleData} independently of wether spreading/interpolation is present (since sorting is benefitial in several other sections of the codebase, like neighbour traversing). In this sense, the overhead of sorting is hidden. Nonetheless, for the sake of fairness, sorting time is included as part of the runtime in the performance figures.
 
-Finally, the \uammd implementation presents another benefit when compared to others seen in the wild. In particular when refering to spreading/interpolating several quantities at once (such as forces/velocities). The general strategy when dealing with vectorial quantities (or simply several scalars) is to run the algorithm as many times as there are components. This is related to the AoS (array-of-structures) vs SoA (structure-of-arrays) debate. In general terms, it is best to take an SoA approach in the GPU, which calls for the usual spread-many-times strategy. However, there is one crucial caveat to this rule worth taking into account: In complex fluid simulations we usually deal with vectorial quantities with $3$ or $4$ elements (i.e. positions, forces+energies...), which happen to be special in NVIDIA GPUs\footnote{And probably in the GPU architecture in general.}. In particular, CUDA presents especial load/store instructions that fetch/write $128$ bits from memory (the space for $4$ floats). In SoA we would store and treat each component separately, so that reading the (for instance) position of a particle would take $3$ instructions. If we store the positions in an array composed by groups of $4$ floats\footnote{A series of vectorial types names \emph{realX} (with X being 2,3 or 4) are available in \uammd. For instance, the type \emph{real4} containing $4$ scalars.} (an AoS approach) we only need a single instruction to load all three coordinates (and we get a fourth number to leverage for free). Using vector types allows to make the cost of spreading/interpolation $4$ values at the same time much cheaper than repeating the operation $4$ times. \uammd's spreading/interpolation implementation interface is templated for any random access iterator\footnote{See Appendix \ref{sec:cpp} for more information on C++ iterators.} containing the per-partcile and per-cell data as long as the type of the elements follows a certain set of sane rules (in particular, that the values of the iterator can be added together and that the per-particle type can be converted to the per-cell type when required\footnote{\uammd's vector types come with a large set of algebraic overloads. In general, any operation that can be used in an scalar also works for vector types in a per-element manner. For instance, the result of multiplying two \emph{real4} values $a$ and $b$ will be, $c = (a_xb_x, a_yb_y, a_zb_z, a_wb_w)$.}).
+Finally, the \uammd implementation presents another benefit when compared to others seen in the wild. In particular when refering to spreading/interpolating several quantities at once (such as forces/velocities). The general strategy when dealing with vectorial quantities (or simply several scalars) is to run the algorithm as many times as there are components. This is related to the AoS (array-of-structures) vs SoA (structure-of-arrays) debate. In general terms, it is best to take an SoA approach in the GPU, which calls for the usual spread-many-times strategy. However, there is one crucial caveat to this rule worth taking into account: In complex fluid simulations we usually deal with vectorial quantities with $3$ or $4$ elements (i.e. positions, forces+energies...), which happen to be special in NVIDIA GPUs\footnote{And probably in the GPU architecture in general.}. In particular, CUDA presents especial load/store instructions that fetch/write $128$ bits from memory (the space for $4$ floats). In SoA we would store and treat each component separately, so that reading the (for instance) position of a particle would take $3$ instructions. If we store the positions in an array composed by groups of $4$ floats\footnote{A series of vectorial types names \emph{realX} (with X being 2,3 or 4) are available in \uammd. For instance, the type \emph{real4} containing $4$ scalars.} (an AoS approach) we only need a single instruction to load all three coordinates (and we get a fourth number to leverage for free). Using vector types can potentially make the cost of spreading/interpolation $4$ values at the same time much cheaper than repeating the operation $4$ times. \uammd's spreading/interpolation implementation interface is templated for any random access iterator\footnote{See Appendix \ref{sec:cpp} for more information on C++ iterators.} containing the per-partcile and per-cell data as long as the type of the elements follows a certain set of sane rules (in particular, that the values of the iterator can be added together and that the per-particle type can be converted to the per-cell type when required\footnote{\uammd's vector types come with a large set of algebraic overloads. In general, any operation that can be used in an scalar also works for vector types in a per-element manner. For instance, the result of multiplying two \emph{real4} values $a$ and $b$ will be, $c = (a_xb_x, a_yb_y, a_zb_z, a_wb_w)$.}).
+The following remarks about performance trends should be taken with a grain of salt, since with time the \gpu architecture tends to become more and more forgiving about things like the memory access pattern, atomic operations, etc. The compiler also grows smarter with time, being able to better optimize the code. However, it is worth mentioning here at least some of the trends that will probably hold. Performance measurements were carried out using a NVIDIA RTX 2080Ti \gpu, which has the \emph{sm\_75} architecture.
+The TPP (register) algorithm particularly benefits from the AoS approach, where testing suggest that spreading $4$ numbers at once is overall $\times 5$ faster than spreading a single number.
+On the other hand, 
 
 We compare the TPP and BPP algorithms with the hybrid BPD (or \emph{SM} in \cite{Shih2021}) in fig. \ref{fig:ibmcomp}, measuring the performance of spreading one scalar per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible.
 
@@ -3628,84 +3713,12 @@ auto createIntegratorICM(UAMMD sim){
 }
 \end{code2}
 
-\chapter{Monte Carlo}
-Monte Carlo schemes available in \uammd
-
-\section{Hard spheres}
-Just mention that it is present.
-
-\section{Metropolis Adjusted Langevin Algorithm (MALA)}
-Force biased, like Metropolis Monte Carlo but leveraging the forces. Amounts to performing a \gls{BD} simulation step and then use the positions, forces and energies of the old and new configurations to decide wether to accept it or not with a Metropolis-like probability.
-
-We can interpret the Euler-Maruyama Brownian Dynamics scheme in eq. \eqref{eq:eulermaruyama} (with $M=1$) as a Markov chain with a transition kernel following a strictly positive probability transition density defined as\todo{De donde sale esto?}
-\begin{equation}
-  \label{eq:malakernel}
-  p( \vec{Q}^n, \vec{Q}^{n+1}) = (4\pi \kT\dt)^{3/2}\exp\left(\frac{\left|\vec{Q}^{n+1} - \vec{Q}^n + \dt\vec{F}^n\right|^2}{4\kT\dt}\right)
-\end{equation}
-Where $\vec{Q}^n:={\vec{\ppos}_1^n, \vec{\ppos}^n_2, ..., \vec{\ppos}^n_N}$ represents the positions of all particles at time step $n$.
-%This is refered to as the unadjusted Langevin algorithm\cite{Roberts1996}.
-On the other hand, the Langevin equation \eqref{eq:bd} in equilibrium presents a probability density given by
-\begin{equation}
-  \label{eq:malatarget}
-  \pi(\vec{Q}) = Z^{-1}\exp\left(-\frac{U(\vec{Q})}{kT}\right)
-\end{equation}
-Where the entropy is defined as $Z = \int\exp\left(-U(\vec{Q})/\kT\right)$ and $U(\vec{Q})$ is the internal energy (such that $\vec{F} = -\nabla U$).
-
-Once we have a proposed transition kernel (eq. \eqref{eq:malakernel}) and and a target probability density (the equilirbium one in eq. \eqref{eq:malatarget}) we can use the Metropolis-Hastings method to design an updating scheme, refered to as MALA\cite{Roberts1996}\cite{Besag1994}.
-
-Instead of sampling configurations using the Euler-Maruyama scheme (as discussed in sec. \ref{sec:bd}) we now propose a new configuration using eq. \eqref{eq:eulermaruyama} as
-\begin{equation}
-  \widetilde{\vec{Q}}^{n+1} = \vec{Q}^n + \dt\vec{F}^n + \sqrt{2\kT\dt}\vec{\widetilde{\mathcal{W}}}^n
-\end{equation}
-
-And accept it with a Metropolis probability given by
-
-\begin{equation}
-  \alpha(\vec{Q}^n, \widetilde{\vec{Q}}^{n+1}) = \text{min}\left(\frac{p(\widetilde{\vec{Q}}^{n+1},\vec{Q}^{n})\pi(\widetilde{\vec{Q}}^{n+1})}{p(\vec{Q}^{n}, \widetilde{\vec{Q}}^{n+1})\pi(\vec{Q}^{n})}\right)
-\end{equation}
-
-Numerically, this can be done by drawing an uniform random number $\xi^n \in [0,1]$ and accepting the new configuration only if $\xi^n<\alpha(\vec{Q}^n, \widetilde{\vec{Q}}^{n+1})$.
-
-In contrast with the naive Metropolis-Hasting algorithm, that blindly proposes configurations, MALA proposes configurations that always have a higher propability in $\pi$, increasing the chances of acceptance.
-
-\begin{itemize}
-\item We are not restricted to using the same value for $\dt$ in all steps, since in an MCMC algorithm it has lost its meaning as a \emph{time step} and it is now simply a parameter describing the \emph{distance} in phase space between two given configurations. As such we can tune it to get a desired configuration acceptance ratio.
-\item Although it is useful to thermalize or initialize configurations, testing suggests that hard steric repulsion between particles (like LJ) requires such a small time step to ensure a given acceptance ratio that the algorithm becomes unusable. In these cases plain BD is preferable.
-\item For tuning the jump step, we measure the acceptance ratio every once in a while, if it is lower than the target the jump step is decreased (and increased if it is larger). We increase the jump step slowly (a 2\% increase) and decrease it fast (a 10\%). this decision stems from optimization.
-\item Another disadvantage of MALA is that, for instance, in a thermalized, equilibrium configuration the energy change coming from moving all particles in the system grows, in average, with the number of particles. This results in the optimal jump step decreasing with the number of particles.
-  \begin{figure}[H]
-    \label{fig:malastep}
-    \centering    
-    \subcaptionbox{Soft potential}{\includegraphics[width=\textwidth]{gfx/malasoft}}\label{fig:malastepsoft}
-    \subcaptionbox{LJ potential}{\includegraphics[width=\textwidth]{gfx/malalj}}\label{fig:malasteplj}
-    \caption{Optimal time step in MALA for several configurations.}
-  \end{figure}
-  
-\end{itemize}
-\subsection*{Use in UAMMD}
-
-\begin{itemize}
-\item Use like any other Integrator, will query its Interactors for both force and energy.
-\item The step size will be autotuned until it reaches the target one.
-\end{itemize}
-\begin{code2}[Example of the creation of a MALA \emph{Integrator} module.]{label=code:mala}
-#include<uammd.cuh>
-#include<Integrator/MonteCarlo/ForceBiased.cuh>
-using namespace uammd;
-//A function that creates and returns a MALA integrator
-auto createIntegratorMALA(UAMMD sim){   
-  MC::ForceBiased::Parameters par;
-  //Inverse of temperature
-  par.beta = 1.0/sim.par.temperature;	
-  //Initial step length.
-  //It will be optimized according to the target acceptance ratio
-  par.stepSize = sim.par.dt;
-  //Desired acceptance ratio 
-  par.acceptanceRatio = sim.par.accRatio;
-  auto mala = std::make_shared<MC::ForceBiased>(sim.pd, par);
-  return mala;
-}
-\end{code2}
+%\chapter{Monte Carlo}
+%Monte Carlo schemes available in \uammd
+%
+%\section{Hard spheres}
+%Just mention that it is present.
+%
 
 
 
@@ -5268,26 +5281,44 @@ In addition of inheritance, C++ offers another way of writing generic code calle
   }
 \end{code2}
 
-In \uammd, templates are used extensively to generalize modules. For instance, the \emph{PairForces} module (see example code \ref{code:pf}) is templated for both the potential and the neighbour list.
-
-\subsection*{Other keywords}
-The \mintinline{\ucpp}{const} keyword simply informs the reader (and compiler) that the value of the accompanying variable cannot be modified after its declaration. When appearing in the signature of an object's member function, it conveys that the function will not modify the state of the object in any way.
+In \uammd, templates are used extensively to generalize modules. For instance, the \emph{PairForces} module (see example code \ref{code:pf}) is templated for both the potential and the neighbour list. In another example, the \gls{IBM} module is templated for several aspects of the algorithm, like the spreading kernel, the particle and grid quantities or the quadrature weights.
 
 \subsection*{Iterators}
-\todo{Fill this section}
+In C++, \emph{Iterators} are a type of object that \emph{points} to an element in a range of elements (such as a container or pseudo-container) and has the ability to \emph{iterate} through the elements of that range. The canonical example of an iterator is a pointer to the first element of an array. We can use a pointer to iterate through the contents of the array. However, like many things in programming, the internal workings of a certain iterator are irrelevant as long as the iterator works ``as is''. For instance, a \emph{constant} input iterator works by always returning the same value, regardless of what ``element'' in the ``container'' it is pointing to, as if it was iterating over an infinite sized array filled with the same number. In practice, a constant input iterator would be implemented as simply providing the same number all the time, without requiring any underlying memory to be allocated or present.
+
+Several categories of iterators exists depending on the functionality they provide, figure \ref{fig:iterator} provides an overview.
 \begin{figure}
   \centering
-  \includesvg[width=\columnwidth]{gfx/iterator}
+  \includesvg[width=0.25\columnwidth]{gfx/iterator}
   \caption{The different kinds of C++ iterators. Iterators can be either for input (reading), output (writing) or both (read/write). The most generic type of iterator is called \emph{Random Access} and allows for arbitrary access to its elements. Below, a \emph{Bidirectional} constraints the access to be always next to the previously accesed element. In other words, a \emph{Bidirectional} iterator can only issued to advance or regress one element at a time. Finally, the most restricted iterator kind, the \emph{Forward} iterator, can only be accesed element by element in order. }
   \label{fig:iterator}
 \end{figure}
+Iterators play a central role in connecting algorithms with containers in C++ and allow for deep customization. For instance, say that a given algorithm requires as input an ordered range of numbers and, after some operations, fills with some results the contents of two output arrays. Furthermore, say we are only interested in one of the two output arrays. Instead of allocating three vectors and filling the first with the range of numbers we could use some fancy iterators to save a lot of work; For the input range of numbers, we could pass an input \emph{counting iterator} (see example code \ref{code:iterators}). For the non-required output, we could provide the algorithm with an output \emph{discard iterator}\footnote{The thrust library provides a series of fancy iterators like the ones mentioned in this paragraph (counting, constant, discard...).} that simply ignores any value that is assigned to any of its elements (thus preventing unnecessary memory copies).
 
-\begin{itemize}
-\item In C++, \emph{Iterators} are a type of object that \emph{points} to an element in a range of elements (such as a container or pseudo-container) and has the ability to \emph{iterate} through the elements of that range. The canonical example of an iterator is a pointer to the first element of an array. We can use a pointer to iterate through the contents of the array. However, like many things in programming, the internal workings of a certain iterator are irrelevant as long as the iterator presents its expected behavior. In other words, iterators work ``as is''. For instance, a \emph{constant} input iterator works by always returning the same value, regardless of what ``element'' in the ``container'' it is pointing to, as if it was iterating over an infinite sized array filled with the same number. In practice, a constant input iterator would be implemented as simply returning the same number all the time, without requiring any underlying memory to be allocated or present.
-  
-\item Iterators play a central role in connecting algorithms with containers in C++.
-\item Several categories of iterators exists (see fig. \ref{fig:iterator}) depending on the functionality they provide.
-\end{itemize}
+\begin{code2}[Using iterators in C++. In this example a counting iterator for the range 0-5 is fabricated from three different sources. For the first two cases a container (vector) is created and filled with the actual integers from 0 to 5 (requiring memory allocation). We then get an iterator to the range of the container via the method \emph{begin} of the vector (which returns an iterator pointing to the first element, see the variable ``vit''). An equivalent way in this case is to simply get a pointer to the first element of the container (variable ``pit''). Finally, a counting iterator is construted using the one available in the thrust library. This special iterator is not associated to an underlying container, instead it is an object that provides an overloaded bracket operator that when given an integer, ``i'', simply returns that same integer, ``i''. Note that in this example, ``vit'' and ``pit'' are input/output interators, while ``cit'' is just an input iterator. The method ``cbegin'' in vector can be used to make ``vit'' an input iterator instead. Additionally, making the type of ``pit'' be ``const int*'' will also turn it into an input iterator. On the other hand, ``cit'' cannot be an output iterator, since there is nothing to write to behind it.] {label=code:iterators}
+#include<iostream>
+#include<vector>
+#include<thrust/iterator/counting_iterator.h>
+//Three ways of making a counting iterator
+int main(){
+  std::vector<int> v{0,1,2,3,4,5}; //A vector containing the integers from 0 to 5
+  auto vit = v.begin(); //Vector iterator
+  int* pit = &v[0];     //Pointer to the first element of the vector
+  thrust::counting_iterator<int> cit(0); //A counting iterator that starts at 0
+  //All three iterators return the same numbers in this range
+  //Note that only "cit" is accessible beyond i=5, since the vector only has 6 elements
+  for(int i = 0; i<v.size(); i++){
+    std::cout<<vit[i]<<" "<<pit[i]<<" "<<cit[i]<<std::endl;
+  }
+  return 0;
+}
+\end{code2}
+In another instance an algorithm may require to iterate through the elements of a container in reverse (starting at the last element and iterating up to the first), a \emph{reverse} iterator could be used instead of reordering the container prior to the execution of the algorithm.
+
+Iterators appear many times in \uammd. For instance, any \emph{random access} iterator can be provided for the input per-particle and per-grid quantities in the \gls{IBM} module (see chapter \ref{sec:ibm}). The only restriction here would be that depending on wether we are spreading or interpolating, the iterators will be required to be either input or output ones. A simple example case of this would be, for instance, spreading the charges of a collection of equally charged particles. A \emph{constant iterator} could be provided in this case.
+
+\subsection*{Other keywords}
+The \mintinline{\ucpp}{const} keyword simply informs the reader (and compiler) that the value of the accompanying variable cannot be modified after its declaration. When appearing in the signature of an object's member function, it conveys that the function will not modify the state of the object in any way.
 
 \section{Basics rules of CUDA programming}
 CUDA is an extension of C++. All the language rules we have seen thus far also apply to CUDA. CUDA introduces some new keywords and an \gls{API}.
@@ -5664,9 +5695,9 @@ The \emph{Transverser} interface requires a given class/struct to provide the fo
   This function is optional and defaults to simply nothing.
  \end{itemize}
 
-Lets see a trivial example.
-This \emph{Transverser} can be used with a neighbour list to count the number of neighbours of each particle:
-\begin{code2}[A \emph{Transverser} that counts the number of neighbours of each particle]{label=code:ncounter}
+Example code \ref{code:ncounter} contains a very barebones instance of a \emph{Transverser}. In particular, \emph{NeighbourCounter} relies on as much default behavior as possible, presenting only a \emph{compute} and \emph{set} functions.
+If we apply the \emph{NeighbourCounter} \emph{Transverser} to one of the neighbour lists in \uammd (see chapter \ref{sec:nlist}), the output (``nneigh'' array) will hold, for each particle, the number of neighbour particles.
+\begin{code2}[A \emph{Transverser} that counts the number of neighbours of each particle.]{label=code:ncounter}
 struct NeighbourCounter{
   int *nneigh;
   real rc;
@@ -5696,9 +5727,7 @@ struct NeighbourCounter{
   }
 };
 \end{code2}
-In the following sections, we will see how to use \emph{Transversers} to compute forces, energies and more between particles.
-But in order to do that, we need yet another interface in order connecting the general concept of a \emph{Transverser} with something that computes forces, energies or virial of an interaction. In \uammd, we use the \emph{Potential} interface for that.
-
+Alternatively, if we apply the \emph{Transverser} in the code example \ref{code:ncounter} to the \emph{NBody} module (see chapter \ref{sec:nbody}) each particle will go through every other one, and thus all the elements of the \emph{NeighbourCounter} output will be equal to the total number of particles.
 \section{The Potential Interface} \label{sec:potential}
 
 This interface is just a connection between the \emph{Transverser} and \emph{Interactor} concepts. Additionally, \emph{Potential} aids with one limitation of the CUDA programming language and \gls{GPU} programming in general. On one hand, register memory in a \gpu is quite limited, so it is not a good idea to use large objects in a kernel. On the other hand there are some technical details that prevents certain objects from existing in a \gpu kernel. For example, objects are passed by value to a kernel, which can incurr in undesired copies and/or destructors being called. Thus, its some times worth it to make a conceptual and programmatic separation between CPU and \gpu objects.
