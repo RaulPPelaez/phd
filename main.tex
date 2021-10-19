@@ -92,6 +92,10 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
   % \input{#1.pdf_tex}
   \includegraphics[#1]{#2.pdf}
 }
+
+\pagecolor[rgb]{0.2,0.2,0.2}
+\color[rgb]{1,1,1}
+
 %
 %\definecolor{kwcol}{HTML}{32b43f}
 %\definecolor{comcol}{HTML}{7e8775}
@@ -218,13 +222,13 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 
 \chapter*{English Abstract}
 
-Complex fluids is an umbrella term representing the coexistence between two phases, in our cases of intereset these being a solid and a liquid. A wide range of soft matter systems, many times of biological nature, can be categorized as complex fluids. We often find the presence of a group of certain slow solid, or soft, objects submerged in a solvent comprised by smaller particles with a much faster dynamics. A suspension of colloidal particles in water or a small virus diffusing in the cellular environment are some examples of complex fluids. The dynamics of these kind of systems are more often than not influenced (and sometimes straight-up controlled) by thermal fluctuations and hydrodynamic correlations arising from the elimination of the solvent's degrees of freedom. Additionally, the two-phase coupling often imposes geometrical restrictions that fundamentally alter the dynamics of both the solution and the solvent. Both of these effects require special (and in some occasions altogether novel) mathematical and algorithmical consideration. This thesis attemps to press on the boundaries of numerical simulation of complex fluids. In this manuscript, I present an overview of past, recent and novel algorithms adapted to the GPU, a powerful, massively-parallel hardware recently developed. The culmination of this thesis has resulted in the release of UAMMD, a new software infrastructure for complex fluids simulations in the GPU. Besides the novel tools and methodology, I will also go through some real-life applications of them that have resulted in publications in scientific journals.
+Complex fluids is an umbrella term representing the coexistence between two phases, in our cases of interest these being a solid and a liquid. A wide range of soft matter systems, many times of biological nature, can be categorized as complex fluids. We often find the presence of a group of certain slow solid, or soft, objects submerged in a solvent comprised by smaller particles with a much faster dynamics. A suspension of colloidal particles in water or a small virus diffusing in the cellular environment are some examples of complex fluids. The dynamics of these kind of systems are more often than not influenced (and sometimes straight-up controlled) by thermal fluctuations and hydrodynamic correlations arising from the elimination of the solvent's degrees of freedom. Additionally, the two-phase coupling often imposes geometrical restrictions that fundamentally alter the dynamics of both the solution and the solvent. Both of these effects require special (and in some occasions altogether novel) mathematical and algorithmical consideration. This thesis attempts to press on the boundaries of numerical simulation of complex fluids. In this manuscript, I present an overview of past, recent and novel algorithms adapted to the GPU, a powerful, massively-parallel hardware recently developed. The culmination of this thesis has resulted in the release of UAMMD, a new software infrastructure for complex fluids simulations in the GPU. Besides the novel tools and methodology, I will also go through some real-life applications of them that have resulted in publications in scientific journals.
 
 \cleardoublepage
 \newpage
 
 \chapter*{Spanish Abstract}
-Complex fluids is an umbrella term representing the coexistence between two phases, in our cases of intereset these being a solid and a liquid. A wide range of soft matter systems, many times of biological nature, can be categorized as complex fluids. We often find the presence of a group of certain slow solid, or soft, objects submerged in a solvent comprised by smaller particles with a much faster dynamics. A suspension of colloidal particles in water or a small virus diffusing in the cellular environment are some examples of complex fluids. The dynamics of these kind of systems are more often than not influenced (and sometimes straight-up controlled) by thermal fluctuations and hydrodynamic correlations arising from the elimination of the solvent's degrees of freedom. Additionally, the two-phase coupling often imposes geometrical restrictions that fundamentally alter the dynamics of both the solution and the solvent. Both of these effects require special (and in some occasions altogether novel) mathematical and algorithmical consideration. This thesis attemps to press on the boundaries of numerical simulation of complex fluids. In this manuscript, I present an overview of past and recent algorithms adapted to the GPU, a recently developed powerful, massively-parallel hardware. The culmination of this thesis has resulted in the release of UAMMD, a new software infrastructure for complex fluids simulations in the GPU. Besides the novel tools and methodology, I will also go through some real life applications that have resulted in publications in scientific journals.
+Complex fluids is an umbrella term representing the coexistence between two phases, in our cases of interest these being a solid and a liquid. A wide range of soft matter systems, many times of biological nature, can be categorized as complex fluids. We often find the presence of a group of certain slow solid, or soft, objects submerged in a solvent comprised by smaller particles with a much faster dynamics. A suspension of colloidal particles in water or a small virus diffusing in the cellular environment are some examples of complex fluids. The dynamics of these kind of systems are more often than not influenced (and sometimes straight-up controlled) by thermal fluctuations and hydrodynamic correlations arising from the elimination of the solvent's degrees of freedom. Additionally, the two-phase coupling often imposes geometrical restrictions that fundamentally alter the dynamics of both the solution and the solvent. Both of these effects require special (and in some occasions altogether novel) mathematical and algorithmical consideration. This thesis attempts to press on the boundaries of numerical simulation of complex fluids. In this manuscript, I present an overview of past and recent algorithms adapted to the GPU, a recently developed powerful, massively-parallel hardware. The culmination of this thesis has resulted in the release of UAMMD, a new software infrastructure for complex fluids simulations in the GPU. Besides the novel tools and methodology, I will also go through some real life applications that have resulted in publications in scientific journals.
 \cleardoublepage
 \newpage
 \pdfbookmark[1]{Publications}{publications}
@@ -338,14 +342,14 @@ The modeling and simulation of physical systems is always tied to a certain spat
 Choosing the right lens for a problem requires understanding its characteristic times and lengths.
 Say, for instance, that you want to study the flow of a waterfall throughout the next thousand years. It would be a bad decision to employ quantum mechanics for such a feat, as it is a theoretical framework for events that take femtoseconds and angstroms.
 
-Mathematical frameworks and numerical techniques have been devised for the exploration of different spatio-temporal scales. However, many phisical phenomena are intrinsically \emph{multiscale}, as the effect of small and fast scales affect the larger and slower ones.
+Mathematical frameworks and numerical techniques have been devised for the exploration of different spatio-temporal scales. However, many physical phenomena are intrinsically \emph{multiscale}, as the effect of small and fast scales affect the larger and slower ones.
 The advent of supercomputing in the last two decades has presented the field with new powerful tools to leverage. For the first time we have more computing power than what our techniques are capable of handling. 
 Developing new techniques (numerical and theoretical) directly aimed to these new technologies will enable the exploration of regimes previously unreachable, opening the doors to new phenomena.
 Multiscale problems will particularly benefit from the improvements in supercomputing.
 For instance, \cite{Hadden2018} to simulate every molecule of a virus capsid submerged in water ($6$ million atoms) in the span of $1\mu s$ ($5\cdot10^8$ simulation steps).
 As another example of these huge simulations, the authors of \cite{Rochaix2019} use $100$ million particles to model a chunk of the interior environment of a bacteria for some hundreds of nanoseconds (around $10^7$ steps).
 
-These sort of simulations would be impossible without the aid of a super computer and specialized software tools. Indeed, aside from raw computing power, new fast and efficient numerical schemes (adapted to novel computing architectures) are needed to cover larger spatio-temporal windows in physical modelling. This is precisely the objective of this thesis, which is, in particular, devoted to the development of new algorithms and software tools for the study of complex fluids and biological systems in high performance computing environments.
+These sort of simulations would be impossible without the aid of a super computer and specialized software tools. Indeed, aside from raw computing power, new fast and efficient numerical schemes (adapted to novel computing architectures) are needed to cover larger spatio-temporal windows in physical modeling. This is precisely the objective of this thesis, which is, in particular, devoted to the development of new algorithms and software tools for the study of complex fluids and biological systems in high performance computing environments.
 
 Most of the properties of complex fluids often arise from an intermediate regime, called the \emph{mesoscale}.
 The definition of mesoscale is fuzzy, usually it ranges from a few nanometers (a protein) to $~10\mu m$ (the size of a HeLa cell). Characteristic times range from micro seconds to even minutes.
@@ -368,7 +372,7 @@ Recently, a new paradigm of supercomputing has arisen. The \gpu, a massively par
   \label{fig:gpuandme}
 \end{figure}
 
-Yet, the \gpu technology, interpreted as some kind of specialized graphic circuit or co-processor, can be tracked back to the 1970s. Once electronic devices started having screens attached to them, it made sense to have some kind of chip translating the CPU information into the analogic signal of the display. It was then only a matter of time before more functionality was put into them. It started as a way to accelerate the display process in early video game hardware, such as arcade systems.
+Yet, the \gpu technology, interpreted as some kind of specialized graphic circuit or co-processor, can be tracked back to the 1970s. Once electronic devices started having screens attached to them, it made sense to have some kind of chip translating the CPU information into the analogical signal of the display. It was then only a matter of time before more functionality was put into them. It started as a way to accelerate the display process in early video game hardware, such as arcade systems.
 Storing the data that goes into the screen takes a lot of space and, at the time, RAM memory was expensive (still is, by the way!).
 
 In 1977, the Atari 2600 (one of the first home consoles) could simply not afford to store the contents of its 160x80 pixel display into its 128 bytes of RAM. Of course, these systems employed some truly creative software tricks to reduce memory usage. However, the numbers just do not add up. Even if we limit ourselves to a monochrome output (so one pixel takes one bit to store), the frame buffer for a 160x80 pixel display takes 1600 bytes\footnote{In contrast, the NVIDIA GTX 980 (the trusty, consumer-grade, GPU that has accompanied me thoughout most of my Ph.D.) has 4 GB of memory and will happily output to a several screens with 4k resolution (4096x2160 pixels).}.
@@ -805,7 +809,7 @@ As previously stated the central work-piece in \uammd are the particles (see fig
 \begin{figure}[h!]
   \centering
   \includesvg[width=\columnwidth]{gfx/outline}
-  \caption{A bird's eye of the different conceptual layers of the UAMMD infrastructure. Many (but not all) of the implemented modules are represented inside the red circle, we will discuss all of them through this manuscript. At the innermost level, the library level, we have the basic tools and algorithms in which the rest of the project is supported on. The next layer is the solver layer, with modules for particle interaction and dynamics. In general, all these modules are black-bloxed (input/output modules) that can be used in any other code in a library-like fashion as external accelerators (specially the ones at the library level). Outside the red circle we find the application layer, in which several of the inner tools are joined to study the physics of a new system. For instance, to study the phenomenon of electro chemical impedance we need electrostatics (interactions) and hydrodynamics (dynamics) in a slit channel (chapters \ref{ch:dppoisson} and \ref{sec:dpstokes} respectively), the modules inside blue circles are connected first to construct the interaction and dynamics modules, which in turn are used to construct a simulation.}
+  \caption{A bird's eye of the different conceptual layers of the UAMMD infrastructure. Many (but not all) of the implemented modules are represented inside the red circle, we will discuss all of them through this manuscript. At the innermost level, the library level, we have the basic tools and algorithms in which the rest of the project is supported on. The next layer is the solver layer, with modules for particle interaction and dynamics. In general, all these modules are black-bloxed input/output modules that can be used in any other code in a library-like fashion as external accelerators (specially the ones at the library level). Outside the red circle we find the application layer, in which several of the inner tools are joined to study the physics of a new system. For instance, to study the phenomenon of electro chemical impedance we need electrostatics (interactions) and hydrodynamics (dynamics) in a slit channel (chapters \ref{ch:dppoisson} and \ref{sec:dpstokes} respectively), the modules inside blue circles are connected first to construct the interaction and dynamics modules, which in turn are used to construct a simulation.}
   \label{fig:overview}
 \end{figure}
 
@@ -820,8 +824,8 @@ The rest of the manuscript is organized in three main parts: In the first one (p
 
 \cleardoublepage
 
-\part{A voyage through numerical space-time}\label{part:voyage}
 \ctparttext{Let us go through the different numerical techniques that are used to simulate the different sections of the spatio-temporal landscape.}
+\part{A voyage through numerical space-time}\label{part:voyage}
 
 
 From this point on in the manuscript we will see descriptions of GPU algorithms and code examples written in CUDA/C++. Although the code examples can be mostly ommited without missing the overall message of the text, understanding the jargon, rationale and details of the described algorithms will require at least basic knowledge of the GPU programming model. If the reader is unfamiliar with either the C++ programming language or the GPU he or she can find an introduction to the basic concepts in Appendix \ref{sec:cpp}. While not a full-fledged guide, Appendix \ref{sec:cpp} has been designed to provide the bare minimum required to understand most of the GPU and programming related concepts laid out in the rest of the manuscript.
@@ -840,9 +844,9 @@ auto createModule(UAMMD sim){
 }
 \end{code2}
 
-The argument of the function \emph{createModule} in example code \ref{code:module}, of type \emph{UAMMD}, is simply an aggregate (a \emph{struct} in C++) of recurrent parameters written for this manuscript. In particular, this structure can be defined as in code example \ref{code:uammdstruct}, which will serve as an implicit preamble code for the rest of the examples in this manuscript\footnote{Incidentally, I often use this same construction when writting simulations using \uammd.}. It is important to stress that all the code examples in this manuscript can be compiled     the codes have been written in a tutorial purpose \todo{clarify}. In order to compile the rest of the examples from this point on, the snippet in code \ref{code:uammdstruct} must be placed (copy/pasted) before the code in the example and the relevant parameters added to the \emph{Parameters} structure.
+The argument of the function \emph{createModule} in example code \ref{code:module}, of type \emph{UAMMD}, is simply an aggregate (a \emph{struct} in C++) of recurrent parameters written for this manuscript. In particular, this structure can be defined as in code example \ref{code:uammdstruct}, which will serve as an implicit preamble code for the rest of the examples in this manuscript\footnote{Incidentally, I often use this same construction when writting simulations using \uammd.}. It is important to stress that all the code examples in this manuscript can be compiled (with the exception of source code \ref{code:module}) by including the preamble in code \ref{code:uammdstruct} (a.i. copy/pasting it at the start) and defining, inside the \mintinline{\ucpp}{Parameters} struct, the parameters required by the example (for instance, example code \ref{code:verletnve} will require two parameters: \mintinline{\ucpp}{real dt} and \mintinline{\ucpp}{real targetEnergy}).
 
-\begin{code2}[Definition of the UAMMD auxiliar structure created for this manuscript. All the other examples need this snippet as a preamble to compile.]
+\begin{code2}[Definition of the UAMMD auxiliar structure created for this manuscript. Other examples making use of the \emph{UAMMD} struct need this snippet as a preamble to compile.]
   {label=code:uammdstruct}
 #include<uammd.cuh>
 using namespace uammd; 
@@ -893,7 +897,7 @@ int main(){
   return 0;
 }
 \end{code2}
-Adding new particle properties in \uammd amounts to include them in a special list (in the source code \emph{ParticleData.cuh}, to be precise). Many particle properties are already available in this list at the time of writing, such as positions, velocities, forces, mass, radius and many more. Each particle is assigned a name when \emph{ParticleData} is created. \emph{ParticleData} refers to this special property as ``Id'' (and exposes it just like the rest, with a corresponding \mintinline{\ucpp}{getId(access::gpu, access::read);} function). The name, or id, property has the unique quality of being unmutable, meaning that it can only be requested for reading. \uammd can under some circunstances change (reorder) the memory location of the particles\footnote{For instance to increase the data locality in memory for particles close in physical space.} (so that a particle named \emph{id} that started at some index \emph{i} would no longer be located at index \emph{i}). Naturally, it is possible to prompt \emph{ParticleData} for the index of a particle given its name\footnote{The \emph{ParticleData} member function \mintinline{\ucpp}{getIdOrderedIndices();} returns an array that stores the memory location (index) of a particle given its name (AKA id).} (the reader can refer to the online \uammd documentation, see Appendix \ref{ch:online}, to learn more about this). Note that in general in a GPU-centric algorithm, when we assign a worker (be it a thread or a thread block) to each particle, given that each worker runs asynchronously with the rest the specific order of the particles in memory becomes irrelevant from an algorithmic point of view.
+Adding new particle properties in \uammd amounts to include them in a special list (in the source code \emph{ParticleData.cuh}, to be precise). Many particle properties are already available in this list at the time of writing, such as positions, velocities, forces, mass, radius and many more. Each particle is assigned a name when \emph{ParticleData} is created. \emph{ParticleData} refers to this special property as ``Id'' (and exposes it just like the rest, with a corresponding \mintinline{\ucpp}{getId(access::gpu, access::read);} function). The name, or id, property has the unique quality of being immutable, meaning that it can only be requested for reading. \uammd can under some circunstances change (reorder) the memory location of the particles\footnote{For instance to increase the data locality in memory for particles close in physical space.} (so that a particle named \emph{id} that started at some index \emph{i} would no longer be located at index \emph{i}). Naturally, it is possible to prompt \emph{ParticleData} for the index of a particle given its name\footnote{The \emph{ParticleData} member function \mintinline{\ucpp}{getIdOrderedIndices();} returns an array that stores the memory location (index) of a particle given its name (AKA id).} (the reader can refer to the online \uammd documentation, see Appendix \ref{ch:online}, to learn more about this). Note that in general in a GPU-centric algorithm, when we assign a worker (be it a thread or a thread block) to each particle, given that each worker runs asynchronously with the rest the specific order of the particles in memory becomes irrelevant from an algorithmic point of view.
 
 Besides working as a multi container, \emph{ParticleData} offers a series of functionalities overlooked here for simplicity (the reader can find more information in Appendix \ref{ch:online}). However, it is worth mentioning that \emph{ParticleData} has the ability to spatially hash and sort particles to increase data locality when accesing the particles properties.
 
@@ -927,7 +931,7 @@ We start with the case of all particles interacting with every other in chapter 
   \label{fig:uammdsketch_interactors_slr}
 \end{figure}
 
-Let start by describing \uammd's \emph{Interactor} interface in detail and then proceed to descend to the \emph{Interactor} logical branch in fig. \ref{fig:uammdsketch}, for which the next downward leafs are depicted in fig. \ref{fig:uammdsketch_interactors}. In particular, we will focus on discussing the long range branch in chapter \ref{sec:nbody} and the short range branch in chapter \ref{sec:shortrange} (depicted in figure \ref{fig:uammdsketch_interactors_slr}).
+Let us start by describing \uammd's \emph{Interactor} interface in detail and then proceed to descend to the \emph{Interactor} logical branch in fig. \ref{fig:uammdsketch}, for which the next downward leafs are depicted in fig. \ref{fig:uammdsketch_interactors}. In particular, we will focus on discussing the long range branch in chapter \ref{sec:nbody} and the short range branch in chapter \ref{sec:shortrange} (depicted in figure \ref{fig:uammdsketch_interactors_slr}).
 \section{The Interactor interface} \label{sec:interactor}
 
 \emph{Interactor} encapsulates the concept of a group of particles interacting, either with each other or with some external influence.
@@ -1073,7 +1077,7 @@ This is highly benefitial, since global memory accesses incur a high latency (in
 
 Once the tile has been processed, the next tile is loaded. This process is repeated until no particles remain (note that the last tile can potentially be smaller than the rest).
 The optimal size of a tile will be an optimization parameter also depending on the required shared memory per particle, being the number of threads in a block (or a multiple of it) a good default.
-This results in an overall speedup of 30 compared with the naive algorithm. \todo{Maybe a figure comparing here?}
+This results in an overall speedup of 30 compared with the naive algorithm.
 The algorithm is summarized in algorithm \ref{alg:nbody} and a schematic representation of the process is presented in fig. \ref{fig:nbody}.
 \begin{algorithm}[H]
   \caption{Shared memory NBody algorithm GPU kernel. Although the number of particles per tile is unconstrained, for simplicity this pseudocode assumes a tile has a size equal to the number of threads per block, with a number of tiles equal to the number of thread blocks.} \label{alg:nbody}
@@ -1165,7 +1169,7 @@ The reason for giving short range interactions so much credit is simple: Imagine
 
 The traditonal example of a short range interaction is the Lennard-Jones potential.
 \section{The Lennard-Jones potential}\label{sec:lj}
-A standard potential employed to model the short range Van-der-Waals interactions is the \gls{LJ} potential \cite{lj}. A rapidly decaying repulsive radial potential with an attractive tail.
+A standard potential employed to model the short range Van-der-Waals interactions is the \gls{LJ} potential \cite{Thol2015}. A rapidly decaying repulsive radial potential with an attractive tail.
 \begin{equation}
   \label{eq:lj}
   U_{LJ}(r) = 4 \epsilon \left[ \left(\frac{\sigma}{r}\right)^{12} - \left( \frac{\sigma}{r}\right)^6 \right] 
@@ -1343,7 +1347,6 @@ It is possible to reduce the cell size in exchange for visiting more neighbourin
   \caption{Representation of the spatial binning for a 2D distribution of particles. The particle demarked as $i$ lies in the cell with coordinates $(1,2)$, this coordinates will then be used to assign a hash to particle $i$. The dotted red line represents the order given by the space-filling curve, starting in the (0,0) cell. Blue particles lie in arbitrary indices, AKA memory locations, (blue numbers). After hashing the positions according to the red dashed line and sorting, particle positions of particles in the same cell are stored contigously in \emph{sortPos} (right), particles inside the same cell have an undetermined order. Solid red lines mark the end of a cell or equivalently, the start of the next one, information that is stored in the \emph{cellStart} and \emph{cellEnd} arrays.}
   \label{fig:cl1}
 \end{figure}
-\todo{Put an example of the of cellStart etc in the figure}
 The algorithm for the cell list construction can be summarized in three separated steps
 \begin{enumerate}
 \item Hash (label) the particles according to the cell (bin) they lie in.
@@ -1609,13 +1612,13 @@ void constructListWithPositions(Iterator positions,
 
 
 
-\section{LBVH list}\label{sec:lbvh}
-Explain LBVH list \cite{lbvh}, quantized list \cite{quantizedlbvh}. Great for large size disparities.
-
-\subsection*{Use in UAMMD}
-
-EXAMPLE CODE
-
+%\section{LBVH list}\label{sec:lbvh}
+%Explain LBVH list \cite{lbvh}, quantized list \cite{quantizedlbvh}. Great for large size disparities.
+%
+%\subsection*{Use in UAMMD}
+%
+%EXAMPLE CODE
+%
 \chapter{Bonded Interactions}\label{sec:bonded}
 
 As bonds can be expected to present great disparity in the number of bonds per particle, instead of using the same strategy as with the neighbour list, for the bonded interactions \uammd generates a compacted list of bonds per particle. Similar to the cell list.
@@ -1628,18 +1631,70 @@ The special type of bond that involves a single particle is called a fixed point
 
 
 \section*{Use in UAMMD}
+The bond \emph{Interactor} can be specialized for a certain number of particles per bond and a potential. Some potentials are already defined for bonds involving two, three (angular bonds) and four (torsional bonds) particles per bond.
 
-\begin{code2}[Constructing and returning a Bonded interaction module.]
-  {label=code:bonded}
+The interface for the potential can be found in source code \ref{code:bonded}. The function compute requires some additional explanation. This function will be called for every bond read in the bond file and is expected to compute force/energy and or virial. The arguments of this function are as follow (see the example code \ref{code:bonded}).
+\begin{itemize}
+\item bond\_index: The index of the particle to compute force/energy/virial on.
+\item ids: list of indexes of the particles involved in the current bond.
+\item pos: list of positions of the particles involved in the current bond.
+\item comp: computable targets (wether force, energy and/or virial are needed).
+\item bi: bond information for the current bond (as returned by the function \mintinline{\ucpp}{readBond}).
+\end{itemize}
+
+\begin{code2}[Constructing and returning a Bonded interaction module.] {label=code:bonded}
 #include<uammd.cuh>
-#include<Interactor/NeighbourList/VerletList.cuh>
+#include<Interactor/BondedForces.cuh>
 using namespace uammd;
 
-//Construct a Bond Interactor using the UAMMD ecosystem
-void constructListWithUAMMD(UAMMD sim){
+//Harmonic bond for pairs of particles
+struct HarmonicBond{
+  HarmonicBond(/*Parameters par*/){
+    //In this case no parameter is needed beyond whats in the bond file.
+  }
+  //Place in this struct whatever static information is needed for the different bonds.
+  //In this case spring constant and equilibrium distance.
+  //The function readBond below takes care of reading each BondInfo from the file.
+  struct BondInfo{
+    real k, r0;
+  };
 
+  __device__ ComputeType compute(int bond_index, int ids[2], real3 pos[2],
+                                 Interactor::Computables comp, BondInfo bi){
+    real3 r12 = pos[1]-pos[0];
+    real r2 = dot(r12, r12);
+    const real invr = rsqrt(r2);
+    const real f = -bi.k*(real(1.0)-bi.r0*invr);
+    ComputeType ct;
+    ct.force = comp.force?f*r12:real3();
+    ct.energy = 0.0; //Whatever
+    ct.virial = 0.0; //Whatever
+    return (r2==real(0.0))?(ComputeType{}):ct;
+  }
+
+  //This function will be called for each bond in the bond file and read the information of a bond
+  BondInfo readBond(std::istream &in){
+    //BondedForces will read i j, readBond has to read the rest of the line
+    BondInfo bi;
+    in>>bi.k>>bi.r0;
+    return bi;
+  }
+};
+
+//Create a bond interactor for bonds with two particles, uses the Harmonic potential defined above.
+auto createBondInteractor(UAMMD sim){
+  //If the bond involves, for instance, 3 particles, the module should be specialized accordingly below.
+  //Furthermore, the potential should be modified to take this into account.
+  using BF = BondedForces<HarmonicBond, 2>;
+  typename BF::Parameters params;
+  params.file = "bonds.dat";
+  auto bf = std::make_shared<BF>(sim.pd, params);
+  return bf;
 }
+
 \end{code2}
+
+As usual, some additional functionality of this module has been ommited for simplicity. For instance, a shared pointer to an instance of the bond potential can be provided at the \emph{BondedForces} construction to retain control of it (maybe to mutate the properties of the potential over time). See Appendix \ref{ch:online} for more information.
 
 \chapter{Particle Dynamics}\label{sec:dynamics}
 
@@ -2205,7 +2260,7 @@ Where the fluctuations, $\delta\vec{\ppos}$, are given by eq. \eqref{eq:fpesdefl
   \left\langle \delta\vec{\ppos}\otimes \delta\vec{\ppos}\right\rangle = 2\tens{D} dt
 \end{equation}
 
-As discussed in sec \ref{sec:einstein} we can in define the drift coefficients in a general way as
+Following the discussion in section \ref{sec:einstein} we can define the drift coefficients in a general way as
 \begin{equation}
   \label{eq:bddrift}
 \vec{D}^{(1)} := -\tens{M}\vec{\partial}_{\vec{\ppos}}U(\vec{\ppos}) + \vec{v}_d(\vec{\ppos}),
@@ -2233,9 +2288,9 @@ Where $\vec{F} = -\vec{\partial}_{\vec{\ppos}}U$ are the forces acting on the pa
 \end{equation}
 It is worth noticing that the physical origin of the noise, $d\vec{\noise}$, is no longer just a random force coming from an additive action of many collisions with solvent particles, but the average of a series of stochastic displacements over a long period of time $\dt \gg \tau_l$.
 
-The last term in eq. \eqref{eq:bdfull}, known as the thermal drift term, can be non zero in cases where rigid particle constraints are imposed\cite{Westwood2021} or due to the presence of boundaries\cite{Pelaez2018,Aleks,Buscalioni}. However, in isotropic and irrotational hydrodynamic fields, this term is usually zero and can thus be ommited from the description.
+The last term in eq. \eqref{eq:bdfull}, known as the thermal drift term, can be non zero in cases where rigid particle constraints are imposed\cite{Westwood2021} or due to the presence of boundaries\cite{Pelaez2018,Balboa2016,Buscalioni}. However, in isotropic and irrotational hydrodynamic fields, this term is usually zero and can thus be ommited from the description.
 
-In practice, the actual form of the mobility matrix can be obtained by directly measuring correlations between random displacements of different particles\cite{Panzuela2018} in an experiment, simply by applying eqs. \eqref{eq:bdfluc} and \eqref{eq:bdeinstein}. However, in the case of solutes in a Newtonian fluid it is possible to obtain analytical expressions for $\tens{M}$ using standard hydrodynamic theory. In future chapters we will study several analytical instances of $\tens{M}$ in various regimes.
+In practice, we can obtain the actual form of the mobility matrix by directly measuring correlations between random displacements of different particles\cite{Panzuela2018} in an experiment, simply by applying eqs. \eqref{eq:bdfluc} and \eqref{eq:bdeinstein}. However, in the case of solutes in a Newtonian fluid it is possible to obtain analytical expressions for $\tens{M}$ using standard hydrodynamic theory. In future chapters we will study several analytical instances of $\tens{M}$ in various regimes.
 
 For the time being, we will focus on the simple case of the mobility being non-zero only in the diagonal (neglecting hydrodynamic interactions). Furthermore, we assume the self mobility is equal for all particles so that $\tens{M}(\vec{\ppos}, \vec{\ppos}') = M\mathbb{I} = M_0$. Hydrodynamics will then be reintroduced in chapter \ref{sec:bdhi}. This order allows us to introduce the stochastic numerical integration schemes and their use in \uammd before dealing with the full mobility tensor, which calls for a series of numerical techniques that will be introduced later.
 
@@ -2486,7 +2541,7 @@ In order to generalize the notation for eq. \eqref{eq:navierstokes}, we will som
 In the spirit of \gls{BD}, we also assume that the friction time $\tau_F = m/\xi$ is quite small compared with any other physical process. In other words, we assume particles are neutrally buoyant and disregard their inertia ($\dot{\vec{\pvel}} = 0$). As demonstrated in \cite{Balboa2014}, the inertial effects of the particles due also to a non zero excess mass can be reintroduced via a Lagrange multiplier, $\lambda$, (which enforces $\vec{\pvel} = \vec{\fvel}$). Physically, $\lambda$ is the net force that the particle exerts on the fluid which, in turn (third Newton law) exerts a force $-\lambda$ to the particle. The particle's equation of motion is then
 \begin{equation}
   \label{eq:inertiallagrande}
-(m_p) \dot{\vec{\pvel}} = \vec{F} - \lambda.
+m_p \dot{\vec{\pvel}} = \vec{F} - \lambda.
 \end{equation}
 The particle mass, $m_p$, can be decomposed as $m_p := m + m_e$, where $m=\rho\Delta V$ is the mass of the fluid displaced by the particle and $m_e$ is the so-called excess mass. Note that $m_e=0$ for neutrally buoyant particles, and in this case $\vec{F} = \lambda$, thus any force acting on the particle (external fields, particle-particle interactions, etc) is instantaneously and completely transfered to the fluid.
 
@@ -2496,7 +2551,9 @@ The fluid momentum equation will then be (neglecting convection),
 \rho \partial_t\vec{\fvel} = -\nabla \pi + \eta \nabla^2\vec{\fvel} + \vec{f}.
 \end{equation}
 
-Therefore $\vec{f(\vec{\fpos}-\vec{\ppos})}$ is a force distribution (force per unit volume) related to the particle presence. As a first piece of information, the first moment of such distribution (the so-called stokeslet) is $\int\vec{f(\vec{\fpos}-\vec{\ppos})}d\vec{\fpos}^3 = \lambda$. Further moments of $f$ can be used to provide torques (rotlet) and stress (stresslet) effects arising from the particles.
+Therefore $\vec{f(\vec{\fpos}-\vec{\ppos})}$ is a force distribution (force per unit volume) related to the particle presence. As a first piece of information, the first moment of such distribution (the so-called stokeslet) is
+$$\int{\vec{f(\vec{\fpos}-\vec{\ppos})}d\vec{\fpos}^3} = \lambda.$$
+Further moments of $f$ can be used to provide torques (rotlet) and stress (stresslet) effects arising from the particles.
 
 \section*{The Stokes limit}
 
@@ -2908,7 +2965,7 @@ A new kernel, called ``exponential of the semicircle''(ES) and here refered to a
 \end{equation}
 Where $\beta$ and $w$ are parameters related to the shape and support (width) of the kernel. The parameter $S(\beta, w)$ is the necessary normalization to ensure that eq. \eqref{eq:bmkernel} integrates to unity. Since eq. \eqref{eq:bmkernel} does not have an analytic integral, this factor must be computed numerically. One advantage of BM kernel is that it decays faster than a Gaussian in Fourier space, which is benefitial in spectral methods\cite{Barnett2019}.
 
-One disadvantage of the kernels above is that we do not know their analytical Fourier transform (in the case of the BM kernel stems from it not having an analytic integral), which hinders our ability to elaborate analytical expressions for the mobility in eq. \eqref{eq:bdhimob}.\todo{chequear con Rafa este invent, por que no puedo hacerlo con el peskin 3pt en espacio real?}
+One disadvantage of the kernels above is that we do not know their analytical Fourier transform (in the case of the BM kernel stems from it not having an analytic integral), which hinders our ability to elaborate analytical expressions for the mobility in eq. \eqref{eq:bdhimob}.
 For our purposes, this means that we have to estimate numerically the relation between the width of the kernels and the hydrodynamic radius, which will sometimes subject also to the size of the grid.
 On the other hand, all of them will present Oseen-like behavior at long distances and will be regularized in a similar way to the \gls{RPY} mobility at short distances.
 We will investigate this in more detail shortly.
@@ -2919,11 +2976,9 @@ Finally, we can include here for completeness the Gaussian kernel, which can be 
   \phi_G(r,\{\sigma\}) = \frac{1}{(2\pi\sigma)^{3/2}}\exp\left(\frac{-r^2}{2\sigma^2}\right)
 \end{equation}
 Where $\sigma$ is the width of the Gaussian.
-In this case it is possible to compute the self mobility in eq. \eqref{eq:bdhimob} analytically, which yields $\sigma = a/\sqrt{\pi}$.\todo{maybe explain further}
-
-Several other Peskin-like kernels can be found by enforcing other conditions, see for example\cite{Yang2009}.
-
-A comparison of the different kernels in this section can be found in sec. \ref{sec:kernelcomp}.
+In this case it is possible to compute the double convolution in eq. \eqref{eq:bdhimob} analytically, allowing to relate the hydrodynamic radius, $a$, with the width of the Gaussian as $\sigma := a/\sqrt{\pi}$.
+Other Peskin-like kernels can be found by enforcing other conditions, see for example\cite{Yang2009}.
+Section \ref{sec:kernelcomp} presents a comparison of the different kernels showcased in this section.
 
 \subsection{Spreading and interpolation algorithms}
 In this chapter we will see how to efficiently spread and interpolate in a \gpu.
@@ -3564,6 +3619,7 @@ In particular, we will study the variance of the hydrodynamic radius inside a ce
 
 The self mobility of a single particle being pulled inside a periodic cubic domain of size $L$ is computed using the well known periodic correction for the Stokes drag of a sphere\cite{Hasimoto1959},
 \begin{equation}
+  \label{eq:selfmobpbc}
   M_{0}(a,L) = \frac{1}{6\pi\eta a}\left[1-b\frac{a}{L} + \frac{4\pi}{3}\left(\frac{a}{L}\right)^3 - c \left(\frac{a}{L}\right)^6\right].
 \end{equation}
 Where the factors $b$ and $c$ are
@@ -3584,36 +3640,39 @@ We define the error as
 \subsection*{Regular grids}
 We will test using the \gls{FCM} with the different kernels since the \gls{PSE} is tied to the Gaussian kernel.
 
+Being defined for specific support cells, the Peskin kernels are tied to the grid size, $h$. When performing the double convolution with the hydrodynamics Green's funtion (see eq. \eqref{eq:bdhimob}) the resulting self mobility will be regularized differently for each one and will be dependent on $h$.
+Since we cannot perform the double convolution in eq. \eqref{eq:bdhimob} analytically in the case of Peskin kernels we measure the self mobility (either dynamically as explained in the previous section or by looking at fluctuations) and then renormalize the hydrodynamic radius so that $M_{0}(L\rightarrow\infty) = \frac{1}{6\pi\eta a}$.
+In particular, for the Peskin kernels introduced in section \ref{sec:ibm}, the resulting hydrodynamic radius are:
 \begin{itemize}
-\item In the case of BM the relation is different for each $n_s$ and $\beta$. A different support is chosen for each tolerance.
-\item For Peskin just compute the self mobility and fix $a := a_{\text{measured}}/h$
-  \begin{itemize}
-  \item Peskin 3pt gives $a=(1\pm 0.01) h$
-  \item Peskin 4pt gives $a=(1.31\pm 0.001) h$
-  \item Peskin 6pt gives $a=(1.5195 \pm 0.0002) h$
-  \end{itemize}
-\item In contrast with the Peskin kernels for the Gaussian we are free to choose how fine the grid is (which we refer to as upsampling) and a truncation distance. Both parameters will affect the overall accuracy of the spreading and interpolation. The Gaussian gives $a=h \sqrt{\pi} g_u$, where we set the upsampling large enough to satisfy a given tolerance. In particular we set
-  \begin{equation}
-    g_u(\epsilon) := \text{min}\left(0.55 -0.11 \log_{10}(3\epsilon), 1.65\right)
-  \end{equation}
-  Which is just an empirical fit.
-  The Gaussian kernel is truncated at a distance $r_c$ so that $\phi_G(r_c) < \epsilon$. The author of \cite{Keaveny2014} provides an in-depth analysis of the discretization errors of the Gaussian kernel.
+\item Peskin 3pt gives $a=(1\pm 0.01) h$
+\item Peskin 4pt gives $a=(1.31\pm 0.001) h$
+\item Peskin 6pt gives $a=(1.5195 \pm 0.0002) h$
 \end{itemize}
+It is important to note that the Peskin kernels prevent us from tweaking the translational invariance of the hydrodynamic radius (as evidenced by the error ranges in the above list).
 
+In contrast with the Peskin kernels for the Gaussian we are free to choose how fine the grid is (which we refer to as upsampling) and a truncation distance. Both parameters will affect the overall accuracy of the spreading and interpolation. The Gaussian gives $a=h \sqrt{\pi} g_u$, where we set the upsampling, $g_u$, large enough to satisfy a given tolerance. In particular we set
+\begin{equation}
+  \label{eq:gaussianupsampling}
+  g_u(\epsilon) := \text{min}\left(0.55 -0.11 \log_{10}(3\epsilon), 1.65\right)
+\end{equation}
+Which is just an empirical fit.
+We truncate the Gaussian kernel at a distance $r_c$ so that $\phi_G(r_c) < \epsilon$. The author of \cite{Keaveny2014} provides an in-depth analysis of the discretization errors of the Gaussian kernel.
+Figure \ref{fig:ibm_hydrovar} shows the average error inside a fluid cell for the Peskin kernels, compared to similarly supported Gaussian kernels. At first sight, it might seem like the error is not much better for the Peskin kernels as compared with the Gaussian ones. However, the Gaussian kernels require a greater upsampling (i.e more cells, see eq. \eqref{eq:gaussianupsampling}) than the Peskin ones to achieve the same tolerance and thus is in general a better choice. Figure \ref{fig:ibmvar} shows the hydrodynamic radius variance inside a cell for some kernels, but in a slice of the cell (at the center height).
 \begin{figure}
 \label{fig:ibm_hydrovar}
-\includegraphics[width=\textwidth]{gfx/ibm_hydrodeviation}  
+\includegraphics[width=\textwidth]{gfx/ibm_hydrodeviation}
   \caption{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean substracted. Since the signal is symmetric only the range $[0.5, 1]h$ is presented.}
 \end{figure}
-
+In the case of BM the relation is different for each $n_s$ and $\beta$. A different support is chosen for each tolerance. \todo{Put here the actual relation from the work in DPStokes}
 \subsection*{Staggered grids}
-We will test using the \gls{FIB}.
+We perform the same tests using the \gls{FIB}, which uses a staggered grid.
 \begin{itemize}
 \item Peskin 3pt gives $a=(0.910\pm 0.005)h$
 \item Peskin 4pt gives $a=(1.265\pm 0.002)h$
 \item Peskin 6pt gives $a=(1.4830 \pm 0.0001 )h$
 \end{itemize}
 \begin{figure}
+  \label{fig:ibmvar}
   \centering
   \subcaptionbox{Gaussian 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_3pt}}\label{fig:ibm_gauss3pt}
   \subcaptionbox{Peskin 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_peskin_3pt}}\label{fig:ibm_peskin3pt}
@@ -3622,12 +3681,10 @@ We will test using the \gls{FIB}.
   \caption{Variance of the hydrodynamic radius inside a cell (2D slice at $z=L/2+h/2$ of a 3D system) for different kernels in \gls{FCM}. Test were carried out in a cubic box of size $L=32a$.}
 \end{figure}
 
-\begin{itemize}
-\item In general using a staggered grid requires a smaller grid to get the same hydrodynamicRadius (with a similar translational invariance) than a collocated one. On the other hand, spreading/interpolation to an staggered grid requires to approximately triple the cost, since each component of the velocity is spreaded to a different set of cells (there is some overlap, which makes the cost slightly less than triple). So while the cost of the FFT will be slightly inferior, the potential gains will be occluded by the increased cost in spreading. In the case of a triply periodic system, using a staggered grid via the \gls{FIB} is thus not worth it in general.
-\item All test are carried out with single precision (to measure the error in a ``real-life'' setting) in an RTX3080 \gpu.
-\item Peskin kernels are always better than Gaussians with the same support. Furthermore requiring a smaller grid.
-\item PSE always uses a Gaussian, and the tolerance is chosen along with the splitting parameter so it is meaningless to talk about accuracy vs. kernel support in that case.
-\end{itemize}
+In general using a staggered grid requires a smaller grid to get the same hydrodynamic radius (with a similar translational invariance) than a collocated one. On the other hand, the access patterns in an staggered grid are usually more complex and can result in less performant code, even when the cost of the FFT will be slightly inferior. In the case of a triply periodic system, using a staggered grid via the \gls{FIB} is not worth it in general as compared to the \gls{FCM}.
+All test were carried out with single precision (to measure the error in a ``real-life'' setting) using an RTX3080 \gpu.
+%\gls{PSE} always uses a Gaussian, and the tolerance is chosen along with the splitting parameter so it is meaningless to talk about accuracy vs. kernel support in that case.
+
 
 
 \section{Inertial Coupling Method (ICM)}\label{ch:icm}
@@ -3729,9 +3786,11 @@ auto createIntegratorICM(UAMMD sim){
 \item An outline of all the phisics that can be done with the algorithms and implementations thus far
 \item Future direction and additions to the algorithms in this part
 \item Introduce next part, novel algorithms and physics.
-
 \end{itemize}
+
 \cleardoublepage
+
+\ctparttext{}
 \part{Novel algorithms and physics for complex fluids}\label{pt:algo}
 
 In this part of the manuscript we will go through several novel, \gpu-focused, algorithms that have been developed during this thesis.
@@ -3740,9 +3799,7 @@ In chapter \ref{sec:q2D} we introduce a novel algorithm for solving the Stokes e
 Later, in chapter \ref{sec:dpstokes} we solve the Stokes equation again but this time letting the particles move freely inside a doubly periodic domain (periodic in the plane and open in the third direction), introducing the possibility of placing walls at the domain limits, creating slit or walled geometries.
 The doubly periodic Stokes algorithm will be the last methodology for hydrodynamics in this manuscript. We will use the two next chapters in this part to introduce two algorithms for electrostatics (by solving the Poisson equation)\footnote{The algorithms for electrostatics make use of the toolset developed for \gls{FCM} and \gls{PSE} in previous chapters, which is the reason why its introduction was delayed up to this point}. We will start by describing a method for computing the electrostatic interactions of a group of charged particles in a triply  periodic environment in chapter \ref{ch:tppoisson}. Finally, in a similar way as done with Stokes, we will compute electrostatic interactions in a doubly periodic environment (with the possibility of placing surface charged walls at the domain limits).
 \begin{itemize}
-\item New contributions are related to complex fluids in confined geometries
 \item Hydrodynamics in slit channels are key in several contexts of technological and biological significance.
-\item Introduce star polymers
 \end{itemize}
 
 \chapter{Hydrodynamics under quasi two dimensional confinement}\label{sec:q2D}
@@ -3771,7 +3828,7 @@ Similar harmonic traps can be obtained by laser tweezers[8]. Other forms of (non
 
 In future sections, we will study the diffusive phenomena arising in this special geometry. For now, lets lay the algorithmic machinery necessary to simulate it.
 
-Lets start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three dimensional incompressible fluid. As we saw in chapter \ref{ch:bdhi}, forces acting on the particles are propagated to the whole fluid, due to the its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting hydrodynamic drag acts like a flow source which tends to expel other particles around it. This can be interpreted as the flow in the plane having a positive divergence, which makes the fluid (as seen from the plane) being effectively compressible. We will see that this effect naturally arises in a particle based description (\gls{BDHI}) through an effective plane mobility with non zero divergence\cite{Pelaez2017}.
+Lets start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three dimensional incompressible fluid. As we saw in chapter \ref{sec:bdhi}, forces acting on the particles are propagated to the whole fluid, due to the its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting hydrodynamic drag acts like a flow source which tends to expel other particles around it. This can be interpreted as the flow in the plane having a positive divergence, which makes the fluid (as seen from the plane) being effectively compressible. We will see that this effect naturally arises in a particle based description (\gls{BDHI}) through an effective plane mobility with non zero divergence\cite{Pelaez2017}.
 
 There are several ways to gradually transform a perfect 2D confinement into an isotropic 3D distribution and, as illustrated in fig. \ref{fig:q2dsch}, we model the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by an harmonic potential of the form
 \begin{equation}
@@ -3783,19 +3840,19 @@ The spring constant $K_s$ controls the width, $\delta$, of the Gaussian distribu
   \delta = \left(\frac{\kT}{K_s}\right)^{1/2}
 \end{equation}
 We can use this as a slider to go from t3D, in the limit $K_s\rightarrow 0$, to q2D when $K_s\rightarrow\infty$.
-The dynamics of the system are then governed by eq. \eqref{eq:bdhi} with an Oseen-like mobility (like the \gls{RPY} one). Note that solvent inertial effects can also be incorporated by using the \gls{ICM} in sec. \ref{sec:icm}.
+The dynamics of the system are then governed by eq. \eqref{eq:bdhibdrelation} with an Oseen-like mobility (like the \gls{RPY} one). Note that solvent inertial effects can also be incorporated by using the \gls{ICM} in sec. \ref{ch:icm}.
 
-Thus far, all the algorithms we have developed for solving \eqref{eq:bdhi} (or more generally eq. \eqref{eq:navierstokes}) deal with either fully open or triply periodic boundary conditions. However, now the perpendicular direction should be open while leaving the plane periodic.
+Thus far, all the algorithms we have developed for solving \eqref{eq:bdhibdrelation} (or more generally eq. \eqref{eq:navierstokes}) deal with either fully open or triply periodic boundary conditions. However, now the perpendicular direction should be open while leaving the plane periodic.
 
 To be fair, our mathematical infrastructure allows to discretize the Stokes operator in any geometry to accommodate any boundary conditions. But since our implementations rely on the \gls{FFT} to be efficient and \gpu-friendly these modifications are not straight forward. 
 
-One approach to deal with this is to simply use the triply periodic algorithms with a box with width ,$L_z\gg \delta$, large enough to neglect finite-size effects. However, since hydrodynamics are long ranged in nature we will be forced to perform a full finite-size analysis to ensure the convergence of the measured properties.
+One approach to deal with this is to simply use the triply periodic algorithms with a box with width, $L_z\gg \delta$, large enough to neglect finite-size effects. However, since hydrodynamics are long ranged in nature we will be forced to perform a full finite-size analysis to ensure the convergence of the measured properties.
 
 In future sections, we will describe a family of pseudo-spectral algorithms capable of dealing with non periodic boundary conditions. For the moment, lets adapt the already developed \gls{FCM} to the limit of strict confinement (q2D). Lets see how we can compute the Fourier expression of a Green's function specific for q2D.
 
 \section{The Force Coupling Method in quasi 2D}
 
-We want to take the mathematical limit of eq. \eqref{eq:bdhi} when $K_s\rightarrow\infty$ and hence particles move strictly in the plane $z=0$. Although it is possible to take this limit formally the general theory for it is quite complex. Luckily we can elaborate some simple arguments an assumptions to make this in a trivial way.
+We want to take the mathematical limit of eq. \eqref{eq:bdhibdrelation} when $K_s\rightarrow\infty$ and hence particles move strictly in the plane $z=0$. Although it is possible to take this limit formally the general theory for it is quite complex. Luckily we can elaborate some simple arguments an assumptions to make this in a trivial way.
 
 We start with the realization that, given that the particles are restricted to a plane, the mobility tensor can be reordered in a diagonal blocked arregement 
 
