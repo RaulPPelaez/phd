@@ -26,7 +26,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
   fontsize=\small,
   breaklines
 }
-\usepackage[tocindentauto]{tocstyle}
+%\usepackage[tocindentauto]{tocstyle}
 \usepackage{chngcntr}
 \AtBeginDocument{% the counter is defined later
   \counterwithout{lstlisting}{chapter}%
@@ -4323,14 +4323,10 @@ The $k=0$ mode must be handled separatedly
 
 
 \chapter{Triply Periodic Electrostatics} \label{ch:tppoisson}
-% \section{Theory} \label{sec:tppoisson_theory}
-\begin{itemize}
-\item Not really new
-\item Basically identical to FCM by a reinterpretation of each term
-\item Ewald splitting similar to PSE.
-\end{itemize}
-We are going to describe a fast spectral solver for this equation with periodic boundary conditions and Gaussian sources of arbitrary widths at the charges' locations. This approach is similar to the ones presented at \cite{Lindbo2011,Tornberg2015}.
-We want to solve the Poisson equation in a periodic domain in the presence of a charge density $f(\vec{\fpos}=(x,y,z))$,
+
+We are going to describe a fast spectral solver for the Poisson equation with periodic boundary conditions and Gaussian sources of charge with arbitrary widths centered at the particles' locations. Our approach is similar to the one presented at \cite{Lindbo2011}. However, the authors of \cite{Lindbo2011} make use of the so-called Fast Gaussian Gridding (FGG) to accelerate spreading/interpolation while UAMMD's implementation uses the algorithms laid out in chapter \ref{sec:ibm}. While FGG reduces the number of evaluations of the kernel, it is restricted to the Gaussian one and, since our implementation is generic for any kernel, we deem FGG unworthy for our purposes. The Ewald splitting framework, already introduced in chapter \ref{sec:pse} for the Stokes equation, follows closely from the mathematical machinery laid out in \cite{Tornberg2015}.
+One notable thing about the following algorithm is that it can be seen as merely a reinterpretation of terms in the non-fluctuating version of the \gls{FCM}\footnote{In fact, UAMMD's implementation of triply periodic electrostatics shares most of the code with the \gls{FCM} implementation. Mainly the spreading/interpolation and the \gls{FFT}.}.
+In general, we want to solve the Poisson equation in a periodic domain in the presence of a charge density $f(\vec{\fpos}=(x,y,z))$,
 \begin{equation}
   \label{eq:ttpoisson}
  \varepsilon\Delta\phi=-f.
@@ -4413,7 +4409,7 @@ The whole algorithm, going from particle charges to forces, can be summarized as
 %  U_i = q_iJ_iF^{-1} \frac{1}{\epsilon K^2}F Sq
 %\end{equation}
 \section{Ewald splitting}\label{sec:tppoisson_ewald}
-The main problem with the approach in the previos section is that the grid needs to be fine enough to correctly describe the Gaussian sources. Thus a small width results in a high number of grid cells. This hinders the ability to simulate large domains (in terms of $a$) or narrow (or even point) sources. In order to overcome this limitation we use an Ewald splitting technique\cite{ewaldsplit} (reminiscent of the use case introduced with \gls{PSE} in chapter \ref{sec:pse}).
+The main problem with the approach in the previos section is that the grid needs to be fine enough to correctly describe the Gaussian sources. Thus a small width results in a high number of grid cells. This hinders the ability to simulate large domains (in terms of $a$) or narrow (or even point) sources. In order to overcome this limitation we use an Ewald splitting technique\cite{Tornberg2015} (reminiscent of the use case introduced with \gls{PSE} in chapter \ref{sec:pse}).
 
 We can write the potential as
 \begin{equation}
@@ -4761,6 +4757,27 @@ Besides having to include the first images, this part of the algorithm is then i
 Let us split far field potential
 
 \section{How to use in UAMMD}
+The creation of the Doubly Periodic Poisson Interactor is similar to that for the triply periodic case. With the exception that now the box size is communicated separatedly in the parallel and perpendicular directions and the permittivity can be different inside and outside the domain. Besides the parameters in the source code example \ref{code:dppoisson}, additional ones are available to fine tune several internal precision parameters (such as support, upsampling or overall tolerance). By default, the module will provide an overal tolerance of around 4 digits, which is the study case in the original work describing the doubly periodic algorithm\cite{Pelaez2021}. Additionally, a special functor can be provided specifying the surface charges. The description of the surface charge parameter is left for UAMMD's online documentation (see Appendix \ref{ch:online}).
+In all instances, the surface charge will enforce overall electroneutrality inside the domain. For instance, if a single positive charge of strength $Q$ is located inside the domain, each wall will be assigned a constant charge of $-Q/2$.
+
+\begin{code2}[Usage example of the doubly periodic Poisson module.]{label=code:dppoisson}
+#include<Interactor/DoublyPeriodic/DPPoissonSlab.cuh>
+
+auto createDPPoissonInteractor(UAMMD sim){  
+  DPPoissonSlab::Parameters par;
+  par.Lxy = sim.par.Lxy;
+  par.H = sim.par.H; //Domain height
+  DPPoissonSlab::Permitivity perm;
+  perm.inside = sim.par.permInside;
+  perm.top = sim.par.permTop;
+  perm.bottom = sim.par.permBottom;
+  par.permitivity = perm;
+  par.gw = sim.par.gw; //Width of the Gaussian sources
+  par.split = gw*0.1; //Splitting parameter
+  auto poisson = make_shared<DPPoissonSlab>(sim.pd, par);
+  return poisson;
+}
+\end{code2}
 
 \newpage
 \cleardoublepage
@@ -4853,18 +4870,16 @@ Let us split far field potential
 %
 %\newpage
 %\cleardoublepage
-
+\ctparttext{Scientific publications using UAMMD.}
 \part{New physics and applications}\label{pt:applications}
-\begin{itemize}
-\item In this part we showcase the works that resulted from this thesis.
-\item We will see new physics and works in which \uammd played a fundamental role as a simulation engine or accelerator.
-\end{itemize}
+
+In this part we showcase the works, published in scientific journals, that resulted from the development of this thesis and contain new physics. We will see new physics and works in which \uammd played a fundamental role either as a simulation engine or accelerator.
 
 \chapter{Hydrodynamics in confined geometries}
-\begin{itemize}
-\item Two works studying hydrodynamics in confined geometries.
-\end{itemize}
-\section{From soft to strict confinement}
+
+Let us start by discussing two works that study hydrodynamics in confined geometries. First in section \ref{sec:softconf} when particles are confined to the plane via a soft harmonic potential and then in section \ref{sec:strictconf} when the confinement is strict (in the quasi 2D regime introduced in chapter \ref{sec:q2D}).
+
+\section{From soft to strict confinement}\label{sec:softconf}
  In \cite{Pelaez2017} we study the hydrodynamics-enhanced collective diffusion of a group of colloids under soft two dimensional confinement as the confinement becomes stiff. Colloids are embedded in an unbounded fluid but their movement in the Z direction is constrained via an harmonic potential (see fig. \ref{fig:q2dsch}) as we introduced in chapter \ref{sec:q2D}. In this work we study the crossover between purely 3D hydrodynamics and quasi2D both numerically and theoretically.
 
   It is well-known that, in quasi2D, collective diffusion is enhanced due to the effective compressibility of the in-plane hydrodynamics. This is evidenced in eq. \eqref{eq:q2Deffrepulsion} (and related discussion), where we saw how the divergence of the in-plane mobility can be interpreted as the colloids interacting via a Coulomb-like repulsive potential in an incompressible fluid. In \cite{Pelaez2017} we find that the enhancement of the collective diffusion is quite robust and remains significant when moving from strict to soft confinement.
@@ -4902,7 +4917,7 @@ Let us split far field potential
 
 %  Using our inertial coupling method code (resolving fluid inertia), we study this transition by performing simulations at small Schmidt number. Simulations confirm theoretical predictions for the $k \rightarrow 0$ limit [Phys. Rev. E 90, 062314 (2014)] showing negative density-density time correlations. However, at finite $k$ simulations show deviations from the theory.
 
-\section{Limit of strict confinement}  
+\section{Limit of strict confinement}\label{sec:strictconf}
 In \cite{Pelaez2018} we focus on the limit $\delta\rightarrow 0$ by taking the mathematical limit of the confining force becoming infinite. We already introduced this limit in chapter \ref{sec:q2D}, where we saw how the confining force propagates to the fluid resulting in an effectively compressible in-plane mobility (which is the origin of the anomalous collective diffusion). In fact, as represented in fig. \ref{fig:q2DEnhancement} the collective diffusion coefficient diverges like the inverse of the wavenumber.
 
 In \cite{Pelaez2018} we extend the previously existing hydrodynamic theory to account for a species/color labeling of the particles (which is needed to model experiments based on fluorescent techniques). We then study the magnitude and dynamics of the density and color density fluctuations theoretically (using linearized flucutating hydrodynamics) and simulations (with our novel \gls{BDHI} quasi 2D \gpu algorithm, see chapter \ref{sec:q2D}).
@@ -4951,17 +4966,43 @@ In contrast with the diverging collective diffusion, we find that the long time 
 
 \chapter{Optofluidic control of the dispersion of nanoscale dumbbells}
 
-\uammd is used in conjunction with an already stablished in house software for interaction between particles and optical fields to \todo{fill}.
+In \cite{Melendez2019} \uammd is used in conjunction with an already stablished in-house solver for interaction between particles and optical fields to study the hydrodynamically-enhanced dispersion of a collection of nanoscale dumbbells in a vortex lattice formed by an incident laser. In particular, the system is simulated with open boundaries via the Cholesky decomposition apporach in chapter \ref{sec:chol}. In some simulations hydrodynamics are turned off hydrodynamics to isolate their effect by using plain \gls{BD} (introduced in chapter \ref{sec:bd}).
 
 Previous research has shown that gold nanoparticles immersed in water in an optical vortex lattice formed by the perpendicular intersection of two standing light waves with a $\pi/2$ rad phase difference will experience enhanced dispersion that scales with the intensity of the incident laser. We show that flexible nanoscale dumbbells (created by attaching two such gold particles by means of a polymer chain) in the same field display different types of motion depending on the chain length and field intensity. We have not disregarded the secondary optical forces due to light scattering. The dumbbells may disperse, rotate, or remain trapped. For some values of the parameters, the (enhanced) dispersion possesses a displacement distribution with exponential tails, making the motion anomalous, though Brownian.
 
 \chapter{Measuring intracellular viscosity}
 
-Using \gls{PSE} to model the environment of a cell. In particular how the presence of microtubulae affects the viscosity measured by a marker.
+In \cite{Pelaez2019} we use \gls{PSE} (chapter \ref{sec:pse}) to model the environment of a cell. In particular, we study how the presence of microtubulae affects the viscosity measured by a nanorocker marker.
+The experimental collaborators in \cite{Pelaez2019} were testing the effects of two drugs, colchicine and Taxol, on the internal structure of HeLa cells (which are $20$-$40\mu$m in diameter). These drugs are so-called tubulin interactors, meaning that they either promote the polymerization (Taxol) or depolymerization (colchicine) of microtubulae (i.e the cell's cytoskeleton).
+In particular, local mesoscopic intracellular viscosity was being probed via a non-spherical upconverting nanorocker particle (a $\beta-NaYF_4$ hexagonal-shaped nanoparticle with a $400$nm thickness, see fig \ref{fig:cellvis}). The mean squared angular displacement (MSAD) of the nanorocker is sampled using a polarized spectroscopy technique that allows to track the orientation of the nanoparticle in real time\cite{RodriguezSevilla2016}.
+The orientational fluctuations (a.i. the MSAD) of the nanorocker can then be related directly with the local viscosity using the well known relation for the time evolution of the MSAD for a disk-like particle,
+\begin{equation}
+  \label{eq:msad}
+  \text{MSAD}(t) = \frac{\kT}{3\eta V f/f_0}t.
+\end{equation}
+Where $V$ is the volume of the particle and $f/f_0$ is the so-called Perrin's friction coefficient, which relates the friction of the non-spherical object with that of a sphere of equivalent volume. 
+\begin{figure}[H]
+  \label{fig:cellvis}
+  \centering
+  \includegraphics[width=0.7\textwidth]{gfx/hexagon}
+  \caption{Representation of the simulation environment used to model the experimental setup in \cite{Pelaez2019}. The nanorocker (grey) and the microtubulae (red) are modeled as spring connected blobs.}
+\end{figure}
+Experiments with Taxol and colchicine revealed a strong and unintuitive relation between the concentration of microtubulae and the mesoscopic intracellular viscosity. In particular, experiments showed a $10$x reduction in the viscosity after Taxol administration, corresponding to the presence of a higher concentration of microtubulae in the cellular environment. Consistently, the posterior administration of colchicine, which depolymerizes the microtubulae into a suspension of tubuline heterodimers, induces an increase in viscosity.
 
-Chemicals capable of producing structural and chemical changes on cells are used to treat diseases (e.g., cancer). Further development and optimization of chemotherapies require thorough knowledge of the effect of the chemical on the cellular structure and dynamics. This involves studying, in a noninvasive way, the properties of individual cells after drug administration. Intracellular viscosity is affected by chemical treatments and it can be reliably used to monitor chemotherapies at the cellular level. Here, cancer cell monitoring during chemotherapeutic treatments is demonstrated using intracellular allocated upconverting nanorockers. A simple analysis of the polarized visible emission of a single particle provides a real-time readout of its rocking dynamics that are directly correlated to the cytoplasmic viscosity. Numerical simulations and immunodetection are used to correlate the measured intracellular viscosity alterations to the changes produced in the cytoskeleton of cancer cells by anticancer drugs (colchicine and Taxol). This study evidences the possibility of monitoring cellular properties under an external chemical stimulus for the study and development of new treatments. Moreover, it provides the biomedical community with new tools to study intracellular dynamics and cell functioning.
+We elucidate the origin of the viscosity reduction lies in the specific sampling size of the nanorocker (with an average size of $400$nm). For a typical concentration of tubulin ($25$-$100\mu$M) in the cytoplasm the volume fraction occupied by the microtubulae is between $5$~$10^{-3}$ and $5$~$10^{-2}$. At these concentrations we find a polydisperse ensemble of rods that form a fractal gel with pores typically smaller than the average length of the rods. A tracer particle diffussing in this scenario is known to have a severely reduced translational and rotational diffusion\cite{Solomon2010,Alcazar2018}. However, after Taxol administration, the microtubule network is formed by much larger rods, resulting in the nanorocker diffusing through much larger structures. Colchicine produces the opposite effect, reducing the typical rod size and, consequently, the average length of the cytoplasm components that drag the sampling particle. Our hypothesis relies on the expectation that, when the typical distance between microtubules in the ordered phase (after Taxol administration) becomes larger than the nanorocker size the steric hidrance of the microtubulae is significally reduced. In order to validate this, we setup a series of simulation using the \gls{PSE} method (see chapter \ref{sec:pse}) with various concentration of microtubulae such that the average free space between rods is larger than the rocker's size (see figure \ref{fig:msad}).
+\begin{figure}[H]
+  \label{fig:msad}
+  \centering
+  \includegraphics[width=\textwidth]{gfx/MSDA_comparison_exp}
+  \caption{Computed and experimentally measured mean squared angular displacement (MSAD) over time. Comparison is made between simulations of free (brown line) and laser-illuminated (confined, orange line) nanorocker, surrounded by 10 microtubules (MT), and the experimental results (Exp.) after 5 h incubation time with Taxol (purple data). Thered dashed line represents the MSAD calculated from Equation (1) using the measured viscosity for an incubation time of 5 h. The good agreement between the red and purple curves validates the approximation of the nanorocker to a disk. The inset shows the mean squared displacement (MSD) for free nanorockers in the presence of 0, 5, and 10 microtubules. The agreement between the experimental and simulation results indicates that the movement of the particle is not affected by the presence of microtubules since their size is much bigger than the particle.}
+\end{figure}
+We perform simulations with and without taking into account the translational confining effect of the probing laser on the nanorocker (by trapping the nanorocker with a soft potential well to a domain about 10\% larger than its size) and find no discernable effect on its rotational diffusion. In the confined case, any modification of the particle rotation is only due to the hydrodynamic effects of the microtubulae. This evidences that the translational confinement of the probing beam does not affects its orientational fluctuating motion.
+Our simulations yield MSAD curves that match the theory and simulations in the absence of microtubulae to within statistical uncertainty. This evidences that the presence of microtubulae, at these concentrations, has practically no effect on the viscosity sampled by the nanorocker. From this, we conclude that, once all microtubulae is formed due to the effect of Taxol, there is less amount of intracellular material of comparable size to the nanorocker, which effectively reduces the viscosity sense by it.
 
-\chapter{Star Polymer dynamics in shear flow}
+%Chemicals capable of producing structural and chemical changes on cells are used to treat diseases (e.g., cancer). Further development and optimization of chemotherapies require thorough knowledge of the effect of the chemical on the cellular structure and dynamics. This involves studying, in a noninvasive way, the properties of individual cells after drug administration. Intracellular viscosity is affected by chemical treatments and it can be reliably used to monitor chemotherapies at the cellular level. Here, cancer cell monitoring during chemotherapeutic treatments is demonstrated using intracellular allocated upconverting nanorockers. A simple analysis of the polarized visible emission of a single particle provides a real-time readout of its rocking dynamics that are directly correlated to the cytoplasmic viscosity. Numerical simulations and immunodetection are used to correlate the measured intracellular viscosity alterations to the changes produced in the cytoskeleton of cancer cells by anticancer drugs (colchicine and Taxol). This study evidences the possibility of monitoring cellular properties under an external chemical stimulus for the study and development of new treatments. Moreover, it provides the biomedical community with new tools to study intracellular dynamics and cell functioning.
+%
+
+\chapter{Star Polymer dynamics in shear flow}\label{ch:starpolymers}
 \begin{figure}[H]
   \label{fig:starpic}
   \centering
