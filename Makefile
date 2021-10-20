@@ -21,6 +21,9 @@ verbose: clean
 rebuild:
 	@texfot	--ignore="This is" pdflatex -interaction=batchmode $(OPTIONS) main
 
+ship: verbose
+	@ps2pdf -dPDFSETTINGS=/ebook main.pdf tesis_`date +%d%h%y`.pdf
+
 clean:
 	rm -rf $(TOCLEAN)
 	(cd Chapters; rm -rf $(TOCLEAN))

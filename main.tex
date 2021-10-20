@@ -228,7 +228,11 @@ Complex fluids is an umbrella term representing the coexistence between two phas
 \newpage
 
 \chapter*{Spanish Abstract}
-Complex fluids is an umbrella term representing the coexistence between two phases, in our cases of interest these being a solid and a liquid. A wide range of soft matter systems, many times of biological nature, can be categorized as complex fluids. We often find the presence of a group of certain slow solid, or soft, objects submerged in a solvent comprised by smaller particles with a much faster dynamics. A suspension of colloidal particles in water or a small virus diffusing in the cellular environment are some examples of complex fluids. The dynamics of these kind of systems are more often than not influenced (and sometimes straight-up controlled) by thermal fluctuations and hydrodynamic correlations arising from the elimination of the solvent's degrees of freedom. Additionally, the two-phase coupling often imposes geometrical restrictions that fundamentally alter the dynamics of both the solution and the solvent. Both of these effects require special (and in some occasions altogether novel) mathematical and algorithmical consideration. This thesis attempts to press on the boundaries of numerical simulation of complex fluids. In this manuscript, I present an overview of past and recent algorithms adapted to the GPU, a recently developed powerful, massively-parallel hardware. The culmination of this thesis has resulted in the release of UAMMD, a new software infrastructure for complex fluids simulations in the GPU. Besides the novel tools and methodology, I will also go through some real life applications that have resulted in publications in scientific journals.
+El término fluido complejo se refiere a la consistencia entre dos fases, en nuestro caso de estudio siendo una de ellas solida y la otra líquida. Un amplio rango de sistemas en materia blanda, a menudo de naturaleza biológica, pueden categorizarse como fluidos complejos. Típicamente nos encontramos con un grupo de objetos solidos, o blandos, cuya dinámica es lenta, que están sumergidos en un solvente compuesto de partículas más pequeñas y con una dinámica mucho mas rápida. Algunos ejemplos de fluidos complejos son una suspensión de partículas coloidales en agua o un pequeño virus difundiendo en el entorno celular.
+La dinámica de este tipo de sistemas está habitualmente influenciada (o incluso gobernada) por fluctuaciones térmicas y correlaciones hydrodinámicas que surgen de la eliminación de algunos de los grados de libertad del solvente.
+Adicionalmente, el acoplamiento entre las dos fases a menudo impone restricciones geométricas que alteran fundamentalmente la dinámica de la solución, así como la del solvente. Ambos mecanismos requieren tener en cuenta consideraciones matemáticas y algorítmicas especiales (y en ocasiones completamente novedosas).
+La presente tesis pretende presionar los límites de la simulación numérica de fluidos complejos. En este manuscrito, presento una serie de algoritmos, pasados y nuevos, adaptados a la GPU, un poderoso hardware extremadamente paralelo recientemente desarrollado. La culminación de esta tesis ha tenido como resultado la publicación de UAMMD, una nueva infrastructura de software para la simulación de fluidos complejos en la GPU. Además de las herramientas y metodología originales, también repasaré algunas aplicaciones prácticas que han resultado en la publicación de artículos en revistas científicas.
+
 \cleardoublepage
 \newpage
 \pdfbookmark[1]{Publications}{publications}
@@ -1505,7 +1509,7 @@ This value starts being $0$ in the first update and it is increased by the numbe
 Lets describe the full contents of the \emph{struct} returned by the \emph{CellList} method \mintinline{\ucpp}{CellList::getCellListData()}.
 \begin{itemize}
 \item\mintinline{\ucpp}{Grid grid}:
-  The grid data for which the list was constructed, holds the number of cells $(n_x, n_y, n_z)$ and a \emph{Box} object.\todo{improve}
+  The grid data for which the list was constructed, holds the number of cells $(n_x, n_y, n_z)$ and a series of utility functions to, for instance, find the cell of a particle. Also holds a \emph{Box} object (for applying the minimum image convention).
 \item\mintinline{\ucpp}{uint VALID_CELL}:
   The threshold value in the cell list, any value in \emph{cellStart} lower than this encodes the cell being empty. 
 \item\mintinline{\ucpp}{real4* sortPos}:
@@ -2242,7 +2246,7 @@ auto createIntegratorDPD(UAMMD sim){
 
 
 \chapter{Brownian Dynamics}\label{sec:bd}
-\todo{Introduccion al origen de BD y que problemas resuelve que LD no}
+%\todo{Introduccion al origen de BD y que problemas resuelve que LD no}
 When the viscous forces are much larger than the inertial forces, i.e. $ |\xi\vec{\pvel}| \gg |m\vec{a}|$, the inertial term in eq. \eqref{eq:langevinfull} becomes irrelevant at very short time scales.
 \gls{BD} takes advantage of such time scale separation between the particle velocity fluctuations and its displacement and can be interpreted as the overdamped, or non-intertial, limit of \gls{LD}. The decorrelation time of the velocity, defined as $\tau_l = m/\xi$ is much faster than the time needed to move a particle its own size. \gls{BD} represents the long time limit of the Langevin equation. This is a powerful property of \gls{BD}, since sampling the probability distributions of the underlying stochastic processes (stemming from the rapid movement of the solute particles) does not require to sample their fast dynamics.
 
@@ -3781,11 +3785,11 @@ auto createIntegratorICM(UAMMD sim){
 
 \begin{itemize}
 \item Finishing words about methodology
-\item A word about all things implemented in UAMMD thus far
-\item Putting it all together
-\item An outline of all the phisics that can be done with the algorithms and implementations thus far
-\item Future direction and additions to the algorithms in this part
-\item Introduce next part, novel algorithms and physics.
+%\item A word about all things implemented in UAMMD thus far
+%\item Putting it all together
+%\item An outline of all the phisics that can be done with the algorithms and implementations thus far
+%\item Future direction and additions to the algorithms in this part
+%\item Introduce next part, novel algorithms and physics.
 \end{itemize}
 
 \cleardoublepage
@@ -4997,7 +5001,7 @@ We elucidate the origin of the viscosity reduction lies in the specific sampling
   \caption{Computed and experimentally measured mean squared angular displacement (MSAD) over time. Comparison is made between simulations of free (brown line) and laser-illuminated (confined, orange line) nanorocker, surrounded by 10 microtubules (MT), and the experimental results (Exp.) after 5 h incubation time with Taxol (purple data). Thered dashed line represents the MSAD calculated from Equation (1) using the measured viscosity for an incubation time of 5 h. The good agreement between the red and purple curves validates the approximation of the nanorocker to a disk. The inset shows the mean squared displacement (MSD) for free nanorockers in the presence of 0, 5, and 10 microtubules. The agreement between the experimental and simulation results indicates that the movement of the particle is not affected by the presence of microtubules since their size is much bigger than the particle.}
 \end{figure}
 We perform simulations with and without taking into account the translational confining effect of the probing laser on the nanorocker (by trapping the nanorocker with a soft potential well to a domain about 10\% larger than its size) and find no discernable effect on its rotational diffusion. In the confined case, any modification of the particle rotation is only due to the hydrodynamic effects of the microtubulae. This evidences that the translational confinement of the probing beam does not affects its orientational fluctuating motion.
-Our simulations yield MSAD curves that match the theory and simulations in the absence of microtubulae to within statistical uncertainty. This evidences that the presence of microtubulae, at these concentrations, has practically no effect on the viscosity sampled by the nanorocker. From this, we conclude that, once all microtubulae is formed due to the effect of Taxol, there is less amount of intracellular material of comparable size to the nanorocker, which effectively reduces the viscosity sense by it.
+Our simulations yield MSAD curves that match the theory and simulations in the absence of microtubulae to within statistical uncertainty. This evidences that the presence of microtubulae, at these concentrations, has practically no effect on the viscosity sampled by the nanorocker. From this, we conclude that, once all microtubulae is formed due to the effect of Taxol, there is less amount of intracellular material of comparable size to the nanorocker, which effectively reduces the viscosity sensed by it.
 
 %Chemicals capable of producing structural and chemical changes on cells are used to treat diseases (e.g., cancer). Further development and optimization of chemotherapies require thorough knowledge of the effect of the chemical on the cellular structure and dynamics. This involves studying, in a noninvasive way, the properties of individual cells after drug administration. Intracellular viscosity is affected by chemical treatments and it can be reliably used to monitor chemotherapies at the cellular level. Here, cancer cell monitoring during chemotherapeutic treatments is demonstrated using intracellular allocated upconverting nanorockers. A simple analysis of the polarized visible emission of a single particle provides a real-time readout of its rocking dynamics that are directly correlated to the cytoplasmic viscosity. Numerical simulations and immunodetection are used to correlate the measured intracellular viscosity alterations to the changes produced in the cytoskeleton of cancer cells by anticancer drugs (colchicine and Taxol). This study evidences the possibility of monitoring cellular properties under an external chemical stimulus for the study and development of new treatments. Moreover, it provides the biomedical community with new tools to study intracellular dynamics and cell functioning.
 %
@@ -5019,20 +5023,32 @@ We investigate tank-treading and breathing dynamics of individual star molecules
 
 \chapter{Simulations of dynamically cross-linked actin networks}
 Simulations in this work are accelerated by \uammd's neighbour list capabilities.
+\todo{FILL}
 
-\chapter{Ongoing work and future directions}\label{ch:ongoing}
+\chapter{Ongoing work, future directions and conclusions}\label{ch:ongoing}
+We are living in the origins of the GPU era, in which new computing technologies evolve every day and the software development kits (SDK) layers that allow to use them follow closely, also evolving alongside them. Lagging behind both hardware and SDK are the applications that make use of them, such as UAMMD. Finally, one step behind all of them lie the novel algorithms, some of which have been developed during this thesis. Climbing up the ladder requires constant work and research into these new technologies, as if we were walking through a mechanical ladder in reverse. In order to successfully survive the constant climb it is worth to, in my opinion, lose the fear of returning back to basics or reinventing the wheel. We chose CUDA for UAMMD because it was the best choice at the moment, but we did so knowing that this might change over time.
 
+Recently SYCL, a cross-platform abstraction C++ programming model for heterogeneous computing, has been gaining a lot of traction. SYCL aims to provide a common specification allowing to write code that will run in any GPU or CPU by having backends to accomodate for the different hardware vendors (CUDA for NVIDIA, ROCm for AMD, oneAPI for Intel...). In the future, it is within the realm of possibilities to start porting UAMMD to SYCL, which will enable it to run on any hardware.
+
+At the moment UAMMD is being actively developed by several collaborators. I still retain my role as the lead developer and routinely push fixes, improvements and new modules to the main repository, but other researchers have been forking, extending and hacking UAMMD for some time now. It is worth summarizing here some of the ongoing projects that are being carried out by collaborators using UAMMD.
+
+\todo{FILL}
 \begin{itemize}
 \item Juan aragones DPD
 \item Pablo virus
 \item QCM
 \item Palaciosa magnetismo
-\item multi gpu
 \end{itemize}
 
-\chapter{Conclusions}\label{ch:conclusions}
+Currently UAMMD is a single GPU library. Once a GPU is selected at initialization every other GPU in the system is ignored. As a matter of fact, in the description of the different algorithms we have not acknowledge the existence of multi GPU. While some algorithms, such as the neighbour lists or the immersed boundary method, present almost linear scalings when using several processors, others, mainly the ones involving the Fourier transform, require an all-to-all communication in a multi GPU environment. Many novel algorithms in UAMMD are based on the \gls{FFT} and, given that a single GPU can already fit quite a large system, the extra software complexity and maintenance burden associated with a multi GPU implementation was deemed not worthy. Furthermore, our simulations are often governed by thermal fluctuations and require us to launch the same simulation many times to gather statistics. In this case the multi GPU paralellization is trivial. Nonetheless, the codebase was designed with the possibility of going multi GPU in mind. In the future it would be possible for a developer to incrementally make the different basic UAMMD modules multi-GPU-aware, but it is not something being considered at the moment.
 
-asdasdas
+UAMMD offers a plethora of tools that researchers can leverage to accelerate their simulations, however, making use of them requires certain knowledge and resources that might not be in the skillset of a typical research group, moreover a experimental group. One of our current lines of work consists on bridging the gap between us, producers of scientific software, and their potential users, such as experimental research groups. In particular by offering easy-to-use graphical user interfaces (GUI) tailored for the (cuantitative) reproduction of specific experiments or experimental techniques. At the moment, we are pursuing this idea by iterating, with the help of a research group at CSIC, towards a GUI for a ``virtual QCM'' which will aid in the characterization of samples for this sensor.
+
+\begin{itemize}
+\item New algorithms have been developed that enable simulations of regimes that where previously unachievable. These algorithms are accompanied by highly performant GPU implementations in UAMMD, which boosts their applicability.
+\item Although this thesis is not centered in new physics per-se, we have discussed several works presenting new physics. Some of this lines of work are still active and more publications are expected.
+\end{itemize}
+
 \todo{ What should I say here?}
 
 %\begin{itemize}
@@ -5201,11 +5217,11 @@ This can become a nuissance when a given namespace is constantly used. C++ provi
 
 The \mintinline{\ucpp}{using} keyword has a second usage, it allows to ``rename'' a type. In C++ type names can become quite convoluted and long. The \mintinline{\ucpp}{using} keyword can be used in these cases. For instance, in example code \ref{code:pf} we write the line \mintinline{\ucpp}{using PF = PairForces<Potential, NeighbourList>;}, allowing to use simply ``PF'' when we want to refer to the longer type name.
 \subsection*{Objects}
-Although C++ can work as a functional language, it is heavily object oriented. The \mintinline{\ucpp}{struct} and \mintinline{\ucpp}{class} keywords are used to define objects in C++\footnote{The only difference between a struct and a class is the default visibility of its members. By default, members in a struct have public visibility, whereas a class defaults to private visibility.}.
+Although C++ can work as a functional language, it is heavily object oriented. The \mintinline{\ucpp}{struct} and \mintinline{\ucpp}{class} keywords are used to define objects in C++.
 
-An object can hold both variables and functions, which are refered to as \emph{members}. A member function in a class has access to all other members of the object.
+An object can hold both variables and functions, which are refered to as \emph{members}. A member function in a class has access to all other members of the object. In general, object members (functions or variables) can have either private or public visibility. From the outside, only public members can be accessed, whereas private members can only accessed by other members of the same class.
 
-In the author's personal programming style, structs are usually used to serve as an aggregate of variables, whereas classes are used as a more complex object (with member functions, etc). Note however, that the struct and class keywords are almost interchangeable.
+In the author's personal programming style, structs are usually employed to serve as an aggregate of variables, whereas classes are used as a more complex object (with member functions, etc). Note however, that the struct and class keywords are almost interchangeable\footnote{The only difference between a struct and a class is the default visibility of its members. By default, members in a struct have public visibility, whereas a class defaults to private visibility.}.
 
 \begin{code2}[Examples of object creation.] {label=code:class}
   #include<iostream>
@@ -5235,7 +5251,7 @@ In the author's personal programming style, structs are usually used to serve as
     return 0;  
   }
 \end{code2}
-Given that object can be created and passed around as regular variables, we can use them to encapsulate and transport logic between different parts of the code.
+Given that objects can be created and passed around as regular variables, we can use them to encapsulate and transport logic between different parts of the code.
 
 In \uammd, every \emph{Interactor} and \emph{Integrator} is provided as a C++ \mintinline{\ucpp}{class}.
 
@@ -5808,7 +5824,7 @@ struct NeighbourCounter{
   
   //For each pair computes counts a neighbour 
   //if the particle is closer than rcut
-  __device__ int compute(real4 pi, real4 pj){
+  __device__ auto compute(real4 pi, real4 pj){
     const real3 rij = box.apply_pbc(make_real3(pj)-make_real3(pi));
     const real r2 = dot(rij, rij);
     if(r2>0 and r2< rc*rc){
@@ -5839,17 +5855,61 @@ Furthermore, while \emph{Transverser} describes a very general computation, \emp
 
 For convenience, we present here a list of all the modules available in \uammd at the time of writing. Each of them can be created and used on its own. Alternatively, several of them can be joined to construct a simulation.
 
+Most of the modules listed below have a corresponding chapter in this manuscript. The ones that have not been described are available in \uammd's online resources.
+
 \section{Integrators}
 
-asdas
+\begin{itemize}
+\item Molecular Dynamics
+\item Langevin Dynamics
+\item Dissipative Particle Dynamics
+\item Smoothed Particle Hydrodynamics
+\item Brownian Dynamics
+\item Brownian Hydrodynamics
+  \begin{itemize}
+  \item Open Boundaries
+    \begin{itemize}
+    \item Cholesky
+    \item Lanczos
+    \end{itemize}
+  \item Triply Periodic
+    \begin{itemize}
+    \item Force Coupling Method
+    \item Positively Split Ewald
+    \end{itemize}
+  \end{itemize}
+\item Fluctuating Hydrodynamics
+  \begin{itemize}
+  \item Fluctuating Immersed Boundary
+  \item Inertial Coupling Method
+  \item Quasi 2D
+  \end{itemize}
+\end{itemize}
 
 \section{Interactors}
 
-asdasda
+\begin{itemize}
+\item Short-ranged
+\item Long-ranged (nbody)
+\item Triply and Doubly periodic electrostatics
+\item Bonds (particle-particle, particle-point, angular, torsional...)
+\item External interactions
+\end{itemize}
 
 \section{Other modules}
 
-adasdas
+\begin{itemize}
+\item Neighbour lists
+  \begin{itemize}
+  \item Cell list
+  \item Verlet list
+  \item LBVH list
+  \end{itemize}
+\item Immersed Boundary Method (spreading and interpolation between markers and a grid)
+\item Lanczos iterative Krylov decomposition
+\item Boundary Value Problem solver
+\item Tabulated functions
+\end{itemize}
 
 \newpage
 
