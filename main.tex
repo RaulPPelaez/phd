@@ -93,8 +93,8 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
   \includegraphics[#1]{#2.pdf}
 }
 
-\pagecolor[rgb]{0.2,0.2,0.2}
-\color[rgb]{1,1,1}
+%\pagecolor[rgb]{0.2,0.2,0.2}
+%\color[rgb]{1,1,1}
 
 %
 %\definecolor{kwcol}{HTML}{32b43f}
@@ -2253,44 +2253,49 @@ When the viscous forces are much larger than the inertial forces, i.e. $ |\xi\ve
 In \gls{BD}, the coupling between the submerged particles and the solvent is instantaneous.
 Furthermore, since the particle velocities decorrelates instantly, the only remaining relevant variables are the positions of the colloidal particles. We can use the Fokker-Planck formalism to describe the dynamics of the colloidal particles positions. When the \gls{FPE} \eqref{eq:fpe} is restricted to Brownian particles it is known as the Smoluchowski Diffusion Equation.
 
-Using eq. \eqref{eq:fpesde}, we can write the \gls{SDE} for the positions of a collection of colloidal particles at the Smoluchowski level as
+Using eq. \eqref{eq:fpesde}, we can derive the \gls{SDE} for the positions of a collection of colloidal particles with positions $\vec{q} =\{\vec{q}_1,\vec{q}_2,\dots, \vec{q}_N\}$ from the Smoluchowski description of the 2-body level marginal probability\cite{Dhont1996} as
 \begin{equation}
   \label{eq:bdlange}
   d\vec{\ppos} = \widetilde{\vec{D}}^{(1)}(\vec{\ppos})dt + \delta\vec{\ppos}
 \end{equation}
-Where the fluctuations, $\delta\vec{\ppos}$, are given by eq. \eqref{eq:fpesdefluc} as
+Where $\delta\vec{q}$ is the set of random displacements which satisfy the two particle covariance given by eq. \eqref{eq:fpesdefluc} 
 \begin{equation}
   \label{eq:bdfluc}
   \left\langle \delta\vec{\ppos}\otimes \delta\vec{\ppos}\right\rangle = 2\tens{D} dt
 \end{equation}
 
-Following the discussion in section \ref{sec:einstein} we can define the drift coefficients in a general way as
+Following the discussion in section \ref{sec:einstein} we can define the drift vector as
 \begin{equation}
   \label{eq:bddrift}
 \vec{D}^{(1)} := -\tens{M}\vec{\partial}_{\vec{\ppos}}U(\vec{\ppos}) + \vec{v}_d(\vec{\ppos}),
 \end{equation}
-where $U$ represents in this case the potential energy acting on the particles and $\vec{v}_d(\vec{\ppos})$ represents the drift of a base flow moving the particles along. Let us focus on the potential force term, which involves the dissipative part of  the dynamics, encoded in the mobility tensor. The mobility tensor, $\tens{M}$, encodes in its elements the hydrodynamic correlations between the different particles necessary to transform the forces acting on them into displacements.
+Here  $\vec{v}_d(\vec{\ppos})$ represents the drift of a base flow moving the particles along. The potential energy, $U$, acting on the particles can include pairwise interactions, external fields and/or external non conservative force fields (as in optofluidics\cite{Melendez2019}). In particular, we can define
+\begin{equation}
+  \vec{F} = \partial_{\vec{q}}U(\vec{q}) + \vec{F}^{\ext}(\vec{q})
+\end{equation}
+\todo{Rafa, is this ok?}
+Let us focus on the dissipative part of the dynamics, encoded in the mobility tensor. The pairwise mobility tensor, $\tens{M}$, encodes in its elements the hydrodynamic transfer of the force at one point $\vec{q}_i$, to the displacement at another point $\vec{q}_j$. It thus determines the correlations between two particle displacements (see also eq. \eqref{eq:bdfluc}).
 The mobility tensor is then related to the diffusion coefficients via the Einstein relation (see sec. \ref{sec:einstein}),
 \begin{equation}
   \label{eq:bdeinstein}
   \tens{D}(\vec{\ppos}) = \kT \tens{M}(\vec{\ppos}).
 \end{equation}
-The Einstein relation coupled with the condition in eq. \eqref{eq:bdfluc} hints the mobility tensor to be symmetric and positive semi-definite, so that we can define a tensor $\tens{B}$ such that
+The Einstein relation coupled with the condition in eq. \eqref{eq:bdfluc} hints the mobility tensor to be symmetric and positive semi-definite, so that we can define a tensor $\tens{B}:=\sqrt{\tens{M}}$ such that
 \begin{equation}
-  \tens{B}\tens{B}^T := \sqrt{\tens{M}}.
+  \tens{B}\tens{B}^T := \tens{M}.
 \end{equation}
-In general, the mobility matrix will be a function of all the particles in the system. However, it is usual to consider the mobility in the pairwise approximation, so that $\tens{M}(\vec{\ppos}, \vec{\ppos}') = \tens{M}(\vec{\ppos}-\vec{\ppos}')$\todo{Something more to add here?}. Including further reflexions explodes the complexity of the formulation and its only useful in situations in which particles are really close (e.g. high densities)\cite{Dhont1996}.
+If the system is translationally invariant (isotropic)\footnote{Note that there are situations in which this assumption does not hold, such is the case if a wall is present, where the mobilty becomes dependent on the distance to the wall, $\tens{M}=\tens{M}(\vec{q}-\vec{q}', z, z')$.} $\tens{M}(\vec{\ppos}, \vec{\ppos}') = \tens{M}(\vec{\ppos}-\vec{\ppos}')$. To model hydrodynamic couplings, $\tens{M}$ is usually taken to be the Rodne-Prager-Yamakawa tensor (describing up to the second hydrodynamic reflection)\cite{Dhont1996}. Including further reflexions explodes the complexity of the formulation and its only useful in situations in which particles are really close (e.g. high densities)\cite{Dhont1996}, in which case the lubrication approximation is preferable.
 
 We can then write the equations of \gls{BD} as
 \begin{equation}
   \label{eq:bdfull}
   d\vec{\ppos} = \vec{v}_d(\vec{\ppos}) + \tens{M}\vec{F}dt + \sqrt{2\kT\tens{M}}d\vec{\noise} + \kT\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}dt.
 \end{equation}
-Where $\vec{F} = -\vec{\partial}_{\vec{\ppos}}U$ are the forces acting on the particles and the (so-called) Brownian motion, $d\vec{\noise}$, is a collection of Wienner increments with zero mean and
+Where $\vec{F}$ are the forces acting on the particles and the (so-called) Brownian motion, $d\vec{\noise}$, is a collection of Wienner increments with zero mean and
 \begin{equation}
 \left\langle d\noise_{i}^\alpha(t)d\noise_{j}^\beta(t') \right\rangle = dt\delta(t-t')\delta_{ij}\delta_{\alpha\beta}.
 \end{equation}
-It is worth noticing that the physical origin of the noise, $d\vec{\noise}$, is no longer just a random force coming from an additive action of many collisions with solvent particles, but the average of a series of stochastic displacements over a long period of time $\dt \gg \tau_l$.
+It is worth noticing that the physical origin of the noise, $d\vec{\noise}$, is no longer just a random force coming from an additive action of many collisions with solvent particles, but the average of a series of stochastic displacements over a period of time which is short compared to the diffusion time of one particle (but long compared with the relaxation time of the solvent velocity fluctuations via sound or vorticity transport).
 
 The last term in eq. \eqref{eq:bdfull}, known as the thermal drift term, can be non zero in cases where rigid particle constraints are imposed\cite{Westwood2021} or due to the presence of boundaries\cite{Pelaez2018,Balboa2016,Buscalioni}. However, in isotropic and irrotational hydrodynamic fields, this term is usually zero and can thus be ommited from the description.
 
@@ -2413,7 +2418,7 @@ Mid Point updates the simulation with the following rule
     &\vec{\ppos}^{n+1} = \vec{\ppos}^n + M\vec{F}^{n+1/2}\dt + \sqrt{D}\left[\vec{\mathcal{\noise}}^{n_1}  + \vec{\mathcal{\noise}}^{n_2}\right]
   \end{aligned}
 \end{equation}
-Where both instances of the noise ($n_1$ and $n_2$) are uncorrelated.
+Where both instances of the noise ($n_1$ and $n_2$) are uncorrelated and $\langle \mathcal{\noise}^{n_i}\rangle^2 = \dt$.
 \todo{Compare all algorithms by showing a g(r) with different time steps}
 \subsection*{Use in UAMMD}
 Using the \gls{BD} \emph{Integrators} is quite similar to the rest we have seen so far. An example code is available in code \ref{code:bd}. The same interface joins all the \gls{BD} integrators we saw in this chapter.
@@ -2526,11 +2531,11 @@ The incompressible Navier-Stokes equations can be written as
 \begin{equation}
   \label{eq:navierstokes}
   \begin{aligned}
-    \overbrace{\underbrace{\rho\dot{\vec{\fvel}}}_{\text{time}} +\underbrace{\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})}_{\text{convection}}}^{\text{fluid inertia}} + \underbrace{\nabla \pi}_{\text{internal stress}} &= \underbrace{\eta \nabla^2\vec{\fvel}}_{\text{diffusion}} + \underbrace{\vec{f} + \nabla\cdot \mathcal{Z}}_{\text{external stress}}\\
+    \overbrace{\underbrace{\rho\partial_t{\vec{\fvel}}}_{\text{time}} +\underbrace{\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})}_{\text{convection}}}^{\text{fluid inertia}} + \underbrace{\nabla \pi}_{\text{internal stress}} &= \underbrace{\eta \nabla^2\vec{\fvel}}_{\text{diffusion}} + \underbrace{\vec{f} + \nabla\cdot \mathcal{Z}}_{\text{external stress}}\\
     \nabla\cdot\vec{\fvel} &= 0\quad\mathllap{\underbrace{\phantom{\nabla\cdot\vec{\fvel} = 0}}_{\text{incompressibility}}}
   \end{aligned}
 \end{equation}
-Where $\vec{\fvel}(\vec{\fpos}, t)$ represents the velocity field of the fluid, $\pi$ the pressure, $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid (which we shall show that can arise from its coupling with a series of submerged particles).
+Where $\vec{\fvel}(\vec{\fpos}, t)$ represents the velocity field of the fluid, $\pi$ the pressure, $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid (which can arise from thre presence of submerged particles).
 
 The fluctuating hydrodynamic description (Landau-Lipshizt) includes a stress tensor, $\mathcal{Z}(\vec{\fpos}, t)$, which must comply with the fluctuation-dissipation balance (see sec. \ref{sec:fdb}) according to the following statistical properties\cite{Zarate2006}
 \begin{equation}
@@ -2541,11 +2546,35 @@ The fluctuating hydrodynamic description (Landau-Lipshizt) includes a stress ten
 \end{equation}
 Where $i,j,k,m$ represent the different coordinates.
 In order to generalize the notation for eq. \eqref{eq:navierstokes}, we will sometimes introduce the fluctuations into the fluid forcing term, defining $\tilde{\vec{f}} := \vec{f} + \nabla\cdot\mathcal{Z}$.
+We can also write eq. \eqref{eq:navierstokes} as
+\begin{equation}
+  \label{eq:navierstokes2}
+  \rho\partial_t\vec{fvel} = -\nabla\cdot \tens{\sigma} + \vec{f},
+\end{equation}
+whith
+\begin{equation}
+  \tens{\sigma} := \pi\mathbb{I} - \eta\left(\nabla \vec{\fvel} + \nabla\vec{\fvel}^T\right) + \rho\left(\vec{fvel}\otimes\vec{\fvel}\right)
+\end{equation}
 \section*{Particle dynamics}
+To derive the equation of motion of the particle, we impose the kinetic constraint $\int_{V_p}\vec{\fvel}(\vec{\fpos}, t)d\vec{\fpos}^3 = \vec{u}$, where $V_p$ is the particle volume. Integrating over the particle volume in eq. \eqref{eq:navierstokes2}.
+\begin{equation}
+  \rho\int_V_p\partial_t\vec{\fvel}d\vec{\fpos}^3 0 -\int_V_p\nabla\cdot\tens{\sigma}d\vec{r}^3 + \int_V\vec{f}d\vec{\fpos}^3
+\end{equation}
+Note that
+$$\rho\int_V\partial\vec{\fvel}d\vec{\fpos}^3 = \rho \partial_t\int_V_p\vec{\fvel}d\vec{\fpos}^3 = \rho\partial_t\vec{\fvel}$$
+And
+$$
+-\int_V_p\nabla\cdot\tens{sigma}d\vec{\fpos}^3 = \oint_S\tens{\sigma}\cdot\hat{\vec{n}}d\vec{r}^2 = \vec{F}_{\text{drag}}
+$$
+is the fluid traction on the particle (drag force).
+We also note that $\int_V_p\vec{f}d\vec{\fpos}^3 = \lamba$ is the total force induced by the particle to the fluid ( induced force \cite{Mazur1974}).
+Hence, $m_f\partial_t\vec{\pvel} = \vec{F}_{\text{drag}} + \lambda$, being $m_f$ the mass of the fluid displaced by the particle.
+On the ther hand, $m_p
+
 In the spirit of \gls{BD}, we also assume that the friction time $\tau_F = m/\xi$ is quite small compared with any other physical process. In other words, we assume particles are neutrally buoyant and disregard their inertia ($\dot{\vec{\pvel}} = 0$). As demonstrated in \cite{Balboa2014}, the inertial effects of the particles due also to a non zero excess mass can be reintroduced via a Lagrange multiplier, $\lambda$, (which enforces $\vec{\pvel} = \vec{\fvel}$). Physically, $\lambda$ is the net force that the particle exerts on the fluid which, in turn (third Newton law) exerts a force $-\lambda$ to the particle. The particle's equation of motion is then
 \begin{equation}
   \label{eq:inertiallagrande}
-m_p \dot{\vec{\pvel}} = \vec{F} - \lambda.
+m_e \dot{\vec{\pvel}} = \vec{F} - \lambda.
 \end{equation}
 The particle mass, $m_p$, can be decomposed as $m_p := m + m_e$, where $m=\rho\Delta V$ is the mass of the fluid displaced by the particle and $m_e$ is the so-called excess mass. Note that $m_e=0$ for neutrally buoyant particles, and in this case $\vec{F} = \lambda$, thus any force acting on the particle (external fields, particle-particle interactions, etc) is instantaneously and completely transfered to the fluid.
 
@@ -3124,7 +3153,7 @@ In BPP, only one of the threads (tipically the first one) needs to fetch the par
 One benefit of assigning a block per particle is that it is guaranteed that no atomic collisions will occur for threads in the same block. Since the execution order of blocks is not guaranteed the chances of atomic collisions between blocks are reduced in average.
 In a thread-per-particle approach, if the particles are sorted randomly in memory chances of atomic collision are reduced at the expense of worse access pattern (both when reading particles and writting to cells).
 
-On another consideration we can sort particles in memory by spatial hash (so that close in space also means close in memory) which results in faster fetching of the grid data, but increased chance of atomic overlap\footnote{In \uammd, particles can be sorted using the Z-morton hash (see sec. \ref{sec:particledata}) easily.}. In general, there will be a trade-off between these two effects.
+On another consideration we can sort particles in memory by spatial hash (so that close in space also means close in memory) which results in faster fetching of the grid data, but increased chance of atomic overlap\footnote{In \uammd, particles can be sorted using the Z-morton hash (see chapter \ref{sec:celllist}) easily.}. In general, there will be a trade-off between these two effects.
 
 However, our block-per-particle algorithm hides these issues (effect of particle sorting and atomic overlap) to an extent, since only one thread in each block will fetch a particle and atomic overlap is reduced by design.
 
@@ -3137,29 +3166,38 @@ Recently, a new \gpu-friendly algorithm has been developed\cite{Shih2021} that u
 We refer to this algorithm as Block Per Domain (BPD), although the authors of \cite{Shih2021} refer to it as \emph{SM} (from shared memory). It is worth noting that the authors of the BPD algorithm do take into account the previously introduced separable-kernel optimization.
 
 \subsection*{Performance comparison of the spreading algorithms}
-It is worth mentioning that, although particle sorting usually takes a neglegible amount of the runtime, in the \uammd implementation sorting is carried away by \emph{ParticleData} independently of wether spreading/interpolation is present (since sorting is benefitial in several other sections of the codebase, like neighbour traversing). In this sense, the overhead of sorting is hidden. Nonetheless, for the sake of fairness, sorting time is included as part of the runtime in the performance figures.
+It is worth mentioning that, although particle sorting usually takes a neglegible amount of the runtime, in the \uammd implementation sorting is carried away by \emph{ParticleData} independently of wether spreading/interpolation is present (since sorting is benefitial in several other sections of the codebase, like neighbour traversing). In this sense, the overhead of sorting is hidden. Nonetheless, for the sake of fairness, sorting time is included as part of the runtime in the performance figures when applicable.
 
 Finally, the \uammd implementation presents another benefit when compared to others seen in the wild. In particular when refering to spreading/interpolating several quantities at once (such as forces/velocities). The general strategy when dealing with vectorial quantities (or simply several scalars) is to run the algorithm as many times as there are components. This is related to the AoS (array-of-structures) vs SoA (structure-of-arrays) debate. In general terms, it is best to take an SoA approach in the GPU, which calls for the usual spread-many-times strategy. However, there is one crucial caveat to this rule worth taking into account: In complex fluid simulations we usually deal with vectorial quantities with $3$ or $4$ elements (i.e. positions, forces+energies...), which happen to be special in NVIDIA GPUs\footnote{And probably in the GPU architecture in general.}. In particular, CUDA presents especial load/store instructions that fetch/write $128$ bits from memory (the space for $4$ floats). In SoA we would store and treat each component separately, so that reading the (for instance) position of a particle would take $3$ instructions. If we store the positions in an array composed by groups of $4$ floats\footnote{A series of vectorial types names \emph{realX} (with X being 2,3 or 4) are available in \uammd. For instance, the type \emph{real4} containing $4$ scalars.} (an AoS approach) we only need a single instruction to load all three coordinates (and we get a fourth number to leverage for free). Using vector types can potentially make the cost of spreading/interpolation $4$ values at the same time much cheaper than repeating the operation $4$ times. \uammd's spreading/interpolation implementation interface is templated for any random access iterator\footnote{See Appendix \ref{sec:cpp} for more information on C++ iterators.} containing the per-partcile and per-cell data as long as the type of the elements follows a certain set of sane rules (in particular, that the values of the iterator can be added together and that the per-particle type can be converted to the per-cell type when required\footnote{\uammd's vector types come with a large set of algebraic overloads. In general, any operation that can be used in an scalar also works for vector types in a per-element manner. For instance, the result of multiplying two \emph{real4} values $a$ and $b$ will be, $c = (a_xb_x, a_yb_y, a_zb_z, a_wb_w)$.}).
+
+We compare the TPP and BPP algorithms with the hybrid BPD (or \emph{SM} in \cite{Shih2021}) in figures \ref{fig:ibmcomp} and \ref{fig:ibmcompsorted}, measuring the performance of spreading one scalar per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible in any case. In the case of recomputing the kernel our implementation could have an unfair advantage here, but since it happens to be the slower option in general, we will not consider it.
+In any case, if the kernel evaluation becomes a problem due to it being expensive, it is always a possibility to tabulate the kernel into a global memory array\footnote{The \uammd utility \emph{TabulatedFunction} can be employed here. This tool mimics the old CUDA textures, allowing to tabulate a function inside a range and then interpolate it at any point in between.}. By doing so, the cost of computing the kernel becomes constant regardless of its mathematical expression, amounting to fetching some value from memory.
+
 The following remarks about performance trends should be taken with a grain of salt, since with time the \gpu architecture tends to become more and more forgiving about things like the memory access pattern, atomic operations, etc. The compiler also grows smarter with time, being able to better optimize the code. However, it is worth mentioning here at least some of the trends that will probably hold. Performance measurements were carried out using a NVIDIA RTX 2080Ti \gpu, which has the \emph{sm\_75} architecture.
-The TPP (register) algorithm particularly benefits from the AoS approach, where testing suggest that spreading $4$ numbers at once is overall $\times 5$ faster than spreading a single number.
-On the other hand, 
 
-We compare the TPP and BPP algorithms with the hybrid BPD (or \emph{SM} in \cite{Shih2021}) in fig. \ref{fig:ibmcomp}, measuring the performance of spreading one scalar per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible.
-
-\todo{Figure comparing spreading a 3 vector with uammd and 3 times the cost of Shih.}
-\todo{Explain that float4 fetching costs the same as a single float, so we can exploit it by storing Fxyz and spreading at once}
+The TPP strategies particularly benefit from the AoS approach, where testing suggest that spreading $4$ numbers at once is overall $\times 5$ faster than spreading a single number. Alas, the overall more performant BPP strategy does not seem to benefit from this particular optimization and, in fact, the cost of spreading $4$ numbers in an AoS manner is slightly higher than spreading $4$ times separatedly.
 \begin{figure}[h]
   \centering
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens1_2080ti}}
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens0.1_2080ti}}
-\caption{Performance comparison between the different spreading schemes considered for two different densities. Particles are distributed uniformly in a cubic grid and spreaded with a support $n_s=8$ using a Gaussian kernel. A single scalar is spreaded per particle. The considered algorithms are: A block-per-particle (BPP), the algorithm used in \uammd. A thread-per-particle (TPP) precomputing the kernel to register memory (register, similar to \emph{GM-sort} in Shih2021\cite{Shih2021}) and recomputing it (recompute). Finally, timing for the BDP algorithm (\emph{SM} in \cite{Shih2021}) is also presented. Performance data was gathered in an RTX2080Ti \gpu using single precision. The crossover between BPP and SM happens at around $2$ million particles in both cases.}
+\caption{Performance comparison between the different spreading schemes considered for two different densities. Particles are distributed uniformly in a cubic grid and spreaded with a support $n_s=8$ using a Gaussian kernel. A single scalar is spreaded per particle. The considered algorithms are: A block-per-particle (BPP), the algorithm used in \uammd. A thread-per-particle (TPP) precomputing the kernel to register memory (register, similar to \emph{GM-sort} in Shih2021\cite{Shih2021}) and recomputing it (recompute). Finally, timing for the BDP algorithm (\emph{SM} in \cite{Shih2021}) is also presented. For these tests, particle sorting was not employed, i.e. the particles are randomly distributed in memory with respect to their physical positions. Performance data was gathered in an RTX2080Ti \gpu using single precision. The crossover between BPP and SM happens at around $2$ million particles in both cases.}
 \label{fig:ibmcomp}
 \end{figure}
-The first thing to notice is that for the TPP algorithm recomputing the kernel is always better than storing in register memory, supporting the idea that register spilling is far more important here than arithmetic pressure. Furthermore, the BPP strategy is consistently twice as fast as the naive algorithm, TPP (recompute). One strategy for reducing the cost of recomputing in TPP (in cases where the kernel evaluation is expensive) could be to tabulate the kernel into a global memory array\footnote{The \uammd utility \emph{TabulatedFunction} can be employed here. This tool mimics the old CUDA textures, allowing to tabulate a function inside a range and then interpolate it at any point in between.}.
 
-The performance of our BPP algorithm (and also TPP, for that matter) is robust to changes in density (see fig. \ref{fig:ibmcomp})\footnote{Although not shown, we see that the time per particle remains constant even with high densities, like 10 particles per cell, which results in ~200 million particles for a grid with $n_x=n_y=n_z=256$.}, being the time per particle in both cases almost identical for all grid sizes. This supports the idea of atomic operations being far less important than it seems at first, since more particles per cell should result in more atomic overlap. Furthermore, this trend is maintained across different kernel supports (only $n_s=8$ is shown in fig. \ref{fig:ibmcomp}). In other words, we see a perfect linear scaling with the number of particles across all tested scenarios.
+Spatial hashing and sorting dramatically improves performance for all of our algorithms\footnote{We observe a speedup of up to $\times 10$ for BPP and as high as $\times 400$ for TPP.} for medium to large problem sizes (for BPP, the performance crossover between unsorted and sorted happens at around $n_x=n_y=n_z=100$ regardless of density). For small sizes, we elucidate the increased atomic overlap caused by sorting hurts the internal atomic handling system in the particular architecture at hand. Furthemore, the performance of the sorting algorithm (radix sort) increases with the number of particles. Figure \ref{fig:ibmcompsorted} presents the same situation as figure \ref{fig:ibmcomp} but with particle pre-sorting.
 
-The BPP algorithm is therefore optimal for ``small'' or dilute systems, our typical range of application (a few million particles with some kind of steric repulsion).
+It is worth mentioning that, in the case of BPP, the optimal number of threads per block will in general depend on the number of support cells ($512$ cells in total for the showcased examples), besides other hardware considerations. For the data presented in figures \ref{fig:ibmcomp} and \ref{fig:ibmcompsorted} the optimal block size was $32$, the minimum meaningful block size (since a warp, the minimum hardware computing unit in CUDA GPUs, is composed of $32$ threads).
+Finally, if sorting is used, the performance of BPP appears to be robust to changes in density. Whereas the TPP will typically be more performant with a higher density. Without sorting, neither of the algorithms seems to be affected by density.
+
+According to the carried out tests, the overall better choice is therefore the BPP algorithm with particle sorting.
+Sizes beyond $512$ cells per direction (in a cubic domain) start to suffer from memory issues ($n=512$ with density $1$ takes up at least $4GB$ of memory) and the sheer number of particles involved, $N\sim 10^8$ for density $1$, render them impractical for most purposes.
+\begin{figure}[h]
+  \centering
+  \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens1_sorted_2080ti}}
+  \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens0.1_sorted_2080ti}}
+\caption{The same situation as in fig. \ref{fig:ibmcomp}, but in this case particles are presorted to increase spatial locality in memory (particles close in space are placed close in memory). Both the positions and the spreaded quantity are sorted. Sorting is carried out using the same Morton hash technique laid out in chapter \ref{sec:celllist}. Sorting takes a neglegible amount of time and, moreover, it does not need to be done every time spreading occurs. Typically particles are sorted at the start of a given simulation and then every few diffusive times.}
+\label{fig:ibmcompsorted}
+\end{figure}
 
 \subsubsection*{Interpolation algorithm}
 Interpolation is inherently a more efficient operation than spreading, since no atomic operations are required and, moreover, we only need to read the grid data (see alg. \ref{alg:visitneigh}). The worker asigned to a particle can accumulate the result of the interaction with nearby particles into a local variable and then write it to the global result array. Furthermore, interpolation requires only $N$ write operations, while spreading requires to perform $n_s^3N$ atomic writes.
@@ -3562,7 +3600,6 @@ For convenience, we can now write the discrete version of the projection operato
   \fou{\oper{P}}(\vec{k}) = \left(\mathbb{I} - \frac{\vec{k}_{\text{eff}}\otimes\vec{k}_{\text{eff}}}{k_{\text{eff}}^2}\right)
 \end{equation}
 \subsection*{Temporal integration}
-\todo{Add the midpoint schemes to the section for BD integration schemes?}
 The \gls{FIB}, as presented in \cite{Delong2014}, comes with two new temporal integrator schemes particularly aimed to ease the discretization of thermal drift term. However, in our triply periodic implementation the thermal drift term is strictly zero. Nonetheless we will describe these integration schemes since they can come in handy in the future. On the other hand, even when the thermal drift is mathematically zero in the continuum limit it is possible that our discretization causes some spurious drift, in which case it should also be included in our description.
 Taking into account that there are other sources of error it might be worth to avoid the extra work involved in the thermal drift computation (which amounts to two extra spreading operations).\uammd's implementation acknowledges this by computing the thermal drift using random finite differences (as described in section \ref{sec:bdhicon}) and providing a parameter to switch its inclusion on or off.
 
@@ -5026,10 +5063,17 @@ Simulations in this work are accelerated by \uammd's neighbour list capabilities
 \todo{FILL}
 
 \chapter{Ongoing work, future directions and conclusions}\label{ch:ongoing}
-We are living in the origins of the GPU era, in which new computing technologies evolve every day and the software development kits (SDK) layers that allow to use them follow closely, also evolving alongside them. Lagging behind both hardware and SDK are the applications that make use of them, such as UAMMD. Finally, one step behind all of them lie the novel algorithms, some of which have been developed during this thesis. Climbing up the ladder requires constant work and research into these new technologies, as if we were walking through a mechanical ladder in reverse. In order to successfully survive the constant climb it is worth to, in my opinion, lose the fear of returning back to basics or reinventing the wheel. We chose CUDA for UAMMD because it was the best choice at the moment, but we did so knowing that this might change over time.
+We are living in the origins of the GPU era, in which new computing technologies evolve every day and the software development kits (SDK) that allow to use them evolve alongside them. Lagging behind both hardware and SDK are the applications that make use of them, such as UAMMD. Finally, one step behind all of them lie the novel algorithms, some of which have been developed during this thesis. Climbing up the proverbial ladder requires constant work and research into these new technologies, as if we were walking a mechanical ladder in reverse. In order to successfully survive the constant climb it is worth to, in my opinion, lose the fear of returning back to basics or reinventing the wheel. We chose CUDA for UAMMD because it was the best choice at the moment, but we did so knowing that this might change over time. In UAMMD, reinventing the wheel is easy by design, the base modules (\emph{Interactor}, \emph{Integrator}, \emph{ParticleData},...) are simple and short, allowing for extension or modification or even the most basic assumptions. 
 
+\subsubsection*{New programming interfaces}
 Recently SYCL, a cross-platform abstraction C++ programming model for heterogeneous computing, has been gaining a lot of traction. SYCL aims to provide a common specification allowing to write code that will run in any GPU or CPU by having backends to accomodate for the different hardware vendors (CUDA for NVIDIA, ROCm for AMD, oneAPI for Intel...). In the future, it is within the realm of possibilities to start porting UAMMD to SYCL, which will enable it to run on any hardware.
 
+\subsubsection*{multi-GPU}
+Currently UAMMD is a single GPU library. Once a GPU is selected at initialization every other GPU in the system is ignored. As a matter of fact, in the description of the different algorithms we have not acknowledge the existence of multi GPU. While some algorithms, such as the neighbour lists or the immersed boundary method, present almost linear scalings when using several processors, others, mainly the ones involving the Fourier transform, require an all-to-all communication in a multi GPU environment. Many novel algorithms in UAMMD are based on the \gls{FFT} and, given that a single GPU can already fit quite a large system, the extra software complexity and maintenance burden associated with a multi GPU implementation was deemed not worthy. Furthermore, our simulations are often governed by thermal fluctuations and require us to launch the same simulation many times to gather statistics. In this case the multi GPU paralellization is trivial. Nonetheless, the codebase was designed with the possibility of going multi GPU in mind. In the future it would be possible for a developer to incrementally make the different basic UAMMD modules multi-GPU-aware, but it is not something being considered at the moment.
+\subsubsection*{Outreach}
+UAMMD offers a plethora of tools that researchers can leverage to accelerate their simulations, however, making use of them requires certain knowledge and resources that might not be in the skillset of a typical research group, moreover a experimental group. One of our current lines of work consists on bridging the gap between us, producers of scientific software, and their potential users, such as experimental research groups. In particular by offering easy-to-use graphical user interfaces (GUI) tailored for the (cuantitative) reproduction of specific experiments or experimental techniques. At the moment, we are pursuing this idea by iterating, with the help of a research group at CSIC, towards a GUI for a ``virtual QCM'' which will aid in the characterization of samples for this sensor.
+
+\subsubsection*{What others are doing with UAMMD}
 At the moment UAMMD is being actively developed by several collaborators. I still retain my role as the lead developer and routinely push fixes, improvements and new modules to the main repository, but other researchers have been forking, extending and hacking UAMMD for some time now. It is worth summarizing here some of the ongoing projects that are being carried out by collaborators using UAMMD.
 
 \todo{FILL}
@@ -5040,12 +5084,14 @@ At the moment UAMMD is being actively developed by several collaborators. I stil
 \item Palaciosa magnetismo
 \end{itemize}
 
-Currently UAMMD is a single GPU library. Once a GPU is selected at initialization every other GPU in the system is ignored. As a matter of fact, in the description of the different algorithms we have not acknowledge the existence of multi GPU. While some algorithms, such as the neighbour lists or the immersed boundary method, present almost linear scalings when using several processors, others, mainly the ones involving the Fourier transform, require an all-to-all communication in a multi GPU environment. Many novel algorithms in UAMMD are based on the \gls{FFT} and, given that a single GPU can already fit quite a large system, the extra software complexity and maintenance burden associated with a multi GPU implementation was deemed not worthy. Furthermore, our simulations are often governed by thermal fluctuations and require us to launch the same simulation many times to gather statistics. In this case the multi GPU paralellization is trivial. Nonetheless, the codebase was designed with the possibility of going multi GPU in mind. In the future it would be possible for a developer to incrementally make the different basic UAMMD modules multi-GPU-aware, but it is not something being considered at the moment.
-
-UAMMD offers a plethora of tools that researchers can leverage to accelerate their simulations, however, making use of them requires certain knowledge and resources that might not be in the skillset of a typical research group, moreover a experimental group. One of our current lines of work consists on bridging the gap between us, producers of scientific software, and their potential users, such as experimental research groups. In particular by offering easy-to-use graphical user interfaces (GUI) tailored for the (cuantitative) reproduction of specific experiments or experimental techniques. At the moment, we are pursuing this idea by iterating, with the help of a research group at CSIC, towards a GUI for a ``virtual QCM'' which will aid in the characterization of samples for this sensor.
-
+\subsubsection*{Nobel algorithims}
 \begin{itemize}
 \item New algorithms have been developed that enable simulations of regimes that where previously unachievable. These algorithms are accompanied by highly performant GPU implementations in UAMMD, which boosts their applicability.
+\end{itemize}
+
+
+\subsubsection*{New physics}
+\begin{itemize}
 \item Although this thesis is not centered in new physics per-se, we have discussed several works presenting new physics. Some of this lines of work are still active and more publications are expected.
 \end{itemize}
 
