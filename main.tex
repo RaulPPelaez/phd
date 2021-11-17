@@ -408,7 +408,7 @@ One of the main critiques to CUDA is that it is a close sourced, propietary envi
 In 2009, an open standard called OpenCL\cite{Stone2010} was born (from the creators of OpenGL) as an alternative to CUDA. Although implementations of OpenCL exist for almost any hardware (including GPUs from NVIDIA and AMD, CPUs, FPGAs,...) its adoption has been slow, partly due to an aggressive marketing campaign from NVIDIA to sell CUDA as the better alternative\footnote{Since the birth of CUDA, NVIDIA has been promoting it by donating GPUs to researchers, giving away a plethora of CUDA courses all around the world and more.}. The general feeling in the community has always been that OpenCL should win as the de facto \gls{GPGPU}-\gls{API} in the long term. However, it simply has not happend yet.
 Luckily, there are ways to translate CUDA code into OpenCL code\footnote{In particular, the HIP library works as a thin wrapper over CUDA/OpenCL, allowing to write code that can be compiled for any of the \glspl{API}.} and, given that the paradigms of both \glspl{API} are quite similar, it is fairly straight-forward to port CUDA code to OpenCL. Therefore, in the future, porting the software infrastructure presented in this manuscript to OpenCL would be mainly painless and will not require changes to the public \gls{API}. So, even though at the time of writing \uammd is restricted to run on NVIDIA's hardware, it is possible to adapt it so that it runs on virtually any parallel hardware.
 
-\section{Basic concepts of GPU programming}
+\section{Basic concepts of GPU programming}\label{ch:gpuintroduction}
 The \gpu is a pivotal concept in this work and, as such, it is worth introducing here its basic computing model. Doing so will enable the unfamiliar reader to better grasp the importance of designing algorithms specific for the \gpu and the new hardships that arise when approaching it from a CPU-centric world. Note, however, that this is merely an introduction to the particularities that come with coding for the \gpu and will probably not contain enough information for an unfamiliar reader to be able to write \gpu code. Appendix \ref{sec:cpp} contains a more in depth introduction to programming C++ and CUDA, although a plethora of arbitrarily-detailed tutorials and courses are freely available on the web that should be taken into account.
 
 The \gpu (usually refered to simply as \emph{device}) works as a massively parallel co-processor, with thousands of (relatively slow) cores (workers), independent of the rest of the system for most uses and purposes. The \gpu runs instructions independently (and in principle asynchronously) from the CPU (refered to as the \emph{host}). More importantly, the \gpu has its own memory space which is separated from the system RAM. The device cannot access the host memory directly (and viceversa)\footnote{This is not entirely true anymore for recent CUDA versions via the so-called Unified Virtual Addressing (UVA) system. However, this advanced functionality is beyond the scope of this work and, in any case, \uammd only makes use of it in very specific instances.}. If information has to be shared between each other an explicit memory copy has to be issued, which incurs a synchronization barrier and is in general a slow process. In this section, we will discuss how these properties are taken into account and how they affect the programming model.
@@ -3204,7 +3204,7 @@ Taking into account that there are other sources of error it might be worth to a
 This first-order weak accurate midpoint scheme requires a single Stokes solve and interpolating fluid velocities twice (at the current time, $t=n$, and the mid point, $t=n+1/2$).
 \begin{equation}
   \begin{aligned}
-    &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n})\\
+    &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \nabla\cdot\mathcal{Z}^{n})\\
     &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}\\
     &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \dt\oper{J}^{n+\half}\vec{\fvel}
   \end{aligned}
@@ -3215,13 +3215,13 @@ Note that we are again abusing the operator notation by writing the Fourier repr
 We can achieve second-order accuracy in exchange for an additional Stokes solve by improving the estimation of the velocity at the midpoint. The update rule in this case is 
 \begin{equation}
   \begin{aligned}
-    &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}(\mathfrak{F}\oper{S}^{n}\vec{F}^{n} + \fou{\nabla\cdot}\fou{\mathcal{Z}}^{n_1})\\
+    &\vec{\fvel} = \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}\mathfrak{F}(\oper{S}^{n}\vec{F}^{n} + \nabla\cdot\mathcal{Z}^{n_1})\\
     &\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}\\
-    &\tilde{\vec{\fvel}}= \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}\left[\mathfrak{F}\oper{S}^{n+\half}\vec{F}^{n+\half} + \half\fou{\nabla\cdot}\left(\fou{\mathcal{Z}}^{n_1} +  \fou{\mathcal{Z}}^{n_2}\right)\right]\\
+    &\tilde{\vec{\fvel}}= \eta^{-1}\mathfrak{F}^{-1}\fou{\nabla^{-2}}\fou{\oper{P}}\mathfrak{F}\left[\oper{S}^{n+\half}\vec{F}^{n+\half} + \half\nabla\cdot\left(\mathcal{Z}^{n_1} +  \mathcal{Z}^{n_2}\right)\right]\\
     &\vec{\ppos}^{n+1}= \vec{\ppos}^n + \dt\oper{J}^{n+\half}\tilde{\vec{\fvel}}
   \end{aligned}      
 \end{equation}
-The divergence operator, which application is required in real space to compute the noise term, is discretized according to the spatial discretization (see for instance eq. \eqref{eq:staggereddiv} in a staggered grid). Similarly for the rest of the diferential operators which are applied in Fourier space.
+The divergence operator, whose application is required in real space to compute the noise term, is discretized according to the spatial discretization (see for instance eq. \eqref{eq:staggereddiv} in a staggered grid). Similarly for the rest of the diferential operators which are applied in Fourier space.
 
 Since in a staggered grid each component of the velocity is defined in a different grid but with the exact same geometry there is no need for special considerations when Fourier transforming the fluid forcing or velocities using the \gls{FFT} (see Appendix \ref{ch:appendixa}).
 \subsection*{Use in UAMMD}
@@ -3334,7 +3334,7 @@ auto createIntegratorICM(UAMMD sim){
 }
 \end{code2}
 
-Let us delve into computing the force density field before moving on to the rest of the Stokes equation by introducing the Eulerian-Lagrangian coupling found in the \gls{IBM}.
+All the algorithms laid out in this chapter make use of the spreading and interpolator operators first introduced in chapter \ref{sec:bdhi}. For this matter, let us delve into the Eulerian-Lagrangian coupling found in the \gls{IBM} and how to efficiently encode it in a \gpu.
 
 \chapter{The Immersed Boundary Method (IBM) kernels}\label{sec:ibm}
 If we want to directly solve eq. \eqref{eq:bdhibdrelation} instead of imposing a specific mobility (pheraps because we do not know the analytical form of the Green's function for a particular geometry), we need to discretize the spreading and interpolation operators in eqs. \eqref{eq:spreadoper} and \eqref{eq:bdhifvel}. However, we cannot directly discretize deltas and we would like to take into account the size of the particles. We could smear the delta into a Gaussian, but the Gaussian kernels come with some inconveniences. In particular stemming from their infinite range, forcing us to truncate them at a certain length. We would like to reduce the support of our kernels as much as possible whithout hurting accuracy. We can borrow some lessons from the \gls{IBM} to help us in this regard.
@@ -3507,28 +3507,29 @@ We want to devise algorithms for two purposes:
 \end{enumerate}
 
 
-In a regular grid, we can find the cell in which a given particle with position $\ppos_\alpha \in [-L/2, L/2)$ (being $\alpha$ any direction) lies using $c_\alpha = \floor((\ppos_\alpha/L + 0.5)n)$. From there, it is straight-forward to find the coordinates of the $n_s^3$ cells in the support of the particle, which are given by
-$$\vec{c}_n \in [\vec{c} - \vec{P}, \vec{c} + \vec{P}].$$
-Where the factor $\vec{P}$ is defined, in each direction $\alpha$, as
+In a regular grid, we can find the cell in which a given particle with position $\ppos^{(\alpha)} \in [-L/2, L/2)$ (being $\alpha$ any direction) lies using $c^{(\alpha)} = \floor((\ppos^{(\alpha)}/L + 0.5)N_\alpha)$, where $N_\alpha$ is the number of cells in the direction $\alpha$. From there, it is straight-forward to find the coordinates of the $n_s^3$ cells in the support of the particle, which are given by
+$$\vec{c}_s \in [\vec{c}_q - \vec{P}, \vec{c}_q + \vec{P}].$$
+Where $\vec{c}_q$ represents the cell in which a particle with position $\vec{q}$ is located.
+The factor $\vec{P}$ is defined, in each direction, as
 $$
-P_\alpha := n_s/2 + s_\alpha
+P^{(\alpha)} := n_s/2 + s^{(\alpha)}
 $$
-The shift, $s_\alpha$, has to be defined depending on wether the support, $n_s$, is even or odd. In particular, we have
+The shift, $s^{(\alpha)}$, has to be defined depending on wether the support, $n_s$, is even or odd (see fig. \ref{fig:ibm2}). In particular, we have
 \begin{equation}
-s_\alpha := \left \{
+s^{(\alpha)} := \left \{
 \begin{aligned}
   &0\quad&\text{if}\quad n_s\text{ is odd}\\
-  &\floor(\ppos_\alpha/h - c_\alpha + 0.5) \quad&\text{if}\quad n_s\text{ is even}
+  &\floor(\ppos^{(\alpha)}/h - c_q^{(\alpha)} + 0.5) \quad&\text{if}\quad n_s\text{ is even}
 \end{aligned}\right.
 \end{equation}
-Note that this rule for computing $s_\alpha$ only works for a regular grid. In general, we will need to find a rule that returns $0$ if a particle is in one side with respect to the cell center and $1$ otherwise.
+Note that this rule for computing $s^{(\alpha)}$ only works for a regular grid. In general, we will need to find a rule that returns $0$ if a particle is in one side with respect to the cell center and $1$ otherwise.
 
-It is important to note that if the support is even, the value of the factor $\vec{P}$ in each direction will depend on the specific position of the particle inside the cell (see fig. \ref{fig:ibm2}). On the other hand the definition of $\vec{P}$ works seamlessly even if \gls{PBC} are used, in that case we would simply need to fold the neighbour cells to the $[0, n)$ range (for instance, the rightmost neighbour in the  $x$ direction would be $c_j = mod(c_x + P, n)$).
+It is important to note that if the support is even, the value of the factor $\vec{P}$ in each direction will depend on the specific position of the particle inside the cell (see fig. \ref{fig:ibm2}). On the other hand the definition of $\vec{P}$ works seamlessly even if \gls{PBC} are used, in that case we would simply need to fold the neighbour cells to the $[0, \vec{N})$ range (for instance, the rightmost neighbour cell in the $x$ direction would be $c_j^{(x)} = mod(c_q^{(x)} + P, N_x)$).
 
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/ibm2}
-  \caption{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($n_x=5, n_y=n_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation. In this particular example, the shift, $P$, in the bottom (even) support case will be $2$ for the red particle and $1$ for the blue one.}
+  \caption{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($N_x=5, N_y=N_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation. In this particular example, the shift, $P$, in the bottom (even) support case will be $2$ for the red particle and $1$ for the blue one.}
   \label{fig:ibm2}  
 \end{figure}
 
@@ -3542,7 +3543,8 @@ The interaction between a cell $j$ and a particle $i$ is mediated via the kernel
     \State $\vec{c} \gets$ cell of $\vec{\ppos}$
     \For{$i=0$ until $n_s$}
     \State $\vec{c}_s \gets \vec{c} - \vec{P}_s + (i,i,i)$
-    \State $\vec{r} \gets \text{dist}(\vec{c}_s, \vec{\ppos})$ \Comment{Distance to cell $\vec{c}_s$ in each direction}
+    \State $\vec{r}_s \gets \text{center of} \vec{c}_s$ \Comment{Center position of cell $\vec{c}_s$ in each direction}
+    \State $\vec{r} \gets \text{dist}(\vec{r}_s, \vec{\ppos})$ \Comment{Distance to cell $\vec{c}_s$ in each direction}
     \State Store $\phi_X[i] \gets \phi(\vec{r}_x/h)/h$
     \State Store $\phi_Y[i] \gets \phi(\vec{r}_y/h)/h$
     \State Store $\phi_Z[i] \gets \phi(\vec{r}_z/h)/h$
@@ -3573,7 +3575,7 @@ In a serial implementation of spreading, we can simply sum the contribution, $\d
     \State $i_x \gets \text{mod}(j, n_s)$\label{alg:visit_ix}
     \State $i_y \gets \text{mod}(j/n_s, n_s)$
     \State $i_z \gets j/n_s^2$
-    \State $\delta\gets$ fetchKernel($i_x, i_y, i_z$) \Comment{$\delta_a(\vec{q}_i - \vec{c}_j)$, see alg. \ref{alg:precomputeKernel}.}
+    \State $\delta\gets$ fetchKernel($i_x, i_y, i_z$) \Comment{$\delta_a(\vec{q}_i - \vec{r}_j)$, see alg. \ref{alg:precomputeKernel}.}
     \State $\vec{c}_j \gets \text{fold}(\vec{c}_i + (i_x, i_y, i_z) - \vec{P}_s)$ \Comment{Neighbour cell $\in [0, \vec{n})$.}
     \If{Spreading}
     \State cellQuantity[$\vec{c}_j$] += $dV\delta$ particleQuantity[$\vec{\ppos}_i$] \label{alg:visitspread}
@@ -3585,7 +3587,7 @@ In a serial implementation of spreading, we can simply sum the contribution, $\d
 \end{algorithm}
 In serial, we can simply apply algorithm \ref{alg:visitneigh} to each particle to get a fairly efficient algorithm. However, a direct paralelization of this approach by assigning a worker to each particle is not possible for spreading. In this case two particles could write at the same time to the same cell, resulting in a race condition. This race condition can be circumvented by ensuring that line \ref{alg:visitspread} in alg. \ref{alg:visitneigh} is an \emph{atomic} operation\footnote{In a parallel environment, an \emph{atomic} operation enforces that only one thread performs the operation a time. Allowing several workers (threads) to modify (for instance by reading, modifying and then writing) the same memory location at the same time can result in some of the information being lost (for instance when a second thread reads while the first is still modyfing). CUDA comes with a great GPU atomic library, which has become more and more efficient with time. CUDA atomics have come to a point in which, in the absence of collisions (two threads trying to access the same memory location), the overhead of using atomics is almost neglegible.}.
 
-Another solution is to traverse per cell instead of per particle, usually refered to as mesh-based approaches. Each cell is assigned to a worker, which then traverses all nearby particles. This requires to construct a cell list. While this approach is free of atomic operations (which can hurt performance if a lot of collisions happen) it makes the algorithm scale with the number of cells and will be inefficient in low density systems (or in configurations with large density disparities), where many cells are empty. On the other hand, CUDA atomic operations have come a long way, presenting almost no overhead when there are no collisions. Furthermore, a per-cell approach does not allow to take advantage of eq. \eqref{eq:peskinseparable} easily, increasing the number of kernel evaluations to $n_s^3$.
+Another solution is to traverse per cell instead of per particle, usually refered to as mesh-based approaches. Each cell is assigned to a worker, which then traverses all nearby particles. This requires to construct a cell list. While this approach is free of atomic operations (which can hurt performance if a lot of collisions happen) it makes the algorithm scale with the number of cells and it will be inefficient in low density systems (or in configurations with large density disparities), where many cells are empty. On the other hand, CUDA atomic operations have come a long way, presenting almost no overhead when there are no collisions. Furthermore, a per-cell approach does not allow to take advantage of eq. \eqref{eq:peskinseparable} easily, increasing the number of kernel evaluations to $n_s^3$.
 We usually have to spread quasi uniform configurations in 3D and we typically deal with a few million number of particles, which makes a per-particle approach the overall best option. Note, however, that there is not a best-for-all algorithm regarding spreading and a mesh based approach will probably have the upper-hand in some situations (probably when highly dense systems are considered).
 For our typical use, the few corner cases in which the per-cell approach is more optimal are not worth enough to consider it as an option. A review of several mesh-based methods is available at\cite{Guo2015}.
 
@@ -3599,20 +3601,21 @@ Let us start with the \emph{naive} version of the algorithm in which we assign a
 \item \textbf{TPP (register)}: Store the $3n_s$ kernel evaluations (making use of the optimization in Algorithm \ref{alg:precomputeKernel}) in each thread's \emph{register} memory. Given the scarcity of register memory, storing $3n_s$ values in it could easily result in register spilling\footnote{In a given CUDA kernel, when more register memory than available is requested, the compiler stores the excess in global memory. This is known as \emph{register spilling}. Naturally, register spilling should be avoided at all costs, since accessing global memory is orders of magnitude slower than register memory.}. This algorithm is refered to as \emph{GM} in \cite{Shih2021}.
 \item \textbf{TPP (recompute)}: We do not take advantage of the kernel separation at all and simply recompute the kernel whenever is needed (in particular $n_s^3$ times). This naturally increases arithmetic pressure compared with the register version. However, as a general rule, GPUs are much more forgiving to extra arithmetic operations than they are to extra memory traffic. Thus exchanging memory for arithmetics is usually a good call.
 \end{enumerate}
-While assigning a thread to a particle sounds like a reasonable separation of tasks, in doing so we are missing out on the intra-thread-block collaborative capabilities of the GPU (such as the shared memory space). Furthermore, in TPP threads in the same block are dealing with different particles, so there is no mechanism in place reducing the chance of atomic collisions. If the particles assigned to two adjacent threads happen to be close in space, there will be a high chance that at some point these two threads try to write to the same cells in the grid. Luckily there is a yet more fine-grained parallelization hidden in this algorithm that happens to be perfectly suited for the GPU architecture. This parallelization emerges when assigning an entire thread block to a particle as we will discuss now.
+While assigning a thread to a particle sounds like a reasonable separation of tasks, in doing so we are missing out on the intra-thread-block collaborative capabilities of the GPU (such as the shared memory space, see sec. \ref{ch:gpuintroduction}). Furthermore, in TPP threads in the same block are dealing with different particles, so there is no mechanism in place reducing the chance of atomic collisions. If the particles assigned to two adjacent threads happen to be close in space, there will be a high chance that at some point these two threads try to write to the same cells in the grid. Luckily there is a yet more fine-grained parallelization hidden in this algorithm that happens to be perfectly suited for the GPU architecture. This parallelization emerges when assigning an entire thread block to a particle as we will discuss now.
 
 \subsubsection*{Block Per Particle (BPP)}
 We suggest a particle-based approach, presenting subtle differences with the existing ones\cite{Shih2021}\cite{Guo2015}\cite{Fiore2017}, specifically tailored for the \gpu. We assign a thread block to each particle and then make each thread in the block spread to a different cell atomically. Since all threads in the block handle the same particle, all the per-particle information can be stored in shared memory. This includes the $3n_s$ evaluations of the kernel, which can be precomputed into shared memory collaboratively by all threads in the same block (see algorithm \ref{alg:precomputeKernelSM}, a slight modification to algorithm \ref{alg:precomputeKernel} that takes this parallelization into account). The available shared memory is much larger than register memory so in this instance storing the $3n_s$ evaluations is not an issue. We refer to this method as block-per-particle (BPP)\footnote{Changing algorithm \ref{alg:visitneigh} into a block-per-particle geometry amounts to assigning different elements of the cell loop to different threads, in the same way as in passing from algorithm \ref{alg:precomputeKernel} to \ref{alg:precomputeKernelSM}.}.
 %\todo{improve alg so a different thread is asigned to each dir} 
 \begin{algorithm}[h]
-  \caption{Precomputing the kernel in GPU shared memory collaboratively. This algorithm is quite similar to alg. \ref{alg:precomputeKernel}, but each element in the loop is asigned to a different thread in the block. The arrays $phi_{X/Y/Z}$ are located in shared memory.}
+  \caption{Precomputing the kernel in GPU shared memory collaboratively. This algorithm is quite similar to alg. \ref{alg:precomputeKernel}, but each element in the loop is asigned to a different thread in the block. The arrays $\phi_{X/Y/Z}$ are located in shared memory.}
   \label{alg:precomputeKernelSM}
   \begin{algorithmic}[1]
     \Function{precomputeKernelSM}{$\vec{\ppos} \in [0, L)_{\mathbb R^3}$, $\vec{P}_s$}
     \State $\vec{c} \gets$ cell of $\vec{\ppos}$
     \For{$i=$threadIdx.x until $n_s$ \textbf{by} blockIdx.x}    
     \State $\vec{c}_s \gets \vec{c} - \vec{P}_s + (i,i,i)$
-    \State $\vec{r} \gets \text{dist}(\vec{c}_s, \vec{\ppos})$ \Comment{Distance to cell $\vec{c}_s$ in each direction}
+    \State $\vec{r}_s \gets \text{center of} \vec{c}_s$ \Comment{Center position of cell $\vec{c}_s$ in each direction}
+    \State $\vec{r} \gets \text{dist}(\vec{r}_s, \vec{\ppos})$ \Comment{Distance to cell $\vec{c}_s$ in each direction}
     \State Store $\phi_X[i] \gets \phi(\vec{r}_x/h)/h$
     \State Store $\phi_Y[i] \gets \phi(\vec{r}_y/h)/h$
     \State Store $\phi_Z[i] \gets \phi(\vec{r}_z/h)/h$
@@ -3701,11 +3704,11 @@ The default for each cell is tkane from the cell volume via the \emph{Grid} obje
 
 The kernel can also be specified as a template argument. The kernel interface allows to set $\phi$ in each direction separatedly and can also be different depending on the particle. The support can also be set per particle.
 
-An implementation of all the kernels in sec. \ref{alg:ibm} can be found at file \emph{IBM\_kernels.cuh}.
+An implementation of all the kernels in sec. \ref{sec:ibm} can be found at file \emph{IBM\_kernels.cuh}.
 
-This extra functionality is documented in \uammd's online documentation, here we provide an example function that spreads and/or gathers an isotropic Gaussian kernel into a regular cartesian grid. Representing the simplest, yet most usual, use case.
+A lot of extra functionality, ommited here for simplicity) is laid out in \uammd's online documentation, here we provide an example function that spreads and/or gathers an isotropic Gaussian kernel into a regular cartesian grid. Representing the simplest, yet most usual, use case.
 
-\todo{This interface is super big and complex, what do?}
+%\todo{This interface is super big and complex, what do?}
 \begin{code2}[Usage example of the spreading and interpolation module.]  {label=code:ibm}
 #include<uammd.cuh>
 #include<misc/IBM.cuh>
@@ -3735,17 +3738,14 @@ template<class Iter1, class Iter2>
 void spreadOrInterpWithIBM(Grid grid, real4* positions,
                    Iter gridData, Iter2 particleData,
                    int numberParticles){
-  const support = 8;//An arbitrary support
+  const real width = 1; //An arbitrary width
+  const int support = 8;//An arbitrary support
   auto kernel = std::make_shared<Gaussian>(width, support);
-  auto ibm = IBM<Gaussian>(kernel, grid);
+  IBM<Gaussian> ibm(kernel, grid);
   //Spreads particleData into gridData
-  ibm.spread(positions, particleData, 
-             gridData, numberParticles);
+  ibm.spread(positions, particleData, gridData, numberParticles);
   //Interpolates gridData into particleData
-  ibm.gather(positions, particleData,
-             gridData, numberParticles);
-  //Both functions can also accept a 
-  // CUDA stream as the last argument
+  ibm.gather(positions, particleData, gridData, numberParticles);
 }
 \end{code2}
 
@@ -3801,7 +3801,7 @@ In contrast with the Peskin kernels for the Gaussian we are free to choose how f
 Which is just an empirical fit.
 We truncate the Gaussian kernel at a distance $r_c$ so that $\phi_G(r_c) < \epsilon$. The author of \cite{Keaveny2014} provides an in-depth analysis of the discretization errors of the Gaussian kernel.
 Figure \ref{fig:ibm_hydrovar} shows the average error inside a fluid cell for the Peskin kernels, compared to similarly supported Gaussian kernels. At first sight, it might seem like the error is not much better for the Peskin kernels as compared with the Gaussian ones. However, the Gaussian kernels require a greater upsampling (i.e more cells, see eq. \eqref{eq:gaussianupsampling}) than the Peskin ones to achieve the same tolerance and thus is in general a better choice. Figure \ref{fig:ibmvar} shows the hydrodynamic radius variance inside a cell for some kernels, but in a slice of the cell (at the center height).
-\begin{figure}
+\begin{figure}[H]
 \label{fig:ibm_hydrovar}
 \includegraphics[width=\textwidth]{gfx/ibm_hydrodeviation}
   \caption{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean substracted. Since the signal is symmetric only the range $[0.5, 1]h$ is presented.}
@@ -3814,7 +3814,7 @@ We perform the same tests using the \gls{FIB}, which uses a staggered grid.
 \item Peskin 4pt gives $a=(1.265\pm 0.002)h$
 \item Peskin 6pt gives $a=(1.4830 \pm 0.0001 )h$
 \end{itemize}
-\begin{figure}
+\begin{figure}[H]
   \label{fig:ibmvar}
   \centering
   \subcaptionbox{Gaussian 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_3pt}}\label{fig:ibm_gauss3pt}
