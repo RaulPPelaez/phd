@@ -2554,7 +2554,7 @@ We can also write eq. \eqref{eq:navierstokes} as
 \end{equation}
 whith
 \begin{equation}
-  \tens{\sigma} := \pi\mathbb{I} - \eta\left(\nabla \vec{\fvel} + \nabla\vec{\fvel}^T\right) + \rho\left(\vec{fvel}\otimes\vec{\fvel}\right)
+  \tens{\sigma} := \pi\mathbb{I} - \eta\left(\nabla \vec{\fvel} + \nabla\vec{\fvel}^T\right) + \rho\left(\vec{\fvel}\otimes\vec{\fvel}\right)
 \end{equation}
 \section*{Particle dynamics}
 To derive the equation of motion of the particle, we impose the kinetic constraint $\int_{V_p}\vec{\fvel}(\vec{\fpos}, t)d\vec{\fpos}^3 = \vec{u}$, where $V_p$ is the particle volume. Integrating over the particle volume in eq. \eqref{eq:navierstokes2}.
@@ -2876,7 +2876,7 @@ The \gls{FCM}\cite{Keaveny2014} is an Immersed-Boundary-like Eulerian-Lagrangian
 
 Both \emph{Cholesky} and \emph{Lanczos} methods use the explicit form of an open boundary mobility. This makes them open boundary algorithms since they do not take into account the periodic images of the system in any way. Furthermore, the computational complexity of these methods is restrictive. Luckily, we can manage to do it in $O(N)$ operations if we consider periodic boundary conditions. In particular by solving eq. \eqref{eq:bdhibdrelation} directly in Fourier space via the Force Coupling Method\cite{Keaveny2014}. In doing so, we get the added benefit (and disadvantage) of not impossing a specific mobility tensor, which will arise naturally according to the convolution between the Green's function and the spreading kernel.
 
-In order to do this we first spread particle forces to the fluid ($\oper{S}\vec{F}$ in eq. \eqref{eq:bdhibdrelation}) and transform them to Fourier space. Then the Green's function (like eq. \eqref{eq:greenstokes}} for periodic boundary conditions) is used to obtain the velocities in the fluid in Fourier space via multiplication. The fluid velocity is then transformed back to real space and eq. \eqref{eq:bdhifvel} is applied to get the particle displacements by interpolation.
+In order to do this we first spread particle forces to the fluid ($\oper{S}\vec{F}$ in eq. \eqref{eq:bdhibdrelation}) and transform them to Fourier space. Then the Green's function (like eq. \eqref{eq:greenstokes}) for periodic boundary conditions) is used to obtain the velocities in the fluid in Fourier space via multiplication. The fluid velocity is then transformed back to real space and eq. \eqref{eq:bdhifvel} is applied to get the particle displacements by interpolation.
 The kernel used in the original description of the \gls{FCM} is the Gaussian kernel in eq. \eqref{eq:gaussiankernel}, in particular
 \begin{equation}
   \label{eq:fcmkernel}
@@ -2932,7 +2932,9 @@ Making an analogy with eq. \eqref{eq:bdhibdrelation}, the whole process of going
 \item Interpolate grid velocities to particle positions: $\vec{\pvel} = \oper{J}\vec{\fvel}$
 \end{enumerate}
 Here $\mathfrak{F}$ represents the Fourier transform operator.
-Spreading and interpolation can be done with the algorithms in chapter \ref{sec:ibm}. 
+Spreading and interpolation can be done with the algorithms and kernels described in chapter \ref{sec:ibm}. 
+
+It is important to note that the steps above constitute quite a general protocol whose range of applicability extends far beyond triply periodic hydrodynamics by reinterpreting/bending the different terms and operators. As a matter of fact, we will employ a reimagination of the Force Coupling Method to compute electrostatics in chapter \ref{ch:tppoisson}. In another instance, when discussing the \gls{ICM} (chapter \ref{ch:icm}), we will see how the Green's function, $\tens{G}$, does not have to be analytic and can, in fact, be computed numerically. For the time being, in the following chapters we will describe several modifications to the \gls{FCM} to compute hydrodynamics in different regimes.
 
 Once the particle displacements are computed, the dymamics can be integrated using the same schemes devised for \gls{BD} in sec. \ref{sec:bd} (i.e the Euler-Maruyama method)\footnote{The arguments used to arrive at eq. \eqref{eq:bdhimobns} can also be employed here to interpret $\vec{\pvel}=\oper{J}\vec{\fvel}$ as the equations of Brownian Dynamics.}.
 
@@ -2990,14 +2992,14 @@ In \gls{FCM} the size of the grid is tied to the hydrodynamic radius of the part
 %Furthermore, the \gls{FCM} does not imposes a mobility explicitly, making it impossible to control the near field hydrodynamic effects without modifying the shape of the spreading kernels.
 We can apply an Ewald splitting strategy to overcome this limitation as described in\cite{Fiore2017}.
 
-In particular, we will solve eq. \eqref{eq:bdfull} using the \gls{RPY} mobility with periodic boundary conditions. We can write the Stokes solution operator in eq. \eqref{eq:stokesoper} for a periodic system in real space using the same strategy as in\cite{Hasimoto1959}
+In particular, we will solve eq. \eqref{eq:bdfull} using the \gls{RPY} mobility with periodic boundary conditions. We can write the Stokes solution operator in eq. \eqref{eq:stokesoper} for a periodic system (with $\{\vec{k}\}$ allowed wavevectors) in real space using the same strategy as in\cite{Hasimoto1959}
 \begin{equation}
   \label{eq:psestokesoper}
   \oper{L}(\vec{\fpos}) = \frac{1}{V}\sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
 \end{equation}
 Where $V = L^3$ is the volume of the periodic domain.
 
-We can now write the periodic \gls{RPY} tensor, which amounts to replacing the integral in eq. \eqref{eq:rpymobfour} by a sum.
+We can now write the periodic \gls{RPY} tensor, which amounts to replace the integral in eq. \eqref{eq:rpymobfour} by a sum.
 \begin{equation}
   \label{eq:pserpyfou}
   \tens{M}_{ij}^{\textrm{RPY}}(\vec{r})= \frac{1}{\eta V} \sum_{\vec{k}} \frac{\exp(i\vec{k}\vec{r})}{k^2}\left(\sinc(ka) \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)
@@ -3019,34 +3021,35 @@ Where the Hasimoto splitting function is defined as
   \label{eq:psehasimoto}
   H(k,\xi) = \left(1 + \frac{k^2}{4\xi^2}\right)\exp\left(-\frac{k^2}{4\xi^2}\right)
 \end{equation}
-Here $\xi$ is the splitting parameter (see sec. \ref{ch:tppoisson}), an arbitrary parameter larger than zero that allows to shift the weight of the mobility from one term to another.
-The integral for the inverse transform of the near part can be computed analytically, this term can be written as
+Here $\xi$ is the splitting parameter (see sec. \ref{ch:tppoisson}), an arbitrary parameter larger than zero that allows to shift the weight of the mobility from one term to another. Thus, the far field contribution to the mobility decays rapidly in Fourier space.
+
+On the other hand, the integral for the inverse transform of the near part can be computed analytically, this term can be written as
 \begin{equation}
   \label{eq:pserpynear}
   \tens{M}_{ij}^{\near}= F(r,\xi)\mathbb I - G(r,\xi)\left(\frac{\vec{r}\otimes\vec{r}}{r^2}\right)
 \end{equation}
-Where the functions $F$ and $G$ are two rapidly decaying functions with really convoluted expressions that can be found in Appendix A of\cite{Fiore2017} or in the \uammd source code\footnote{This expressions are really long and convoluted. The corresponding code evaluating the near field in eq. \eqref{eq:pserpynear} is located in the \uammd source file \emph{RPY\_PSE.cuh}, which is written to facilitate its copy-pasting for other implementations.}.
+Where the functions $F$ and $G$ are two rapidly decaying functions with really convoluted expressions that can be found in Appendix A of\cite{Fiore2017} or in the \uammd source code\footnote{This expressions are really long and convoluted. The corresponding code evaluating the near field in eq. \eqref{eq:pserpynear} is located in the \uammd source file \emph{RPY\_PSE.cuh}, which is written to facilitate its copy-pasting for other implementations.}. In essence, this means that the near field contribution to the mobility decays rapidly, i.e it is a compactly supported interaction.
 
-Both contributions to the mobility in \eqref{eq:pserpynear} and \eqref{eq:pserpyfar} are guaranteed to be positive definite for all particle configurations\todo{Why?}.
-This allows to use the techniques we have already used in previous sections to evaluate each term. The deterministic term (the multiplication of the mobility by the forces acting on the particles) can simply be computed separatedly and then added.
+It is worth metioning that both contributions to the mobility in \eqref{eq:pserpynear} and \eqref{eq:pserpyfar} are guaranteed to be positive definite for all particle configurations, which is the main contribution of the original work describing the \gls{PSE}\cite{Fiore2017}.
+For our purposes this means that we can use the techniques we have already devised in previous sections to evaluate each term. The deterministic term (the multiplication of the mobility by the forces acting on the particles) can simply be computed separatedly (in the far and near fields) and then added.
 
-The fluctuations pose more of a challenge if we want to refrain from computing and storing the square root of the mobility. In particular, we can split the fluctuating contribution in eq. \eqref{eq:bdhi} into a far and near field ones by defining
+The fluctuations pose more of a challenge if we want to refrain from computing and storing the square root of the mobility. Nonetheless, we can split the fluctuating contribution in eq. \eqref{eq:bdfull} into a far and near field ones by defining
 \begin{equation}
   \label{eq:psenoise}
-  (\tens{M}^{\textrm{RPY}})^{1/2} d\vec{\noise} :=  (\tens{M}^{\near})^{1/2} d\vec{\noise}_1 + (\tens{M}^{\far})^{1/2} d\vec{\noise}_2
+  (\tens{M}^{\textrm{RPY}})^{1/2} d\vec{\noise} :=  (\tens{M}^{\near})^{1/2} d\vec{\noise}_1 + (\tens{M}^{\far})^{1/2} d\vec{\noise}_2,
 \end{equation}
-Where $\vec{\noise}_{1,2}$ are independent Wiener processes. It can be easily proven that the covariance of this expression does indeed recover eq. \eqref{eq:psemobsep}, since both Wiener processes in the right hand side are uncorrelated.
+Where $\vec{\noise}_{1,2}$ are independent Wiener processes. It can be easily proven that the covariance of this expression does indeed recover eq. \eqref{eq:psemobsep}, since both Wiener processes in the right hand side are uncorrelated. Thus maintaining the correct fluctuation-dissipation balance. 
 
 Lets see in more detail how to adapt our previous algorithms to solve each part of the problem
 
 \subsection*{The far field}
 
-The far field computation is identical to the \gls{FCM} with a couple of changes.
+The far field computation is identical to the previously laid out \gls{FCM} with a couple of trivial changes.
 First, the Green's function has to be modified, in particular, we need to redefine the Fourier factor in eq. \eqref{eq:fcmvel}
 \begin{equation}
-  B(k) := \frac{1}{k^2V}H(k,\xi)\exp\left(\frac{-k^2\lambda}{4\xi^2}\right)\sinc(ka)^2
+  B(k) := \frac{1}{k^2V}H(k,\xi)\exp\left(\frac{-k^2\lambda}{4\xi^2}\right)\sinc(ka)^2,
 \end{equation}
-This describes the Green's function associated with the far field \gls{RPY} mobility in eq. \eqref{eq:pserpyfar}. In order to spread a Gaussian instead of a delta we have introduced a second splitting parameter, $\lambda$, to split the exponential in $H$ (a common strategy\cite{Lindbo2011}\cite{Wang2016}). This allows us to define the spreading kernel in \gls{FCM} as an exponential with $\sigma_a := \frac{\sqrt{\lambda}}{2\xi}$. On the other hand, this restricts the far field spreading kernel to a Gaussian, without the possibility of using other more closely supported kernels easily, since the splitting requires knowledge of the Fourier transform of the kernel.
+which describes the Green's function associated with the far field \gls{RPY} mobility in eq. \eqref{eq:pserpyfar}. For the \gls{FCM} based on a Gaussian kernel (see eq. \eqref{eq:fcmkernel}) we have introduced a second splitting parameter, $\lambda$, to split the exponential in $H$ (a common strategy\cite{Lindbo2011}\cite{Wang2016}). Thus, this corresponds to a Gaussian (\gls{FCM}) kernel with variance $\sigma_a := \frac{\sqrt{\lambda}}{2\xi}$ (in real space). On the other hand, this restricts the far field spreading kernel to a Gaussian, without the possibility of using other more closely supported kernels easily, since the splitting requires knowledge of the Fourier transform of the kernel.
 
 The cell size has to be chosen according to a certain cut off wave number in eq. \eqref{eq:pserpyfar}. The authors in \cite{Lindbo2010} give an upper bound for the truncation error of the fourier sum as $E_f \approx \exp(-k_{\textrm{cut}}^2/4\xi^2)$. Thus we can set $E_f$ to be less than the tolerance, $\epsilon$, and set
 \begin{equation}
@@ -3056,6 +3059,7 @@ From here we can compute the necessary grid cell size as $h = \pi/k_{\textrm{cut
 
 As evidenced by this new definition of $\sigma_a$, the spreading kernel is now uncoupled with the hydrodynamic radius. The width and support of the kernel can now be chosen to minimize quadrature and truncation errors. In particular the authors in \cite{Lindbo2011} suggest choosing $m = C\sqrt{\pi n_s}$, where $C = 0.976$ is an empirical parameter. The number of standard deviations, $m$, can be computed by making the quadrature error, $E_q \approx \textrm{erfc}(m/\sqrt{2})$, less than a certain tolerance, $E_q<\epsilon$(see sec. 3.2 in \cite{Lindbo2011}). We can then set the splitting parameter as $\lambda = \left(\frac{hn_s\xi}{m}\right)^2$.
 
+As demonstrated in section \ref{sec:bdhicon}, there is a one-to-one relation between the purely Lagrangian Brownian Dynamics representation (via the mobility tensor) and the Green formalism used by the \gls{FCM}. Naturally, this equivalence also includes the fluctuations. We compute the far field fluctuating contribution via the stochastic stress tensor, $\mathfrak{Z}$, (see, for instance, eq. \eqref{eq:fcmvel} and related discussion) which is already included in the \gls{FCM} in a natural way. The treatment of the fluctuating stress tensor in \gls{FCM} holds for any hydrodynamic Green's function as long as the divergence operator operator ($\nabla\cdot$) can be applied (which is the case in \gls{PSE} since we are using triply periodic boundary conditions).
 %\begin{equation}
 %  \tilde{H}(k,\xi,\tau) :=  \left(1 + \frac{k^2}{4\xi^2}\right)\exp\left(-\frac{k^2}{4\xi^2}\right)
 %\end{equation}
@@ -3103,9 +3107,9 @@ auto createIntegratorBDHIPSE(UAMMD sim){
 \newpage
 \section{Spatial discretization with staggered grids}\label{sec:staggered}
 
-Thus far our spatial discretization has assumed a regular cartesian grid with all properties (fluid velocity and forcing) defined in the centers of the cell. This is known as a collocated grid. In non trivial geometries (such as in the presence of walls) the discretization of the different differential operators in eq. \eqref{eq:navierstokes} could lead to the projection operator, $\oper{P}$ not being exactly idempotent, so that $\oper{P}^2 \ne \oper{P}$. This can lead to inaccuracies in the temporal discretization and ultimately to the discrete fluctuation-dissipation balance not being satisfied. Additionally, a collocated grid can lead to numerical artifacts in the presence of boundaries (such as walls) due to the fluid properties not being defined exactly on them.\todo{A little awkward}
+Thus far our spatial discretization has assumed a regular cartesian grid with all properties (fluid velocity and forcing) defined in the centers of the cell. This is known as a collocated grid. In non trivial geometries (such as in the presence of walls) the discretization of the different differential operators in eq. \eqref{eq:navierstokes} could lead to the projection operator, $\oper{P}$ not being exactly idempotent, so that $\oper{P}^2 \ne \oper{P}$. This can lead to inaccuracies in the temporal discretization and ultimately to the discrete fluctuation-dissipation balance not being satisfied. Additionally, a collocated grid can lead to numerical artifacts in the presence of boundaries (such as walls) due to the fluid properties not being defined exactly on them and other aliasing issues that can affect high frequency phenomena\cite{RegularGridAliasing}.
 
-Furthermore, when studying transport phenomena in compressible fluids, collocated grids present spurious dependences with the wave vector.\todo{some reference}
+Furthermore, when studying transport phenomena in compressible fluids, collocated grids present spurious dependences with the wave vector\cite{BalboaTesis}.
 
 An alternative is to use a so-called MAC (Marker and cell), or staggered, grid\cite{Balboa2012}.
 
@@ -3121,7 +3125,7 @@ From the point of view of the ``main'' grid (in which scalars are defined in the
 \begin{equation}
   g^x_{i,j} = s_{i-1/2,j} v^x_{i,j} = \half( s_{i,j} + s_{i-1,j})v^x_{i,j}
 \end{equation}
-Where $i$ represents the index in the direction of $\alpha$.
+Where $i$,$j$ represent the indexes in the relevant ``subgrid'' (the one for the $x$ direction in this case, marked as red in fig. \ref{fig:staggered}).
 We can use this to discretize the the different operators in eq. \eqref{eq:stokesoper} via finite differences.
 The divergence of a vector is an scalar, defined in the centers of the main grid (black in fig. \ref{fig:staggered})
 \begin{equation}
@@ -3151,9 +3155,9 @@ Where we recall that each component of a vector is defined on it's own grid (see
 %In general, \gls{BC}s in the previous methods have to be introduced via the Green's function in eq. \eqref{eq:bdhimob}. However, this Green's function might be unknown or simply non analytic. We can discretize and solve eq. \eqref{eq:bdhibdrelation} directly to have more fine control over the \gls{BC}s.
 
 \section{Fluctuating Immersed Boundary (FIB) in triply periodic systems}\label{sec:fib}
-Recently, a new spatio-temporal solver for the Stokes equation has been presented, based on the \gls{IBM} and similar to the \gls{FCM}\cite{Delong2014}. This framework, refered to as \gls{FIB}, is generic for any geometry (via direct discretization of the differential operators in eq. \eqref{eq:stokesoper}). However, here we will only take a few key ideas from it to implement another triply periodic solver for equation \eqref{eq:stokes}. In particular, we will make use of the new temporal integrators introduced in\cite{Delong2014}. Another difference between this algorithm and \gls{FCM} (as presented in sec. \ref{sec:fcm}) is the use of a staggered grid (see sec. \ref{sec:staggered}).
+Recently, a new spatio-temporal solver for the Navier-Stokes equation has been presented, based on the \gls{IBM} and similar to the \gls{FCM}\cite{Delong2014}. This framework, refered to as \gls{FIB}, is generic for any geometry (via direct discretization of the differential operators in eq. \eqref{eq:stokesoper}). However, here we will only take a few key ideas from it to implement another triply periodic solver for equation \eqref{eq:stokes}. In particular, we will make use of the new temporal integrators introduced in\cite{Delong2014}. Another difference between this algorithm and \gls{FCM} (as presented in sec. \ref{sec:fcm}) is the use of a staggered grid (see sec. \ref{sec:staggered}).
 
-Using \gls{PBC} greatly simplifies the algorithm in \cite{Delong2014} to something very similar to the \gls{FCM}, since, as discussed in sec. \ref{sec:bdhi} the Stokes operator has a straight-forward form in Fourier space (see eq. \eqref{eq:stokesoperfou}).
+Using \gls{PBC} greatly simplifies the algorithm in \cite{Delong2014} to something very similar to the \gls{FCM}, since, as discussed in sec. \ref{sec:bdhi} the Stokes operator has a straight-forward form in Fourier space (see eq. \eqref{eq:greenstokes}).
 
 Summarizing, for our purposes, we can describe the \gls{FIB} as a variation of the \gls{FCM} for staggered grids and a more sophisticated temporal integration algorithm. The authors of \cite{Delong2013} developed the \gls{FIB} for a three point Peskin kernel (see eq. \eqref{eq:peskin3}) but, similarly as discussed in sec. \ref{sec:fcm}, any of the kernels in sec. \ref{sec:ibm} can be used.
 
@@ -3162,7 +3166,7 @@ The discretization of the Stokes operator in Fourier space is straight-forward f
 So by taking the Fourier transform of eq. \eqref{eq:staggeredgrad}
 \begin{equation}
   \label{eq:staggeredgradfou}
-  \fou{\nabla s} = \frac{\exp(-i2\pi \vec{k} h/2)}{h}\left[\fou{s}_{\vec{k}} - \exp(i2\pi \vec{k} h)\fou{s}_{\vec{k}}\right] = \frac{2i}{h}\sin\left(\frac{\vec{k} h}{2}\right)\fou{s}_{\vec{k}} = i\vec{k}_{\text{eff}}
+  \fou{\nabla s} = \frac{\exp(-i2\pi \vec{k} h/2)}{h}\left[\fou{s}_{\vec{k}} - \exp(i2\pi \vec{k} h)\fou{s}_{\vec{k}}\right] = \frac{2i}{h}\sin\left(\frac{\vec{k} h}{2}\right)\fou{s}_{\vec{k}} = i\vec{k}_{\text{eff}}\fou{s}_{\vec{k}}
 \end{equation}
 Where the effective wave vector
 \begin{equation}
@@ -3180,10 +3184,10 @@ The divergence can be computed using a similar procedure:
 \end{equation}
 
 And finally the Laplacian:
-
+\todo{Check this}
 \begin{equation}
   \label{eq:staggeredlapfou}
-  \fou{\nabla^2\vec{v}} = \frac{-4}{h^2}\sum_\alpha\sin^2\left(\frac{k_\alpha h}{2}\right)\fou{v}_{\vec{k}}^\alpha = -\sum_\alpha \left(k^\alpha_{\text{eff}}\right)^2\fou{v}_{\vec{k}}^\alpha
+  \left(\fou{\nabla^2\vec{v}}\right)^ \alpha = \frac{-4}{h^2}\sin^2\left(\frac{k_\alpha h}{2}\right)\fou{v}_{\vec{k}}^\alpha = - \left(k^\alpha_{\text{eff}}\right)^2\fou{v}_{\vec{k}}^\alpha
 \end{equation}
 
 For convenience, we can now write the discrete version of the projection operator in eq. \eqref{eq:projectoper} in Fourier space for a staggered grid in a triply periodic system as
@@ -3205,6 +3209,7 @@ This first-order weak accurate midpoint scheme requires a single Stokes solve an
     &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \dt\oper{J}^{n+\half}\vec{\fvel}
   \end{aligned}
 \end{equation}
+Note that we are again abusing the operator notation by writing the Fourier representation of the inverse of the Laplacian as $\fou\nabla^{-2}$. Being the inverse Laplacian an operator that returns the solution to the equation $\nabla^2\vec{x} = \vec{f}$. Since we are describing a triply periodic algorithm the Laplacian is self-adjoint and this equation has a trivial solution in Fourier space as $\fou{v}^\alpha = \left(k_{\text{eff}}^\alpha\right)^{-2}\fou{f}^\alpha$ (following the discrete definition of the Laplacian in a staggered grid from eq. \eqref{eq:staggeredlapfou}).
 \todo{Something more about it...}
 \subsubsection*{Improved predictor corrector}
 We can achieve second-order accuracy in exchange for an additional Stokes solve by improving the estimation of the velocity at the midpoint. The update rule in this case is 
