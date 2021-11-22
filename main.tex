@@ -431,15 +431,15 @@ See fig. \ref{fig:cudablocks} for a schematic representation of the CUDA threadi
   \label{fig:cudablocks}
 \end{figure}
 
-Although it is not required, threads inside a block excel when executing the same set of instructions in lock-step. In particular, blocks are composed of groups of 32 threads called \emph{warps}. Threads in a warp will execute (at the hardware level) the same instructions at the same time, but not necessarily acting on the same data (in what is known as a SIMD model). The CUDA compiler will happily process code in which each thread in a warp executes different code (using conditional branches), but the actual executable will simply \emph{emulate} this behavior by making all threads execute all branches and discarding the results for the ones that should not have been executed. Naturally, this so-called branch divergence (or simply divergence) greatly hurts performance\footnote{Furthermore, GPUs do not have branch-prediction as opposed to the CPU, where branch-prediction is one of the pillars of CPU architecture.}. Therefore, conditional-branches that result in divergent code in CUDA must be avoided whenever possible. Note that, on the other hand, divergence does not occur when all the threads in a given warp enter the same branch. Figure \ref{fig:branchdivergence} contains a depiction of branch divergence.
+Although it is not required by the programming model, threads inside a block excel when executing the same set of instructions in lock-step. In particular, blocks are composed of groups of 32 threads called \emph{warps}. Threads in a warp will execute (at the hardware level) the same instructions at the same time, but not necessarily acting on the same data (in what is known as a SIMD model). The CUDA compiler will happily process code in which each thread in a warp executes different code (for instance, by using conditional branches), but the actual executable will simply \emph{emulate} this behavior by making all threads execute all branches and discarding the results for the ones that should not have been executed. Naturally, this so-called branch divergence (or simply divergence) greatly hurts performance\footnote{Furthermore, GPUs do not have branch-prediction as opposed to the CPU, where branch-prediction is one of the pillars of CPU architecture.}. Therefore, conditional-branches that result in divergent code in CUDA must be avoided whenever possible. Note that, on the other hand, divergence does not occur when all the threads in a given warp enter the same branch. Figure \ref{fig:branchdivergence} contains a depiction of branch divergence.
 \begin{figure}[H]
   \centering
-  \includesvg[width=\columnwidth]{gfx/branchdivergence}
-  \caption{Representation of a divergent branch. The 32 threads conforming a warp (curvy arrows) encounter a piece of divergent code (a conditional branch that separates threads in the same warp). When divergent code is encountered each branch is executed in serial (as opposed, for instance, to a parallel CPU code), execution does not continue until all threads have concluded processing all branches since all threads in the same warp must execute instructions in lock-step.}
+  \includesvg[width=0.8\columnwidth]{gfx/branchdivergence}
+  \caption{Representation of a divergent branch. The 32 threads conforming a warp (curvy arrows) encounter a piece of divergent code (a conditional branch that separates threads in the same warp). When divergent code is encountered each branch is executed in serial (as opposed to, for instance, a parallel CPU code), execution does not continue until all threads have concluded processing all branches since all threads in the same warp must execute instructions in lock-step.}
   \label{fig:branchdivergence}
 \end{figure}
 
-On the other hand, CUDA offers no guarantee regarding the execution order or blocks.
+On the other hand, CUDA offers no guarantee regarding the execution order of blocks.
 
 CUDA allows us to write small programs, called kernels, that we can then launch to run on the \gpu. The instructions in a kernel are executed by a grid of threads, whose size can be customized per launch. Appendix \ref{sec:cpp} offers an introduction to programming \gpu code using C++ and CUDA.
 
@@ -461,7 +461,7 @@ Many of these software packages were born more than a decade before the term \gp
 
 It is therefore worth it to once in a while start again from a clean slate considering the new environments. One example of this is the general-purpose molecular dynamics software package HOOMD\cite{Anderson2008}. Born around the same time as CUDA itself HOOMD was designed from the ground up with the \gpu in mind. Although HOOMD provides a CPU-only backend it is centered around the \gpu and can work exclusively in it, this is crucial, as communication between the CPU and the \gpu is quite expensive, so much that it can many times negate the benefits of using a \gpu altogether.
 
-The \gpu offers mind-blowing raw computing power when used correctly. Developing new algorithms and software infrastructures from scratch particularlydesigned for the \gpu architechture therefore essential to exploit this amazing technology to the fullest. This starts by taking the whole computation to the \gpu in order to avoid the communication cost. On the other hand, at a library level, one of the most powerful tools exposed by the \gpu is the \gls{FFT}. It just so happens that the algorithms to compute the Fourier transform numerically are a perfect fit for the \gpu. We will exploit this by devising pseudo-spectral algorithms in which the mayority of the computations take place in Fourier space.
+The \gpu offers mind-blowing raw computing power when used correctly. Developing new algorithms and software infrastructures from scratch particularly designed for the \gpu architechture is therefore essential to exploit this amazing technology to the fullest. This starts by taking the whole computation to the \gpu in order to avoid the communication cost. On the other hand, at a library level, one of the most powerful tools exposed by the \gpu is the \gls{FFT}. It just so happens that the existing algorithms to compute the discrete Fourier transform numerically are a perfect fit for the \gpu. We will exploit this by devising pseudo-spectral algorithms in which the mayority of the computations take place in Fourier space.
 
 \subsection*{Closed vs. Open ecosystems}
 Most commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for an user, the only option to interface with the packages is to encode a simulation in them in its totality. In other words, it is awkward (or stright up not possible) to use these packages as external accelerators for an already established, in-house, code.\footnote{If these software packages were hardware stores, a closed ecosystem would consist of the tools inside the store (the hammer, saw, etc) being chained to the counter, so you would need to bring your furniture into the store in order to fix it.}  
@@ -479,7 +479,7 @@ Furthermore, while most packages require to be compiled into a binary or library
 \part{UAMMD: Design and components}\label{pt:uammd}
 
 \chapter{The Fermation of subproblems}
-The Trinity test, the first atomic bomb detonation in history was carried out in 1945. The scientist of the Manhattan project dumbfoundedly observed how the detonation unraveled from a base afar. Among them was Enrico Fermi, the so-called architect of the nuclear age, who was 44 at the time. Fermi had absent-mindedly torn apart a sheet of paper moments before the detonation took place and held the pieces in his hands. Fourty seconds after the blast the then withered shockwave hit the crew. At the first sign of the shockwave Fermi, who had placed his hands above his head in expectation, released the paper bits, which landed a couple of meters past him. After a brief moment of meditation, Fermi announced to the crew that the detonation had released about 10 kilotons of energy.
+The Trinity test, the first atomic bomb detonation in history, was carried out in 1945. The scientist of the Manhattan project dumbfoundedly observed how the detonation unraveled from a base afar. Among them was Enrico Fermi, the so-called architect of the nuclear age, who was 44 at the time. Fermi had absent-mindedly torn apart a sheet of paper moments before the detonation took place and held the pieces in his hands. Fourty seconds after the blast the then withered shockwave hit the crew. At the first sign of the shockwave Fermi, who had placed his hands above his head in expectation, released the paper bits, which landed a couple of meters past him. After a brief moment of meditation, Fermi announced to the crew that the detonation had released about 10 kilotons of energy.
 It took weeks of analyzing the data from the plethora of sensors available on site to confirm Fermi's estimate, which is now believed to have been near 20 kilotons.
 
 Fermi had mastered (and practically invented) these back-of-the-envelope calculations, which are more precise than a guess but are not mathematical proofs. He knew how to subdivide complex, untractable, problems into many small and manageable ones. In order to teach this technique to his students, Fermi prompted them with a kind of question that has become known as a \emph{Fermi problem}. A Fermi problem presents itself as an apparently unanswerable question. For instance: ``\emph{If I attach a blood vial to the wheels of my bike, how fast do I need to go and for how long for the plasma to separate from the blood cells?}'' or ``\emph{How many hairs does a polar bear have?}''. At first sight it seems that we simply do not have enough information at hand to solve these problems. However, if we break them down into small, answerable, subproblems we find that we can give a pretty good estimate in a short time: ``\emph{What is the skin area of a bear?}'', ``\emph{How many hairs per squared centimeter does a bear have?}''. These can in turn be interpreted as Fermi problems in on themselves and further subdivided: ``\emph{What is the average height of a bear?}'', ``\emph{Assuming a bear is somewhat cylindrical, what is it's radius}?'',``\emph{What is the diameter of a hair?}''\footnote{Let us assume bear hairs grow in a near close-packed configuration (it's cold at the poles, you know) where each hair is on the order of $20\mu m$ in radius. This yields $1\text{cm}^2/((20\mu m)^2\pi) \sim 100K \text{hairs}/\text{cm}^2$. I have not found the precise number, but we can compare with a sea otter (the mammal with the densest fur) which has between $100-400K \text{hairs}/\text{cm}^2$. This gives me some confidence about the validity of our order of magnitude.}, etc.
@@ -538,8 +538,7 @@ One of the main unwritten lessons we will glimpse is that it is never a good ide
   modification of the \emph{Integrator} interface.
 \end{itemize}
 In other words, conceptual complexity and problem specificity should increase only downwards through the tree. This forces us as developers to modify a certain module only to generalize it, and never to especialize it. If a module appears to require being especialized, it is almost always a sign that either it should be actually generalized or exist as a separate entity beneath the initial one. This is what makes \uammd so modular and extensible. See figures \ref{fig:uammdsketch_interactors} or \ref{fig:uammdsketch_integrators}, the next lower branches.
-
-\uammd carefully avoids these kind of inter-dependencies.
+\uammd carefully avoids these kind of inter-dependencies. As a matter of fact, if one were to inspect the commit history of the \uammd repository, they would find that many times the most relevant changes come in the form of \emph{removing} code, not adding it. What is interesting about this is that, maybe counter-intuitively, this code removal almost always has resulted in a more generic module.
 
 \chapter{It's in the name}\label{ch:design}
 
@@ -574,12 +573,12 @@ Even when the internal complexity of each separate module can be quite great it 
 
 On the other hand, this makes \uammd extremely adaptable, since new modules can be added without disturbing the ecosystem.
 
-In \uammd a simulation is described by connecting a series of \emph{Integrators} with an \emph{Integrator}. In fig. \ref{fig:modular} we can see an example of a simulation which connects a hydrodynamics \emph{Integrator} (such as the ones described in sec. \ref{sec:bdhi}) is connected with an \emph{Interactor} that deals with sterics (see sec. \ref{sec:shortrange}), another one that computes electrostatics (see sec. \ref{ch:tppoisson}), and so on and so forth. The communication between these modules is minimal, being mostly restricted to the closed loop in fig. \ref{fig:uammdsketch}. Although nothing prevents two \emph{Interactors} from explicitly sharing information, this never happens in \uammd. 
+In \uammd a simulation is described by connecting a series of \emph{Integrators} with an \emph{Integrator}. In fig. \ref{fig:modular} we can see an example of a simulation which connects a hydrodynamics \emph{Integrator} (such as the ones described in sec. \ref{sec:bdhi}) with an \emph{Interactor} that deals with sterics (see sec. \ref{sec:shortrange}), another one that computes electrostatics (see sec. \ref{ch:tppoisson}), and so on and so forth. The communication between these modules is minimal, being mostly restricted to the closed loop in fig. \ref{fig:uammdsketch}. Although nothing prevents two \emph{Interactors} from explicitly sharing information, this never happens in \uammd. 
 
 
 This does not imply that each module should exist in a completely isolated environment, since a plethora of utilities are available in \uammd to aid with the typical problems that arise in complex fluids. For instace, a module in need of a neighbour list does not need to write one, rather can simply make use of one of the already implemented ones (see chapter \ref{sec:nlist}).
 
-Adaptability also means that, when it makes sense, a module can be specialized from the outside. For instance, the \emph{Interactor} module that computes bonded forces (particles joined by springs or similar ligatures) is not specific to a particular potential. As users, we can specialize it, via the use of C++ templates, to work with a harmonic\cite{harmonic}, FENE\cite{fene}, Morse\cite{morse}, or an arbitrarily complex potential.
+Adaptability also means that, when it makes sense, a module can be specialized from the outside. For instance, the \emph{Interactor} module that computes bonded forces (particles joined by springs or similar ligatures) is not specific to a particular potential. As users, we can specialize it, via the use of C++ templates, to work with a harmonic, FENE\cite{Warner1972}, Morse\cite{Morse1929}, or an arbitrarily complex potential.
 
 The use of metaprogramming (in the C++ sense) reaches every corner of the code base, in many cases allowing to customize (or hack) an utility or module beyond its intended scope without having to modify a single line of it.
 
@@ -2559,7 +2558,7 @@ whith
 \section*{Particle dynamics}
 To derive the equation of motion of the particle, we impose the kinetic constraint $\int_{V_p}\vec{\fvel}(\vec{\fpos}, t)d\vec{\fpos}^3 = \vec{u}$, where $V_p$ is the particle volume. Integrating over the particle volume in eq. \eqref{eq:navierstokes2}.
 \begin{equation}
-  \rho\int_{V_p}\partial_t\vec{\fvel}d\vec{\fpos}^3 0 -\int_{V_p}\nabla\cdot\tens{\sigma}d\vec{r}^3 + \int_V\vec{f}d\vec{\fpos}^3
+  \rho\int_{V_p}\partial_t\vec{\fvel}d\vec{\fpos}^3 = -\int_{V_p}\nabla\cdot\tens{\sigma}d\vec{r}^3 + \int_V\vec{f}d\vec{\fpos}^3
 \end{equation}
 Note that
 $$\rho\int_V\partial\vec{\fvel}d\vec{\fpos}^3 = \rho \partial_t\int_{V_p}\vec{\fvel}d\vec{\fpos}^3 = \rho\partial_t\vec{\fvel}$$
@@ -4112,7 +4111,29 @@ Our solver is periodic in the plane $(x,y)$ (as in quasi 2D). In the $z$ directi
 \end{enumerate}
 The unbounded mode allows to simulate systems were particles are not restricted to a plane, so $\delta>0$. Additionally the other modes can be used in a variety of simulations. For instance, the bottom wall mode can be used to model the hydrodynamics of a Quartz Crystal Microbalance (QCM)\todo{More about it?}.
 
-In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\notin [-H,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by substracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
+\section{About spreading and interpolation}
+
+Similarly as with all the Force Coupling Method-like methods described thus far, the communication between the particles information and the grid (in this case to construct $\vec{f}$ in eq. \eqref{eq:dpstokes}) is carried out via the Immersed Boundary module in UAMMD (see chapter \ref{ch:icm}). Note however, that there is a fundamental difference with respect to the rest of the use cases for the \gls{IBM} up to this point. In particular, now the grid is not regular in the $z$ direction, being a Chebyshev grid instead (see fig. \ref{fig:chebgrid}). 
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.5\columnwidth]{gfx/chebgrid}
+  \caption{Representation of an hybrid regular-Chebyshev grid. In the Doubly Periodic Stokes algorithm, the plane-parallel components ($x$ and $y$) are described in a regular grid (with nodes at $x = -L/2 + i/N L$ and similarly for $y$), whereas the perpendicular direction ($z$) is discretized at the Gauss-Chebyshev-Lobatto points (the extrema of the Chebyshev polynomials), $z=H\cos(\pi i/N_z)$ (where $i$ runs from $0$ to $N_z$).}
+  \label{fig:chebgrid}
+\end{figure}
+
+The Chebyshev spacing in the $z$ direction has several consequences with respect to our usual regular grid. First, the non regularity of the grid makes the number of support cells of the kernel vary with the height of the particle. Secondly, the quadrature weights (i.e. the size of each cell) are different for each height. In particular, we have to use the so-called Clenshaw-Curtis weights\cite{Clenshaw1960}, so that a cell centered at the Chebyshev root $z = H\cos(\pi i/N_z)$ will have a quadrature weight, $w(z)$, of\footnote{The \uammd source code containing the special considerations for Chebyshev grids can be found at \emph{src/utils/ChebyshevUtils.cuh}.}
+\begin{equation}
+  \label{eq:clencurt}
+  w(z=H\cos(\pi i/N_z)) = \frac{2}{N_z}\sum_{k=0}^i\cos\left(\frac{2ik\pi}{N_z}\right)\left\{
+  \begin{aligned}
+    &1/2 & i=0,N_z\\
+    & 1 & \textrm{otherwise}
+  \end{aligned}\right.
+\end{equation}
+In the plane directions, the quadrature weights are the cell sizes, $h$, and are the same everywhere.
+The \uammd \gls{IBM} interface can be customized (via templates) to accept arbitrary quadrature weights and non regular grids as well as different supports for each particle according to its position.
+
+Furthermore, given that the domain is not periodic in $z$, we need special considerations when spreading and interpolating near the boundaries. In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\notin [-H,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by substracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
 \begin{equation}
   \label{eq:dpstokeskernel}
   \widetilde{\delta_a}(\vec{\fpos}-\vec{\ppos}_i) = \delta_a(\vec{\fpos}-\vec{\ppos}_i) - \delta_a(\vec{\fpos}-\vec{\ppos}^{\text{img}}_i)
@@ -4133,7 +4154,7 @@ Being $\hat{\vec{e}}_z$ a unitary vector in the $z$ direction. The no-slip condi
   \label{fig:dpstokesspread}
 \end{figure}
 
-The \gls{DP} solver is vastly different from the \gls{FCM} family of methods we have seen thus far. The main similarity is that we also make use of the \gls{IBM}'s spreading and interpolation to communicate the particles and a grid.
+Besides the usage of the \gls{IBM} for spreading and interpolation, the \gls{DP} solver is vastly different from the \gls{FCM} family of methods we have seen thus far.
 
 Our approach consists of solving the Stokes equation in an ubounded domain, adding the effects of the walls afterwards as a correction. Thus we first solve eq. \eqref{eq:dpstokes} with free-space \glspl{BC} and $z\in (-\infty, \infty)$. Then we compute the final result in the presence of one or two walls as
 \begin{equation}
@@ -4157,13 +4178,14 @@ Solved in a domain with $z\in [-H,\infty)$ in the case of a bottom wall and $z\i
 \begin{equation}
   \label{eq:dpstokescorrbcs}
   \begin{aligned}
-    &\vec{\fvel}_{\corr}(z=-H) = -\vec{\fvel}_{\dpr}(z=-H)\\
-    &\vec{\fvel}_{\corr}(z=H) = -\vec{\fvel}_{\dpr}(z=H)    
+    &\vec{\fvel}_b:=-\vec{\fvel}_{\corr}(z=-H) = \vec{\fvel}_{\dpr}(z=-H)\\
+    &\vec{\fvel}_t:=-\vec{\fvel}_{\corr}(z=H) = \vec{\fvel}_{\dpr}(z=H)    
 \end{aligned}
 \end{equation}
 Where the second condition, at $z=H$, is imposed only in the case of a slit channel geometry.
 
 In Appendix \ref{sec:bvp} we describe a fast and \gpu-friendly \gls{BVP} solver that solves one-dimensional \glspl{PDE} in the Chebyshev basis. Our strategy in the next sections will be to write equations for the velocity and pressure in a way that is compatible with this solver.
+
 
 We will first discuss the free-space solver ($\vec{\fvel}_{\corr} = 0$ and $p_\corr=0$) and then see how to solve the correction in each case. 
 \section{Free-space solver}
@@ -4178,7 +4200,7 @@ By taking the divergence of eq. \eqref{eq:dpstokes} we eliminate the velocity
 Transforming to Fourier space in the plane we get a one dimensional problem for each wave number
 \begin{equation}
   \label{eq:dpstokesfreepressure}
-  (\partial_{zz}-k^2)\fou{p} =
+  (\partial^2_{z}-k^2)\fou{p} =
   % \begin{bmatrix}
   \left[
     i\vec{k},
@@ -4188,7 +4210,7 @@ Transforming to Fourier space in the plane we get a one dimensional problem for 
 \end{equation}
 Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. As a matter of fact, the \gls{FCT} is employed here (see Appendix \ref{sec:fct}) to transform the signals in the $z$ direction to the Chebyshev basis, as this allows to use the \gls{BVP} solver and facilitates the evaluation of the derivatives in this direction (by using the relations for the Chebyshev coefficients introduced in Appendix \ref{sec:bvp}). Therefore we will work with the Chebyshev coefficients, $\fou{p}_n$ (or $\fou{\vec{f}}_n$), of the different quantities. We can solve the pressure outside the domain using that
 \begin{equation}
-    (\partial_{zz}-k^2)\fou{p} = 0, \quad \text{ for } z \notin [-H,H].
+    (\partial^2_{z}-k^2)\fou{p} = 0, \quad \text{ for } z \notin [-H,H].
 \end{equation}
 Whose solution is
 \begin{equation}
@@ -4215,7 +4237,7 @@ Once the Chebyshev coefficients for the pressure for each wave number are known 
 
 \begin{equation}
   \label{eq:dpstokesvel}
-  \eta\left(\partial_{zz} -k^2\right)\fou{\vec{\fvel}} = 
+  \eta\left(\partial^2_{z} -k^2\right)\fou{\vec{\fvel}} = 
   \begin{bmatrix}
     i\vec{k}\\
     \partial_z
@@ -4228,7 +4250,7 @@ Where the derivative of the pressure, $\partial_z\fou{p}$, can be computed via t
 For the \glspl{BC} we know that outside the domain, where $\fou{\vec{f}} = 0$, the velocity satisfies
 \begin{equation}
   \label{eq:dpstokesvelout}
-  \eta\left(\partial_{zz} -k^2\right)\fou{\vec{\fvel}} = 
+  \eta\left(\partial^2_{z} -k^2\right)\fou{\vec{\fvel}} = 
   \begin{bmatrix}
     i\vec{k}\\
     \partial_z
@@ -4289,7 +4311,7 @@ Let us start with the bottom wall case.
 
 We want to solve eq. \eqref{eq:dpstokescorr} with \glspl{BC} in eq. \eqref{eq:dpstokesbwvelbc}.
 
-For simplicity, let us define $\fou{\vec{\fvel}}_b := \fou{\vec{\fvel}}_{\dpr}(\vec{k}, -H)$ and $z':=(z+H)/2$.
+For simplicity, let us define and $z':=(z+H)/2$.
 It is straight forward to prove that the following solutions for the velocity and the pressure satisfy eq. \eqref{eq:dpstokescorr} with \glspl{BC} in eq. \eqref{eq:dpstokesbwvelbc}:
 \begin{equation}
   \fou{\vec{\fvel}}_{\corr}(\vec{k}, z) = \left(  \fou{\vec{\fvel}}_b -
@@ -4350,7 +4372,6 @@ The six equations above are not enough to compute the values of the eight unknow
   [i\vec{k}, \partial_z] \cdot\fou{\vec{\fvel}}_{\corr}(\vec{k}, z) = 0,
 \end{equation}
 evaluated at both the domain limits, $z=-H,H$.
-Similarly to the bottom wall case, for simplicity we define here $\fou{\vec{\fvel}}_t := \fou{\vec{\fvel}}_{\dpr}(\vec{k}, H)$.
 Evaluating eq. \eqref{eq:dpstokesincompres} and replacing $\partial_z\fou{\fvel}_{\corr}^z(\vec{k}, z=\pm H)$ from eq. \eqref{eq:dpstokesslitcor} yields the last two required equations
 \begin{equation}
   \begin{aligned}
@@ -4361,16 +4382,97 @@ Evaluating eq. \eqref{eq:dpstokesincompres} and replacing $\partial_z\fou{\fvel}
 We now have a linear system of 8 equations and 8 unknowns ($\vec{C}$ and $\vec{D}$). Once this system is solved\footnote{The system can be written in matrix form and partially precomputed (via matrix inversion) so that solving the slit correction at runtime amounts to a simple 8x8 matrix-vector multiplication. The related functions in \uammd can be found in the file \emph{StokesSlab/Correction.cuh}.} we can evaluate the correction and compute its Chebyshev coefficients. Finally we sum the correction to the free domain solution, obtaining the final result as per eq. \eqref{eq:dpstokescorrsum}.
 
 \section{The zero wave number}
-The $k=0$ mode must be handled separatedly
+Instead of computing the zero mode for each of the subproblems separatedly (the free space solver and the correction solve) we treat them as a unique solver for simplicity. The free space solver (no walls) does not require a correction and handling the zero mode amounts to simply setting $\vec{\fvel}(\vec{k}=0,z) = 0$. Let us go through the bottom wall and slit channel geometries.
 
-\subsection*{Free space}
 \subsection*{Bottom wall}
+For the zero mode, the equation for total pressure is reduced to
+\begin{equation}
+  \label{eq:dppressurebtm}
+  \partial_z\fou{p}(\vec{k}=0, z) = \fou{f}_z(\vec{k} = 0, z).
+\end{equation}
+
+Whose solution is
+\begin{equation}
+  \fou{p}(\vec{k}=0, z) = \int_{-H}^z\fou{\vec{f}}(\vec{k} = 0, z')dz' + C.
+\end{equation}
+We can see that the constant $C=0$ by choosing $\fou{p}(\vec{k} =0, z=-H) = 0$ and write a \gls{BVP} for the pressure that can be solved as usual,
+\begin{equation}
+  \partial_z^2\fou{p}(\vec{k} = 0, z) = \partial_zf_z(\vec{k}=0, z),
+\end{equation}
+with \glspl{BC} given by
+\begin{equation}
+  \fou{p}(\vec{k} = 0, z=-H) = 0, \quad \fou{p}(\vec{k} = 0, z=H) = \int_{-H}^H\fou{\vec{f}}(\vec{k} = 0, z')dz'.
+\end{equation}
+On the other hand, the in-plane velocity satisfies
+\begin{equation}
+  \partial_z^2\fou{\vec{\fvel}}^{\parallel} = -\eta^{-1}
+  \begin{bmatrix}
+    1\\
+    1
+  \end{bmatrix}
+  \fou{f}_z
+\end{equation}
+For the \glspl{BC} we can use the fact that the bottom wall imposes a no-slip condition to elucidate $\fou{\fvel}^\parallel(\vec{k} = 0, z=-H) = 0$. Given that the forces are bound to the inside of the domain, we can assume that $\fou{\fvel}^\parallel(\vec{k} = 0, z\ge H)$ is constant. Using the continuity of its derivative at the domain limit, we can obtain the second \gls{BC} as $\partial_z\fou{\vec{\fvel}}^\parallel(\vec{k} = 0, z=H) = 0$.
+
+Finally, the equation for the perpendicular velocity when $\vec{k} = 0$ is simplified to
+\begin{equation}
+  \partial_z\fou{\vec{\fvel}}^\perp(\vec{k} = 0, z) = 0.
+\end{equation}
+Making use of the no-slip wall, we can simply choose $\fou{\vec{\fvel}}^\perp(\vec{k} = 0, z) = 0$.
+
 \subsection*{Slit channel}
+Since the difference between the boundary conditions of the slit channel and bottom wall cases only affect the velocity at the boundaries, the computation of the pressure is equivalent in both cases.
+Furthermore, since for the bottom wall we chose $\fou{\vec{\fvel}}_z(\vec{k}=0, z) =0$ just by using the no-slip condition at the bottom wall, this component is also equivalent\footnote{Any other value would result in a net flow across the no-slip walls, which is of course impossible.}.
+
+The \gls{BVP} for the parallel velocities can be laid out following similar arguments as with the bottom wall case. In particular, the zero mode satisfies
+\begin{equation}
+  \partial_z^2\fou{\vec{\fvel}}^\parallel(\vec{k} = 0, z) = -\eta^{-1}
+  \begin{bmatrix}
+    1\\
+    1
+  \end{bmatrix}
+  \fou{f}_z.
+\end{equation}
+For the \glspl{BC}, due to the no-slip, we have $\fou{\vec{\fvel}}^\parallel(\vec{k} = 0, z=\pm H) = 0$.
 
 \section*{Use in UAMMD}
+At the time of writting, the Doubly Periodic Stokes module is still in development (although in its final stages) and thus its interface is bound to change in the near future. Furthermore, its applicability is hindered by the abscense of fluctuations, which make this module not suitable for Brownian Dynamics simulations in its current state (note, however, that the addition of fluctuations is a work in progress). For the time being this module is not available as an integrator and can only be used to compute the hydrodynamic displacements of a series of particles given the forces and/or torques acting on them. The heuristics for the different parameters required by the module are still being actively tested and developed, so many implementation details leak into the parameter list. In particular, the BM kernel parameters (mainly $\beta$ and the support, $w$) and the grid size information must be provided.
 
+\begin{code2}[Using the DPStokes module for doubly periodic hydrodynamics.]{label=code:dpstokes}
+#include <Integrator/BDHI/DoublyPeriodic/DPStokesSlab.cuh>
+using namespace uammd::DPStokesSlab_ns;  
+auto createDPStokesModule(Parameters par){
+  DPStokes::Parameters par;
+  par.nx         = par.nx;
+  par.ny         = par.;
+  par.nz	 = par.nz;
+  par.viscosity	 = par.viscosity;
+  par.Lx	 = par.Lx;
+  par.Ly	 = par.Ly;
+  par.H		 = par.H;
+  par.w = par.w; //support for the forces
+  par.beta = par.beta; //beta for the forces
+  par.w_d = par.w_d; //suport for the torques
+  par.beta_d = par.beta_d; //beta for the torques
+  par.mode = WallMode::none; //Can also be bottom or slit
+  auto dpstokes = std::make_shared<DPStokes>(par);
+  return dpstokes;
+}
 
+auto computeHydrodynamicDisplacements(UAMMD sim, std::shared_ptr<DPStokes> dpstokes){
+  auto pos = sim.pd->getPos(access::gpu, access::read);
+  auto force = sim.pd->getForce(access::gpu, access::read);
+  auto torques = sim.pd->getTorque(access::gpu, access::read);
+  int numberParticles = pos.size();
+  //The forces or torques can be replaced by a nullptr, which will spare the related computations.
+  auto displacements = dpstokes->Mdot(pos.begin(), force.begin(), torques.begin(), numberParticles);
+  //The result of Mdot contains the linear and dipolar displacements:
+  //auto MF = displacements.first; //linear displacements
+  //auto MT = displacements.second; //angular displacements
+  return displacements;
+}
 
+\end{code2}
 
 \chapter{Triply Periodic Electrostatics} \label{ch:tppoisson}
 
@@ -4563,7 +4665,7 @@ The tolerance parameter is the maximum relative error allowed in the potential f
 \end{itemize}
 We present a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and arbitrary surface charges at the domain walls (in the open direction).
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/dppoisson_sketch}
   \caption{Schematic representation of the doubly periodic domain described by eqs. \ref{eq:dppoisson} and \ref{eq:dppoissonbcs1}-\ref{eq:dppoissonbcs4}. Each domain wall is represented with a different color. Blue clouds represent Gaussian charge sources.}
@@ -4801,13 +4903,13 @@ In the following discussion, we will see how to deal with images when we split t
 \subsection{Near field}
 As discussed in sec \ref{sec:tppoisson_ewald}, the range of the near field Green's function is related to the splitting parameter, $\xi$, and we can truncate it at a certain distance, $r_{c}$, in order to meet a certain tolerance requirement. We can take advantage of this and truncate $G_{\oper{J}}^{\near}$ to limit the near field computation to just the first set of images above or below the walls. We can achieve this by imposing $r_c<H$, we further restrict $r_c < L_{xy}/2$ in order to apply the \gls{MIC} in the plane.
 
-Besides having to include the first images, this part of the algorithm is then identical to the triply periodic case in sec. \ref{ch:tppoisson_ewald}\footnote{In \uammd's implementation, the near field images are handled via a special \emph{Transverser} that checks, for a given neighbour, its position and that of its two images (top and bottom wall). The related code can be found at the file \emph{Interactor/DoublyPeriodic/PoissonSlab/NearField.cuh}.}.
+Besides having to include the first images, this part of the algorithm is then identical to the triply periodic case in chapter \ref{sec:tppoisson_ewald}.\footnote{In \uammd's implementation, the near field images are handled via a special \emph{Transverser} that checks, for a given neighbour, its position and that of its two images (top and bottom wall). The related code can be found at the file \emph{Interactor/DoublyPeriodic/PoissonSlab/NearField.cuh}.}.
 \subsection{Far field}
 
-Let us split far field potential
+The treatment for the far field is quite convoluted due to the requirement of solving the potential outside and inside the domain while taking into account the image charges in an spectrally accurate manner. The algorithm for the far field is carefully laid out in \cite{Maxian2021}.
 
 \section{How to use in UAMMD}
-The creation of the Doubly Periodic Poisson Interactor is similar to that for the triply periodic case. With the exception that now the box size is communicated separatedly in the parallel and perpendicular directions and the permittivity can be different inside and outside the domain. Besides the parameters in the source code example \ref{code:dppoisson}, additional ones are available to fine tune several internal precision parameters (such as support, upsampling or overall tolerance). By default, the module will provide an overal tolerance of around 4 digits, which is the study case in the original work describing the doubly periodic algorithm\cite{Pelaez2021}. Additionally, a special functor can be provided specifying the surface charges. The description of the surface charge parameter is left for UAMMD's online documentation (see Appendix \ref{ch:online}).
+The creation of the Doubly Periodic Poisson Interactor is similar to that for the triply periodic case. With the exception that now the box size is communicated separatedly in the parallel and perpendicular directions and the permittivity can be different inside and outside the domain. Besides the parameters in the source code example \ref{code:dppoisson}, additional ones are available to fine tune several internal precision parameters (such as support, upsampling or overall tolerance). By default, the module will provide an overal tolerance of around 4 digits, which is the study case in the original work describing the doubly periodic algorithm\cite{Maxian2021}. Additionally, a special functor can be provided specifying the surface charges. The description of the surface charge parameter is left for UAMMD's online documentation (see Appendix \ref{ch:online}).
 In all instances, the surface charge will enforce overall electroneutrality inside the domain. For instance, if a single positive charge of strength $Q$ is located inside the domain, each wall will be assigned a constant charge of $-Q/2$.
 
 \begin{code2}[Usage example of the doubly periodic Poisson module.]{label=code:dppoisson}
@@ -4923,7 +5025,7 @@ auto createDPPoissonInteractor(UAMMD sim){
 \ctparttext{Scientific publications using UAMMD.}
 \part{New physics and applications}\label{pt:applications}
 
-In this part we showcase the works, published in scientific journals, that resulted from the development of this thesis and contain new physics. We will see new physics and works in which \uammd played a fundamental role either as a simulation engine or accelerator.
+In this part we showcase the works, published in scientific journals, that resulted from the development of this thesis. We will see new physics and works in which \uammd played a fundamental role either as a simulation engine or accelerator.
 
 \chapter{Hydrodynamics in confined geometries}
 
@@ -5060,7 +5162,7 @@ Our simulations yield MSAD curves that match the theory and simulations in the a
   \caption{A star polymer solution under a shear flow.}
 \end{figure}
 
-Using \gls{BDHI} via Cholesky to compute different properties of a low density solution of star polymers in shear flow.
+In \cite{Pelaez2020} we use \gls{BDHI} via Cholesky (see chapter \ref{sec:chol}) to study the rheological properties of a low density solution of star polymers in shear flow.
 We investigate tank-treading and breathing dynamics of individual star molecules under shear flow and their relation with the macromolecule architecture. Tank-treading consists of the rotation of the arms of the star around a molecule’s center, whereas breathing consists in expansions and contractions of the whole molecule at a certain characteristic frequency. We derive scaling arguments for the trends of the frequency and decorrelation rates of both rotation and breathing modes versus the shear rate $\dot{\gamma}$, which are supported by extensive Brownian hydrodynamics simulations. We find that breathing occurs if $\dot{\gamma}$ is made faster than the equilibrium decorrelation rate $\Gamma_0$ of two perpendicular eigenvectors of the gyration tensor. $\Gamma_0$ increases with the star functionality, $F$, as $\Gamma_0 \sim F^{0.5}$, which contrasts with the rotational and arm-length relaxation rates ($F^{-0.6}$ and $F^ {-0.15}$ respectively). For $\dot{\gamma} > \Gamma_0$, the star becomes ellipsoidal and elongates in the flow direction and this determines the onset of the non-Newtonian regime. Remarkably, $\dot{\gamma}/\Gamma_0$ provides universal trends for the shape, dynamics, and rheology of the star polymer.
 %
 %We present a theoretical study of the different rotation and relaxation modes that a star polymer in solution experiences when under shear flow. Star polymers have been extensively studied as, while being one natural step away from linear polymers, they present a variety of interesting properties not present on the former such as their unique rheology, applications in load delivery and distinctive topology. These kind of polymeric structures under shear flow present quite rich dynamics, with a series of very distinct rotation and relaxation modes that are often overlooked and/or misinterpreted in the literature. We focus on the origin of tank-treading (arm-rotation) and breathing (shape fluctuations) modes of star molecules, which have remained elusive in the literature. 
@@ -5072,10 +5174,10 @@ Simulations in this work are accelerated by \uammd's neighbour list capabilities
 \todo{FILL}
 
 \chapter{Ongoing work, future directions and conclusions}\label{ch:ongoing}
-We are living in the origins of the GPU era, in which new computing technologies evolve every day and the software development kits (SDK) that allow to use them evolve alongside them. Lagging behind both hardware and SDK are the applications that make use of them, such as UAMMD. Finally, one step behind all of them lie the novel algorithms, some of which have been developed during this thesis. Climbing up the proverbial ladder requires constant work and research into these new technologies, as if we were walking a mechanical ladder in reverse. In order to successfully survive the constant climb it is worth to, in my opinion, lose the fear of returning back to basics or reinventing the wheel. We chose CUDA for UAMMD because it was the best choice at the moment, but we did so knowing that this might change over time. In UAMMD, reinventing the wheel is easy by design, the base modules (\emph{Interactor}, \emph{Integrator}, \emph{ParticleData},...) are simple and short, allowing for extension or modification or even the most basic assumptions. 
+We are living in the origins of the GPU era, in which new computing technologies evolve every day and the software development kits (SDK) that allow to use them evolve alongside them. Lagging behind both hardware and SDK are the applications that make use of them, such as UAMMD. Finally, one step behind all of them lie the novel algorithms, some of which have been developed during this thesis. Climbing up the proverbial ladder requires constant work and research into these new technologies, as if we were walking a mechanical ladder in reverse. In order to successfully survive the constant climb it is worth to, in my opinion, lose the fear of returning back to basics or reinventing the wheel. We chose CUDA for UAMMD because it was the best choice at the moment, but we did so knowing that this might change over time. In UAMMD, reinventing the wheel is easy by design, the base modules (\emph{Interactor}, \emph{Integrator}, \emph{ParticleData},...) are simple and short, allowing for extension or modification of even the most basic assumptions. 
 
 \subsubsection*{New programming interfaces}
-Recently SYCL, a cross-platform abstraction C++ programming model for heterogeneous computing, has been gaining a lot of traction. SYCL aims to provide a common specification allowing to write code that will run in any GPU or CPU by having backends to accomodate for the different hardware vendors (CUDA for NVIDIA, ROCm for AMD, oneAPI for Intel...). In the future, it is within the realm of possibilities to start porting UAMMD to SYCL, which will enable it to run on any hardware.
+Recently SYCL, a cross-platform C++ programming model for heterogeneous computing, has been gaining a lot of traction. The SYCL standard was introduced by the Khronos group (the same group behind OpenCL and OpenGL) and several implementations already exist (like Intel's DPC++ and hipSYCL just to name a few). SYCL aims to provide a common specification allowing to write code that will run in any massively parallel accelerator, such as a GPU or CPU, by having backends to accomodate for the different hardware vendors (CUDA for NVIDIA, ROCm for AMD, oneAPI for Intel...). In the future, it is within the realm of possibilities to port UAMMD to SYCL, which will enable it to run on any hardware and, moreover, would make it more future-proof.
 
 \subsubsection*{multi-GPU}
 Currently UAMMD is a single GPU library. Once a GPU is selected at initialization every other GPU in the system is ignored. As a matter of fact, in the description of the different algorithms we have not acknowledge the existence of multi GPU. While some algorithms, such as the neighbour lists or the immersed boundary method, present almost linear scalings when using several processors, others, mainly the ones involving the Fourier transform, require an all-to-all communication in a multi GPU environment. Many novel algorithms in UAMMD are based on the \gls{FFT} and, given that a single GPU can already fit quite a large system, the extra software complexity and maintenance burden associated with a multi GPU implementation was deemed not worthy. Furthermore, our simulations are often governed by thermal fluctuations and require us to launch the same simulation many times to gather statistics. In this case the multi GPU paralellization is trivial. Nonetheless, the codebase was designed with the possibility of going multi GPU in mind. In the future it would be possible for a developer to incrementally make the different basic UAMMD modules multi-GPU-aware, but it is not something being considered at the moment.
@@ -5647,7 +5749,7 @@ In sections \ref{sec:dpstokes} and \ref{ch:dppoisson} we laid out the basic \gls
 \begin{equation}
   \label{eq:bvpmain}
   \begin{aligned}
-    &(\partial_{zz}-k^2)y(z)=f(z)\\
+    &(\partial^2_{z}-k^2)y(z)=f(z)\\
     &(\partial_{z}\pm k)y(\pm 1)=
     \begin{bmatrix}
       \alpha\\
@@ -5655,7 +5757,7 @@ In sections \ref{sec:dpstokes} and \ref{ch:dppoisson} we laid out the basic \gls
     \end{bmatrix}
 \end{aligned}
 \end{equation}
-Where $\partial_z y:= \frac{\partial y}{\partial z} := y'(z)$ and $\partial_{zz} y:= \frac{\partial^2 y}{\partial z^2} := y''(z)$
+Where $\partial_z y:= \frac{\partial y}{\partial z} := y'(z)$ and $\partial^2_{z} y:= \frac{\partial^2 y}{\partial z^2} := y''(z)$
 %\begin{equation}
 %  \label{eq:bvpmain}
 %  \begin{aligned}
@@ -5902,8 +6004,69 @@ Alternatively, if we apply the \emph{Transverser} in the code example \ref{code:
 This interface is just a connection between the \emph{Transverser} and \emph{Interactor} concepts. Additionally, \emph{Potential} aids with one limitation of the CUDA programming language and \gls{GPU} programming in general. On one hand, register memory in a \gpu is quite limited, so it is not a good idea to use large objects in a kernel. On the other hand there are some technical details that prevents certain objects from existing in a \gpu kernel. For example, objects are passed by value to a kernel, which can incurr in undesired copies and/or destructors being called. Thus, its some times worth it to make a conceptual and programmatic separation between CPU and \gpu objects.
 In this regard, \emph{Transversers} are \gpu objects, while \emph{Interactors} or \emph{Potentials} are meant to be used in the CPU.
 Furthermore, while \emph{Transverser} describes a very general computation, \emph{Potential} only holds the logic on how to compute forces, energies and/or virials.
-\emph{Potential} serves as a way to serve \emph{Transversers} to \emph{Interactors}.
+\emph{Potential} serves as a way to serve \emph{Transversers} to \emph{Interactors}. In particular, the \emph{PairForces} module (see chapter \ref{sec:shortrange}) needs a \emph{Potential} encoding the specific particle interaction.
 
+
+\begin{code2}[An example \emph{Potential} that computes Lennard-Jonnes forces, energies and/or virials.]{label=code:potential}
+  //A Transverser for computing, energy, virial and force, this same Transverser can be used to compute either force, energy or virial. The transverser can also compute force and energy at the same time (but not force and virial).
+  //It is the simplest form of Transverser, as it only provides the "compute" and "set" functions
+  //When constructed, if the i_force, i_energy or i_virial pointers are null that computation will be avoided.
+  struct LJTransverser{
+    real4 *force;
+    real *virial;
+    real* energy;
+    Box box;
+    real rc;
+    LJTransverser(Box i_box, real i_rc, real4* i_force, real* i_energy, real* i_virial):
+    box(i_box),
+    rc(i_rc),
+    force(i_force),
+    virial(i_virial),
+    energy(i_energy){
+      //All members will be available in the device functions
+    }
+    //For each pair computes and returns the LJ force and/or energy and/or virial based only on the positions
+    __device__ ForceEnergyVirial compute(real4 pi, real4 pj){
+      const real3 rij = box.apply_pbc(make_real3(pj)-make_real3(pi));
+      const real r2 = dot(rij, rij);
+      if(r2>0 and r2< rc*rc){
+        real3 f;
+        real v, e;        
+        f = (force or virial)?lj_force(r2)*rij:real3();	
+        v = virial?dot(f, rij):0;
+        e = energy?lj_energy(r2):0;
+        return {f,e,v};
+      }
+      return {};
+    }
+    //Note that we are making use of the default behaviors by not defining an accumulate or zero functions.
+    __device__ void set(int id, ForceEnergyVirial total){
+      //Write the total result to memory if the pointer was provided
+      if(force)  force[id] += make_real4(total.force, 0);
+      if(virial) virial[id] += total.virial;
+      if(energy) energy[id] += total.energy;
+    }
+  };
+
+//A simple LJ Potential, can compute force, energy, virial or all at the same time using the above Transverser.
+struct SimpleLJ{
+  real rc = 2.5;
+  //A function returning the maximum required cut off for the interaction
+  real getCutOff(){
+    return rc;
+  }
+  //This function is required to provide a Transverser that has the ability to compute the requested Computables.
+  auto getTransverser(Interactor::Computables comp,
+  Box box,
+  std::shared_ptr<ParticleData> pd){
+    auto force = comp.force?pd->getForce(access::gpu, access::readwrite).raw():nullptr;
+    auto energy = comp.energy?pd->getEnergy(access::gpu, access::readwrite).raw():nullptr;
+    auto virial = comp.virial?pd->getVirial(access::gpu, access::readwrite).raw():nullptr;
+    return LJTransverser(box, rc, force, energy, virial);
+  }
+  
+};
+\end{code2}
 \todo{DESCRIBE INTERFACE}
 
 \chapter{List of currently implemented modules}\label{sec:modulelist}
