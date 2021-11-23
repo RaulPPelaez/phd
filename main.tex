@@ -3012,7 +3012,7 @@ Similarly, once the fluid velocities are obtained in Fourier space, the angular 
 
 
 \subsection*{Use in UAMMD}
-Using the \gls{FCM} strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). Being an approximate algorithm\footnote{Due to the spacial discretization and the quadrature errors incurred when spreading\interpolating with a truncated kernel.} , a tolerance has to be specified and since now the domain is periodic, a domain size is also needed.
+Using the \gls{FCM} strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). Being an approximate algorithm\footnote{Due to the spacial discretization and the quadrature errors incurred when spreading/interpolating with a truncated kernel.} , a tolerance has to be specified and since now the domain is periodic, a domain size is also needed.
 
 In contrast with the open boundary algorithms in sections \ref{sec:chol} and \ref{sec:lanczos} this implementation does not allow to set a different hydrodynamic radius for each particle.
 Here is an example of the Euler-Maruyama integration scheme being specialized with \gls{FCM}.
