@@ -1614,7 +1614,68 @@ void constructListWithPositions(Iterator positions,
 \end{code2}
 
 
+\section{Linear Bounding Volume Hierarchy neighbour list}\label{sec:lbvh}
 
+This neighbour list works by partitioning the system by particles instead of partitioning space (as CellList does). This means that it handles better systems with great cut off or density disparities.
+Here is a little break down of the algorithm, although it is beautifully explained in the references below.
+\begin{enumerate}
+\item Sorts the particles by assigning a hash to each particle such
+  that close particles of the same type tend to be close in
+  memory(based on a Z-order curve and the types).  Particles are
+  sorted by type and then by Z-order hash
+  \item Partitions the sorted
+  hashes in a binary tree structure following Karra's algorithm \cite{Karras2012}.
+  The special hashing ensures that a certain node exists in the tree
+  that is the father of all particles of a certain type. And which has
+  no leaf of a different type under it.  This allows to construct a
+  single tree and then find the root nodes of every type
+  subtree. Which scales great with the number of types. As opposed to
+  generate an entirely new tree for every type as in \cite{Howard2016}, \cite{Howard2019}.
+\item Assigns an Axis Aligned Bounding Box (AABB) to each node of the
+  tree that joins the AABBs of the nodes below it (with the particles,
+  AKA leaf nodes, being at the innermost level). This is done using
+  Karra's algorithm in \cite{Karras2012}.  The AABBs are stored in a "quantized"
+  manner that allows to store a node in a single int4, improving
+  traversal time \cite{Howard2019}.  The joining of boxes stops at the root of every
+  type subtree.
+\item The neighbours of a given particle are found by
+  traversing the AABB subtrees of every type\cite{Torres2009}.
+ \end{enumerate}
+ The traversal is done with a top-down approach, each particle starts at the root of a given subtree. If the particle overlaps the node with a given cut off, the algorithm goes to the next child node, otherwise it skips to the next node/periodic image/tree. The algorithm is detailed in [1] and \cite{Torres2009}.
+ For a given particle, overlap with the 27 (in 3D) periodic images of the current subtree is computed before traversal of a tree and encoded in a single integer to reduce divergence (except the main box, which is traversed first by default) (see \cite{Howard2019}).
+ This process is repeated for every type subtree.
+ 
+ In my personal experience, the sheer raw power of the cell list in the GPU makes this algorithm not worth in general. Note however, that this algorithm is bound to outperform spatially-partitioning methods (such as the cell list and, as a consequence, the Verlet list) in certain situations, mainly when the size disparities between the different particles in the simulation is really pronounced or when the configuration presents a very low density (in terms of the cut off distance of the interaction).
+
+ \subsection*{Usage in UAMMD}
+
+The interface for this neighbour list in UAMMD is more restricted than those of the previously introduced ones. The reason for this being its, yet to be found, applicability in simulations. Nonetheless, it can be used in any place where CellList or VerletList
+\begin{code2}[The different ways of using a LBVH List in \uammd. The \emph{Transverser} interface, already used in chapter \ref{sec:nbody}, is described in detail in Appendix \ref{ch:transverser}. Note that the \emph{Transverer} and \emph{NeighbourContainer} options are identical to the case of a \emph{CellList}.]{label=code:lbvhlist}
+#include<uammd.cuh>
+#include<Interactor/NeighbourList/LBVHList.cuh>
+using namespace uammd;
+
+//Construct a list using the UAMMD ecosystem
+void constructListWithUAMMD(UAMMD sim){
+  //Create the list object
+  //It is wise to create once and store it
+  LBVHList vl(sim.pd);
+  //Update the list using the current positions in sim.pd
+  vl.update(sim.par.box, sim.par.rcut);
+  //Now the list can be used via the
+  //  various common interfaces
+  //-With a Transverser:
+  //vl.transverseList(some_transverser);
+  //-Requesting a NeighbourContainer
+  auto nc = vl.getNeighbourContainer();
+  //Or by getting the internal structure of the LBVH List
+  auto vldata = vl.getLBVHList();
+}
+
+\end{code2}
+ 
+
+ 
 %\section{LBVH list}\label{sec:lbvh}
 %Explain LBVH list \cite{lbvh}, quantized list \cite{quantizedlbvh}. Great for large size disparities.
 %
@@ -6004,11 +6065,36 @@ Alternatively, if we apply the \emph{Transverser} in the code example \ref{code:
 This interface is just a connection between the \emph{Transverser} and \emph{Interactor} concepts. Additionally, \emph{Potential} aids with one limitation of the CUDA programming language and \gls{GPU} programming in general. On one hand, register memory in a \gpu is quite limited, so it is not a good idea to use large objects in a kernel. On the other hand there are some technical details that prevents certain objects from existing in a \gpu kernel. For example, objects are passed by value to a kernel, which can incurr in undesired copies and/or destructors being called. Thus, its some times worth it to make a conceptual and programmatic separation between CPU and \gpu objects.
 In this regard, \emph{Transversers} are \gpu objects, while \emph{Interactors} or \emph{Potentials} are meant to be used in the CPU.
 Furthermore, while \emph{Transverser} describes a very general computation, \emph{Potential} only holds the logic on how to compute forces, energies and/or virials.
-\emph{Potential} serves as a way to serve \emph{Transversers} to \emph{Interactors}. In particular, the \emph{PairForces} module (see chapter \ref{sec:shortrange}) needs a \emph{Potential} encoding the specific particle interaction.
+\emph{Potential} exist as a way to serve \emph{Transversers} to \emph{Interactors}. In particular, the \emph{PairForces} module (see chapter \ref{sec:shortrange}) needs a \emph{Potential} encoding the specific particle interaction.
+
+The \emph{Potential} interface is straight-forward, requiring only two functions:
+\begin{itemize}
+\item \mintinline{\ucpp}{real getCutOff();}
+  
+  This function must return the highest cut off distance required by the interaction.
+\item \mintinline{\ucpp}{Transverser getTransverser(Interactor::Computables comp, Box box, std::shared_ptr<ParticleData> pd);}
+  
+  This function must provide an instance of a \emph{Transverser} that, using the provided \emph{ParticleData} and \emph{Box} instances, computes anything requested by the \emph{Computables} list (mainly forces, energies and/or virials, see chapter \ref{sec:interactor} for more information).
+  The return type of this function, called Transverser here, can be any valid \emph{Transverser} (see Appendix \ref{sec:transverser}) with only one restriction: The return type of the \mintinline{\ucpp}{compute} function (called \emph{Compute} in Appendix \ref{sec:transverser}) must be \mintinline{\ucpp}{ForceEnergyVirial} (a simple POD type that holds members for the force, energy and virial). See example code \ref{code:potential}.
+\end{itemize}
 
 
 \begin{code2}[An example \emph{Potential} that computes Lennard-Jonnes forces, energies and/or virials.]{label=code:potential}
-  //A Transverser for computing, energy, virial and force, this same Transverser can be used to compute either force, energy or virial. The transverser can also compute force and energy at the same time (but not force and virial).
+  //Some functions to compute forces/energies
+  __device__ real lj_force(real r2){
+    const real invr2 = real(1.0)/r2;
+    const real invr6 = invr2*invr2*invr2;
+    const real fmoddivr = (real(-48.0)*invr6 + real(24.0))*invr6*invr2;
+    return fmoddivr;
+  }
+
+  __device__ real lj_energy(real r2){
+    const real invr2 = real(1.0)/r2;
+    const real invr6 = invr2*invr2*invr2;
+    return real(4.0)*(invr6 - real(1.0))*invr6;
+  }
+
+  //A Transverser for computing, energy, virial and force (or just some of them).
   //It is the simplest form of Transverser, as it only provides the "compute" and "set" functions
   //When constructed, if the i_force, i_energy or i_virial pointers are null that computation will be avoided.
   struct LJTransverser{
@@ -6018,11 +6104,7 @@ Furthermore, while \emph{Transverser} describes a very general computation, \emp
     Box box;
     real rc;
     LJTransverser(Box i_box, real i_rc, real4* i_force, real* i_energy, real* i_virial):
-    box(i_box),
-    rc(i_rc),
-    force(i_force),
-    virial(i_virial),
-    energy(i_energy){
+    box(i_box), rc(i_rc), force(i_force), virial(i_virial), energy(i_energy){
       //All members will be available in the device functions
     }
     //For each pair computes and returns the LJ force and/or energy and/or virial based only on the positions
