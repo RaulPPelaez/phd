@@ -1614,23 +1614,23 @@ void constructListWithPositions(Iterator positions,
 \end{code2}
 
 
-\section{Linear Bounding Volume Hierarchy neighbour list}\label{sec:lbvh}
+\section{LBVH list}\label{sec:lbvh}
 
-This neighbour list works by partitioning the system by particles instead of partitioning space (as CellList does). This means that it handles better systems with great cut off or density disparities.
+The Linear Bounding Volume Hierarchy (LBVH) neighbour list works by partitioning the system by particles instead of partitioning space (as the cell list does). This means that it handles better systems with great cut off or density disparities.
 Here is a little break down of the algorithm, although it is beautifully explained in the references below.
 \begin{enumerate}
 \item Sorts the particles by assigning a hash to each particle such
   that close particles of the same type tend to be close in
   memory(based on a Z-order curve and the types).  Particles are
-  sorted by type and then by Z-order hash
-  \item Partitions the sorted
+  sorted by type and then by Z-order hash (actually, UAMMD uses the Morton hash presented at \ref{alg:mortonhash}).
+\item Partitions the sorted
   hashes in a binary tree structure following Karra's algorithm \cite{Karras2012}.
   The special hashing ensures that a certain node exists in the tree
   that is the father of all particles of a certain type. And which has
   no leaf of a different type under it.  This allows to construct a
   single tree and then find the root nodes of every type
   subtree. Which scales great with the number of types. As opposed to
-  generate an entirely new tree for every type as in \cite{Howard2016}, \cite{Howard2019}.
+  generate an entirely new tree for every type as in \cite{Howard2016,Howard2019}.
 \item Assigns an Axis Aligned Bounding Box (AABB) to each node of the
   tree that joins the AABBs of the nodes below it (with the particles,
   AKA leaf nodes, being at the innermost level). This is done using
@@ -1640,17 +1640,20 @@ Here is a little break down of the algorithm, although it is beautifully explain
   type subtree.
 \item The neighbours of a given particle are found by
   traversing the AABB subtrees of every type\cite{Torres2009}.
- \end{enumerate}
- The traversal is done with a top-down approach, each particle starts at the root of a given subtree. If the particle overlaps the node with a given cut off, the algorithm goes to the next child node, otherwise it skips to the next node/periodic image/tree. The algorithm is detailed in [1] and \cite{Torres2009}.
- For a given particle, overlap with the 27 (in 3D) periodic images of the current subtree is computed before traversal of a tree and encoded in a single integer to reduce divergence (except the main box, which is traversed first by default) (see \cite{Howard2019}).
- This process is repeated for every type subtree.
+\end{enumerate}
+The traversal is done with a top-down approach, each particle starts at the root of a given subtree. If the particle overlaps the node with a given cut off, the algorithm goes to the next child node, otherwise it skips to the next node/periodic-image/tree. The algorithm is detailed in \cite{Howard2016} and \cite{Torres2009}.
+For a given particle, overlap with the 27 (in 3D) periodic images of the current subtree is computed before traversal of a tree and encoded in a single integer to reduce divergence (except the main box, which is traversed first by default) (see \cite{Howard2019}).
+This process is repeated for every type subtree.
+
+In my personal experience, the sheer raw power of the cell list in the GPU makes this algorithm not worth in general. Note however, that this algorithm is bound to outperform spatially-partitioning methods (such as the cell list and, as a consequence, the Verlet list) in certain situations, mainly when the size disparities between the different particles in the simulation is really pronounced or when the configuration presents a very low density (in terms of the cut off distance of the interaction).
+
+\subsection*{Usage in UAMMD}
+
+The interface for this neighbour list in UAMMD is more restricted than those of the previously introduced ones. The reason for this being its, yet to be found, applicability in our simulations. Nonetheless, it can be used in any place where \emph{CellList} or \emph{VerletList} can be used.
+
+The internal data structure of the LBVH list can be queried, but we have not discussed in detail the algorithm in this manuscript. A reader who is particularly interested in making use of the LBVH list or a more in-depth understanding of its inner workings is refered to UAMMD's online documentation\footnote{or the code itself, located at the source file \emph{Interactor/NeighboutList/LBVH.cuh}.}(see Appendix \ref{ch:online}).
  
- In my personal experience, the sheer raw power of the cell list in the GPU makes this algorithm not worth in general. Note however, that this algorithm is bound to outperform spatially-partitioning methods (such as the cell list and, as a consequence, the Verlet list) in certain situations, mainly when the size disparities between the different particles in the simulation is really pronounced or when the configuration presents a very low density (in terms of the cut off distance of the interaction).
-
- \subsection*{Usage in UAMMD}
-
-The interface for this neighbour list in UAMMD is more restricted than those of the previously introduced ones. The reason for this being its, yet to be found, applicability in simulations. Nonetheless, it can be used in any place where CellList or VerletList
-\begin{code2}[The different ways of using a LBVH List in \uammd. The \emph{Transverser} interface, already used in chapter \ref{sec:nbody}, is described in detail in Appendix \ref{ch:transverser}. Note that the \emph{Transverer} and \emph{NeighbourContainer} options are identical to the case of a \emph{CellList}.]{label=code:lbvhlist}
+\begin{code2}[Example usage of the LBVH List in \uammd. The \emph{Transverser} interface is described in detail in Appendix \ref{ch:transverser}. Note that the \emph{Transverer} and \emph{NeighbourContainer} options are identical to the case of a \emph{CellList}.]{label=code:lbvhlist}
 #include<uammd.cuh>
 #include<Interactor/NeighbourList/LBVHList.cuh>
 using namespace uammd;
@@ -1675,35 +1678,28 @@ void constructListWithUAMMD(UAMMD sim){
 \end{code2}
  
 
- 
-%\section{LBVH list}\label{sec:lbvh}
-%Explain LBVH list \cite{lbvh}, quantized list \cite{quantizedlbvh}. Great for large size disparities.
-%
-%\subsection*{Use in UAMMD}
-%
-%EXAMPLE CODE
-%
-\chapter{Bonded Interactions}\label{sec:bonded}
+ \chapter{Bonded Interactions}\label{sec:bonded}
 
 As bonds can be expected to present great disparity in the number of bonds per particle, instead of using the same strategy as with the neighbour list, for the bonded interactions \uammd generates a compacted list of bonds per particle. Similar to the cell list.
 For each particle, a list of all the bonds it is involved in is stored. Note that this means that the information for a given bond is stored several times (two times for pair bonds, three for angular bonds and so on).
-This improves the data locality when traversing the bond list.
-In contrast with the cell list algorithm the bond list creation algorithm does not have to be particularly efficient since it will be generated only once at initialization.
+This improves the data locality when traversing the bond list (at the expense of extra storage).
+In contrast with the cell list algorithm, the bond list creation algorithm does not have to be particularly efficient since it will be generated only once at initialization\footnote{Creating the bond list only at initialization hinders the ability of the algorithm to efficiently allow for the dynamic inclusion/exclusion of bonds. However, we have not yet devised an efficient and sufficiently generic algorithm for constructing a dynamic bond list.}.
+
 Regarding traversal, as explained in sec. \ref{sec:nlist}, for a compacted list such as this we need to store the bond list itself (containing a list of bonds for each particle) and then two auxiliar arrays; One with offset information (the index in the bond list where the particular list for a given particle is located) and another with the number of bonds for each particle.
-Note that it is not necessary to store information about particles that are not involved in any bond. Another auxiliar array can be used storing the indexes of particles that have at least one bond.
-The special type of bond that involves a single particle is called a fixed point bond, usually attaching a particle to a certain point in space. This can be encoded by storing this position as part of the bond information.
+Note that it is not necessary to store information about particles that are not involved in any bond. UAMMD employs another auxiliar array storing the indexes of particles that have at least one bond.
+The special type of bond that involves a single particle is refered to as a fixed point bond, usually attaching a particle to a certain point in space. In UAMMD this is encoded by storing the tether point position as part of the bond information.
 
 
 \section*{Use in UAMMD}
 The bond \emph{Interactor} can be specialized for a certain number of particles per bond and a potential. Some potentials are already defined for bonds involving two, three (angular bonds) and four (torsional bonds) particles per bond.
 
-The interface for the potential can be found in source code \ref{code:bonded}. The function compute requires some additional explanation. This function will be called for every bond read in the bond file and is expected to compute force/energy and or virial. The arguments of this function are as follow (see the example code \ref{code:bonded}).
+The interface for the potential can be found in source code \ref{code:bonded}. The function \mintinline{\ucpp}{compute} of the bond potential (\mintinline{\ucpp}{HarmonicBond} in this example) requires some additional explanation. This function will be called for every bond read in the bond file and is expected to compute force/energy and/or virial for a certain particle involved in that bond\footnote{Note that this implies that not only the information for each bond is stored several times, but the forces/energies/virials for the same bond are queried independently for each of the involved particles (as opposed to a model in which the bond potential would perform the computation for all particles in the bond at once). Although this might seem like an strange decision at first, it makes sense in the context of a GPU for the same reason that we do not make use of the fact that when pair forces are used $F_{ij} = F_{ji}$. Moreover, the computation of the potential can be wildly different for each particle involved in a bond with, for instance, 4 particles (like a torsional bond).}. The arguments of this function are as follow (see the example code \ref{code:bonded}).
 \begin{itemize}
-\item bond\_index: The index of the particle to compute force/energy/virial on.
-\item ids: list of indexes of the particles involved in the current bond.
-\item pos: list of positions of the particles involved in the current bond.
-\item comp: computable targets (wether force, energy and/or virial are needed).
-\item bi: bond information for the current bond (as returned by the function \mintinline{\ucpp}{readBond}).
+\item \mintinline{\ucpp}{bond_index}: The index of the particle to compute force/energy/virial on.
+\item \mintinline{\ucpp}{ids}: list of indexes of the particles involved in the current bond.
+\item \mintinline{\ucpp}{pos}: list of positions of the particles involved in the current bond.
+\item \mintinline{\ucpp}{comp}: computable targets (wether force, energy and/or virial are needed).
+\item \mintinline{\ucpp}{bi}: bond information for the current bond (as returned by the function \mintinline{\ucpp}{readBond}).
 \end{itemize}
 
 \begin{code2}[Constructing and returning a Bonded interaction module.] {label=code:bonded}
@@ -1713,18 +1709,18 @@ using namespace uammd;
 
 //Harmonic bond for pairs of particles
 struct HarmonicBond{
-  HarmonicBond(/*Parameters par*/){
-    //In this case no parameter is needed beyond whats in the bond file.
-  }
   //Place in this struct whatever static information is needed for the different bonds.
   //In this case spring constant and equilibrium distance.
   //The function readBond below takes care of reading each BondInfo from the file.
+  //Naturally, the present class can also store any additional information.
   struct BondInfo{
     real k, r0;
   };
 
-  __device__ ComputeType compute(int bond_index, int ids[2], real3 pos[2],
-                                 Interactor::Computables comp, BondInfo bi){
+  __device__ ComputeType compute(int bond_index,
+                        int ids[2], real3 pos[2],
+                        Interactor::Computables comp,
+                        BondInfo bi){
     real3 r12 = pos[1]-pos[0];
     real r2 = dot(r12, r12);
     const real invr = rsqrt(r2);
@@ -1764,7 +1760,7 @@ As usual, some additional functionality of this module has been ommited for simp
 
 Thus far we have dealt with particle interactions. In the following chapters we will see a series of numerical strategies to solve the time evolution dynamics of the particles in the different levels of description introduced in chapter \ref{ch:design}. We will do so by descending through the Integrator branch in fig. \ref{fig:uammdsketch}. We can find the leaves below the Integrator branch in fig. \ref{fig:uammdsketch_integrators}.
 
-In a bottom-up manner, refering to the complexity of the numerical methods, we start with the microscopic level (via \gls{MD}) in sec. \ref{sec:md}, then Langevin in sec. \ref{sec:langevin} and finally the hydrodynamics and Smoluchowski levels in chapter \ref{ch:bdhi}.
+In a bottom-up manner, refering to the complexity of the numerical methods, we start with the microscopic level (via \gls{MD}) in sec. \ref{sec:md}, then Langevin in sec. \ref{sec:langevin} and finally the hydrodynamics and Smoluchowski levels in chapter \ref{sec:bdhi}.
   
 \begin{figure}
   \centering
@@ -1777,7 +1773,7 @@ In a bottom-up manner, refering to the complexity of the numerical methods, we s
 \section{The Integrator interface}\label{sec:integrator}
 We introduced the \emph{Integrator} concept back in chapter \ref{ch:design}, where we adhered to it the responsability of taking the simulation to the next time step. In this chapter, we will discus in detail \uammd's \emph{Integrator} software interface. Similar to \emph{Interactor}, \emph{Integrator} is a purely virtual C++ class that must be inherited (specialized). Instead of providing functions to compute forces (\emph{Interactor}), \emph{Integrator} exposes functions to take the simulation to the next time step. Additionally, \emph{Integrators} hold a list of \emph{Interactors} that they can use at their leissure to obtain up-to-date forces, energies and/or virials for each particle.
 
-An arbitrary number of \emph{Interactors} instances can be added to an \emph{Integrator} (e.g. short ranged forces, bonded forces...) via its member function \mintinline{\ucpp}{Integrator::addInteractor();}. Source code \ref{code:integratorex} contains an example showcasing how to add an interaction to an \emph{Integrator}. On the other hand, source code \ref{code:integrator} is an example on how to create a novel \emph{Integrator} (parallel to the example \ref{code:interactor} for \emph{Interactors}).
+An arbitrary number of \emph{Interactors} instances can be added to an \emph{Integrator} (e.g. short ranged forces, bonded forces...) via its member function \mintinline{\ucpp}{Integrator::addInteractor();}. Source code \ref{code:integrator} is an example on how to create a novel \emph{Integrator} (parallel to the example \ref{code:interactor} for \emph{Interactors}).
 
 \begin{code2}[The basic outline of a new \emph{Integrator}. Some advanced functionality has been omitted here for simplicity, refer to Appendix \ref{ch:online} for more information. See chapter \ref{sec:particledata} for more information about how to access particle properties. A class inheriting from \emph{Integrator} has access to a series of built-in members, in particular, a \emph{ParticleData} instance is always available under the name ``pd''. Furthermore, a list of \emph{Interactors} is available in the variable ``interactors''.]
 {label=code:integrator}
@@ -1940,7 +1936,7 @@ Furthermore it eliminates the velocity from the integration, which can be comput
 \end{equation}
 Mathematically this is a second order approximation to the velocity. However, computing the velocity in this way can result in large roundoff errors stemming from the substraction of two similar quantities.
 We can manipulate eqs. \eqref{eq:verletrp1} and \eqref{eq:stormervel} to arrive at the more commonly used version of the Verlet method, the so-called velocity Verlet algorithm.
-We can use the central difference method to evaluate the velocity at half step as $\vec{\pvel}^{n+\half} = \frac{\vec{x}^{n+1} - \vec{x}^n}{\dt}$. By replacing $\vec{\ppos}^{n+1}$ with eq. \eqref{eq:verletrp1} and truncating at $O(\dt^2)$ we get
+We can use the central difference method to evaluate the velocity at half step as $\vec{\pvel}^{n+\half} = \frac{\vec{\ppos}^{n+1} - \vec{\ppos}^n}{\dt}$. By replacing $\vec{\ppos}^{n+1}$ with eq. \eqref{eq:verletrp1} and truncating at $O(\dt^2)$ we get
 \begin{equation}
   \label{eq:verletvelhalf}
   \vec{\pvel}^{n+\half} = \vec{\pvel}^n + \half\vec{a}^n\dt + O(\dt^2)
@@ -1976,7 +1972,7 @@ The velocity Verlet algorithm in the NVE ensemble is available in \uammd as an I
 As an energy conserving algorithm, VerletNVE offers the possibility of setting a certain energy per particle at creation.
 The starting kinetic energy of the system will be set to match this energy. Note that this will result in particle velocities being overwritten.
 Alternatively you can instruct VerletNVE to leave particle velocities untouched, which will result in the initial total energy being uncontrolled by the module.
-The only tool used by this module to set the initial total energy is the kinetic energy, which is always positive. As such, an error will be thrown if the target energy is \emph{less} than the potential energy at creation. See sec. \ref{sec:uammd_errors} on how to deal with errors.
+The only tool used by this module to set the initial total energy is the kinetic energy, which is always positive. As such, an error will be thrown if the target energy is \emph{less} than the potential energy at creation.
 
 \begin{code2}[Example of the creation of a \emph{VerletNVE} \emph{Integrator}.]{label=code:verletnve}
 #include<uammd.cuh>
@@ -1999,12 +1995,11 @@ auto createIntegratorVerletNVE(UAMMD sim){
 %Even if this kind of simulation is technically feasible\cite{antonprotein}, it requires absurd amounts of computing resources which do not really scale for something more complex, like the inside of a cell or a collection of viruses.
 %
 %Furthermore,
-Including the small water molecules requires to solve their individual dynamics, which is orders of magnitude faster than our time scale of interest (milliseconds).
+%Including the small water molecules requires to solve their individual dynamics, which is orders of magnitude faster than our time scale of interest (milliseconds).
 %In particular, the solvent effect will be coarse grained in the form of fluctuations and hydrodynamic correlations between the colloidal particles resolved.
 % We cannot simply ignore the effect of the solvents since we would be neglecting some of the most important phenomena in the system, such as hydrodynamics and thermal fluctuations.
 During the following sections, we will see different strategies to take into account the effects of the solvent in an implicit manner. In particular, the solvent effect will be coarse-grained in the form of fluctuations and hydrodynamic correlations between the resolved colloidal particles.
-
-The next natural after \gls{MD} equations is the so-called \gls{LD}.
+The next natural after \gls{MD} equations are the so-called \gls{LD}.
 
 \chapter{Langevin Dynamics}\label{sec:langevin}
 
@@ -2041,15 +2036,15 @@ We can use eq. \eqref{eq:fpefdbal} to elucidate the relation between the drag, $
 % The fluctuation-dissipation balance can be interpreted as arising from the equipartition theorem in the long time limit. We can use the equipartition theorem for a single particle in the absence of any conservative forces to relate $\gamma$ with $B$.
 The equipartition theorem can be employed here to obtain the equilibrium covariance $\sigma_{\text{eq}} := \left\langle\vec{\pvel}^2\right\rangle$.
 In the absence of dissipative forces, the Hamiltonian is simply $H = \frac{p^2}{2m}$, where $p = m\dot{\ppos}$ is the momentum.
-Lets apply these arguments to a one dimensional system for simplicity, understanding they also hold for the three dimensional case. The equipartition theorem states that for every degree of freedom in the system the following equation must hold.
+Lets apply these arguments to a one dimensional system for simplicity, understanding they also hold for the three dimensional case. The equipartition theorem states that for every degree of freedom in the system the following equation must hold,
 \begin{equation}
-  \left\langle p \frac{\partial H}{\partial p}\right\rangle = \left\langle p \frac{p}{m}\right\rangle = k_BT
+  \left\langle p \frac{\partial H}{\partial p}\right\rangle = \left\langle p \frac{p}{m}\right\rangle = k_BT.
 \end{equation}
 Where $k_B$ is the Boltzmann constant and $T$ the temperature. Brackets represent ensemble average.
 The previous equation leads to the relation
 \begin{equation}
   \label{eq:velautocorr}
-  \sigma_{\text{eq}} = \left\langle p^2\right\rangle = m k_BT
+  \sigma_{\text{eq}} = \left\langle p^2\right\rangle = m k_BT.
 \end{equation}
 Which represents the variance of the particle's momemtum. We can now use eqs. \eqref{eq:langeD2} and \eqref{eq:velautocorr} to identify
 \begin{equation}
@@ -2165,7 +2160,7 @@ It can be shown that this limit converges in probability\cite{Cohen2015}.
 %  \label{eq:langenoisint}
 %  \noise^{n+1} := d\noise
 %\end{equation}
-We can use the Riemann sum to transform eq. \eqref{eq:langevinwiennerinc} into a sum with an arbitrarily large number of terms. We can compute $d\noise$ as a Gaussian random numbers with zero mean and standard deviation $\left\langle d\noise^nd\noise^m\right\rangle = 2\xi\kT\dt\delta_{n,m}$ (uncorrelated in time).
+We can use the Riemann sum to transform eq. \eqref{eq:langevinwiennerinc} into a sum with an arbitrarily large number of terms. Since in this case $f(t) = \sqrt{2\xi\kT}$ we are left with a sum of Gaussian distributed random numbers, which also happens to be a Gaussian random number . We can compute $d\noise$ as a Gaussian random numbers with zero mean and standard deviation $\left\langle d\noise^nd\noise^m\right\rangle = 2\xi\kT\dt\delta_{n,m}$ (uncorrelated in time).
 This realization now opens the door for a family of Verlet like integration schemes, in particular we are going to describe the algorithm developed by Grønbech-Jensen and Farago \cite{Gronbech2013}.
 
 \section{Grønbech-Jensen}\label{sec:gronbechjensen}
@@ -2301,9 +2296,9 @@ auto createIntegratorDPD(UAMMD sim){
 }
 \end{code2}
 \newpage
-\chapter{Smoothed Particle Hydrodynamics}
-\todo{Describe SPH}
-
+%\chapter{Smoothed Particle Hydrodynamics}
+%\todo{Describe SPH}
+%
 
 \chapter{Brownian Dynamics}\label{sec:bd}
 %\todo{Introduccion al origen de BD y que problemas resuelve que LD no}
@@ -2628,13 +2623,13 @@ $$
 -\int_{V_p}\nabla\cdot\tens{\sigma}d\vec{\fpos}^3 = \oint_S\tens{\sigma}\cdot\hat{\vec{n}}d\vec{r}^2 = \vec{F}_{\text{drag}}
 $$
 is the fluid traction on the particle (drag force).
-We also note that $\int_{V_p}\vec{f}d\vec{\fpos}^3 = \lambda$ is the total force induced by the particle to the fluid ( induced force \cite{Mazur1974}).
-Hence, $m_f\partial_t\vec{\pvel} = \vec{F}_{\text{drag}} + \lambda$, being $m_f$ the mass of the fluid displaced by the particle.
+We also note that $\int_{V_p}\vec{f}d\vec{\fpos}^3 = \vec{\lambda}$ is the total force induced by the particle to the fluid (induced force\cite{Mazur1974}).
+Hence, $m_f\partial_t\vec{\pvel} = \vec{F}_{\text{drag}} + \vec{\lambda}$, being $m_f$ the mass of the fluid displaced by the particle.
 On the ther hand, $m_p\dot{\vec{\fvel}} = \vec{F}_{\text{drag}} + \vec{F}$ where $\vec{F}$ is and other force acting on the particle (aside from the fluid drag). Substracting and introducing the Archimedean excess mass,  $m_e := m_p - m_f$,
 \begin{equation}
-  m_e\dot{\vec{\fvel}} = \vec{F} - \lambda.
+  m_e\dot{\vec{\fvel}} = \vec{F} - \vec{\lambda}.
 \end{equation}
-Which implies, for $m_e = 0$, $\lambda=\vec{F}$. Thus any force on the particle goes to the fluid.
+Which implies, for $m_e = 0$, $\vec{\lambda}=\vec{F}$. Thus any force on the particle goes to the fluid.
 
 %In the spirit of \gls{BD}, we also assume that the friction time $\tau_F = m/\xi$ is quite small compared with any other physical process. In other words, we assume particles are neutrally buoyant and disregard their inertia ($\dot{\vec{\pvel}} = 0$). As demonstrated in \cite{Balboa2014}, the inertial effects of the particles due also to a non zero excess mass can be reintroduced via a Lagrange multiplier, $\lambda$, (which enforces $\vec{\pvel} = \vec{\fvel}$). Physically, $\lambda$ is the net force that the particle exerts on the fluid which, in turn (third Newton law) exerts a force $-\lambda$ to the particle. The particle's equation of motion is then
 %\begin{equation}
@@ -2721,9 +2716,9 @@ Figure \ref{fig:oseen} contains a visual representation of the Oseen tensor.
 \section*{Coupling with particles}
 Eqs. \eqref{eq:bdhivel} and \eqref{eq:greenstokes} constitute a formalism to translate forces to velocities and permits to unveil their correlated displacements.
 
-In the following derivation we are going to describe the particle effect on the fluid using a generalized delta function, $\delta_a(\vec{r})$. Using a monopolar approximation, we set the force distribution as $\vec{f}(\vec{\fpos}) = \lambda \delta_a(\vec{\fpos})$. Here, $\delta_a(\vec{\fpos})$ is a distribution of compact support. The subscript ``$a$'' is used here to indicate that this kernel will usually be a smooth smeared delta function. The subscript $a$ refers to the hydrodynamic radius of the particle, related to the typical size of the particle around of which the kernel distributes the particle force, or any other extensive quantity (e.g acoustic forces\cite{Balboa2013}, torques, etc).
+In the following derivation we are going to describe the particle effect on the fluid using a generalized delta function, $\delta_a(\vec{r})$. Using a monopolar approximation, we set the force distribution as $\vec{f}(\vec{\fpos}) = \vec{\lambda} \delta_a(\vec{\fpos})$. Here, $\delta_a(\vec{\fpos})$ is a distribution of compact support (usually be a smooth smeared delta function). The subscript $a$ refers to the hydrodynamic radius of the particle, related to the typical size of the particle around of which the kernel distributes the particle force, or any other extensive quantity (e.g acoustic forces\cite{Balboa2013}, torques, etc).
 
-The kinetic constraint imposes instantaneous coupling between the particles and the surrounding fluid this conditi (this condition represents no-slip of the fluid of the ``real particle's'' surface). The velocity of a certain particle $i\in [1,N]$ is computed as
+The kinetic constraint imposes instantaneous coupling between the particles and the surrounding fluid (this condition represents no-slip of the fluid on the ``real particle's'' surface). The velocity of a certain particle $i\in [1,N]$ is computed as
 \begin{equation}
   \label{eq:bdhifvel}
   \vec{\pvel}_i= \oper{J}_{\vec{\ppos}_i}\vec{\fvel} =\int{\delta_a(\vec{\ppos}_i - \vec{\fpos})\vec{\fvel}(\vec{\fpos})d\vec{\fpos}}.
@@ -2741,19 +2736,17 @@ The benefit of using the same kernel to spread and interpolate is that it makes 
 
 The physical volume $\Delta V$ of the particle is related to the kernel via
 \begin{equation}
-  \Delta V = (\oper{J}\oper{S}1)^{-1} = \left(\int\delta_a^2d\vec{r}\right)^{-1}
+  \Delta V = (\oper{J}\oper{S}1)^{-1} = \left(\int\delta_a^2d\vec{r}\right)^{-1}.
 \end{equation}
-
 We will discuss spreading and interpolation in a regular grid in more detail in sec. \ref{sec:ibm}.
 
 \section{Connection with Brownian Dynamics}\label{sec:bdhicon}
 
-We can now write an equation for the displacements (velocities) of a group of particles using eqs. \eqref{eq:bdhivel} and \eqref{eq:greenstokes}.
+We can now write an equation for the displacements (velocities) of a group of particles using eqs. \eqref{eq:bdhivel} and \eqref{eq:greenstokes} as
 \begin{equation}
   \label{eq:bdhibdrelation}
-  \frac{d\vec{q}_i}{dt} = \vec{u}_i = \eta^{-1}\oper{J}_{\vec{\ppos}_i}\oper{L}(\oper{S}\vec{F} + \nabla\cdot\mathcal Z)
+  \frac{d\vec{q}_i}{dt} = \vec{u}_i = \eta^{-1}\oper{J}_{\vec{\ppos}_i}\oper{L}(\oper{S}\vec{F} + \nabla\cdot\mathcal Z).
 \end{equation}
-
 This equation is reminiscent of eq. \eqref{eq:bdfull} by defining the mobility as
 \begin{equation}
   \label{eq:bdhimobns}
@@ -2761,15 +2754,15 @@ This equation is reminiscent of eq. \eqref{eq:bdfull} by defining the mobility a
 \end{equation}
 and its ``square root'' as
 \begin{equation}
+  \label{eq:bdhimobnsnoise}
   \tens{M}^{1/2} = \eta^{-1/2}\oper{J}\oper{L}\nabla.
 \end{equation}
 It can be easily proved, by using that $-\oper{L}\nabla^2\oper{L}^* = \oper{L}$ and that $\oper{J}^*=\oper{S}$\cite{Delong2014}\footnote{In particular, because $\nabla^2 = -\nabla\cdot\nabla$, we can write $\left(\oper{J}\oper{L}\nabla\right)\left(\oper{J}\oper{L}\nabla\right)^* = \oper{J}\oper{L}\nabla\nabla^*\oper{L}^*\oper{J}^* = \oper{J}\oper{L}\nabla^2\oper{L}^*\oper{S} = \oper{J}\oper{L}\oper{S}$.}, that this definition of the square root of the mobility satisfies the fluctuation-dissipation balance\footnote{$\left\langle\delta\vec{\ppos}_i\otimes\delta\vec{\ppos}_j\right\rangle = 2\kT\tens{M}(\vec{\ppos_{ij}})\dt$} with $\mathcal{Z}$ given by eq. \eqref{eq:navierstkesnoise}.
-
+Naturally, the definition in eq. \eqref{eq:bdhimobnsnoise} satisfies
 \begin{equation}
   \label{eq:mobsqrt}
   \tens{M} = \tens{M}^{1/2}\left(\tens{M}^{1/2}\right)^T.
 \end{equation}
-
 %We can now transform eq. \eqref{eq:bdhibdrelation} into eq. \eqref{eq:bdfull}, rewritten here for convenience:
 %\begin{equation}
 %  \label{eq:bdhi}
@@ -2780,11 +2773,11 @@ The definition in eq. \ref{eq:bdhimobns} allows us to realize that eq. \eqref{eq
 We are now ready to extract more information about the mobility matrix, which is in general a configuration-dependent tensor. In particular, writing eq. \eqref{eq:bdhimobns} as the double convolution with the kernel at the position of two particles yields a pairwise mobility, depending only on the positions of the particles as
 \begin{equation}
   \label{eq:bdhimob}
-  \tens{M}_{ij} = \eta^{-1}\iint{\delta_a(\vec{q}_j-\vec{r})\oper{L}(\vec{r}, \vec{r}')\delta_a(\vec{q}_i -\vec{r}')d\vec{r}d\vec{r}'}
+  \tens{M}_{ij} = \eta^{-1}\iint{\delta_a(\vec{q}_j-\vec{r})\oper{L}(\vec{r}, \vec{r}')\delta_a(\vec{q}_i -\vec{r}')d\vec{r}d\vec{r}'}.
 \end{equation}
-Here $\oper{L}$ is the Green's function of eq. \eqref{eq:stokes} with the particular boundary conditions.
+Here $\oper{L}$ is the Green's function for eq. \eqref{eq:stokes} with the particular boundary conditions.
 
-The mobility tensor definition in eq. \eqref{eq:bdhimob} is general for any geometry, but for an unbounded fluid, the Green's function is the Oseen tensor in eq. \eqref{eq:bdhioseen} and the resulting mobility (when using $\delta_a:=\delta$) is refered to as the Oseen mobility, so that $\tens{M}_{ij} = \tens{O}(\vec{\ppos}_j - \vec{\ppos}_i)$.
+The mobility tensor definition in eq. \eqref{eq:bdhimob} is general for any geometry. For an unbounded fluid, the Green's function is the Oseen tensor in eq. \eqref{eq:bdhioseen} and the resulting mobility (when using $\delta_a:=\delta$) is refered to as the Oseen mobility, so that $\tens{M}_{ij} = \tens{O}(\vec{\ppos}_j - \vec{\ppos}_i)$.
 
 The Oseen mobility presents several problems when particles get too close stemming from the point particle assumption. For instance, the tensor becomes ill-formed (and non positive-definite) at close distances, hindering the applicability of the assumption in eq. \eqref{eq:mobsqrt}. On the other hand, the Oseen mobility diverges at zero distance, which can result in numerical issues in the absence of steric repulsions and requires treating the self mobility separatedly. The Oseen mobility can be in a way interpreted as the mobility for colloidal particles with size $a\rightarrow 0$.
 
@@ -2792,15 +2785,15 @@ In practice we would like to take into account the finite size of the submerged 
 
 We will see in future sections how to solve the dynamics of the particles without the need of the explicit form for the Green's function by discretizing eq. \eqref{eq:bdhifvel} directly. This can be useful for special geometries in which the differential operators in Stokes solution operator do not commute or when eq. \eqref{eq:bdhimob} cannot be solved analytically. For the moment we will stick to imposing a mobility tensor explicitly.
 
-One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. We can compute it by integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator (the Oseen tensor) in the surface, $S$, of two spheres of radius $a$ centered at the positions of the particles ($\vec{\ppos}_i$ and $\vec{\ppos}_j$)
+One of the usual choices for the mobility tensor is the \gls{RPY} tensor (derived around the same time independently in \cite{Rotne1969,Yamakawa1970}), describing the hydrodynamic interaction of two spheres of radius $a$. We can compute it by integrating eq. \eqref{eq:bdhimob} with the Stokes solution operator (the Oseen tensor) in the surface, $S$, of two spheres of radius $a$ centered at the positions of the particles ($\vec{\ppos}_i$ and $\vec{\ppos}_j$),
 \begin{equation}
   \label{eq:rpymobfour}
   \begin{aligned}
-    \tens{M}_{ij}^{\textrm{RPY}} &= \frac{\eta^{-1}}{(4\pi a^2)^2} \int_{S_i}dS_i\int_{S_j}dS_j \int d\vec{k} \exp(i\vec{k}\vec{\ppos}_{ij})\hat{\oper{L}}(\vec{k})\\
-    &= \eta^{-1} \int \frac{\exp(i\vec{k}\vec{\ppos}_{ij})}{k^2}\left(\sinc(ka) \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)d\vec{k}
+    \tens{M}_{ij}^{\textrm{RPY}} &= \frac{\eta^{-1}}{(4\pi a^2)^2} \int_{S_i}dS_i\int_{S_j}dS_j \int d\vec{k} \exp(i\vec{k}\cdot\vec{\ppos}_{ij})\hat{\oper{L}}(\vec{k})\\
+    &= \eta^{-1} \int \frac{\exp(i\vec{k}\cdot\vec{\ppos}_{ij})}{k^2}\left(\sinc(ka) \right)^2\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)d\vec{k}.
 \end{aligned}
 \end{equation}
-Expressing this integral in Fourier space allows us to express it in a compact form and, as we will see later, this will facilitate its extension to periodic environments.
+Expressing this integral in Fourier space allows us to express it in a compact form and, as we will see later, doing so will facilitate its extension to periodic environments.
 A detailed solution for this integral can be found at\cite{Wajnryb2013}. It is important to note that the integral must be handled separatedly when the two particles overlap.
 Finally, the free-space \gls{RPY} mobility tensor can be written in real space as\cite{Wajnryb2013}
 \begin{equation}
@@ -2924,7 +2917,7 @@ auto createIntegratorBDHILanczos(UAMMD sim){
 \chapter{Triply periodic hydrodynamics}
 It is often convenient to impose \gls{PBC} in our complex fluids simulations. However, as the hydrodynamic interactions are long ranged in nature, especial considerations are required to elaborate efficient algorithms. When discussing open boundary hydrodynamics in the past chapter the most efficient algorithm had a complexity of $O(N^2)$. Intuitively, it would seem that imposing \glspl{PBC} would but make things even worse. Luckily, we can leverage the mathematical machinery laid out in chapter \ref{sec:bdhi} to devise a family of triply periodic, Eulerian-Lagrangian, pseudo-spectral algorithms on regular mehes with complexities that will, in fact, scale linearly with the number of particles. In the following sections we will go through a bunch of GPU-aware algorithms that allow to compute hydrodynamic displacements (owning to the different terms in eq. \eqref{eq:bdfull}) in triply periodic environments. In particular, we will solve eq. \eqref{eq:stokes} (or eq. \eqref{eq:navierstokes} in sec. \ref{ch:icm}) directly. As we saw in chapter \ref{sec:bdhi} sampling the local fluid velocity to compute hydrodynamic displacements of each particle is equivalent to solving the particle's dynamics with eq. \eqref{eq:bdfull} (or equivalently eq. \eqref{eq:bdhibdrelation}).
 
-All the algorithms we will learn about share some common themes, mainly: They are immersed boundary-like methods\cite{Pekin2002} that take the gross of the computation to Fourier-space in some way (pseudo-spectral algorthms). Many complex operations (differentiations, convolutions\dots) become simple algebraic ones in Fourier space. One of the main motivations to devise pseudo-spectral algorithms is the existence of the \gls{FFT} algorithm which can take a signal, evaluated at equidistant points (i.e. a regular grid), to Fourier space in just $O(N\log(N))$ operations. It would be pointless to develop an spectral algorithm because it reduces the complexity of certain operations if we need $O(N^2)$ operations to transform a signal.
+All the algorithms we will learn about share some common themes, mainly: They are immersed boundary-like methods\cite{Peskin2002} that take the gross of the computation to Fourier-space in some way (pseudo-spectral algorthms). Many complex operations (differentiations, convolutions\dots) become simple algebraic ones in Fourier space. One of the main motivations to devise pseudo-spectral algorithms is the existence of the \gls{FFT} algorithm which can take a signal, evaluated at equidistant points (i.e. a regular grid), to Fourier space in just $O(N\log(N))$ operations. It would be pointless to develop an spectral algorithm because it reduces the complexity of certain operations if we need $O(N^2)$ operations to transform a signal.
 
 In order to numerically solve eq. \eqref{eq:stokes} (via the Green formalism, see eq. \eqref{eq:greenstokes}) in Fourier space we need to evaluate the fluid velocity in a grid.
 A grid poses an inmediate challenge when we want to compute the displacements of a group of arbitrarily located particles because we have to transform the forces acting on them to a smooth force density field defined in the same grid as the fluid. In chapter \ref{sec:bdhi} we saw how this conversion is carried out by the spreading and interpolation operators via a smoothed delta function. We will describe how to efficiently apply the spreading and interpolation operators in a \gpu in chapter \ref{sec:ibm}.
@@ -3019,7 +3012,7 @@ Similarly, once the fluid velocities are obtained in Fourier space, the angular 
 
 
 \subsection*{Use in UAMMD}
-Using the \gls{FCM} strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). Being an approximate algorithm, a tolerance has to be specified and since now the domain is periodic, a domain size is also needed.
+Using the \gls{FCM} strategy in \uammd is similar to using Cholesky (see sec. \ref{sec:uammdchol}). Being an approximate algorithm\footnote{Due to the spacial discretization and the quadrature errors incurred when spreading\interpolating with a truncated kernel.} , a tolerance has to be specified and since now the domain is periodic, a domain size is also needed.
 
 In contrast with the open boundary algorithms in sections \ref{sec:chol} and \ref{sec:lanczos} this implementation does not allow to set a different hydrodynamic radius for each particle.
 Here is an example of the Euler-Maruyama integration scheme being specialized with \gls{FCM}.
@@ -3735,6 +3728,7 @@ Sizes beyond $512$ cells per direction (in a cubic domain) start to suffer from 
 \label{fig:ibmcompsorted}
 \end{figure}
 
+
 \subsubsection*{Interpolation algorithm}
 Interpolation is inherently a more efficient operation than spreading, since no atomic operations are required and, moreover, we only need to read the grid data (see alg. \ref{alg:visitneigh}). The worker asigned to a particle can accumulate the result of the interaction with nearby particles into a local variable and then write it to the global result array. Furthermore, interpolation requires only $N$ write operations, while spreading requires to perform $n_s^3N$ atomic writes.
 The same TPP vs BPP arguments from spreading can be broadly employed here, prompting for a BPP approach. In this case, each thread in the block assigned to a given particle will compute the interaction with one (or several) cells, storing the result in a thread local register.
@@ -3745,16 +3739,17 @@ Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the
 \todo{Differences maybe due to block size?, should be faster I would say}
 \begin{figure}[h]
   \centering
-\includegraphics[width=0.7\linewidth]{gfx/ibm_comp_interp_2080ti}
+\includegraphics[width=0.6\linewidth]{gfx/ibm_comp_interp_2080ti}
 \caption{Interpolation performance for different densities. Particles are distributed uniformly in a cubic grid and one value is interpolated with a support $n_s=8$ using a Gaussian kernel. Performance data was gathered in an RTX2080Ti \gpu using single precision. All data lies near the 9ns mark.}
   \label{fig:ibmcompinterp}
 \end{figure}
+
 
 \subsection*{Use in UAMMD}
 
 The \emph{IBM} module in \uammd exposes the spreading and interpolation algorithms described in the previous sections.
 
-This interface is quite generic, allowing to spread or gather in a wide variety of situations. The geometry of the grid is abstracted via the \emph{Grid} object (see sec. \ref{sec:uammdgrid}) so non regular grids can be used. By default, the module will assume that data for cell $(i,j,k)$ is located at index $i+(j+kn_y)n_x$, but any indexing can be used by providing the module with a functor whose parenthesis operator takes $(i,j,k)$ and returns the index in the grid data array.
+This interface is quite generic, allowing to spread or gather in a wide variety of situations. The geometry of the grid is abstracted via the \emph{Grid} object (see Appendix \ref{ch:online}) so non regular grids can be used. By default, the module will assume that data for cell $(i,j,k)$ is located at index $i+(j+kn_y)n_x$, but any indexing can be used by providing the module with a functor whose parenthesis operator takes $(i,j,k)$ and returns the index in the grid data array.
 
 The types of the grid and particle data arrays are templated. In fact any random access iterator can be provided as long as the value type of the grid data is convertible to the one of the particle data (and viceversa) and any two given elements can be summed. So one can, for instance, using a \emph{transform iterator},  compute the quantity to spread on the fly without storing or reading anything. For additional information on C++ templates and iterators, see Appendix \ref{sec:cpp}.
 
@@ -5179,7 +5174,7 @@ In contrast with the diverging collective diffusion, we find that the long time 
 
 \chapter{Optofluidic control of the dispersion of nanoscale dumbbells}
 
-In \cite{Melendez2019} \uammd is used in conjunction with an already stablished in-house solver for interaction between particles and optical fields to study the hydrodynamically-enhanced dispersion of a collection of nanoscale dumbbells in a vortex lattice formed by an incident laser. In particular, the system is simulated with open boundaries via the Cholesky decomposition apporach in chapter \ref{sec:chol}. In some simulations hydrodynamics are turned off hydrodynamics to isolate their effect by using plain \gls{BD} (introduced in chapter \ref{sec:bd}).
+In \cite{Melendez2019} \uammd is used in conjunction with an already stablished in-house solver for interaction between particles and optical fields to study the hydrodynamically-enhanced dispersion of a collection of nanoscale dumbbells in a vortex lattice formed by an incident laser. In particular, the system is simulated with open boundaries via the Cholesky decomposition apporach in chapter \ref{sec:chol}. In some simulations hydrodynamics are turned off to isolate their effect by using plain \gls{BD} (introduced in chapter \ref{sec:bd}).
 
 Previous research has shown that gold nanoparticles immersed in water in an optical vortex lattice formed by the perpendicular intersection of two standing light waves with a $\pi/2$ rad phase difference will experience enhanced dispersion that scales with the intensity of the incident laser. We show that flexible nanoscale dumbbells (created by attaching two such gold particles by means of a polymer chain) in the same field display different types of motion depending on the chain length and field intensity. We have not disregarded the secondary optical forces due to light scattering. The dumbbells may disperse, rotate, or remain trapped. For some values of the parameters, the (enhanced) dispersion possesses a displacement distribution with exponential tails, making the motion anomalous, though Brownian.
 
@@ -6149,6 +6144,7 @@ struct SimpleLJ{
   
 };
 \end{code2}
+
 \todo{DESCRIBE INTERFACE}
 
 \chapter{List of currently implemented modules}\label{sec:modulelist}
@@ -6212,6 +6208,7 @@ Most of the modules listed below have a corresponding chapter in this manuscript
 \end{itemize}
 
 \newpage
+
 
 \printbibliography[heading=bibintoc]
 
