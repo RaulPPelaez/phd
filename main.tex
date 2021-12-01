@@ -621,18 +621,18 @@ In other words, conceptual complexity and problem specificity should increase on
 
 \chapter{It's in the name}\label{ch:design}
 
-It is common knowledge that a good software starts with a good acronym. \uammd stands for Universally Adaptable Multiscale Molecular Dynamics in an attempt to abridge the simple-yet-powerful four assumptions in the previous chapter\footnote{Naturally, the fact that the acronym for the Universidad Autonoma de Madrid is there is merely a coincidence}. Each of the words carries a different aspect of the framework's philosophy. In this chapter, we will discuss each of them.
+It is common knowledge that good software starts with a good acronym. \uammd stands for Universally Adaptable Multiscale Molecular Dynamics in an attempt to abridge the simple-yet-powerful four assumptions in the previous chapter\footnote{Naturally, the fact that the acronym for the Universidad Autonoma de Madrid is there is merely a coincidence.}. Each of the words carries a different aspect of the framework's philosophy. In this chapter, we will discuss each of them.
 \section{\uppercase{\textbf{U}}niversality}
 
-Complex fluids are one of the prime examples of a multiphysics system. As such, multiphysics are deeply ingrained part of \uammd. Our framework can potentially take into account physical phenomena emerging from seemingly disparate fields.
+Complex fluids are one of the prime examples of a multiphysics system. As such, multiphysics are deeply ingrained in \uammd. Our framework can potentially take into account physical phenomena emerging from seemingly disparate fields.
 One of the key features for \emph{universality} is to be able to communicate between Eulerian (fields) and Lagrangian (``particles'') descriptions. This hybrid approach permits \uammd to efficiently solve problems involving hydrodynamics, electrostatics, magnetism, light-matter interactions, and more... 
   
 %Although we focus on the dynamics of particles, which have a Lagrangian description, using an intermediate Eulerian description is a possibility in these situations.
 In chapter \ref{sec:bdhi}, we will describe a series of Eulerian-Lagrangian algorithms that incorporate the effect of a solvent in a group of submerged particles (hydrodynamics) by describing it explicitly. On the other hand, we will adapt these techniques to compute electrostatics in chapter \ref{ch:tppoisson} by describing an explicit \emph{charge-density field}.
 
-Quantum physics have not been mentioned yet and for the time being we have limited our toolset to the classical world. Thus, staying in the realm of classical physics could be consider a fifth (soft) assumption.
+Quantum physics have not been mentioned yet and for the time being we have limited our toolset to the classical world. Thus, staying in the realm of classical physics could be considered a fifth (soft) assumption.
 
-It is however important to stress that the central (class) object in \uammd are the particles (see below). In fact, the fourth assumption in chapter \ref{pt:uammd} states that particles are expected to interact between them or via an external influence. When particles are submerged in a fluid, its effect on the former can be considered an external influence. Even when the fluid itself is also affected by the presence particles, as is the case with hydrodynamics.
+It is however important to stress that the central (class) object in \uammd are the particles (see below). In fact, the fourth assumption in chapter \ref{pt:uammd} states that particles are expected to interact with each other or via an external influence. When particles are submerged in a fluid, its effect on the former can be considered an external influence. Even when the fluid itself is also affected by the presence particles, as is the case with hydrodynamics.
 
 \section{\uppercase{\textbf{A}}daptability}
 
