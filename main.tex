@@ -259,13 +259,13 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \noindent\myName: \textit{\myTitle,} \mySubtitle, %\myDegree,
 \textcopyright\ \myTime
 
-%\bigskip
-%
-%\noindent\spacedlowsmallcaps{Supervisors}: \\
-%\myProf \\
-%\myOtherProf \\
-%\mySupervisor
-%
+\bigskip
+
+\noindent\spacedlowsmallcaps{Supervisors}: \\
+\myProf \\
+\myOtherProf \\
+\mySupervisor
+
 %\medskip
 %
 %\noindent\spacedlowsmallcaps{Location}: \\
@@ -484,11 +484,11 @@ The birth of CUDA became a pivotal moment in high performance computing, opening
 In this thesis, we will push the boundaries of \gpu computing by developing and implementing old and new algorithms for the modeling of soft matter systems into a new infrastructure called \uammd. \uammd is designed from scratch with the \gpu in mind and is written in CUDA/C++.
 
 One of the main criticisms of CUDA is that it is a closed source, proprietary environment that can only be compiled for NVIDIA's own \glspl{GPU}. This restricts CUDA code to only a subset of \gpu hardware.
-In 2009, an open standard called OpenCL\cite{Stone2010} was born (from the creators of OpenGL) as an alternative to CUDA. Although implementations of OpenCL exist for almost any hardware (including GPUs from NVIDIA and AMD, CPUs, FPGAs,...) its adoption has been slow, partly due to an aggressive marketing campaign from NVIDIA to sell CUDA as the better alternative\footnote{Since the birth of CUDA, NVIDIA has been promoting it by donating GPUs to researchers, giving away a plethora of CUDA courses all around the world and more.}. The general feeling in the community has always been that OpenCL should win as the de facto \gls{GPGPU}-\gls{API} in the long run. However, it simply has not happened yet.
+In 2009, an open standard called OpenCL\cite{Stone2010} was born (from the creators of OpenGL) as an alternative to CUDA. Although implementations of OpenCL exist for almost any hardware (including GPUs from NVIDIA and AMD, CPUs, FPGAs,...) its adoption has been slow, partly due to an aggressive marketing campaign from NVIDIA to sell CUDA as the better alternative\footnote{Since the birth of CUDA, NVIDIA has been promoting it by donating GPUs to researchers, giving away a plethora of CUDA courses all around the world, and more.}. The general feeling in the community has always been that OpenCL should win as the de facto \gls{GPGPU}-\gls{API} in the long run. However, it simply has not happened yet.
 Luckily, there are ways to translate CUDA code into OpenCL code\footnote{In particular, the HIP library works as a thin wrapper over CUDA/OpenCL, allowing to write code that can be compiled for any of the \glspl{API}.} and, given that the paradigms of both \glspl{API} are quite similar, it is fairly straightforward to port CUDA code to OpenCL. Therefore, in the future, porting the software infrastructure presented in this manuscript to OpenCL would be mainly painless and will not require changes to the public \gls{API}. So, even though at the time of writing \uammd is restricted to run on NVIDIA's hardware, it is possible to adapt it so that it runs on virtually any parallel hardware.
 
 \section{Basic concepts of GPU programming}\label{ch:gpuintroduction}
-The \gpu is a pivotal concept in this work and, as such, it is worth introducing here its basic computing model. Doing so will enable the unfamiliar reader to better grasp the importance of designing algorithms specific for the \gpu and the new hardships that arise when approaching it from a CPU-centric world. Note, however, that this is merely an introduction to the particularities that come with coding for the \gpu and will probably not contain enough information for an unfamiliar reader to be able to write \gpu code. Appendix \ref{sec:cpp} contains a more in depth introduction to programming C++ and CUDA, although a plethora of arbitrarily-detailed tutorials and courses are freely available on the web that should be taken into account.
+The \gpu is a pivotal concept in this work and, as such, it is worth introducing here its basic computing model. Doing so will enable the unfamiliar reader to better grasp the importance of designing algorithms specific for the \gpu and the new hardships that arise when approaching it from a CPU-centric world. Note, however, that this is merely an introduction to the particularities that come with coding for the \gpu and will probably not contain enough information for an unfamiliar reader to be able to write \gpu code. Appendix \ref{sec:cpp} contains a more in depth introduction to programming C++ and CUDA, although a plethora of arbitrarily-detailed tutorials and courses are freely available on the web.
 
 The \gpu (usually referred to simply as \emph{device}) works as a massively parallel co-processor, with thousands of (relatively slow) cores (workers), independent of the rest of the system for most uses and purposes. The \gpu runs instructions independently (and in principle asynchronously) from the CPU (referred to as the \emph{host}). More importantly, the \gpu has its own memory space which is separated from the system RAM. The device cannot access the host memory directly (and vice-versa)\footnote{This is not entirely true anymore for recent CUDA versions via the so-called Unified Virtual Addressing (UVA) system. However, this advanced functionality is beyond the scope of this work and, in any case, \uammd only makes use of it in very specific instances.}. If information has to be shared between each other an explicit memory copy has to be issued, which incurs a synchronization barrier and is in general a slow process. In this section, we will discuss how these properties are taken into account and how they affect the programming model.
 
@@ -527,28 +527,28 @@ CUDA allows us to write small programs, called kernels, that we can then launch 
 \section{Software for soft matter simulations}
 
 \subsection*{A brief history of molecular dynamics software}
-Particle based computer modeling of soft matter systems has been around since the advent of computers. The use of computers for physical simulation can be tracked back as far as to the 1940's when researches at the Los Alamos national laboratory described the use of the ENIAC\footnote{The first programmable, electronic, general-purpose digital computer.} for simulating some stochastic physical process\cite{Hurd1985} (the origins of the Monte Carlo method\cite{Johansen2010}). Shortly after, in the 1950's, computational molecular dynamics was born\cite{DeTullio2016}.
+Particle based computer modeling of soft matter systems has been around since the advent of computers. The use of computers for physical simulation can be tracked back to as far as the 1940's when researches at the Los Alamos national laboratory described the use of the ENIAC\footnote{The first programmable, electronic, general-purpose digital computer.} for simulating some stochastic physical process\cite{Hurd1985} (the origins of the Monte Carlo method\cite{Johansen2010}). Shortly after, in the 1950's, computational molecular dynamics was born\cite{DeTullio2016}.
 
-One of the first examples of a software package for molecular dynamics is CHARMM, whose initial release dates back to 1983\cite{Brooks1983}. To put it in perspective, Windows 1.0 was released in 1985, the UNIX operating system was disclosed to the public in 1973 and Linux originated in 1991. It is humbling to realize that since 1983 the basic layout of a full-fledged molecular dynamics software package has not changed that much. As a matter of fact, the infrastructure presented in this manuscript shares many of the basic conceptual separations already present in \cite{Brooks1983}.
+One of the first examples of a software package for molecular dynamics is CHARMM, whose initial release dates back to 1983\cite{Brooks1983}. To put it in perspective, Windows 1.0 was released in 1985, the UNIX operating system was disclosed to the public in 1973 and Linux originated in 1991. It is humbling to realize that since 1983 the basic layout of a fully fledged molecular dynamics software package has not changed that much. As a matter of fact, the infrastructure presented in this manuscript shares many of the basic conceptual sections already present in \cite{Brooks1983}.
 
 It is important to also mention that MPI, one of the first parallel \glspl{API}, was not available until 1994. Up to that point, sequential computing was the norm.
 
 Another famous molecular dynamics package is GROMACS, which was released in 1991, with the first version using MPI coming shortly after it's release.
 
 \subsection*{The GPU revolution}
-Many of these software packages were born more than a decade before the term \gpu existed and were already quite established when the \gpu became a mainstream general purpose computing hardware. Naturally almost all of them have, at least partially, ported their functionalities to be accelerated by a \gpu in some way. However, \gpu programming poses such a wildly orthogonal paradigm that it makes the porting process slow and painful. Most CPU-centric molecular dynamics packages are already so complex that redesigning from the ground up to accommodate for the \gpu is not an option and thus their inclusion can become awkward, sometimes causing the so-called software rot.
+Many of these software packages were born more than a decade before the term \gpu existed and were already quite established when the \gpu became a mainstream general-purpose computing hardware. Naturally almost all of them have, at least partially, ported their functionalities to be accelerated by a \gpu in some way. However, \gpu programming poses such a wildly orthogonal paradigm that it makes the porting process slow and painful. Most CPU-centric molecular dynamics packages are already so complex that redesigning from the ground up to accommodate for the \gpu is not an option and thus their inclusion can become awkward, sometimes causing so-called software rot.
 
-It is therefore worth it to once in a while start again from a clean slate considering the new environments. One example of this is the general-purpose molecular dynamics software package HOOMD\cite{Anderson2008}. Born around the same time as CUDA itself HOOMD was designed from the ground up with the \gpu in mind. Although HOOMD provides a CPU-only backend it is centered around the \gpu and can work exclusively in it, this is crucial, as communication between the CPU and the \gpu is quite expensive, so much that it can many times negate the benefits of using a \gpu altogether.
+It is therefore worth it to start from a clean slate every once in a while considering the new environments. One example of this is the general-purpose molecular dynamics software package HOOMD\cite{Anderson2008}. Born around the same time as CUDA itself HOOMD was designed from the ground up with the \gpu in mind. Although HOOMD provides a CPU-only backend it is centered around the \gpu and can work exclusively in it, this is crucial, as communication between the CPU and the \gpu is quite expensive, so much that it can often negate the benefits of using a \gpu altogether.
 
 The \gpu offers mind-blowing raw computing power when used correctly. Developing new algorithms and software infrastructures from scratch particularly designed for the \gpu architecture is therefore essential to exploit this amazing technology to the fullest. This starts by taking the whole computation to the \gpu in order to avoid the communication cost. On the other hand, at a library level, one of the most powerful tools exposed by the \gpu is the \gls{FFT}. It just so happens that the existing algorithms to compute the discrete Fourier transform numerically are a perfect fit for the \gpu. We will exploit this by devising pseudo-spectral algorithms in which the majority of the computations take place in Fourier space.
 
 \subsection*{Closed vs. Open ecosystems}
-Most commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for an user, the only option to interface with the packages is to encode a simulation in them in its totality. In other words, it is awkward (or straight up not possible) to use these packages as external accelerators for an already established, in-house, code.\footnote{If these software packages were hardware stores, a closed ecosystem would consist of the tools inside the store (the hammer, saw, etc) being chained to the counter, so you would need to bring your furniture into the store in order to fix it.}  
+Most commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for a user, the only option to interface with the packages is to encode a simulation in them in its totality. In other words, it is awkward (or straight up not possible) to use these packages as external accelerators for an already established, in-house, code.\footnote{If these software packages were hardware stores, a closed ecosystem would consist of the tools inside the store (the hammer, saw, etc) being chained to the counter, so you would need to bring your furniture into the store in order to fix it.}  
 
 A closed ecosystem allows to design the software under less assumptions, easing development. On the other hand, a closed ecosystem misses some opportunities in doing so. For instance, one of the first problems a soft matter software package must solve is the construction of a short ranged particle interaction list (a so-called neighbour list), which usually governs the overall computational cost of a simulation. Creating a public, library-like, interface exposing this list creation algorithm (in what we would call an open ecosystem) allows an user to take his existing code and accelerate it, as opposed to having to do it the other way around, that is porting the entirety of his simulation to the closed ecosystem.
 
-\uammd attempts to provide an \emph{open} ecosystem, exposing most of its underlying algorithms in a library-like fashion\footnote{Following the hardware store analogy, the tools of an open ecosystem store would not only be unchained, but also available for rent. Furthermore, this would be an \emph{open-source} hardware store (bear with me) so the cost of renting the tools is zero euros per day. In this kind of store, you can take only the tool(s) you need and fix your stuff at home.}.
-Furthermore, while most packages require to be compiled into a binary or library in order to be used, \uammd is a header-only framework. Meaning that the compilation of a source code using parts of \uammd can be seamlessly ingrained along the compilation process of another software.
+\uammd attempts to provide an \emph{open} ecosystem, exposing most of its underlying algorithms in a library-like fashion\footnote{Following the hardware store analogy, the tools of an open ecosystem store would not only be unchained, but also available for rent. Furthermore, this would be an \emph{open-source} hardware store (bear with me) so the cost of renting the tools is zero euros per day. In this kind of store, you can just borrow the tool(s) you need and fix your stuff at home.}.
+Furthermore, while most packages require compilation into a binary or library in order to be used, \uammd is a header-only framework. Meaning that the compilation of a source code using parts of \uammd can be seamlessly blended in during the compilation process of another software.
 
 
 %Developing algorithms for the ground up with the GPU architecture in mind is essential. Leverage ultra efficient \gpu \gls{FFT} by developing spectral algorithms.
@@ -558,20 +558,20 @@ Furthermore, while most packages require to be compiled into a binary or library
 \part{UAMMD: Design and components}\label{pt:uammd}
 
 \chapter{The Fermation of subproblems}
-The Trinity test, the first atomic bomb detonation in history, was carried out in 1945. The scientist of the Manhattan project dumbfoundedly observed how the detonation unraveled from a base afar. Among them was Enrico Fermi, the so-called architect of the nuclear age, who was 44 at the time. Fermi had absent-mindedly torn apart a sheet of paper moments before the detonation took place and held the pieces in his hands. Fourty seconds after the blast the then withered shockwave hit the crew. At the first sign of the shockwave Fermi, who had placed his hands above his head in expectation, released the paper bits, which landed a couple of meters past him. After a brief moment of meditation, Fermi announced to the crew that the detonation had released about 10 kilotons of energy.
-It took weeks of analyzing the data from the plethora of sensors available on site to confirm Fermi's estimate, which is now believed to have been near 20 kilotons.
+The Trinity test, the first atomic bomb detonation in history, was carried out in 1945. The scientists of the Manhattan project dumbfoundedly observed how the detonation unraveled from a base afar. Among them was Enrico Fermi, the so-called architect of the nuclear age, who was 44 at the time. Fermi had absent-mindedly torn apart a sheet of paper moments before the detonation took place and held the pieces in his hands. Fourty seconds after the blast the then withered shockwave hit the crew. At the first sign of the shockwave Fermi, who had placed his hands above his head in expectation, released the paper bits, which landed a couple of meters past him. After a brief moment of meditation, Fermi announced to the crew that the detonation had released about 10 kilotons of energy.
+It took weeks of analyzing the data from the plethora of sensors available on site to confirm Fermi's estimate of the energy, which is now believed to have been near 20 kilotons.
 
-Fermi had mastered (and practically invented) these back-of-the-envelope calculations, which are more precise than a guess but are not mathematical proofs. He knew how to subdivide complex, intractable, problems into many small and manageable ones. In order to teach this technique to his students, Fermi prompted them with a kind of question that has become known as a \emph{Fermi problem}. A Fermi problem presents itself as an apparently unanswerable question. For instance: ``\emph{If I attach a blood vial to the wheels of my bike, how fast do I need to go and for how long for the plasma to separate from the blood cells?}'' or ``\emph{How many hairs does a polar bear have?}''. At first sight it seems that we simply do not have enough information at hand to solve these problems. However, if we break them down into small, answerable, subproblems we find that we can give a pretty good estimate in a short time: ``\emph{What is the skin area of a bear?}'', ``\emph{How many hairs per squared centimeter does a bear have?}''. These can in turn be interpreted as Fermi problems in on themselves and further subdivided: ``\emph{What is the average height of a bear?}'', ``\emph{Assuming a bear is somewhat cylindrical, what is it's radius}?'',``\emph{What is the diameter of a hair?}''\footnote{Let us assume bear hairs grow in a near close-packed configuration (it's cold at the poles, you know) where each hair is on the order of $20\mu m$ in radius. This yields $1\text{cm}^2/((20\mu m)^2\pi) \sim 100K \text{hairs}/\text{cm}^2$. I have not found the precise number, but we can compare with a sea otter (the mammal with the densest fur) which has between $100-400K \text{hairs}/\text{cm}^2$. This gives me some confidence about the validity of our order of magnitude.}, etc.
+Fermi had mastered (and practically invented) these back-of-the-envelope calculations, which are more precise than a guess but are not mathematical proofs. He knew how to subdivide complex, intractable, problems into many small and manageable ones. In order to teach this technique to his students, Fermi prompted them with a kind of question that has become known as a \emph{Fermi problem}. A Fermi problem presents itself as an apparently unanswerable question. For instance: ``\emph{If I attach a blood vial to the wheels of my bike, how fast do I need to go and for how long for the plasma to separate from the blood cells?}'' or ``\emph{How many hairs does a polar bear have?}''. At first sight it seems that we simply do not have enough information at hand to solve these problems. However, if we break them down into small, answerable, subproblems we find that we can give a pretty good estimate in a short time: ``\emph{What is the skin area of a bear?}'', ``\emph{How many hairs per squared centimeter does a bear have?}''. These can in turn be interpreted as Fermi problems themselves and further subdivided: ``\emph{What is the average height of a bear?}'', ``\emph{Assuming a bear is somewhat cylindrical, what is it's radius}?'',``\emph{What is the diameter of a hair?}''\footnote{Let us assume bear hairs grow in a near close-packed configuration (it's cold at the poles, you know) where each hair is on the order of $20\mu m$ in radius. This yields $1\text{cm}^2/((20\mu m)^2\pi) \sim 100K \text{hairs}/\text{cm}^2$. I have not found the precise number, but we can compare with a sea otter (the mammal with the densest fur) which has between $100-400K \text{hairs}/\text{cm}^2$. This gives me some confidence about the validity of our order of magnitude estimation.}, etc.
 
 Surely we can apply Fermi's teachings and \emph{Fermate} our endeavors into subproblems too.
-Consider the development of a software capable of reproducing the dynamics of an ionic solution in a cellular membrane channel. This poses a really convoluted simulation, involving electrostatics, fluctuating hydrodynamics, steric interactions, bonded ligatures, etc.\footnote{A simulation easily handled by \uammd, by the way.}. As we will see along this manuscript, some of these algorithms are quite complex on their own, depending on a lot of moving parts. The mathematical and theoretical machinery required to model something like that appears to be in the realm of a theory of everything. It sure sounds as a Fermi problem.
+Consider the development of a software capable of reproducing the dynamics of an ionic solution in a cellular membrane channel. This poses a really convoluted simulation, involving electrostatics, fluctuating hydrodynamics, steric interactions, bonded ligatures, etc.\footnote{A simulation easily handled by \uammd, by the way.}. As we will see along this manuscript, some of these algorithms are quite complex on their own, depending on lots of moving parts. The mathematical and theoretical machinery required to model something like that appears to be in the realm of a theory of everything. It sure sounds like a Fermi problem.
 
 Still, we could try to design, from the ground up, a software that can perform this hypothetical simulation. 
-However, this top-down approach is fundamentally flawed. The final product will probably have a lot of internal dependencies, many of which are probably unnecessary. In software this means that the code will be hard to adapt, extend or even more scary, to maintain.
+However, this top-down approach is fundamentally flawed. The final product will probably have a lot of internal dependencies, many of which are probably unnecessary. In software this means that the code will be hard to adapt, extend or even scarier, to maintain.
 
-We humans are not good with complex things (which is probably the reason why complex and complicated share the same etymology) and, as it can be glimpsed throughout \uammd, my solution to this problem is often to either Fermate it or remove it altogether.
+We humans are not good with complex things (which is probably the reason why complex and complicated share the same etymology) and, as can be glimpsed throughout \uammd, my solution to this problem is often to either Fermate it or remove it altogether.
 
-Like we did when counting hairs, we start by dividing the original problem into subproblems in a hierarchical fashion (see fig. \ref{fig:uammdsketch}). The top of the tree represents the most general (or abstract) aspect of the problem, and subdivisions offer increasingly specific concepts. So instead of designing our framework with an ionic solution in a membrane channel in mind, we start at the top and then hierarchically specialize. What constitutes the ``top'', or \emph{soul}, of the problem is of course highly subjective and thus the contents of the next sections should be considered but merely my humble take on it\footnote{Note, however, that I am far from the first to come up with this logical separation. Slightly different separations and with different names are present in basically every molecular dynamics software package.}.
+Like we did when counting hairs, we start by dividing the original problem into subproblems in a hierarchical fashion (see fig. \ref{fig:uammdsketch}). The top of the tree represents the most general (or abstract) aspect of the problem, and subdivisions offer increasingly specific concepts. So instead of designing our framework with an ionic solution in a membrane channel in mind, we start at the top and then hierarchically specialize. What constitutes the ``top'', or \emph{soul}, of the problem is of course highly subjective and thus the contents of the next sections should be considered little more than my humble take on the problem\footnote{Note, however, that I am far from the first to come up with this logical separation. Slightly different separations and with different names are present in basically every molecular dynamics software package.}.
 
 In particular, we can find the root by removing assumptions until we get to a point where only one (or a small number of them) remains. Therefore, we do not design in terms of ``ions'', ``cells'' or ``molecules'', rather in terms of a vague concept called ``particles''.
 Following Fermi's teachings we embrace the (redundant) complexity of complex fluids instead of trying to fight it.
@@ -581,9 +581,9 @@ Following Fermi's teachings we embrace the (redundant) complexity of complex flu
 The foundational concepts of \uammd are supported on a handful of (deliberately) vague assumptions which can be summarize in four:
 \begin{enumerate}[label=\textbf{S.\arabic*}]
 \item The \emph{System} assumption: The code will run primarily on a \gpu (the most limiting assumption in the development process).
-\item The \emph{ParticleData} assumption: Simulations are based on the state of ``particles'' (whatever a particle and it's state mean).
+\item The \emph{ParticleData} assumption: Simulations are based on the state of ``particles'' (whatever a particle and its state mean).
 \item The \emph{Integrator} assumption: The state of these particles changes in time.
-\item The \emph{Interactor} assumption: Particles can interact between them and with an external influence.
+\item The \emph{Interactor} assumption: Particles can interact with each other and with an external influence.
 \end{enumerate}
 These are the four pillars depicted in fig. \ref{fig:uammdsketch}. The software framework exposes these assumptions through four foundational classes (i.e objects in programming), which are, in order; \emph{System}, \emph{ParticleData}, \emph{Integrator} and \emph{Interactor}.
 
@@ -594,30 +594,30 @@ These are the four pillars depicted in fig. \ref{fig:uammdsketch}. The software 
   \label{fig:uammdsketch}
 \end{figure}
 %\todo{Add something about gpu arch in System in the fig, gpu arch, ncores,...}
-Excluding the first assumption, which is unrelated to physics, it is straight-forward to see that our initial ionic solution simulation fits into this criterion. As a bonus, we have ended up with a basis that also describes things like ``a gas of argon atoms'', ``a group of planets orbiting a star'' or ``a virus filled with proteins exploding due to the force exerted on it by an AFM tip''\footnote{An oddly specific example describing a real study that is being carried out with \uammd at the moment of writing by a collaborator group.}.
+Excluding the first assumption, which is unrelated to physics, it is straightforward to see that our initial ionic solution simulation fits into this criterion. As a bonus, we have ended up with a basis that also describes things like ``a gas of argon atoms'', ``a group of planets orbiting a star'' or ``a virus filled with proteins exploding due to the force exerted on it by an AFM tip''\footnote{An oddly specific example describing a real study that is being carried out with \uammd at the moment of writing by a collaborator group.}.
 
 At the top of the tree in fig. \ref{fig:uammdsketch} we find the \emph{System} object which takes care of setting up the computational environment for the rest of players. Usually the user does not need to interact with this object, which is automatically started when needed. \uammd's online documentation can be visited to learn more about the \emph{System} object (see Appendix \ref{ch:online})
 
 The second assumption is represented in the code base via the \emph{ParticleData} object, which we discuss in \ref{sec:dynmol}.
 
-Then, we can focus on each of the last two assumptions and apply this separation again. For instance, instead of grouping all interactions (fourth assumption) into a single entity (class) that deals with all possible interactions, we can split the concept between general things like short ranged, bonded or long ranged interactions. In section \ref{sec:interactions} we explore deeper along the \emph{Interactor} branch to discuss the different algorithms and programming interfaces related with particle interactions (see fig. \ref{fig:uammdsketch_interactors}.
+Then, we can focus on each of the last two assumptions and apply this separation again. For instance, instead of grouping all interactions (fourth assumption) into a single entity (class) that deals with all possible interactions, we can split the concept between general things like short-ranged, bonded or long-ranged interactions. In section \ref{sec:interactions} we explore deeper along the \emph{Interactor} branch to discuss the different algorithms and programming interfaces related with particle interactions (see Fig. \ref{fig:uammdsketch_interactors}).
 
-Similarly, in section \ref{sec:dynamics} we break down the \emph{Integrator} branch (bottom left of fig. \ref{fig:uammdsketch}) into the several ways the state of the particles can evolve (see fig. \ref{fig:uammdsketch_integrators}).
+Similarly, in section \ref{sec:dynamics} we break down the \emph{Integrator} branch (bottom left of Fig. \ref{fig:uammdsketch}) into the several ways the state of the particles can evolve (see Fig. \ref{fig:uammdsketch_integrators}).
 
-During the following chapters, we will discuss in detail this conceptual and programmatic hierarchy and follow its branches down to the leaves. This ``final'' computational objects representing the leaves of \uammd encapsulate the actual algorithms and physics in the form of isolated, individual modules. A ``module'' can be understood as a piece of code which receives information, processes it, and send back some output. The internal complexity of a module is usually much larger than that related with its input and output. Input and output are the essence of the communication between modules.
+During the following chapters, we will discuss in detail this conceptual and programmatic hierarchy and follow its branches down to the leaves. These ``final'' computational objects representing the leaves of \uammd encapsulate the actual algorithms and physics in the form of isolated, individual modules. A ``module'' can be understood as a piece of code which receives information, processes it, and send back some output. The internal complexity of a module is usually much larger than that related with its input and output. Input and output are the essence of the communication between modules.
 
-In general, these modules will communicate only via the closed loop described by \emph{ParticleData}-\emph{Integrator}-\emph{Interactor} in fig. \ref{fig:uammdsketch}.
+In general, these modules will communicate only via the closed loop described by \emph{ParticleData}-\emph{Integrator}-\emph{Interactor} in Fig. \ref{fig:uammdsketch}.
 
-One of the main unwritten lessons we will glimpse is that it is never a good idea to introduce dependencies that climb up through the tree. Just to give some examples of this:
+One of the main unwritten lessons we will glean that it is never a good idea to introduce dependencies that climb up through the tree. Just to give some examples of this:
 \begin{itemize}
 \item A neighbour list should not assume it is going to be used to
   compute the forces of a group of repulsive particles.
 \item The existence
-  of an hydrodynamics integrator module should not incur in the
+  of a hydrodynamics integrator module should not incur in the
   modification of the \emph{Integrator} interface.
 \end{itemize}
-In other words, conceptual complexity and problem specificity should increase only downwards through the tree. This forces us as developers to modify a certain module only to generalize it, and never to specialize it. If a module appears to require being specialized, it is almost always a sign that either it should be actually generalized or exist as a separate entity beneath the initial one. This is what makes \uammd so modular and extensible. See figures \ref{fig:uammdsketch_interactors} or \ref{fig:uammdsketch_integrators}, the next lower branches.
-\uammd carefully avoids these kind of inter-dependencies. As a matter of fact, if one were to inspect the commit history of the \uammd repository, they would find that many times the most relevant changes come in the form of \emph{removing} code, not adding it. What is interesting about this is that, maybe counter-intuitively, this code removal almost always has resulted in a more generic module.
+In other words, conceptual complexity and problem specificity should increase only downwards through the tree. This forces us as developers to modify a certain module only to generalize it, and never to specialize it. If a module appears to require being specialized, it is almost always a sign that either it should actually be generalized or exist as a separate entity beneath the initial one. This is what makes \uammd so modular and extensible. See figures \ref{fig:uammdsketch_interactors} or \ref{fig:uammdsketch_integrators}, the next lower branches.
+\uammd carefully avoids these kind of interdependencies. As a matter of fact, if one were to inspect the commit history of the \uammd repository, they would find that many times the most relevant changes come in the form of \emph{removing} code, not adding it. What is interesting about this is that, maybe counterintuitively, this code removal almost always has resulted in a more generic module.
 
 \chapter{It's in the name}\label{ch:design}
 
@@ -652,7 +652,7 @@ Even when the internal complexity of each separate module can be quite great it 
 
 On the other hand, this makes \uammd extremely adaptable, since new modules can be added without disturbing the ecosystem.
 
-In \uammd a simulation is described by connecting a series of \emph{Integrators} with an \emph{Integrator}. In fig. \ref{fig:modular} we can see an example of a simulation which connects a hydrodynamics \emph{Integrator} (such as the ones described in sec. \ref{sec:bdhi}) with an \emph{Interactor} that deals with sterics (see sec. \ref{sec:shortrange}), another one that computes electrostatics (see sec. \ref{ch:tppoisson}), and so on and so forth. The communication between these modules is minimal, being mostly restricted to the closed loop in fig. \ref{fig:uammdsketch}. Although nothing prevents two \emph{Interactors} from explicitly sharing information, this never happens in \uammd. 
+In \uammd a simulation is described by connecting a series of \emph{Integrators} with an \emph{Integrator}. In Fig. \ref{fig:modular} we can see an example of a simulation which connects a hydrodynamics \emph{Integrator} (such as the ones described in sec. \ref{sec:bdhi}) with an \emph{Interactor} that deals with sterics (see sec. \ref{sec:shortrange}), another one that computes electrostatics (see sec. \ref{ch:tppoisson}), and so on and so forth. The communication between these modules is minimal, being mostly restricted to the closed loop in Fig. \ref{fig:uammdsketch}. Although nothing prevents two \emph{Interactors} from explicitly sharing information, this never happens in \uammd. 
 
 
 This does not imply that each module should exist in a completely isolated environment, since a plethora of utilities are available in \uammd to aid with the typical problems that arise in complex fluids. For instance, a module in need of a neighbour list does not need to write one, rather can simply make use of one of the already implemented ones (see chapter \ref{sec:nlist}).
@@ -681,7 +681,7 @@ Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Inte
 Describing a given system in a reductionist manner, by solving the dynamics of every atom involved, is of course unfeasible. The \uammd infrastructure can accommodate for several levels of description by making use of coarse-graining techniques. Coarse graining allows to realistically describe a system using fewer degrees of freedom.
 In general, a level of description is tied to a certain time scale and is characterized by a series of relevant variables coupled via a (usually stochastic) dynamic equation.
 
-Although \uammd is not restricted to it, this work is mainly devoted to the study of soft matter systems. In this regard we can identify a series of clearly separated levels of description. It is worth to summarize them here since during this manuscript many of them will be discussed in detail and are furthermore available as \uammd \emph{Integrator} modules. A representation of the different levels of description is available in fig. \ref{fig:multiscale}, while the numerical methods employed to numerically study each of them can be seen in fig. \ref{fig:sptime-land}. Figure \ref{fig:landscape} provides an overview of the different fields of soft matter simulation and its characteristic spatio-temporal scales. We can distinguish between the following levels of description (from most to least detailed):
+Although \uammd is not restricted to it, this work is mainly devoted to the study of soft matter systems. In this regard we can identify a series of clearly separated levels of description. It is worth to summarize them here since during this manuscript many of them will be discussed in detail and are furthermore available as \uammd \emph{Integrator} modules. A representation of the different levels of description is available in Fig. \ref{fig:multiscale}, while the numerical methods employed to numerically study each of them can be seen in Fig. \ref{fig:sptime-land}. Figure \ref{fig:landscape} provides an overview of the different fields of soft matter simulation and its characteristic spatio-temporal scales. We can distinguish between the following levels of description (from most to least detailed):
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/multiscale}
@@ -817,7 +817,7 @@ Note that $\tens{\sigma}(t_0) = 0$ since we know $\vec{x}_0$ exactly. Finally, w
 \end{equation}
 Where the fluctuating part must satisfy eq. \eqref{eq:fpesdefluc}. Furthermore, the diffusion and drag terms are related via the fluctuation-dissipation balance in eq. \eqref{eq:fpefdbal}.
 
-In future chapters, we will apply the Fokker-Planck formalism to the different levels of detail described in fig. \ref{fig:multiscale} and its related discussion.
+In future chapters, we will apply the Fokker-Planck formalism to the different levels of detail described in Fig. \ref{fig:multiscale} and its related discussion.
 
 \subsection{Einstein relation}\label{sec:einstein}
 An extremely important relation between the transport coefficients appearing in $\vec{D}^{(1)}$ and the diffusion $\tens{D}^{(2)}$ can be derived from the equilibrium state, $\vec{J} = 0$ in eq. \eqref{eq:fpeflux}. This relation was first defined by Einstein\cite{Einstein1905} with arguments similar to those exposed in what follows.
@@ -885,8 +885,8 @@ Most chapters beyond this point have a corresponding UAMMD module and are organi
 %The second one also uses particles, but the heavyweight of the algorithm is carried out in a grid, as apposed to just the positions of the particles.
 %In some way require another, all algorithms have to take into account interactions between particles.
 
-%In chapter \ref{ch:design} we introduced the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned and specialized in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch.
-As previously stated the central work-piece in \uammd are the particles (see fig. \ref{fig:uammdsketch}). The \emph{Integrator} solves the time-evolution of the particles and to that end, it requires the driving interactions (e.g. forces) which are, in turn, provided by the \emph{Interactors}. For this reason, from the code perspective ``forces'' and ``velocities'' respectively pertain to \emph{Interactor} and \emph{Integrator} concepts. Grid-based methods generally consist on solving \glspl{PDE} for some spatio-temporal field in a mesh, i.e. in an Eulerian framework. \uammd deploys Eulerian solvers for several purposes: i) to obtain the velocity field of the solvent in Eulerian-Lagrangian hydrodynamics and ii) to solve the force field generated by a distribution of source charges. Both schemes are based on pseudo-spectral methods, which shall be first introduced when explaining hydrodynamic \emph{Integrators} in Chapter \ref{sec:bdhi}. The \emph{Interactor} dealing with electrostatics in \uammd (pseudospectral Poisson solver) is explained later, in Chapter \ref{ch:tppoisson}.
+%In chapter \ref{ch:design} we introduced the \emph{Interactor} interface, the conceptual and programmatic entity that embodies the interaction between particles. In the following chapters, we will descend through the \emph{Interactor} branch in Fig. \ref{fig:uammdsketch} and discuss how the concept can be partitioned and specialized in several ways. Figure \ref{fig:uammdsketch_interactors} depicts this next (deeper) level of the \emph{Interactor} branch.
+As previously stated the central work-piece in \uammd are the particles (see Fig. \ref{fig:uammdsketch}). The \emph{Integrator} solves the time-evolution of the particles and to that end, it requires the driving interactions (e.g. forces) which are, in turn, provided by the \emph{Interactors}. For this reason, from the code perspective ``forces'' and ``velocities'' respectively pertain to \emph{Interactor} and \emph{Integrator} concepts. Grid-based methods generally consist on solving \glspl{PDE} for some spatio-temporal field in a mesh, i.e. in an Eulerian framework. \uammd deploys Eulerian solvers for several purposes: i) to obtain the velocity field of the solvent in Eulerian-Lagrangian hydrodynamics and ii) to solve the force field generated by a distribution of source charges. Both schemes are based on pseudo-spectral methods, which shall be first introduced when explaining hydrodynamic \emph{Integrators} in Chapter \ref{sec:bdhi}. The \emph{Interactor} dealing with electrostatics in \uammd (pseudospectral Poisson solver) is explained later, in Chapter \ref{ch:tppoisson}.
 
 \begin{figure}[h!]
   \centering
@@ -895,7 +895,7 @@ As previously stated the central work-piece in \uammd are the particles (see fig
   \label{fig:overview}
 \end{figure}
 
-Figure \ref{fig:overview} presents an overview of the different layers of UAMMD, listing most of the tools (modules) that we will discuss in future chapters. These essential tools are enhanced by the power of C++ templates, which allow an user to introduce new potentials, interpolation kernels,... into the existing modules without modifying them. In many instances it is even possible to generalize the scope of these tools. For instance, spreading/interpolation in a non-regular grid (discussed in chapter \ref{sec:ibm}), or abusing a neighbour list's (chapter \ref{sec:nlist}) packing efficiency to perform some novel sparse matrix multiplication. Inside UAMMD, the communication between the different modules (which is limited to a minimum to reduce internal dependencies) is carried out via the root, \emph{ParticleData}, and the other foundational modules already introduced in chapter \ref{ch:design} (see fig. \ref{fig:uammdsketch}).
+Figure \ref{fig:overview} presents an overview of the different layers of UAMMD, listing most of the tools (modules) that we will discuss in future chapters. These essential tools are enhanced by the power of C++ templates, which allow an user to introduce new potentials, interpolation kernels,... into the existing modules without modifying them. In many instances it is even possible to generalize the scope of these tools. For instance, spreading/interpolation in a non-regular grid (discussed in chapter \ref{sec:ibm}), or abusing a neighbour list's (chapter \ref{sec:nlist}) packing efficiency to perform some novel sparse matrix multiplication. Inside UAMMD, the communication between the different modules (which is limited to a minimum to reduce internal dependencies) is carried out via the root, \emph{ParticleData}, and the other foundational modules already introduced in chapter \ref{ch:design} (see Fig. \ref{fig:uammdsketch}).
 
 The rest of the manuscript is organized in three main parts: In the first one (part \ref{part:voyage}) we will go through the different techniques used to solve particle interactions and dynamics (as described by the different levels of detail introduced in chapter \ref{sec:multiscale}) with a particular focus on their adaptation and implementation in a \gpu architecture. Whenever a new technique/algorithm is introduced an accompanying code example showing how to use it in \uammd will be present.
  In the second part (part \ref{pt:algo}) we will go through a series of novel algorithms that have resulted from the development of this thesis. Like before, \uammd code examples will always be accompanying the description of the algorithms. Finally, in the third part (part \ref{pt:applications}) we will see a summary of works (publications in scientific journals) in which \uammd has played a role either as a simulation engine or as an accelerator for an already stablished external code. The manuscript ends with some future directions and conclusions (chapter \ref{ch:conclusions}), listing ongoing research and future endavors for the \uammd infrastructure.
@@ -984,8 +984,8 @@ Adding new particle properties in \uammd amounts to include them in a special li
 
 Besides working as a multi container, \emph{ParticleData} offers a series of functionalities overlooked here for simplicity (the reader can find more information in Appendix \ref{ch:online}). However, it is worth mentioning that \emph{ParticleData} has the ability to spatially hash and sort particles to increase data locality when accesing the particles properties.
 
-%\todo{Maybe reference to the different chapters in fig. \ref{fig:uammdsketch_interactors}?}
-%The Poisson leaf in fig. \ref{fig:uammdsketch_interactors} deals with electrostatics and involves a series of numerical techniques that will not be discussed until much later in this manuscript. Thus, we simply mention it here and defer its description to chapter \ref{ch:tppoisson}.
+%\todo{Maybe reference to the different chapters in Fig. \ref{fig:uammdsketch_interactors}?}
+%The Poisson leaf in Fig. \ref{fig:uammdsketch_interactors} deals with electrostatics and involves a series of numerical techniques that will not be discussed until much later in this manuscript. Thus, we simply mention it here and defer its description to chapter \ref{ch:tppoisson}.
 
 \chapter{Particle interactions}\label{sec:interactions}
 
@@ -995,7 +995,7 @@ The important thing about particles is that when several of them are present, th
 Stars in a galaxy attract each other over an infinetely long range of space, while two argon atoms will repell each other at close range.
 Even if particles are somehow oblivious to each other, they might interact with some other thing, like fluid particles being repelled by a wall.
 Each kind of interaction requires a different approach, and figuring out how to efficiently compute it in a \gpu is a field on itself. 
-In this chapter we will see some of the strategies that can be employed and how they are implemented in \uammd. Figure \ref{fig:uammdsketch_interactors} shows the next level of the \emph{Interactor} branch in fig. \ref{fig:uammdsketch}.
+In this chapter we will see some of the strategies that can be employed and how they are implemented in \uammd. Figure \ref{fig:uammdsketch_interactors} shows the next level of the \emph{Interactor} branch in Fig. \ref{fig:uammdsketch}.
 Most \uammd \emph{Interactors} are generic (i.e. which can be externally specialized), indicated in Fig. \ref{fig:uammdsketch_interactors} in blue.
 
 We start with the case of all particles interacting with every other in chapter \ref{sec:nbody}. In chapter \ref{sec:shortrange} we discuss the optimization opportunities that arise when this interaction has a short range (compared to the typical particle size). After, in Chapter \ref{sec:bonded} we explore the case of particles being joined by spring-like ligatures (be it in pairs, triplets, cuadruplets, etc). Finally, in chapter \ref{sec:external} we briefly discuss the simple case of particles interacting with an unespecified external influence that does not depend on the rest of the particles.
@@ -1003,7 +1003,7 @@ We start with the case of all particles interacting with every other in chapter 
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/sketchUAMMD_interactors}
-  \caption{The next level in the \emph{Interactor} branch of the tree presented at fig. \ref{fig:uammdsketch}. Names in blue represent \uammd modules that can be specialized with outside logic. For instance, the bonded interactions module is general to any arbitrarily complex potential, which can be provided to the module via the use of metaprogramming.}
+  \caption{The next level in the \emph{Interactor} branch of the tree presented at Fig. \ref{fig:uammdsketch}. Names in blue represent \uammd modules that can be specialized with outside logic. For instance, the bonded interactions module is general to any arbitrarily complex potential, which can be provided to the module via the use of metaprogramming.}
   \label{fig:uammdsketch_interactors}
 \end{figure}
 
@@ -1014,7 +1014,7 @@ We start with the case of all particles interacting with every other in chapter 
   \label{fig:uammdsketch_interactors_slr}
 \end{figure}
 
-Let us start by describing \uammd's \emph{Interactor} interface in detail and then proceed to descend to the \emph{Interactor} logical branch in fig. \ref{fig:uammdsketch}, for which the next downward leafs are depicted in fig. \ref{fig:uammdsketch_interactors}. In particular, we will focus on discussing the long range branch in chapter \ref{sec:nbody} and the short range branch in chapter \ref{sec:shortrange} (depicted in figure \ref{fig:uammdsketch_interactors_slr}).
+Let us start by describing \uammd's \emph{Interactor} interface in detail and then proceed to descend to the \emph{Interactor} logical branch in Fig. \ref{fig:uammdsketch}, for which the next downward leafs are depicted in Fig. \ref{fig:uammdsketch_interactors}. In particular, we will focus on discussing the long range branch in chapter \ref{sec:nbody} and the short range branch in chapter \ref{sec:shortrange} (depicted in figure \ref{fig:uammdsketch_interactors_slr}).
 \section{The Interactor interface} \label{sec:interactor}
 
 \emph{Interactor} encapsulates the concept of a group of particles interacting, either with each other or with some external influence.
@@ -1127,7 +1127,7 @@ Say we are set to simulate a galaxy, so far away from others that it can be safe
   U(r) = G\frac{m_1m_2}{r}
 \end{equation}
 Where $G$ is the gravitational constant and $m_1$, $m_2$ are the masses of each particle.
-In this case, if we want to compute the force acting on a star due to the presence of all the others we must check each and everyone of them. This leads to a lot of interactions to check, more precisely $N^2$ of them (see fig. \ref{fig:nbodycon}). Of course, there are more sophisticated ways of performing such a computation, such as fast multipole methods \cite{Greengard1987} or Ewald splitting (which will be discussed on section \ref{ewald}). But some times these techniques are not a possibility so it is valuable to see how to efficiently handle this computations.
+In this case, if we want to compute the force acting on a star due to the presence of all the others we must check each and everyone of them. This leads to a lot of interactions to check, more precisely $N^2$ of them (see Fig. \ref{fig:nbodycon}). Of course, there are more sophisticated ways of performing such a computation, such as fast multipole methods \cite{Greengard1987} or Ewald splitting (which will be discussed on section \ref{ewald}). But some times these techniques are not a possibility so it is valuable to see how to efficiently handle this computations.
 Furthermore this computation is a really good fit for a \gls{GPU} as we are going to see.
 \begin{figure}[h]
   \centering
@@ -1161,7 +1161,7 @@ This is highly benefitial, since global memory accesses incur a high latency (in
 Once the tile has been processed, the next tile is loaded. This process is repeated until no particles remain (note that the last tile can potentially be smaller than the rest).
 The optimal size of a tile will be an optimization parameter also depending on the required shared memory per particle, being the number of threads in a block (or a multiple of it) a good default.
 This results in an overall speedup of 30 compared with the naive algorithm.
-The algorithm is summarized in algorithm \ref{alg:nbody} and a schematic representation of the process is presented in fig. \ref{fig:nbody}.
+The algorithm is summarized in algorithm \ref{alg:nbody} and a schematic representation of the process is presented in Fig. \ref{fig:nbody}.
 \begin{algorithm}[H]
   \caption{Shared memory NBody algorithm GPU kernel. Although the number of particles per tile is unconstrained, for simplicity this pseudocode assumes a tile has a size equal to the number of threads per block, with a number of tiles equal to the number of thread blocks.} \label{alg:nbody}
   \Input{A list of $N$ particles (positions, velocities,...)}
@@ -1442,15 +1442,15 @@ Figure \ref{fig:cl1} contains a representation of the binning.
 Lets describe now each step in detail
 \subsection*{Hashing the particles}
 
-We want to assign to each position a hash that is unique to the cell in the grid in which it lies (see fig. \ref{fig:cl1}).
+We want to assign to each position a hash that is unique to the cell in the grid in which it lies (see Fig. \ref{fig:cl1}).
 These are stored in an auxiliar array holding the hashes for each index in the position array.
 
 One possibility is to simply use the linear cell index as a hash, i.e $\textrm{hash}(i,j,k) := i + (j + kn_y)n_x$.
 However, we can leverage that the positions will be sorted according to this hash to improve the data locality for traversal later on. Using the cell index as hash will place particles with the same $x$ coordinate close in the final array, but this is not optimal, since we will have to also explore contigous cells in $y$ and $z$ which will end up far away.
 The usual solution is to use as hash some kind of space-filling curve that tends to assign similar values to cells that are spatially close. The key idea is to find a function that maps the three dimensional cell index to one dimension while preserving their locality. Any space filling curve, like Peano\cite{Peano1890} or Hilbert\cite{Hilbert1935} curves, can be used.
-We are going to use the Morton hash\cite{Morton1966}, a popular Z-order curve (see fig. \ref{fig:cl1}). Construction is fairly straight forward, although the implementation can be challenging to understand.
+We are going to use the Morton hash\cite{Morton1966}, a popular Z-order curve (see Fig. \ref{fig:cl1}). Construction is fairly straight forward, although the implementation can be challenging to understand.
 
-By assigning to each cell coordinate it's binary representation and interleaving the three resulting patterns we get a hash that follows the path depicted in fig. \ref{fig:cl1}. In particular, we interleave three $10$ bit coordinates in a $32$ bit Morton hash (leaving 2 bits unused), which allows us to encode up to $1024$ cells per direction, enough for most applications. We can achieve this with algorithm \ref{alg:mortonhash}.
+By assigning to each cell coordinate it's binary representation and interleaving the three resulting patterns we get a hash that follows the path depicted in Fig. \ref{fig:cl1}. In particular, we interleave three $10$ bit coordinates in a $32$ bit Morton hash (leaving 2 bits unused), which allows us to encode up to $1024$ cells per direction, enough for most applications. We can achieve this with algorithm \ref{alg:mortonhash}.
 
 This algorithm is comprised of two functions; First a \emph{mask} function that uses a series of bit masks to encode the bits of a number between $0$ and $1023$ in every third bit of a $32$ bit unsigned integer. Then a \emph{mortonhash} function that takes three numbers masked by the first function and interleaves them bit by bit by shifting them accordingly.
 
@@ -1581,7 +1581,7 @@ In both cases the internal structure of the cell list can be requested to facili
 As explained in sec. \ref{sec:celllist}, the cell list algorithm mainly stores two arrays containing the indices of the particles for each cell.
 However, there are some technical implementation details that we will discuss now.
 As part of the construction algorithm we need to sort the hashed positions into a, potentially, different order than the input positions. This allows us to easily identify the particles in each cell. Furthermore this has the fortunate side effect of providing us with a sorted positions array with the interesting property that particles that are close in space happen to be close (in average) in memory. In order to take advantage of this possibility, \emph{CellList} constructs the list based on the indices in this auxiliar array and provides it along the rest of the arrays.
-A really good visual representation of the data locality benefits of using this sorted positions for traversal can be found in fig. 6 of \cite{Tang2014}.
+A really good visual representation of the data locality benefits of using this sorted positions for traversal can be found in Fig. 6 of \cite{Tang2014}.
 
 Additionally, if the total number of cells is too large in particle configurations that results in a lot of empty cells; The process of cleaning up the \emph{cellStart} array can become a large part of the total runtime. In order to overcome this, instead of cleaning the array (which incurs visiting each element in the array and setting it to a certain value), \emph{CellList} simply invalidates all the list in $O(1)$ time by interpreting any value lower than a certain threshold (called \emph{VALID\_CELL}) as the cell being empty.
 This value starts being $0$ in the first update and it is increased by the number of particles in each following update. When \emph{VALID\_CELL} is close to overload the maximum value representable by a C++ unsigned integer \emph{cellStart} is then cleaned and \emph{VALID\_CELL} goes back to $0$.
@@ -1609,7 +1609,7 @@ This list uses \emph{CellList} to construct a neighbour list up to a distance $r
 \begin{equation}
 r_t = \frac{r_{s}-r_{c}}{2}.
 \end{equation}
-See fig. \ref{fig:nlist}.
+See Fig. \ref{fig:nlist}.
 
 Constructing the list has therefore a cost given by the cost of traversing the cell list (but larger due to the extra memory writes). Once it is constructed, the number of false positives will depend on the safety radius, $r_s$. In particular, assuming an uniform distribution of particles, the number of false positives will be given by $N_s/N_{\text{neigh}} = V_s/V_{\text{neigh}} = r_s^3/r_c^3$. In order to get an optimal number of false positives, similar to the ones checked by the cell list (in which $N_{cl}/N_{\text{neigh}} \approx 6$) we would need to set $r_s > 1.8r_c$, which results in a threshold distance of $r_t = 0.4r_c$. Assuming the cut off radius is the typical one for the \gls{LJ} potential ($r_c \sim 2.5\sigma$, see sec. \ref{sec:lj}) this means that the list does not have to be reconstructed until one particle has diffused more than $r_t \sim \sigma$ from its starting position. Assuming each position update typically moves a particle less than $1\%\sigma$ this means that the list is rebuilt only every several hundred steps.
 
@@ -1838,14 +1838,14 @@ As usual, some additional functionality of this module has been ommited for simp
 
 \chapter{Particle Dynamics}\label{sec:dynamics}
 
-Thus far we have dealt with particle interactions. In the following chapters we will see a series of numerical strategies to solve the time evolution dynamics of the particles in the different levels of description introduced in chapter \ref{ch:design}. We will do so by descending through the Integrator branch in fig. \ref{fig:uammdsketch}. We can find the leaves below the Integrator branch in fig. \ref{fig:uammdsketch_integrators}.
+Thus far we have dealt with particle interactions. In the following chapters we will see a series of numerical strategies to solve the time evolution dynamics of the particles in the different levels of description introduced in chapter \ref{ch:design}. We will do so by descending through the Integrator branch in Fig. \ref{fig:uammdsketch}. We can find the leaves below the Integrator branch in Fig. \ref{fig:uammdsketch_integrators}.
 
 In a bottom-up manner, refering to the complexity of the numerical methods, we start with the microscopic level (via \gls{MD}) in sec. \ref{sec:md}, then Langevin in sec. \ref{sec:langevin} and finally the hydrodynamics and Smoluchowski levels in chapter \ref{sec:bdhi}.
   
 \begin{figure}
   \centering
   \includesvg[width=\columnwidth]{gfx/sketchUAMMD_integrators}
-  \caption{The next level in the \emph{Integrator} branch of the tree presented at fig. \ref{fig:uammdsketch}. Different methods are available for each of the levels of description (pink) introduced in chapter \ref{ch:design}. Methods available as \uammd modules are in black.}
+  \caption{The next level in the \emph{Integrator} branch of the tree presented at Fig. \ref{fig:uammdsketch}. Different methods are available for each of the levels of description (pink) introduced in chapter \ref{ch:design}. Methods available as \uammd modules are in black.}
   \label{fig:uammdsketch_integrators}
 \end{figure}
 
@@ -3253,14 +3253,14 @@ An alternative is to use a so-called MAC (Marker and cell), or staggered, grid\c
   \label{fig:staggered}  
 \end{figure}
 
-Although it can be tricky to work with a staggered grid in a numerical implementation, the key is to interpret that each quantity is defined in a different grid, shifted $h/2$ with the others (see fig. \ref{fig:staggered}. When we need to work on quantities defined on different grids, we simply use linear interpolation.
+Although it can be tricky to work with a staggered grid in a numerical implementation, the key is to interpret that each quantity is defined in a different grid, shifted $h/2$ with the others (see Fig. \ref{fig:staggered}. When we need to work on quantities defined on different grids, we simply use linear interpolation.
 From the point of view of the ``main'' grid (in which scalars are defined in the centers), vectorial quantities are defined in cell faces, while tensors are located at cell corners. If we need to multiply, for instance, a scalar, $s$, and a vector, $\vec{v}$, we interpolate the scalar at the same location as each coordinate of the vector. For example, in the $x$ direction:
 \begin{equation}
   g^x_{i,j} = s_{i-1/2,j} v^x_{i,j} = \half( s_{i,j} + s_{i-1,j})v^x_{i,j}
 \end{equation}
-Where $i$,$j$ represent the indexes in the relevant ``subgrid'' (the one for the $x$ direction in this case, marked as red in fig. \ref{fig:staggered}).
+Where $i$,$j$ represent the indexes in the relevant ``subgrid'' (the one for the $x$ direction in this case, marked as red in Fig. \ref{fig:staggered}).
 We can use this to discretize the the different operators in eq. \eqref{eq:stokesoper} via finite differences.
-The divergence of a vector is an scalar, defined in the centers of the main grid (black in fig. \ref{fig:staggered})
+The divergence of a vector is an scalar, defined in the centers of the main grid (black in Fig. \ref{fig:staggered})
 \begin{equation}
   \label{eq:staggereddiv}
   (\nabla\cdot\vec{v})_{\vec{i}} = \frac{1}{h}\sum_\alpha(v^\alpha_{\vec{i} + \vec{\hat{\alpha}}} - v^\alpha_{\vec{i}})
@@ -3281,7 +3281,7 @@ And the gradient of the divergence
   \label{eq:staggeredlap}
 \left[\nabla(\nabla\cdot \vec{v})\right]^\alpha_{\vec{i}} = \frac{1}{h^2}\sum_\beta\left(v^\beta_{\vec{i} +\vec{\hat{\beta}}}  - v^\beta_{\vec{i}} + v^\beta_{\vec{i} -\vec{\hat{\alpha}} + \vec{\hat{\beta}}} - v^\beta_{\vec{i} -\vec{\hat{\alpha}}}\right)
 \end{equation}
-Where we recall that each component of a vector is defined on it's own grid (see fig. \ref{fig:staggered}) (so a component of a vector with index $i$ is defined at a different location from a scalar with the same index). The specific index notation here, assigning the same indices $(i,j)$ to the different quantities defined on the grid, aims to facilitate a computer implementation. With this notation everything can be stored as if it were defined on a collocated grid. Then, when applying the operators above, each element (vector or scalar) can be accesed with the same indices as in these equations.
+Where we recall that each component of a vector is defined on it's own grid (see Fig. \ref{fig:staggered}) (so a component of a vector with index $i$ is defined at a different location from a scalar with the same index). The specific index notation here, assigning the same indices $(i,j)$ to the different quantities defined on the grid, aims to facilitate a computer implementation. With this notation everything can be stored as if it were defined on a collocated grid. Then, when applying the operators above, each element (vector or scalar) can be accesed with the same indices as in these equations.
 
 \todo{I do not really know why a staggered grid is better for our uses}
 
@@ -3294,7 +3294,7 @@ Using \gls{PBC} greatly simplifies the algorithm in \cite{Delong2014} to somethi
 
 Summarizing, for our purposes, we can describe the \gls{FIB} as a variation of the \gls{FCM} for staggered grids and a more sophisticated temporal integration algorithm. The authors of \cite{Delong2013} developed the \gls{FIB} for a three point Peskin kernel (see eq. \eqref{eq:peskin3}) but, similarly as discussed in sec. \ref{sec:fcm}, any of the kernels in sec. \ref{sec:ibm} can be used.
 
-The discretization of the Stokes operator in Fourier space is straight-forward for a collocated grid by using the Fourier representation of the differential operators in eq. \eqref{eq:stokesoper} (a technique known as \emph{ik} differentiation). However, for a staggered grid we have defined the differential operators using finite differences (see eqs. \eqref{eq:staggereddiv} and \eqref{eq:staggeredgrad}). It is then necessary to redefine the discretized Fourier operators. We can leverage a property of the Fourier transform for this; a shift in space results in a shift in phase in Fourier space. So from the Fourier transform of some scalar quantity (defined in the centers of the main grid in fig. \ref{fig:staggered}), we can compute the Fourier transform of the gradient by shifting the scalar to $x+h$ and then shifting the result back to $x+h/2$ (where vectors like the gradient are defined).
+The discretization of the Stokes operator in Fourier space is straight-forward for a collocated grid by using the Fourier representation of the differential operators in eq. \eqref{eq:stokesoper} (a technique known as \emph{ik} differentiation). However, for a staggered grid we have defined the differential operators using finite differences (see eqs. \eqref{eq:staggereddiv} and \eqref{eq:staggeredgrad}). It is then necessary to redefine the discretized Fourier operators. We can leverage a property of the Fourier transform for this; a shift in space results in a shift in phase in Fourier space. So from the Fourier transform of some scalar quantity (defined in the centers of the main grid in Fig. \ref{fig:staggered}), we can compute the Fourier transform of the gradient by shifting the scalar to $x+h$ and then shifting the result back to $x+h/2$ (where vectors like the gradient are defined).
 
 So by taking the Fourier transform of eq. \eqref{eq:staggeredgrad}
 \begin{equation}
@@ -3647,7 +3647,7 @@ The factor $\vec{P}$ is defined, in each direction, as
 $$
 P^{(\alpha)} := n_s/2 + s^{(\alpha)}
 $$
-The shift, $s^{(\alpha)}$, has to be defined depending on wether the support, $n_s$, is even or odd (see fig. \ref{fig:ibm2}). In particular, we have
+The shift, $s^{(\alpha)}$, has to be defined depending on wether the support, $n_s$, is even or odd (see Fig. \ref{fig:ibm2}). In particular, we have
 \begin{equation}
 s^{(\alpha)} := \left \{
 \begin{aligned}
@@ -3657,7 +3657,7 @@ s^{(\alpha)} := \left \{
 \end{equation}
 Note that this rule for computing $s^{(\alpha)}$ only works for a regular grid. In general, we will need to find a rule that returns $0$ if a particle is in one side with respect to the cell center and $1$ otherwise.
 
-It is important to note that if the support is even, the value of the factor $\vec{P}$ in each direction will depend on the specific position of the particle inside the cell (see fig. \ref{fig:ibm2}). On the other hand the definition of $\vec{P}$ works seamlessly even if \gls{PBC} are used, in that case we would simply need to fold the neighbour cells to the $[0, \vec{N})$ range (for instance, the rightmost neighbour cell in the $x$ direction would be $c_j^{(x)} = mod(c_q^{(x)} + P, N_x)$).
+It is important to note that if the support is even, the value of the factor $\vec{P}$ in each direction will depend on the specific position of the particle inside the cell (see Fig. \ref{fig:ibm2}). On the other hand the definition of $\vec{P}$ works seamlessly even if \gls{PBC} are used, in that case we would simply need to fold the neighbour cells to the $[0, \vec{N})$ range (for instance, the rightmost neighbour cell in the $x$ direction would be $c_j^{(x)} = mod(c_q^{(x)} + P, N_x)$).
 
 \begin{figure}[h]
   \centering
@@ -3771,7 +3771,7 @@ The storage layout of the grid data can also influence the performance of the al
 
 
 \subsubsection*{Block Per Domain (BPD)}
-Recently, a new \gpu-friendly algorithm has been developed\cite{Shih2021} that uses an hybrid strategy, lying in between particle and grid based approachs, by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken again until each thread block deals with a subproblem with up to a maximum number of particles (see fig. 1 in \cite{Shih2021}) to aide with load-balancing. Subproblems are then spreaded into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems is reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Testing suggest that, for a single \gpu, the new strategy in \cite{Shih2021} is only worth for large and dense systems (with more than $~2$ million particles) and 2D grids (see fig. \ref{fig:ibmcomp}). Although it is arguably the best algorithm at the time of writing if one wants to take advantage of several GPUs.
+Recently, a new \gpu-friendly algorithm has been developed\cite{Shih2021} that uses an hybrid strategy, lying in between particle and grid based approachs, by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken again until each thread block deals with a subproblem with up to a maximum number of particles (see Fig. 1 in \cite{Shih2021}) to aide with load-balancing. Subproblems are then spreaded into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems is reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Testing suggest that, for a single \gpu, the new strategy in \cite{Shih2021} is only worth for large and dense systems (with more than $~2$ million particles) and 2D grids (see Fig. \ref{fig:ibmcomp}). Although it is arguably the best algorithm at the time of writing if one wants to take advantage of several GPUs.
 We refer to this algorithm as Block Per Domain (BPD), although the authors of \cite{Shih2021} refer to it as \emph{SM} (from shared memory). It is worth noting that the authors of the BPD algorithm do take into account the previously introduced separable-kernel optimization.
 
 \subsection*{Performance comparison of the spreading algorithms}
@@ -3779,7 +3779,7 @@ It is worth mentioning that, although particle sorting usually takes a neglegibl
 
 Finally, the \uammd implementation presents another benefit when compared to others seen in the wild. In particular when refering to spreading/interpolating several quantities at once (such as forces/velocities). The general strategy when dealing with vectorial quantities (or simply several scalars) is to run the algorithm as many times as there are components. This is related to the AoS (array-of-structures) vs SoA (structure-of-arrays) debate. In general terms, it is best to take an SoA approach in the GPU, which calls for the usual spread-many-times strategy. However, there is one crucial caveat to this rule worth taking into account: In complex fluid simulations we usually deal with vectorial quantities with $3$ or $4$ elements (i.e. positions, forces+energies...), which happen to be special in NVIDIA GPUs\footnote{And probably in the GPU architecture in general.}. In particular, CUDA presents especial load/store instructions that fetch/write $128$ bits from memory (the space for $4$ floats). In SoA we would store and treat each component separately, so that reading the (for instance) position of a particle would take $3$ instructions. If we store the positions in an array composed by groups of $4$ floats\footnote{A series of vectorial types names \emph{realX} (with X being 2,3 or 4) are available in \uammd. For instance, the type \emph{real4} containing $4$ scalars.} (an AoS approach) we only need a single instruction to load all three coordinates (and we get a fourth number to leverage for free). Using vector types can potentially make the cost of spreading/interpolation $4$ values at the same time much cheaper than repeating the operation $4$ times. \uammd's spreading/interpolation implementation interface is templated for any random access iterator\footnote{See Appendix \ref{sec:cpp} for more information on C++ iterators.} containing the per-partcile and per-cell data as long as the type of the elements follows a certain set of sane rules (in particular, that the values of the iterator can be added together and that the per-particle type can be converted to the per-cell type when required\footnote{\uammd's vector types come with a large set of algebraic overloads. In general, any operation that can be used in an scalar also works for vector types in a per-element manner. For instance, the result of multiplying two \emph{real4} values $a$ and $b$ will be, $c = (a_xb_x, a_yb_y, a_zb_z, a_wb_w)$.}).
 
-We compare the TPP and BPP algorithms with the hybrid BPD (or \emph{SM} in \cite{Shih2021}) in figures \ref{fig:ibmcomp} and \ref{fig:ibmcompsorted}, measuring the performance of spreading one scalar per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible in any case. In the case of recomputing the kernel our implementation could have an unfair advantage here, but since it happens to be the slower option in general, we will not consider it.
+We compare the TPP and BPP algorithms with the hybrid BPD (or \emph{SM} in \cite{Shih2021}) in figures \ref{fig:ibmcomp} and \ref{fig:ibmcompsorted}, measuring the performance of spreading one scalar per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in Fig. \ref{fig:ibmcomp} for TPP and BPP, while \cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is neglegible in any case. In the case of recomputing the kernel our implementation could have an unfair advantage here, but since it happens to be the slower option in general, we will not consider it.
 In any case, if the kernel evaluation becomes a problem due to it being expensive, it is always a possibility to tabulate the kernel into a global memory array\footnote{The \uammd utility \emph{TabulatedFunction} can be employed here. This tool mimics the old CUDA textures, allowing to tabulate a function inside a range and then interpolate it at any point in between.}. By doing so, the cost of computing the kernel becomes constant regardless of its mathematical expression, amounting to fetching some value from memory.
 
 The following remarks about performance trends should be taken with a grain of salt, since with time the \gpu architecture tends to become more and more forgiving about things like the memory access pattern, atomic operations, etc. The compiler also grows smarter with time, being able to better optimize the code. However, it is worth mentioning here at least some of the trends that will probably hold. Performance measurements were carried out using a NVIDIA RTX 2080Ti \gpu, which has the \emph{sm\_75} architecture.
@@ -3804,7 +3804,7 @@ Sizes beyond $512$ cells per direction (in a cubic domain) start to suffer from 
   \centering
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens1_sorted_2080ti}}
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens0.1_sorted_2080ti}}
-\caption{The same situation as in fig. \ref{fig:ibmcomp}, but in this case particles are presorted to increase spatial locality in memory (particles close in space are placed close in memory). Both the positions and the spreaded quantity are sorted. Sorting is carried out using the same Morton hash technique laid out in chapter \ref{sec:celllist}. Sorting takes a neglegible amount of time and, moreover, it does not need to be done every time spreading occurs. Typically particles are sorted at the start of a given simulation and then every few diffusive times.}
+\caption{The same situation as in Fig. \ref{fig:ibmcomp}, but in this case particles are presorted to increase spatial locality in memory (particles close in space are placed close in memory). Both the positions and the spreaded quantity are sorted. Sorting is carried out using the same Morton hash technique laid out in chapter \ref{sec:celllist}. Sorting takes a neglegible amount of time and, moreover, it does not need to be done every time spreading occurs. Typically particles are sorted at the start of a given simulation and then every few diffusive times.}
 \label{fig:ibmcompsorted}
 \end{figure}
 
@@ -3815,7 +3815,7 @@ The same TPP vs BPP arguments from spreading can be broadly employed here, promp
 When all threads in the block have finished, the local results are reduced into a final result, which is then written to global memory by a single thread (usually the first one).
 A naive block reduction involves the first thread fetching the local values from the rest of the threads (via shared memory or with CUDA shuffle intrinsics) and then performing a dumb sum. However, using \emph{cub}'s\cite{cub} \emph{BlockReduce} utility proves to be a vastly superior alternative\footnote{With \emph{cub} the reduction algorithm will be different depending on a series of factors (GPU architecture, data type, number of elements...).}.
 
-Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the same situation as fig. \ref{fig:ibmcomp}. Timings present a good linearlity with the number of particles and are almost independent from the density. 
+Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the same situation as Fig. \ref{fig:ibmcomp}. Timings present a good linearlity with the number of particles and are almost independent from the density. 
 \todo{Differences maybe due to block size?, should be faster I would say}
 \begin{figure}[h]
   \centering
@@ -3993,7 +3993,7 @@ The doubly periodic Stokes algorithm will be the last methodology for hydrodynam
   \label{fig:q2dsch}
 \end{figure}
 
-In this section we will develop algorithms to study the dynamics of a group of colloidal particles whose movement is constraint in the $z$ direction by some external force (see fig. \ref{fig:q2dsch}) while submerged in an otherwise unbounded three dimensional fluid. We refer to this geometry as quasi 2D (q2D for short). As opposed to a situation in which both the particles \emph{and} the fluid are restricted to the plane (true 2D or t2D) or when both are unbounded in the three directions (true 3D or t3D). In the limit when the confining force is infinetly stiff, particles move in an strictly two dimensional plane. This can be used to model, for instance, the transport the properties of systems at a fluid-fluid or air-fluid interfaces. 
+In this section we will develop algorithms to study the dynamics of a group of colloidal particles whose movement is constraint in the $z$ direction by some external force (see Fig. \ref{fig:q2dsch}) while submerged in an otherwise unbounded three dimensional fluid. We refer to this geometry as quasi 2D (q2D for short). As opposed to a situation in which both the particles \emph{and} the fluid are restricted to the plane (true 2D or t2D) or when both are unbounded in the three directions (true 3D or t3D). In the limit when the confining force is infinetly stiff, particles move in an strictly two dimensional plane. This can be used to model, for instance, the transport the properties of systems at a fluid-fluid or air-fluid interfaces. 
 
 Besides being common in subcellular biology, there are several examples of this constrained dynamics systems in a wide variety of industrial applications, like food, creams, or crude oil (e.g., asphaltenes near water interfaces).
 On the other hand, the transverse diffusion of proteins embedded in lipid bilayers controls their biological function\cite{Brown20112}.
@@ -4013,7 +4013,7 @@ In future sections, we will study diffusive phenomena arising in this special ge
 
 Lets start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three dimensional incompressible fluid. As we saw in chapter \ref{sec:bdhi}, forces acting on the particles are propagated to the whole fluid, due to the its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting hydrodynamic drag acts like a flow source which tends to expel other particles around it. This can be interpreted as the flow in the plane having a positive divergence, which makes the fluid (as seen from the plane) being effectively compressible. We will see that this effect naturally arises in a particle based description (\gls{BDHI}) through an effective plane mobility with non zero divergence\cite{Pelaez2017}.
 
-There are several ways to gradually transform a perfect 2D confinement into an isotropic 3D distribution and, as illustrated in fig. \ref{fig:q2dsch}, we model the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by an harmonic potential of the form
+There are several ways to gradually transform a perfect 2D confinement into an isotropic 3D distribution and, as illustrated in Fig. \ref{fig:q2dsch}, we model the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by an harmonic potential of the form
 \begin{equation}
 U(z)=\half K_sz^2
 \end{equation}
@@ -4202,7 +4202,7 @@ auto createIntegratorQ2D(UAMMD sim){
 \newpage
 
 \chapter{Hydrodynamics in doubly periodic geometries}\label{sec:dpstokes}
-Thus far we have seen how to compute hydrodynamic displacements in domains that are either triply periodic (periodic in the three directions) or two dimensional and periodic in the plane. In the case of quasi 2D, where the particles are constrained to a plane, the boundary conditions for the fluid in the perpendicular directions are open, while in true 2D both the fluid and the particles exists in the plane. We refer to a domain as \gls{DP} when it is periodic in the plane directions ($x,y$) but aperiodic in the perpendicular one ($z$). In this sense the quasi 2D algorithm in chapter \ref{sec:q2D} can be regarded as a \gls{DP} algorithm. However, the afforementioned algorithm only allows to simulate environments in which the submerged particles diffuse in two dimensions (for instance, a fluid-fluid interface). If we are looking to model a system lying in between the triply periodic and quasi 2D regimes, for instance a lipid membrane (see fig. \ref{fig:dpstokessketch}), currently our only option is to perform a triply periodic simulation and do some kind of finite-size analysis, measuring the relevant properties with an increasignly large simulation domain size in the perpendicular direction. Of course, given that the algorithmic complexity of all our pseudo-spectral algorithms scales linearly with the volume of the domain (or more appropriately, with the number of cells in the grid), the triply periodic approach is not optimal.
+Thus far we have seen how to compute hydrodynamic displacements in domains that are either triply periodic (periodic in the three directions) or two dimensional and periodic in the plane. In the case of quasi 2D, where the particles are constrained to a plane, the boundary conditions for the fluid in the perpendicular directions are open, while in true 2D both the fluid and the particles exists in the plane. We refer to a domain as \gls{DP} when it is periodic in the plane directions ($x,y$) but aperiodic in the perpendicular one ($z$). In this sense the quasi 2D algorithm in chapter \ref{sec:q2D} can be regarded as a \gls{DP} algorithm. However, the afforementioned algorithm only allows to simulate environments in which the submerged particles diffuse in two dimensions (for instance, a fluid-fluid interface). If we are looking to model a system lying in between the triply periodic and quasi 2D regimes, for instance a lipid membrane (see Fig. \ref{fig:dpstokessketch}), currently our only option is to perform a triply periodic simulation and do some kind of finite-size analysis, measuring the relevant properties with an increasignly large simulation domain size in the perpendicular direction. Of course, given that the algorithmic complexity of all our pseudo-spectral algorithms scales linearly with the volume of the domain (or more appropriately, with the number of cells in the grid), the triply periodic approach is not optimal.
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/dpstokes_sketch}
@@ -4247,7 +4247,7 @@ The unbounded mode allows to simulate systems were particles are not restricted 
 
 \section{About spreading and interpolation}
 
-Similarly as with all the Force Coupling Method-like methods described thus far, the communication between the particles information and the grid (in this case to construct $\vec{f}$ in eq. \eqref{eq:dpstokes}) is carried out via the Immersed Boundary module in UAMMD (see chapter \ref{ch:icm}). Note however, that there is a fundamental difference with respect to the rest of the use cases for the \gls{IBM} up to this point. In particular, now the grid is not regular in the $z$ direction, being a Chebyshev grid instead (see fig. \ref{fig:chebgrid}). 
+Similarly as with all the Force Coupling Method-like methods described thus far, the communication between the particles information and the grid (in this case to construct $\vec{f}$ in eq. \eqref{eq:dpstokes}) is carried out via the Immersed Boundary module in UAMMD (see chapter \ref{ch:icm}). Note however, that there is a fundamental difference with respect to the rest of the use cases for the \gls{IBM} up to this point. In particular, now the grid is not regular in the $z$ direction, being a Chebyshev grid instead (see Fig. \ref{fig:chebgrid}). 
 \begin{figure}[h]
   \centering
   \includesvg[width=0.5\columnwidth]{gfx/chebgrid}
@@ -4280,7 +4280,7 @@ Were $\vec{\ppos}_i^{\text{img}}$ is the particle's point of reflection about th
   &\vec{\ppos}_i^{\text{img}_t} = \vec{\ppos}_i + 2(H-r_z)\hat{\vec{e}}_z, \quad \text{For the top wall}
 \end{aligned}
 \end{equation}
-Being $\hat{\vec{e}}_z$ a unitary vector in the $z$ direction. The no-slip condition is then imposed by the fact that a particle at the height of a wall does not affect (nor it is affected by) the fluid. A visual representation of the effect of the images is available in fig. \ref{fig:dpstokesspread}.
+Being $\hat{\vec{e}}_z$ a unitary vector in the $z$ direction. The no-slip condition is then imposed by the fact that a particle at the height of a wall does not affect (nor it is affected by) the fluid. A visual representation of the effect of the images is available in Fig. \ref{fig:dpstokesspread}.
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/dpstokesspread}
@@ -5023,7 +5023,7 @@ Additionally, the potential and field at the position of the image charge, $(x,y
 \begin{equation}
   q^{*}_{\text{img}} = q\frac{2\varepsilon_0}{\varepsilon_b + \varepsilon_0}.
 \end{equation}
-With two walls the situation becomes much more complex, since the image charges further reflect through the opposite wall (see fig. \ref{fig:dppoisson_images}) and so on and so forth, resulting in intinite images.
+With two walls the situation becomes much more complex, since the image charges further reflect through the opposite wall (see Fig. \ref{fig:dppoisson_images}) and so on and so forth, resulting in intinite images.
 \begin{figure}
   \centering
   \includesvg[width=\columnwidth]{gfx/dppoisson_images}
@@ -5165,12 +5165,12 @@ In this part we showcase the works, published in scientific journals, that resul
 Let us start by discussing two works that study hydrodynamics in confined geometries. First in section \ref{sec:softconf} when particles are confined to the plane via a soft harmonic potential and then in section \ref{sec:strictconf} when the confinement is strict (in the quasi 2D regime introduced in chapter \ref{sec:q2D}).
 
 \section{From soft to strict confinement}\label{sec:softconf}
- In \cite{Pelaez2017} we study the hydrodynamics-enhanced collective diffusion of a group of colloids under soft two dimensional confinement as the confinement becomes stiff. Colloids are embedded in an unbounded fluid but their movement in the Z direction is constrained via an harmonic potential (see fig. \ref{fig:q2dsch}) as we introduced in chapter \ref{sec:q2D}. In this work we study the crossover between purely 3D hydrodynamics and quasi2D both numerically and theoretically.
+ In \cite{Pelaez2017} we study the hydrodynamics-enhanced collective diffusion of a group of colloids under soft two dimensional confinement as the confinement becomes stiff. Colloids are embedded in an unbounded fluid but their movement in the Z direction is constrained via an harmonic potential (see Fig. \ref{fig:q2dsch}) as we introduced in chapter \ref{sec:q2D}. In this work we study the crossover between purely 3D hydrodynamics and quasi2D both numerically and theoretically.
 
   It is well-known that, in quasi2D, collective diffusion is enhanced due to the effective compressibility of the in-plane hydrodynamics. This is evidenced in eq. \eqref{eq:q2Deffrepulsion} (and related discussion), where we saw how the divergence of the in-plane mobility can be interpreted as the colloids interacting via a Coulomb-like repulsive potential in an incompressible fluid. In \cite{Pelaez2017} we find that the enhancement of the collective diffusion is quite robust and remains significant when moving from strict to soft confinement.
 
   The enhancement, being collective in nature, decreases with the concentration of colloids. As an example, for a projected surface fraction, $\phi = \pi a^2N/L^2$, of about $0.4$, a rather soft confining potential of width $\delta = 3a$ will induce more than a $10$-fold increase in collective diffusion for a density perturbation of typical size given by a wavelength $ka \sim 6\cdot 10^{-2}$ (corresponding to a wavelength around $100a$). For nanoparticles (of about $10$ nm) these lengths are still small (order $10$ microns). We can find several experimental set-ups where the confinement is even more stiff than our example, $\delta\sim a$ (and thus the increase in diffusion is more pronounced). For instance, in the presence of walls (note that the mobility will be regularized by the presence of a wall) depletion forces can constrain the out-of-plane diffusion of colloids near the wall to $\delta\sim a$. If the surface and the colloids are charged the confinement will be related to the Debye length (nanometers). On the other hand, the theory presented in \cite{Pelaez2017} can be directly applicable to confinement by ultrasound. The pressure waves generated by high frequency (MHz) ultrasounds (an effective quadratic potential) can confine micron-sized colloids to a witdh $\delta \sim a$.
-  In fig. \ref{fig:q2DEnhancement} we show the collective diffusion coefficient, defined as
+  In Fig. \ref{fig:q2DEnhancement} we show the collective diffusion coefficient, defined as
   \begin{equation}
     \label{eq:q2dcoldif}
     D_c(k) = D_0\frac{H(k)}{S(k)},
@@ -5191,7 +5191,7 @@ Let us start by discussing two works that study hydrodynamics in confined geomet
   
   At very large wavelengths, the collective diffusion becomes faster than the solvent momentum transport and a transition from Stokesian dynamics to inertial dynamics takes place, which we study using the \gls{ICM} described in chapter \ref{sec:icm}.
 
-  Additionally, we observe that the analytic solution for the collective diffusion of colloids under a Gaussian trap of width $\delta$ still shows enhanced diffusion for large wavelengths $k\delta < 1$, and a gradual transition to normal diffusion for $k\delta > 1$ (see fig. \ref{fig:q2Dfrom3dto2d}).
+  Additionally, we observe that the analytic solution for the collective diffusion of colloids under a Gaussian trap of width $\delta$ still shows enhanced diffusion for large wavelengths $k\delta < 1$, and a gradual transition to normal diffusion for $k\delta > 1$ (see Fig. \ref{fig:q2Dfrom3dto2d}).
 
   \begin{figure}[H]
     \label{fig:q2Dfrom3dto2d}
@@ -5203,7 +5203,7 @@ Let us start by discussing two works that study hydrodynamics in confined geomet
 %  Using our inertial coupling method code (resolving fluid inertia), we study this transition by performing simulations at small Schmidt number. Simulations confirm theoretical predictions for the $k \rightarrow 0$ limit [Phys. Rev. E 90, 062314 (2014)] showing negative density-density time correlations. However, at finite $k$ simulations show deviations from the theory.
 
 \section{Limit of strict confinement}\label{sec:strictconf}
-In \cite{Pelaez2018} we focus on the limit $\delta\rightarrow 0$ by taking the mathematical limit of the confining force becoming infinite. We already introduced this limit in chapter \ref{sec:q2D}, where we saw how the confining force propagates to the fluid resulting in an effectively compressible in-plane mobility (which is the origin of the anomalous collective diffusion). In fact, as represented in fig. \ref{fig:q2DEnhancement} the collective diffusion coefficient diverges like the inverse of the wavenumber.
+In \cite{Pelaez2018} we focus on the limit $\delta\rightarrow 0$ by taking the mathematical limit of the confining force becoming infinite. We already introduced this limit in chapter \ref{sec:q2D}, where we saw how the confining force propagates to the fluid resulting in an effectively compressible in-plane mobility (which is the origin of the anomalous collective diffusion). In fact, as represented in Fig. \ref{fig:q2DEnhancement} the collective diffusion coefficient diverges like the inverse of the wavenumber.
 
 In \cite{Pelaez2018} we extend the previously existing hydrodynamic theory to account for a species/color labeling of the particles (which is needed to model experiments based on fluorescent techniques). We then study the magnitude and dynamics of the density and color density fluctuations theoretically (using linearized flucutating hydrodynamics) and simulations (with our novel \gls{BDHI} quasi 2D \gpu algorithm, see chapter \ref{sec:q2D}).
 The effects of the effective repulsion fundamentally change the dynamics in quasi 2D as evidenced in figs. \ref{fig:q2Doverdens} and \ref{fig:q2Dstripes}, where we place striped overdensities in the middle of the domain and study their time evolution.
@@ -5220,14 +5220,14 @@ We measure concentration as the numer density defined as
   \caption{Time evolution of a striped density perturbation initially localized in the middle third of the domain in quasi 2D. Shown here are the density profiles averaged both in ensemble and in the x direction. (Left) The total density, $c^{(1)}(y, t)$, at time $t=0$ (dashed-solid black line) and at a later point in time (red squares), theory for the quasi 2D line (red) comes from our mean field (eq. 30 in \cite{Pelaez2018}). The solution to the diffusion equation without hydrodynamic interactions (at the same time) is shown as a solid black line. (Right) We tag particles starting in the middle stripe as green ($c^{(1)}_G$, green lines and squares) and the rest as red ($c^{(1)}_R$, red lines and circles) and plot their density profiles, $c^{(1)}_{R/G}$. Red and green symbols correspond to $c^{(1)}_R$ and $c^{(1)}_G$ at the same point in time as the left pane. Dotted lines correspond to $t=0$. Our mean field theory is also shown here with solid lines. Dashed lines correspond to the diffusion equation without hydrodynamic interactions. All particles are passive tracers.}
 \end{figure}
 Fig. \ref{fig:q2Doverdens} shows the ensemble average of the time evolution of the density profiles, evidencing the effect of the enhance collective diffusion.
-On the other hand, we study non-equilibirum giant fluctuations by looking at the time evolution of a single realization of the diffusing stripes. In fig. \ref{fig:q2Dstripes} we look at the time evolution of an overdensity, while \ref{fig:q2Dcolorstripe} shows simulations with ``color'' density gradients. In the latter simulations the system has uniform total density across the whole domain, but we mark (color) particles starting in the middle third of the domain and study the evolution of their concentration.
+On the other hand, we study non-equilibirum giant fluctuations by looking at the time evolution of a single realization of the diffusing stripes. In Fig. \ref{fig:q2Dstripes} we look at the time evolution of an overdensity, while \ref{fig:q2Dcolorstripe} shows simulations with ``color'' density gradients. In the latter simulations the system has uniform total density across the whole domain, but we mark (color) particles starting in the middle third of the domain and study the evolution of their concentration.
 \begin{figure}[H]
   \label{fig:q2Dstripes}
   \centering
   \includegraphics[width=\linewidth]{gfx/q2Dstripes}
   \caption{Time evolution (snapshots at times increasing from left to right) of a density perturbation initially localized in the middle third of the domain (blue represents zero concentration of particles). We show snapshots for quasi 2D (top row) and true 2D (bottom row) at the same diffusive times ($t^{t2D/q2D}= tD_0^{t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $128^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
 \end{figure}
-Giant fluctuations (evident in the bottom row of fig. \ref{fig:q2Dstripes} for true 2D) have dissapeared in quasi 2D in the presence of a density gradient. However, in fig. \ref{fig:q2Dstripes} giant fluctuations are being masked by the vast dispersion enhanced by the collective diffusion in the presence of density gradients.
+Giant fluctuations (evident in the bottom row of Fig. \ref{fig:q2Dstripes} for true 2D) have dissapeared in quasi 2D in the presence of a density gradient. However, in Fig. \ref{fig:q2Dstripes} giant fluctuations are being masked by the vast dispersion enhanced by the collective diffusion in the presence of density gradients.
 
 The visual appearance of the true 2D panes is similar in figs. \ref{fig:q2Dstripes} and \ref{fig:q2Dcolorstripe} as expected, given that in both cases particles are passive, non-interacting, tracers. Furthermore, we observe giant fluctuations in both density and color gradient experiments for true 2D. On the other hand, giant fluctuations can only be seen for quasi 2D in the color gradient case.
 
@@ -5238,7 +5238,7 @@ The visual appearance of the true 2D panes is similar in figs. \ref{fig:q2Dstrip
   \caption{Time evolution (snapshots at times increasing from left to right) of a color (species) density perturbation initially localized in the middle third of the domain. All simulations have an uniform total density, with a packing fraction of $\phi = 1$. We show snapshots in the absence of hydrodynamics (BD, top row), quasi 2D (middle row) and true 2D (bottom row) at the same diffusive times ($t^{BD/t2D/q2D}= tD_0^{BD/t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $64^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
 \end{figure}
 
-In contrast with the diverging collective diffusion, we find that the long time self diffusion coefficient is reduced (see fig. \ref{fig:q2Dselfreduction}) due to the hydrodynamic coupling between a single particle and collective density fluctuations (even for non-interacting particles). We dilucidate the cause of this is \todo{fill}
+In contrast with the diverging collective diffusion, we find that the long time self diffusion coefficient is reduced (see Fig. \ref{fig:q2Dselfreduction}) due to the hydrodynamic coupling between a single particle and collective density fluctuations (even for non-interacting particles). We dilucidate the cause of this is \todo{fill}
 \begin{figure}[H]
   \label{fig:q2Dselfreduction}
   \centering
@@ -5439,13 +5439,13 @@ At the moment UAMMD is being actively developed by several collaborators. I stil
 
 \chapter{Basic notions of CUDA/C++ programming}\label{sec:cpp}
 
-\uammd uses the C++14 standard\footnote{The only restriction in adopting more modern standards, like C++20, is the adoption rate of CUDA. To the date of writing, the latest CUDA toolkit supports up to C++17.}, which presents subtle but sometimes important differences with the previous iteration of the language (C++11). Note however, that this standard is wildly different to ``classic'' C++98, which could be considered another language altogether. Furthermore, \uammd uses the CUDA extensions to the language, which introduce some new keywords and subtle rules.
+\uammd uses the C++14 standard\footnote{The only restriction in adopting more modern standards, like C++20, is the adoption rate of CUDA. Up to the date of this writing, the latest CUDA toolkit supports up to C++17.}, which presents subtle but sometimes important differences with the previous iteration of the language (C++11). Note however, that this standard is wildly different to ``classic'' C++98, which could be considered another language altogether. Furthermore, \uammd uses the CUDA extensions to the language, which introduce some new keywords and subtle rules.
 
 In this chapter, we will give a few hints to ease the interpretation of the code examples throughout this manuscript for the uninitiated. Note that this is not intended to be a thorough description or tutorial of the language. For that the reader is redirected to the plethora of resources available online regarding CUDA and modern C++. This chapter summarizes the bare minimum necessary for a reader to follow the logic in the examples scattered throughout this manuscript.
 
-CUDA/C++ is a compiled language, meaning that before executing a source code, it must be transformed into an executable binary by an external program called the \emph{compiler}. We will also refrain from discussing the compilation of CUDA codes\footnote{\uammd's online resources shed light into this process, which might change over time for reasons outside of the author control.}.
+CUDA/C++ is a compiled language, meaning that before executing a source code, it must be transformed into an executable binary by an external program called the \emph{compiler}. We will also refrain from discussing the compilation of CUDA codes\footnote{\uammd's online resources shed light on this process, which might change over time for reasons outside of the author's control.}.
 
-Lets start with some basic concepts in C++ and then go to the \gpu. The entry point for execution in all C++ codes starts with a function called ``main''. This function must be defined by the user with the name ``main'' and a returning type int (see example code \ref{code:minimal}).
+Let's start with some basic concepts in C++ and then go to the \gpu. The entry point for execution in all C++ codes starts with a function called ``main''. This function must be defined by the user with the name ``main'' and a returning type int (see example code \ref{code:minimal}).
 
 \begin{code2}[A C++ program that does nothing.]
 {label=code:minimal}
@@ -5470,7 +5470,7 @@ Main is an example of a function (albeit a special one), the syntax for defining
 //The returning type, in this case int, can be replaced 
 // by the keyword auto.
 int foo(int a){
-  //This function takes an integer, refered to as "a"
+  //This function takes an integer, referred to as "a"
   // and returns its value multiplied by 2
   return a*2;
 }
@@ -5488,7 +5488,7 @@ int main(){
 \end{code2}
 
 \subsection*{Including other codes}
-By default, a C++ source code will have access only to the basic rules of the languages. We can add libraries via the \emph{include} directive, which will make available to us every function, class an variable defined in another file. For instance, in example code \ref{code:hello} we can see how to include the standard library header file that provides printing functionality.
+By default, a C++ source code will have access only to the basic rules of the language. We can add libraries via the \emph{include} directive, which will make available to us every function, class and variable defined in another file. For instance, in example code \ref{code:hello} we can see how to include the standard library header file that provides printing functionality.
 
 \begin{code2}[The classic Hello World program in C++. Once executed, it will print ``Hello world'' to the terminal.] {label=code:hello}
   #include<iostream> //Includes std::cout and std::endl
@@ -5509,7 +5509,7 @@ The \mintinline{\ucpp}{using} keyword has a second usage, it allows to ``rename'
 \subsection*{Objects}
 Although C++ can work as a functional language, it is heavily object oriented. The \mintinline{\ucpp}{struct} and \mintinline{\ucpp}{class} keywords are used to define objects in C++.
 
-An object can hold both variables and functions, which are refered to as \emph{members}. A member function in a class has access to all other members of the object. In general, object members (functions or variables) can have either private or public visibility. From the outside, only public members can be accessed, whereas private members can only accessed by other members of the same class.
+An object can hold both variables and functions, which are refered to as \emph{members}. A member function in a class has access to all other members of the object. In general, object members (functions or variables) can have either private or public visibility. From the outside, only public members can be accessed, whereas private members can only be accessed by other members of the same class.
 
 In the author's personal programming style, structs are usually employed to serve as an aggregate of variables, whereas classes are used as a more complex object (with member functions, etc). Note however, that the struct and class keywords are almost interchangeable\footnote{The only difference between a struct and a class is the default visibility of its members. By default, members in a struct have public visibility, whereas a class defaults to private visibility.}.
 
@@ -5536,9 +5536,9 @@ In the author's personal programming style, structs are usually employed to serv
     //Create an instance of the object MyClass
     MyClass c;
     //This "c" is created here as an instance of MyClass
-    //Call it's member "print".
+    //Call its member "print".
     c.print();
-    return 0;  
+    return 0;
   }
 \end{code2}
 Given that objects can be created and passed around as regular variables, we can use them to encapsulate and transport logic between different parts of the code.
@@ -5549,7 +5549,7 @@ In \uammd, every \emph{Interactor} and \emph{Integrator} is provided as a C++ \m
 A name (be it of a function, class, variable, etc...) is only visible inside a certain portion (or portions) of the source code. This portion is called the \emph{scope} of the name. There are several scopes in a C++ source code, however we will limit our introduction to discuss the lifespan of the variables we create.
 
 In particular, when a new instance of an object (or in general any variable) is created, as we saw in example \ref{code:class}, it will live until it goes out of \emph{scope}. At that point, the object/variable will be destroyed.
-Destruction involves the invalidation of the variable and the release of the memory allocated for it. Additionally, in the case of objects the destructor function, if defined for that object, will be called. When a name goes out of scope it is made available for use again (i.e. we cannot have two variables with the same name, unless one has gone out of scope).
+Destruction involves the invalidation of the variable and the release of the memory allocated for it. Additionally, in the case of objects the destructor function, if defined for that object, will be called. When a name goes out of scope it is made available for use again (i.e. we cannot have two variables with the same name, unless is out of scope).
 
 The portion of code between two curly brackets is called a \emph{block}. As a rule of thumb, a variable will live until the code block in which it has been defined is closed. In \uammd this is used, for instance, to release the handles to the particle properties provided by \emph{ParticleData}. When the destructor of one of these handles is called, it signals \emph{ParticleData} for it to take it into account (for instance, by synchronizing the CPU and \gpu verions of the data).
 
@@ -5579,9 +5579,9 @@ Let us showcase the lifespan of a variable by creating some instances inside dif
   int main(){
     {//This is a code block
       MyClass c; //"c" is created and its constructor is called
-      //Note that even we used the name "c" in the function foo, we can use it again here, since the variable "c" inside foo went out of scope
+      //Note that even though we used the name "c" in the function foo, we can use it again here, since the variable "c" inside foo went out of scope
     }// "c" goes out of scope here and its destructor is called
-    float someVariable;//Lets create some variable here
+    float someVariable;//Let's create some variable here
     //A loop also works as a code block
     for(int i=0; i<10; i++){
       MyClass c; //"c" is created
@@ -5599,7 +5599,7 @@ In C++, objects can inherit the functionality of other classes, and even overrid
 
 Given that the area of a \emph{Polygon} object is meaningless, we can mark it's \emph{area} function as \mintinline{\ucpp}{virtual} and add the suffix \mintinline{\ucpp}{= 0;} to its signature. This transforms the \emph{Polygon} class into a \emph{virtual base class}, which means that it cannot be instanced directly, rather it must be inherited and the virtual members must be overriden. See example code \ref{code:inherit}.
 \begin{code2}[Inheriting a virtual class.] {label=code:inherit}
-  //This is a pure virtual class. A "Polygon" cannot be instanciated, only classes that inherit from it are instanciable.
+  //This is a pure virtual class. A "Polygon" cannot be instantiated, only classes that inherit from it are instantiable.
   class Polygon{
     public:
     virtual double area() = 0;
@@ -5633,12 +5633,12 @@ Given that the area of a \emph{Polygon} object is meaningless, we can mark it's 
   }
 \end{code2}
 
-In \uammd, \emph{Interactor} and \emph{Integrator} are virtual classes such as \emph{Polygon}. One of the benefits of using inheritance is that it allows to provide a general logical interface. In general C++ an inherited class can mascarade as an instance of the parent class (but not the other way around). So a \emph{Square} can be used as a \emph{Polygon} but not viceversa. This only happens, however, for pointers (since the virtual base class cannot be instanced directly).
+In \uammd, \emph{Interactor} and \emph{Integrator} are virtual classes such as \emph{Polygon}. One of the benefits of using inheritance is that it allows to provide a general logical interface. In general C++ an inherited class can masquerade as an instance of the parent class (but not the other way around). So a \emph{Square} can be used as a \emph{Polygon} but not viceversa. This only happens, however, for pointers (since the virtual base class cannot be instanced directly).
 
 Let us discuss now the type of pointer used throughout this manuscript, the \mintinline{\ucpp}{std::shared_ptr}.
 
 \subsection*{Shared pointers}
-Without going into detail (the reader can learn more online), a C++ shared pointer can hold ownership of an object through a pointer. In the \uammd examples in this manuscript we use shared pointers mainly to pass around \emph{Interactors} and \emph{Integrators}. For instance, in example \ref{code:pf} we create and return an instance of \emph{PairForces}, a class inherited from \emph{Interactor}. On the other hand, the \emph{Integrator} member function \mintinline{\ucpp}{addInteractor();} will take in its argument a pointer to an \emph{Interactor}, meaning that the \emph{PairForces} instance created in example \ref{code:pf} can be passed to an \emph{Integrator} (such as the one created in example \ref{code:md}) directly.
+Without going into details (the reader can learn more online), a C++ shared pointer can hold ownership of an object through a pointer. In the \uammd examples in this manuscript we use shared pointers mainly to pass around \emph{Interactors} and \emph{Integrators}. For instance, in example \ref{code:pf} we create and return an instance of \emph{PairForces}, a class inherited from \emph{Interactor}. On the other hand, the \emph{Integrator} member function \mintinline{\ucpp}{addInteractor();} will take in its argument a pointer to an \emph{Interactor}, meaning that the \emph{PairForces} instance created in example \ref{code:pf} can be passed to an \emph{Integrator} (such as the one created in example \ref{code:md}) directly.
 
 
 \begin{code2}[Using shared pointer to hold many types of polygons.] {label=code:sharedptr}
@@ -5663,7 +5663,7 @@ Without going into detail (the reader can learn more online), a C++ shared point
 \end{code2}
 
 \subsection*{Metaprogramming}
-In addition of inheritance, C++ offers another way of writing generic code called templates. A template is a function or object that is generic for any type (sometimes the type is restricted under some assumptions). For instance, let us rewrite the function \mintinline{\ucpp}{getAreaOf} in example \ref{code:sharedptr} using metaprogramming instead of inheritance.
+In addition to inheritance, C++ offers another way of writing generic code called templates. A template is a function or object that is generic for any type (sometimes the type is restricted under some assumptions). For instance, let us rewrite the function \mintinline{\ucpp}{getAreaOf} in example \ref{code:sharedptr} using metaprogramming instead of inheritance.
 
 \begin{code2}[Using shared pointer to hold many types of polygons.] {label=code:sharedptr}
   //This function takes any type and returns its area. Of course, it will not compile if the provided type has no member function called area.
@@ -5694,12 +5694,12 @@ Several categories of iterators exists depending on the functionality they provi
 \begin{figure}
   \centering
   \includesvg[width=0.25\columnwidth]{gfx/iterator}
-  \caption{The different kinds of C++ iterators. Iterators can be either for input (reading), output (writing) or both (read/write). The most generic type of iterator is called \emph{Random Access} and allows for arbitrary access to its elements. Below, a \emph{Bidirectional} constraints the access to be always next to the previously accesed element. In other words, a \emph{Bidirectional} iterator can only issued to advance or regress one element at a time. Finally, the most restricted iterator kind, the \emph{Forward} iterator, can only be accesed element by element in order. }
+  \caption{The different kinds of C++ iterators. Iterators can be either for input (reading), output (writing) or both (read/write). The most generic type of iterator is called \emph{Random Access} and allows for arbitrary access to its elements. Below, a \emph{Bidirectional} constrains the access to be always next to the previously accessed element. In other words, a \emph{Bidirectional} iterator can only be issued to advance or regress one element at a time. Finally, the most restricted iterator kind, the \emph{Forward} iterator, can only be accesed element by element in order. }
   \label{fig:iterator}
 \end{figure}
 Iterators play a central role in connecting algorithms with containers in C++ and allow for deep customization. For instance, say that a given algorithm requires as input an ordered range of numbers and, after some operations, fills with some results the contents of two output arrays. Furthermore, say we are only interested in one of the two output arrays. Instead of allocating three vectors and filling the first with the range of numbers we could use some fancy iterators to save a lot of work; For the input range of numbers, we could pass an input \emph{counting iterator} (see example code \ref{code:iterators}). For the non-required output, we could provide the algorithm with an output \emph{discard iterator}\footnote{The thrust library provides a series of fancy iterators like the ones mentioned in this paragraph (counting, constant, discard...).} that simply ignores any value that is assigned to any of its elements (thus preventing unnecessary memory copies).
 
-\begin{code2}[Using iterators in C++. In this example a counting iterator for the range 0-5 is fabricated from three different sources. For the first two cases a container (vector) is created and filled with the actual integers from 0 to 5 (requiring memory allocation). We then get an iterator to the range of the container via the method \emph{begin} of the vector (which returns an iterator pointing to the first element, see the variable ``vit''). An equivalent way in this case is to simply get a pointer to the first element of the container (variable ``pit''). Finally, a counting iterator is construted using the one available in the thrust library. This special iterator is not associated to an underlying container, instead it is an object that provides an overloaded bracket operator that when given an integer, ``i'', simply returns that same integer, ``i''. Note that in this example, ``vit'' and ``pit'' are input/output interators, while ``cit'' is just an input iterator. The method ``cbegin'' in vector can be used to make ``vit'' an input iterator instead. Additionally, making the type of ``pit'' be ``const int*'' will also turn it into an input iterator. On the other hand, ``cit'' cannot be an output iterator, since there is nothing to write to behind it.] {label=code:iterators}
+\begin{code2}[Using iterators in C++. In this example a counting iterator for the range 0-5 is constructed from three different sources. For the first two cases a container (vector) is created and filled with the actual integers from 0 to 5 (requiring memory allocation). We then get an iterator to the range of the container via the method \emph{begin} of the vector (which returns an iterator pointing to the first element, see the variable ``vit''). An equivalent way in this case is to simply get a pointer to the first element of the container (variable ``pit''). Finally, a counting iterator is constructed using the one available in the thrust library. This special iterator is not associated to an underlying container, instead it is an object that provides an overloaded bracket operator that when given an integer, ``i'', simply returns that same integer, ``i''. Note that in this example, ``vit'' and ``pit'' are input/output iterators, while ``cit'' is just an input iterator. The method ``cbegin'' in vector can be used to make ``vit'' an input iterator instead. Additionally, making the type of ``pit'' be ``const int*'' will also turn it into an input iterator. On the other hand, ``cit'' cannot be an output iterator, since there is nothing to write to behind it.] {label=code:iterators}
 #include<iostream>
 #include<vector>
 #include<thrust/iterator/counting_iterator.h>
@@ -5727,10 +5727,10 @@ The \mintinline{\ucpp}{const} keyword simply informs the reader (and compiler) t
 \section{Basics rules of CUDA programming}
 CUDA is an extension of C++. All the language rules we have seen thus far also apply to CUDA. CUDA introduces some new keywords and an \gls{API}.
 
-We use the \mintinline{\ucpp}{cudaMalloc*} family of functions to request global memory, although in practice we have higher level containers available, such as \mintinline{\ucpp}{thrust::device_vector<T>}. Nowadays, it is not a good practice to call \mintinline{\ucpp}{cudaMalloc} directly, similarly as with \mintinline{\ucpp}{malloc/new} vs. \mintinline{\ucpp}{std::vector<T>} in the CPU.
-We can populate the allocated global memory copying data from the CPU via the \mintinline{\ucpp}{cudaMemcpy*} family of functions. As with allocation, a series of higher level functions are available as alternatives. In particular we have \mintinline{\ucpp}{thrust::copy}, which handles CPU-\gpu copies. Additionally, kernels can write or read freely to global memory arrays, with the atomic considerations proper to a parallel environment.
-We use the keyword \mintinline{\ucpp}{__global__} to mark a C++ function as a CUDA kernel, which must return a \mintinline{\ucpp}{void} (i.e do not return a value), a kernel must be called with a special syntax and specifying the thread grid geometry (see example code \ref{code:cudakernel}).
-Additionally, kernels might call other functions, which must be adorned with the \mintinline{\ucpp}{__device__} attribute\footnote{The \mintinline{\ucpp}{__host__} attribute also exist. A function adorned with both device and host attributes can be called from both the device and the host.}.
+We use the \mintinline{\ucpp}{cudaMalloc*} family of functions to request global memory, although in practice we have higher-level containers available, such as \mintinline{\ucpp}{thrust::device_vector<T>}. Nowadays, it is not considered good practice to call \mintinline{\ucpp}{cudaMalloc} directly, similarly to using \mintinline{\ucpp}{malloc/new} vs. \mintinline{\ucpp}{std::vector<T>} in the CPU.
+We can populate the allocated global memory copying data from the CPU via the \mintinline{\ucpp}{cudaMemcpy*} family of functions. As with allocation, a series of higher-level functions are available as alternatives. In particular we have \mintinline{\ucpp}{thrust::copy}, which handles CPU-\gpu copies. Additionally, kernels can write to or read freely from global memory arrays, with the atomic considerations proper to a parallel environment.
+We use the keyword \mintinline{\ucpp}{__global__} to mark a C++ function as a CUDA kernel, which must return a \mintinline{\ucpp}{void} (i.e not return a value), a kernel must be called with a special syntax and specifying the thread grid geometry (see example code \ref{code:cudakernel}).
+Additionally, kernels might call other functions, which must be adorned with the \mintinline{\ucpp}{__device__} attribute\footnote{The \mintinline{\ucpp}{__host__} attribute also exists. A function adorned with both device and host attributes can be called from both the device and the host.}.
 
 \begin{code2}[Creating vectors allocated in the \gpu, populating them and performing the saxpy operation using a kernel.]{label=code:cudakernel}
   #include<thrust/device_vector.h>
@@ -5745,7 +5745,7 @@ Additionally, kernels might call other functions, which must be adorned with the
   //Each thread will handle one element
   //This kernel must be launched with at least n threads
   __global__ void saxpy(float a, const float *x, float *y, int n){
-    //Built in variables are available in kernels to compute things like a unique id for each thread in the grid
+    //Built-in variables are available in kernels to compute things like a unique id for each thread in the grid
     int id = blockIdx.x*blockDim.x + threadIdx.x;
     //The variable "id" lives in the thread-local, AKA register, memory space.
     //In case the kernel is launched with more threads than elements.
@@ -5783,7 +5783,7 @@ Additionally, kernels might call other functions, which must be adorned with the
   }
 \end{code2}
 
-In a CUDA code it is important to always know the procedence of a pointer in order to know where to access it from\footnote{There is a special kind of memory, called \emph{managed memory}, that can be accessed from both devices freely. However, it comes with its own downsides and is beyond the scope of this introduction. \uammd sometimes defaults to managed memory when compiled in debug mode.}.
+In a CUDA code it is important to always know the provenance of a pointer in order to know where to access it from\footnote{There is a special kind of memory, called \emph{managed memory}, that can be accessed from both devices freely. However, it comes with its own downsides and is beyond the scope of this introduction. \uammd sometimes defaults to managed memory when compiled in debug mode.}.
 This is the original motivation for the \emph{ParticleData} \uammd object.
 
 %\item Different memories in the GPU; global memory, register memory, shared memory, constant memory.
