@@ -1918,14 +1918,14 @@ As with the \emph{Interactor} interface (described in section \ref{sec:interacto
 \chapter{Molecular Dynamics}\label{sec:md}
 
 At the lowest level our simulation units are interacting atoms or molecules whose motion can be described using classical mechanics. We refer to the numerical techniques used in this regime as \gls{MD}.
-In \gls{MD} molecules are moving in a vacuum following the Newton's equation of motion. If we need to include some kind of solvent, i.e. water, in a \gls{MD} simulation we must do so by explicitly solving the motion of all the involved molecules of water (with some suitable force field).
-Even so \gls{MD} represents the basis for all particle based methods, where the term \emph{particle}, depending on the level of coarse graining, might refer to anything from an atom to a colloidal particle.
-Although it is not the most fundamental way of expressing the equations of motions, we will stick to a somewhat simplified one. For a system of $N$ molecules interacting via a certain potential, Newton's equation of motion states that the acceleration experienced by each particle comes from the total force, $\vec{F}$, acting on it.
+In \gls{MD} molecules are moving in a vacuum following the Newtonian equation of motion. If we need to include some kind of solvent, i.e. water, in an \gls{MD} simulation we must do so by explicitly solving the motion of all the involved molecules of water (with some suitable force field).
+Even so, \gls{MD} represents the basis for all particle-based methods, where the term \emph{particle}, depending on the level of coarse graining, might refer to anything from an atom to a colloidal particle.
+Although it is not the most fundamental way of expressing the equations of motion, we will stick to a somewhat simplified but still quite general approach. For a system of $N$ molecules interacting via a certain potential, Newton's second law states that the acceleration experienced by each particle comes from the total force, $\vec{F}$, acting on it.
 \begin{equation}
   \label{eq:md}
-  \vec{F} =  m\ddot{\vec{\ppos}} = m\vec{a}
+  \vec{F} =  m\ddot{\vec{\ppos}} = m\vec{a},
 \end{equation}
-Where $m$ is the mass of the molecule, $\vec{\ppos}$ its position in cartesian coordinates and $\vec{a}$ its acceleration.
+where $m$ is the mass of the molecule, $\vec{\ppos}$ its position in cartesian coordinates and $\vec{a}$ its acceleration.
 The force can usually be expressed as the gradient of an underlying potential energy landscape, $U$.
 \begin{equation}
   \label{eq:mdfv}
@@ -1934,14 +1934,15 @@ The force can usually be expressed as the gradient of an underlying potential en
 which in general is a function of the positions of the particles.
 
 
-At its core Eqs. \eqref{eq:md} and \eqref{eq:md} are an expression of the conservation of the total system's energy. As such, these equations of motion can be used to perform simulations in the so-called microcanonical ensemble (NVE), where the number of particles (N), the volume of the domain (V) and the total energy (E) are conserved. Note, however, that the energy is only conserved when forces stem from the gradient of a potential.
+At their core, Eqs. \eqref{eq:md} and \eqref{eq:md} are an expression of the conservation of the total energy of the entire system. Consequently, these equations of motion can be used to perform simulations in the so-called microcanonical ensemble (NVE)\footnote{Although other systems can also be simulated with \gls{MD}. For example, \gls{MD} could be used to simulate the dynamics a group of gas molecules inside a piston (in which volume is not conserved).}, where the number of particles (N), the volume of the domain (V) and the total energy (E) are conserved. Note, however, that the energy is only conserved when forces stem from the gradient of a potential.
 
 
-Our goal is to integrate numerically Eq. \eqref{eq:md}. Starting from the state of the system at a certain time $t$ (where the system is conformed by the positions and velocities of the particles and the forces acting on them) we want to find the state of the system at time $t + \dt$. We refer to $\dt$ as the time step.
+Our goal is to numerically integrate Eq. \eqref{eq:md}. Starting from the state of the system at a certain time $t$ (where the system is conformed by the positions and velocities of the particles and the forces acting on them) we want to find the state of the system at time $t + \dt$. We refer to $\dt$ as the time step.
 
 The so-called finite-difference methods are the most commonly employed techniques to achieve this.
 \section{Finite-difference methods}
-Finite-difference methods\cite{Grossmann2007} solve \gls{ODE} or \gls{PDE} by approximating the derivative operators with finite differences.
+\glsreset{PDE}
+Finite-difference methods~\cite{Grossmann2007} solve \glspl{ODE} or \glspl{PDE} by approximating the derivative operators with finite differences.
 We can employ this idea to solve both spatial and temporal discretized differentiation operators. Thus far we are only interested in solving temporal derivatives, such as the one in Eq. \eqref{eq:md}.
 The derivative of a function, $f$, is defined as
 \begin{equation}
@@ -1953,22 +1954,22 @@ If the function is smooth and analytic (well behaved), we can write its Taylor e
   \label{eq:fdmtaylor}
   f(t+\dt) = f(t)+\dot{f}(t)\dt + \half\ddot{f}(t)\dt^2 + O(\dt^3)
 \end{equation}
-For convenience, we will refer to the function evaluated at time $t$ as $f^n := f(t)$ and as $f^{n\pm 1} := f(t\pm \dt)$ when evaluated at $t\pm \dt$. This notation can be extended to refer to points more separated in time, in general defining $f^{n\pm j} := f(t\pm j\dt)$.
+For convenience, we will refer to the function evaluated at time $t$ as $f^n := f(t)$ and as $f^{n\pm 1} := f(t\pm \dt)$ when evaluated at $t\pm \dt$. This notation can be extended to refer to points separated furthe in time, in general defining $f^{n\pm j} := f(t\pm j\dt)$.
 Solving Eq. \eqref{eq:fdmtaylor} for the first derivative
 \begin{equation}
- \dot{f}^n  =  \frac{f^{n+1} - f^n}{\dt} + \half\ddot{f}^n\dt + O(\dt^2)
+ \dot{f}^n  =  \frac{f^{n+1} - f^n}{\dt} - \half\ddot{f}^n\dt + O(\dt^2),
 \end{equation}
-Which approximates the definition of derivative for sufficiently small $\dt$, when only the first term remains.
+which approximates the definition of derivative for sufficiently small $\dt$, when only the first term remains.
 Most of the integration techniques we will use make use of this trick.
-Let's see how we can leverage this technique to solve Eq. \eqref{eq:md}.
+Lets see how we can leverage this technique to solve Eq. \eqref{eq:md}.
 \subsection{Euler Methods}\label{sec:euler}
 
-If we truncate Eq. \eqref{eq:fdmtaylor} at order $\dt$ we get the so called Euler method\cite{Butcher2016}, which approximates the integral as
+If we truncate Eq. \eqref{eq:fdmtaylor} at order $\dt$ we get the so called Euler method~\cite{Butcher2016}, which approximates the integral as
 \begin{equation}
   \label{eq:basiceuler}
   f^{n+1} = f^n + \dot{f}^n\dt
 \end{equation}
-Which yields a solver with $O(\dt)$ accuracy\cite{Butcher2016}.
+Which yields a solver with $O(\dt)$ accuracy~\cite{Butcher2016}.
 It is worth exploring here a different derivation of the Euler method using the definition of integral instead of derivative. We can apply the fundamental theorem of calculus to get
 \begin{equation}
   \label{eq:eulerftc}
@@ -1981,9 +1982,9 @@ On the other hand, we can approximate the integral using the left Riemann sum wi
 \end{equation}
 By combining Eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} we arrive to \eqref{eq:basiceuler} again.
 This derivation will come in handy later when describing integration schemes for equations with terms that cannot be approximated by Eq. \eqref{eq:fdmtaylor}.
-Furthermore, Eq. \eqref{eq:eulerriemman} opens the door to a family of numerical integrators based on improving this approximation by using more intervals between $t$ and $t+\dt$. Some examples are the Runge-Kutta methods or the so-called linear multistep methods, such as the Adams Bashforth family of algorithms\cite{Butcher2016}.
-Often these methods improve numerical stability at the cost of evaluating the function derivative (in our case meaning the force) several times per time step. Given that in a \gls{MD} simulation this is, often by orders of magnitude, the most expensive part of the computation we wont be making use of them for the time being.
-Finally, there are several modifications to the Euler algorithm that can improve its stability, such as the backward Euler\cite{Butcher2016} or the exponential Euler\cite{Butcher2016}.
+Furthermore, Eq. \eqref{eq:eulerriemman} opens the door to a family of numerical integrators based on improving this approximation by using more intervals between $t$ and $t+\dt$. Some examples are the Runge-Kutta methods or the so-called linear multistep methods, such as the Adams Bashforth family of algorithms~\cite{Butcher2016}.
+Often these methods improve numerical stability at the cost of evaluating the function derivative (in our case meaning the force and also, often, the velocity which is less expensive computationally) several times per time step. Given that in a \gls{MD} simulation this is, often by orders of magnitude, the most expensive part of the computation we wont be making use of them for the time being.
+Finally, there are several modifications to the Euler algorithm that can improve its stability, such as the backward Euler~\cite{Butcher2016} or the exponential Euler\cite{Butcher2016}.
 We will expand into Euler methods in section \ref{sec:bd}.
 For now, we can use it to integrate Eq. \eqref{eq:md} to get the velocity and the positions
 \begin{equation}
@@ -1994,7 +1995,7 @@ For now, we can use it to integrate Eq. \eqref{eq:md} to get the velocity and th
 \end{aligned}
 \end{equation}
 Where $\vec{\pvel} := \dot{\vec{\ppos}}$ represents the velocity of the molecule.
-The Euler integrator as defined above is not symplectic\cite{Hairer2006} and as such presents several stability issues that make it non practical as compared with other strategies that will be discussed shortly. In particular, not being symplectic makes it unsuitable for our main goal, energy conservation\cite{Hairer2006}. On the other hand it is a first order method and lowering the time step too much to improve accuracy leads to numerical rounding errors (due to floating point accuracy).
+The Euler integrator as defined above is not symplectic\cite{Hairer2006} and as such presents several stability issues that make it impractical as compared with other strategies that will be discussed shortly. In particular, not being symplectic makes it unsuitable for our main goal: energy conservation\cite{Hairer2006}. On the other hand it is a first order method and lowering the time step too much to improve accuracy leads to numerical rounding errors (due to the limits of floating point accuracy).
 However, we can make a small modification to the Euler method to make it symplectic\cite{Hairer2006}
 \begin{equation}
   \label{eq:semiimpliciteuler}
@@ -2004,10 +2005,10 @@ However, we can make a small modification to the Euler method to make it symplec
   \end{aligned}
 \end{equation}
 This mid-point scheme leads to the semi implicit Euler scheme. While symplectic, this algorithm effectively requires two force evaluations per step (interpreting step as going from $t$ to $t+\dt$) and it is still a first order method.
-In order to efficiently solve Eq. \eqref{eq:md} we need a symplectic and memory conserving algorithm that offers good numerical stability while requiring to evaluate the forces only once per step.
-The most widespread algorithm for \gls{MD} is the so-called velocity Verlet method\cite{Allen2017}, a second order algorithm that needs the forces only once per step.
+In order to efficiently solve Eq. \eqref{eq:md} we need a symplectic and memory-saving algorithm that offers good numerical stability while requiring to evaluate the forces only once per step.
+The most widespread algorithm for \gls{MD} is the so-called velocity Verlet method\cite{Allen2017}, a second-order algorithm that needs the forces only once per step.
 \section{The velocity Verlet algorithm}\label{sec:velocityverlet}
-Instead of truncating Eq. \eqref{eq:fdmtaylor} at $O(\dt)$ as we did with Euler lets now truncate it at $O(\dt^3)$ and write the expressions for the positions at $t+\dt$ and $t-\dt$
+Instead of truncating Eq. \eqref{eq:fdmtaylor} at $O(\dt)$ as we did with Euler let's now truncate it at $O(\dt^3)$ and write the expressions for the positions at $t+\dt$ and $t-\dt$
 \begin{eqnarray}
   \label{eq:verletrp1}
   \vec{\ppos}^{n+1} &=& \vec{\ppos}^n + \vec{\pvel}^n\dt + \half\vec{a}^n\dt^2 + \vec{b}^n\dt^3 + O(\dt^4)\\
@@ -2019,41 +2020,41 @@ By adding both equations together and solving for $\vec{\ppos}^{n+1}$ we get
   \label{eq:stormerverlet}
   \vec{\ppos}^{n+1} = 2\vec{\ppos}^n - \vec{\ppos}^{n-1} + \half\vec{a}^n\dt^2 + O(\dt^4)
 \end{equation}
-When written like this, this equation can be used to integrate Eq. \eqref{eq:md} and is known as the Störmer integration method. It can also be seen as an application of the central differencing method to the position and as such, Eq. \eqref{eq:stormerverlet} is also know as the explicit central difference method.
-Although Eq. \eqref{eq:stormerverlet} presents really good numericall stability ($O(\dt^4)$) at a small cost, it presents some issues that hinder its applicability.
+When written like this, this equation can be used to integrate Eq. \eqref{eq:md} and is known as the Störmer integration method. It can also be seen as an application of the central differencing method to the position and as such, Eq. \eqref{eq:stormerverlet} is also known as the explicit central difference method.
+Although Eq. \eqref{eq:stormerverlet} presents really good numerical stability ($O(\dt^4)$) at a small cost, it presents some issues that hinder its applicability.
 It requires storing the position at two points in time, which is inconvenient and poses the challenge of starting the simulation.
 Furthermore it eliminates the velocity from the integration, which can be computed from the positions using the central difference method
 \begin{equation}
   \label{eq:stormervel}
   \vec{\pvel}^n = \frac{\vec{\ppos} ^{n+1} - \vec{\ppos}^{n-1}}{2\dt} + O(\dt^2)
 \end{equation}
-Mathematically this is a second order approximation to the velocity. However, computing the velocity in this way can result in large roundoff errors stemming from the substraction of two similar quantities.
+Mathematically this is a second order approximation to the velocity. However, computing the velocity in this way can result in large roundoff errors stemming from the subtraction of two similar quantities.
 We can manipulate Eqs. \eqref{eq:verletrp1} and \eqref{eq:stormervel} to arrive at the more commonly used version of the Verlet method, the so-called velocity Verlet algorithm.
 We can use the central difference method to evaluate the velocity at half step as $\vec{\pvel}^{n+\half} = \frac{\vec{\ppos}^{n+1} - \vec{\ppos}^n}{\dt}$. By replacing $\vec{\ppos}^{n+1}$ with Eq. \eqref{eq:verletrp1} and truncating at $O(\dt^2)$ we get
 \begin{equation}
   \label{eq:verletvelhalf}
   \vec{\pvel}^{n+\half} = \vec{\pvel}^n + \half\vec{a}^n\dt + O(\dt^2)
 \end{equation}
-Which allows to get a second order approximation of the position by replacing  $\vec{\pvel}^{n+\half}$ into \eqref{eq:verletrp1}
+Which allows to get a second order approximation of the position by  solving Eq. \eqref{eq:verletvelhalf} for $\vec{\pvel}^n$ and inserting it into Eq. \eqref{eq:verletrp1}
 \begin{equation}
   \vec{\ppos}^{n+1} = \vec{\ppos}^n +  \vec{\pvel}^{n+\half}\dt + O(\dt^3)
 \end{equation}
-We can then use Eq. \eqref{eq:verletvelhalf} to compute the velocity at $t+\dt$
+We can then use Eq. \eqref{eq:verletvelhalf} again to compute the velocity at $t+\dt$
 \begin{equation}
   \vec{\pvel}^{n+1} = \vec{\pvel}^{n+\half} + \half\vec{a}^{n+1}\dt
 \end{equation}
-Note that these equations are just a rewrite of the Störmer Verlet method above and thus present the same stability and accuracy while eliminating the aforementioned incoveniences presented by the former.
-Thus the overall algorithm is second order accurate in the velocity and third order accurate in the positions.
+Note that these equations are just a rewrite of the Störmer-Verlet method above and thus present the same stability and accuracy while eliminating the aforementioned incoveniences presented by the former.
+Thus the overall algorithm is second-order accurate in the velocity and third-order accurate in the positions.
 Finally, the velocity Verlet algorithm can be summarized in the following steps
 \begin{equation}
   \label{eq:verletnve}
   \begin{aligned}
-    \vec{\pvel}^{n+\half} &=& \vec{\pvel}^n + \half \vec{a}^n\dt\\
-  \vec{\ppos}^{n+1} &=& \vec{\ppos}^n +  \vec{\pvel}^{n+\half}\dt\\
-  \vec{\pvel}^{n+1} &=& \vec{\pvel}^{n+\half} + \half\vec{a}^{n+1}\dt
+    \vec{\pvel}^{n+\half}&= \vec{\pvel}^n + \half \vec{a}^n\dt\\
+  \vec{\ppos}^{n+1}      &= \vec{\ppos}^n +  \vec{\pvel}^{n+\half}\dt\\
+  \vec{\pvel}^{n+1}      &= \vec{\pvel}^{n+\half} + \half\vec{a}^{n+1}\dt
 \end{aligned}
 \end{equation}
-Note that, with the exception of the first step, there is no need to compute the accelerations twice, since the forces at time $t$ are known from the previous step. Forces at $t+\dt$ should be evaluated after computing $\vec{\ppos}^{n+1}$, typically overwritting the current forces. The only storage needed are the velocities, positions and accelerations per particle.
+Note that, with the exception of the first step, there is no need to compute the accelerations twice, since the forces at time $t$ are known from the previous step. Forces at $t+\dt$ should be evaluated after computing $\vec{\ppos}^{n+1}$, typically overwriting the current forces. The only storage needed are the velocities, positions and accelerations per particle.
 Thus, the velocity Verlet algorithm presents all the necessary properties for being a popular integrator. It has good numerical stability, a small memory footprint, good energy conservation, guaranteed momentum conservation,...
 
 %\subsection{Testing the algorithm}
@@ -2092,7 +2093,9 @@ auto createIntegratorVerletNVE(UAMMD sim){
 %In particular, the solvent effect will be coarse grained in the form of fluctuations and hydrodynamic correlations between the colloidal particles resolved.
 % We cannot simply ignore the effect of the solvents since we would be neglecting some of the most important phenomena in the system, such as hydrodynamics and thermal fluctuations.
 During the following sections, we will see different strategies to take into account the effects of the solvent in an implicit manner. In particular, the solvent effect will be coarse-grained in the form of fluctuations and hydrodynamic correlations between the resolved colloidal particles.
-The next natural after \gls{MD} equations are the so-called \gls{LD}.
+The next natural step after \gls{MD} equations are the so-called \gls{LD}.
+
+\todo{There should be some example here on how to add interactors to integrators.}
 
 \chapter{Langevin Dynamics}\label{sec:langevin}
 
@@ -5172,101 +5175,9 @@ auto createDPPoissonInteractor(UAMMD sim){
 \part{New physics and applications}\label{pt:applications}
 
 In this part we showcase the works, published in scientific journals, that resulted from the development of this thesis. We will see new physics and works in which \uammd played a fundamental role either as a simulation engine or accelerator.
-
-\chapter{Hydrodynamics in confined geometries}
-
-Let us start by discussing two works that study hydrodynamics in confined geometries. First in section \ref{sec:softconf} when particles are confined to the plane via a soft harmonic potential and then in section \ref{sec:strictconf} when the confinement is strict (in the quasi 2D regime introduced in chapter \ref{sec:q2D}).
-
-\section{From soft to strict confinement}\label{sec:softconf}
- In \cite{Pelaez2017} we study the hydrodynamics-enhanced collective diffusion of a group of colloids under soft two dimensional confinement as the confinement becomes stiff. Colloids are embedded in an unbounded fluid but their movement in the Z direction is constrained via an harmonic potential (see Fig. \ref{fig:q2dsch}) as we introduced in chapter \ref{sec:q2D}. In this work we study the crossover between purely 3D hydrodynamics and quasi2D both numerically and theoretically.
-
-  It is well-known that, in quasi2D, collective diffusion is enhanced due to the effective compressibility of the in-plane hydrodynamics. This is evidenced in Eq. \eqref{eq:q2Deffrepulsion} (and related discussion), where we saw how the divergence of the in-plane mobility can be interpreted as the colloids interacting via a Coulomb-like repulsive potential in an incompressible fluid. In \cite{Pelaez2017} we find that the enhancement of the collective diffusion is quite robust and remains significant when moving from strict to soft confinement.
-
-  The enhancement, being collective in nature, decreases with the concentration of colloids. As an example, for a projected surface fraction, $\phi = \pi a^2N/L^2$, of about $0.4$, a rather soft confining potential of width $\delta = 3a$ will induce more than a $10$-fold increase in collective diffusion for a density perturbation of typical size given by a wavelength $ka \sim 6\cdot 10^{-2}$ (corresponding to a wavelength around $100a$). For nanoparticles (of about $10$ nm) these lengths are still small (order $10$ microns). We can find several experimental set-ups where the confinement is even more stiff than our example, $\delta\sim a$ (and thus the increase in diffusion is more pronounced). For instance, in the presence of walls (note that the mobility will be regularized by the presence of a wall) depletion forces can constrain the out-of-plane diffusion of colloids near the wall to $\delta\sim a$. If the surface and the colloids are charged the confinement will be related to the Debye length (nanometers). On the other hand, the theory presented in \cite{Pelaez2017} can be directly applicable to confinement by ultrasound. The pressure waves generated by high frequency (MHz) ultrasounds (an effective quadratic potential) can confine micron-sized colloids to a witdh $\delta \sim a$.
-  In Fig. \ref{fig:q2DEnhancement} we show the collective diffusion coefficient, defined as
-  \begin{equation}
-    \label{eq:q2dcoldif}
-    D_c(k) = D_0\frac{H(k)}{S(k)},
-  \end{equation}
-  for systems with several densities.
-  In Eq. \eqref{eq:q2dcoldif} $S(k)$ is the structure factor (which is $1$ for ideal particles, i.e no structure). $H(k):= H_s + H_c(k)$ is the so-called hydrodynamic mobility function, which further divides into a self ($H_s$) and collective ($H_c$) contributions.
-  \begin{figure}[H]
-    \label{fig:q2DEnhancement}
-    \centering
-    \includegraphics[width=0.7\textwidth]{gfx/q2DEnhancement}
-    \caption{Collective diffusion, $D_c(k)$, of a group of ideal colloids under strict confinement ($\delta\rightarrow 0$) for several densities. Dashed line correspond to $D_c/D_0 = 1 + \frac{\lambda}{2\pi L_h}$. Here $L_h := \frac{2a}{3\phi}$ is the hydrodynamic length and $\lambda := \frac{2\pi}{k}$ is the wavelenght of a density perturbation.}
-  \end{figure}
-  
-  Under strict two-dimensional confinement (infinitely stiff trap) the collective colloidal diffusion is enhanced and diverges at zero wave number (like $k^{-1}$), due to the hydrodynamic propagation of the confining force across the layer. Physically this results in increasingly large density perturbations ``repelling'' with increasing strength.
-  
-
-  At intermediate and short wavelengths, we study to what extent the hydrodynamic enhancement of diffusion is masked by the conservative forces between colloids, which make the structure factor different from $1$. 
-  
-  At very large wavelengths, the collective diffusion becomes faster than the solvent momentum transport and a transition from Stokesian dynamics to inertial dynamics takes place, which we study using the \gls{ICM} described in chapter \ref{sec:icm}.
-
-  Additionally, we observe that the analytic solution for the collective diffusion of colloids under a Gaussian trap of width $\delta$ still shows enhanced diffusion for large wavelengths $k\delta < 1$, and a gradual transition to normal diffusion for $k\delta > 1$ (see Fig. \ref{fig:q2Dfrom3dto2d}).
-
-  \begin{figure}[H]
-    \label{fig:q2Dfrom3dto2d}
-    \centering
-    \includegraphics[width=0.7\textwidth]{gfx/q2Dfrom3dto2d}
-    \caption{The enhancement of the collective diffusion (given by the hydrodynamic function $H_c(k)$ in Eq. \ref{eq:q2Dcoldif}) of a group of ideal colloids ($S(k)=1$) as the confinement goes from non-existent ($\delta\rightarrow \infty$) to stiff ($\delta\rightarrow 0$). Dashed lines correspond to Eq. (18) in \cite{Pelaez2017}, from where this figure has been taken from.}
-  \end{figure}
-
-%  Using our inertial coupling method code (resolving fluid inertia), we study this transition by performing simulations at small Schmidt number. Simulations confirm theoretical predictions for the $k \rightarrow 0$ limit [Phys. Rev. E 90, 062314 (2014)] showing negative density-density time correlations. However, at finite $k$ simulations show deviations from the theory.
-
-\section{Limit of strict confinement}\label{sec:strictconf}
-In \cite{Pelaez2018} we focus on the limit $\delta\rightarrow 0$ by taking the mathematical limit of the confining force becoming infinite. We already introduced this limit in chapter \ref{sec:q2D}, where we saw how the confining force propagates to the fluid resulting in an effectively compressible in-plane mobility (which is the origin of the anomalous collective diffusion). In fact, as represented in Fig. \ref{fig:q2DEnhancement} the collective diffusion coefficient diverges like the inverse of the wavenumber.
-
-In \cite{Pelaez2018} we extend the previously existing hydrodynamic theory to account for a species/color labeling of the particles (which is needed to model experiments based on fluorescent techniques). We then study the magnitude and dynamics of the density and color density fluctuations theoretically (using linearized flucutating hydrodynamics) and simulations (with our novel \gls{BDHI} quasi 2D \gpu algorithm, see chapter \ref{sec:q2D}).
-The effects of the effective repulsion fundamentally change the dynamics in quasi 2D as evidenced in figs. \ref{fig:q2Doverdens} and \ref{fig:q2Dstripes}, where we place striped overdensities in the middle of the domain and study their time evolution.
-
-We measure concentration as the numer density defined as
-\begin{equation}
-  c^{(1)}(\vec{\fpos}) = \sum_i\delta(\vec{\fpos}-\vec{\ppos}_i)
-\end{equation}
-\begin{figure}[H]
-  \label{fig:q2Doverdens}
-  \centering
-  \subfloat{\includegraphics[width=0.7\linewidth]{gfx/q2Dstripehisttotal}}
-  \subfloat{\includegraphics[width=0.7\linewidth]{gfx/q2Dstripehist}}
-  \caption{Time evolution of a striped density perturbation initially localized in the middle third of the domain in quasi 2D. Shown here are the density profiles averaged both in ensemble and in the x direction. (Left) The total density, $c^{(1)}(y, t)$, at time $t=0$ (dashed-solid black line) and at a later point in time (red squares), theory for the quasi 2D line (red) comes from our mean field (Eq. 30 in \cite{Pelaez2018}). The solution to the diffusion equation without hydrodynamic interactions (at the same time) is shown as a solid black line. (Right) We tag particles starting in the middle stripe as green ($c^{(1)}_G$, green lines and squares) and the rest as red ($c^{(1)}_R$, red lines and circles) and plot their density profiles, $c^{(1)}_{R/G}$. Red and green symbols correspond to $c^{(1)}_R$ and $c^{(1)}_G$ at the same point in time as the left pane. Dotted lines correspond to $t=0$. Our mean field theory is also shown here with solid lines. Dashed lines correspond to the diffusion equation without hydrodynamic interactions. All particles are passive tracers.}
-\end{figure}
-Fig. \ref{fig:q2Doverdens} shows the ensemble average of the time evolution of the density profiles, evidencing the effect of the enhance collective diffusion.
-On the other hand, we study non-equilibirum giant fluctuations by looking at the time evolution of a single realization of the diffusing stripes. In Fig. \ref{fig:q2Dstripes} we look at the time evolution of an overdensity, while \ref{fig:q2Dcolorstripe} shows simulations with ``color'' density gradients. In the latter simulations the system has uniform total density across the whole domain, but we mark (color) particles starting in the middle third of the domain and study the evolution of their concentration.
-\begin{figure}[H]
-  \label{fig:q2Dstripes}
-  \centering
-  \includegraphics[width=\linewidth]{gfx/q2Dstripes}
-  \caption{Time evolution (snapshots at times increasing from left to right) of a density perturbation initially localized in the middle third of the domain (blue represents zero concentration of particles). We show snapshots for quasi 2D (top row) and true 2D (bottom row) at the same diffusive times ($t^{t2D/q2D}= tD_0^{t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $128^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
-\end{figure}
-Giant fluctuations (evident in the bottom row of Fig. \ref{fig:q2Dstripes} for true 2D) have dissapeared in quasi 2D in the presence of a density gradient. However, in Fig. \ref{fig:q2Dstripes} giant fluctuations are being masked by the vast dispersion enhanced by the collective diffusion in the presence of density gradients.
-
-The visual appearance of the true 2D panes is similar in figs. \ref{fig:q2Dstripes} and \ref{fig:q2Dcolorstripe} as expected, given that in both cases particles are passive, non-interacting, tracers. Furthermore, we observe giant fluctuations in both density and color gradient experiments for true 2D. On the other hand, giant fluctuations can only be seen for quasi 2D in the color gradient case.
-
-\begin{figure}[H]
-  \label{fig:q2Dcolorstripe}
-  \centering
-  \includegraphics[width=\linewidth]{gfx/q2Dcolorstripe}
-  \caption{Time evolution (snapshots at times increasing from left to right) of a color (species) density perturbation initially localized in the middle third of the domain. All simulations have an uniform total density, with a packing fraction of $\phi = 1$. We show snapshots in the absence of hydrodynamics (BD, top row), quasi 2D (middle row) and true 2D (bottom row) at the same diffusive times ($t^{BD/t2D/q2D}= tD_0^{BD/t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $64^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
-\end{figure}
-
-In contrast with the diverging collective diffusion, we find that the long time self diffusion coefficient is reduced (see Fig. \ref{fig:q2Dselfreduction}) due to the hydrodynamic coupling between a single particle and collective density fluctuations (even for non-interacting particles). We dilucidate the cause of this is \todo{fill}
-\begin{figure}[H]
-  \label{fig:q2Dselfreduction}
-  \centering
-  \includegraphics[width=0.7\textwidth]{gfx/q2Dselfreduction}
-  \caption{Self diffusion coefficient (measuerd via the mean square displacement (MSD)) of a single particle in quasi 2D for different packing densities, $\phi$.}
-\end{figure}
+This section does not intend to be self contained (the readers are referred to the published material), but rather a way to illustrate the capabilities of UAMMD in disparate physical scenarios.
 
 
-
-
-\chapter{Optofluidic control of the dispersion of nanoscale dumbbells}
-
-In \cite{Melendez2019} \uammd is used in conjunction with an already established in-house solver for interaction between particles and optical fields to study the hydrodynamically-enhanced dispersion of a collection of nanoscale dumbbells in a vortex lattice formed by an incident laser. In particular, the system is simulated with open boundaries via the Cholesky decomposition apporach in chapter \ref{sec:chol}. In some simulations hydrodynamics are turned off to isolate their effect by using plain \gls{BD} (introduced in chapter \ref{sec:bd}).
-
-Previous research has shown that gold nanoparticles immersed in water in an optical vortex lattice formed by the perpendicular intersection of two standing light waves with a $\pi/2$ rad phase difference will experience enhanced dispersion that scales with the intensity of the incident laser. We show that flexible nanoscale dumbbells (created by attaching two such gold particles by means of a polymer chain) in the same field display different types of motion depending on the chain length and field intensity. We have not disregarded the secondary optical forces due to light scattering. The dumbbells may disperse, rotate, or remain trapped. For some values of the parameters, the (enhanced) dispersion possesses a displacement distribution with exponential tails, making the motion anomalous, though Brownian.
 
 \chapter{Measuring intracellular viscosity}
 
@@ -5280,19 +5191,19 @@ The orientational fluctuations (a.i. the MSAD) of the nanorocker can then be rel
 \end{equation}
 Where $V$ is the volume of the particle and $f/f_0$ is the so-called Perrin's friction coefficient, which relates the friction of the non-spherical object with that of a sphere of equivalent volume. 
 \begin{figure}[H]
-  \label{fig:cellvis}
   \centering
   \includegraphics[width=0.7\textwidth]{gfx/hexagon}
   \caption{Representation of the simulation environment used to model the experimental setup in \cite{Pelaez2019}. The nanorocker (grey) and the microtubulae (red) are modeled as spring connected blobs.}
+  \label{fig:cellvis}
 \end{figure}
 Experiments with Taxol and colchicine revealed a strong and unintuitive relation between the concentration of microtubulae and the mesoscopic intracellular viscosity. In particular, experiments showed a $10$x reduction in the viscosity after Taxol administration, corresponding to the presence of a higher concentration of microtubulae in the cellular environment. Consistently, the posterior administration of colchicine, which depolymerizes the microtubulae into a suspension of tubuline heterodimers, induces an increase in viscosity.
 
 We elucidate the origin of the viscosity reduction lies in the specific sampling size of the nanorocker (with an average size of $400$nm). For a typical concentration of tubulin ($25$-$100\mu$M) in the cytoplasm the volume fraction occupied by the microtubulae is between $5$~$10^{-3}$ and $5$~$10^{-2}$. At these concentrations we find a polydisperse ensemble of rods that form a fractal gel with pores typically smaller than the average length of the rods. A tracer particle diffussing in this scenario is known to have a severely reduced translational and rotational diffusion\cite{Solomon2010,Alcazar2018}. However, after Taxol administration, the microtubule network is formed by much larger rods, resulting in the nanorocker diffusing through much larger structures. Colchicine produces the opposite effect, reducing the typical rod size and, consequently, the average length of the cytoplasm components that drag the sampling particle. Our hypothesis relies on the expectation that, when the typical distance between microtubules in the ordered phase (after Taxol administration) becomes larger than the nanorocker size the steric hidrance of the microtubulae is significally reduced. In order to validate this, we setup a series of simulation using the \gls{PSE} method (see chapter \ref{sec:pse}) with various concentration of microtubulae such that the average free space between rods is larger than the rocker's size (see figure \ref{fig:msad}).
 \begin{figure}[H]
-  \label{fig:msad}
   \centering
   \includegraphics[width=\textwidth]{gfx/MSDA_comparison_exp}
   \caption{Computed and experimentally measured mean squared angular displacement (MSAD) over time. Comparison is made between simulations of free (brown line) and laser-illuminated (confined, orange line) nanorocker, surrounded by 10 microtubules (MT), and the experimental results (Exp.) after 5 h incubation time with Taxol (purple data). Thered dashed line represents the MSAD calculated from Equation (1) using the measured viscosity for an incubation time of 5 h. The good agreement between the red and purple curves validates the approximation of the nanorocker to a disk. The inset shows the mean squared displacement (MSD) for free nanorockers in the presence of 0, 5, and 10 microtubules. The agreement between the experimental and simulation results indicates that the movement of the particle is not affected by the presence of microtubules since their size is much bigger than the particle.}
+  \label{fig:msad}
 \end{figure}
 We perform simulations with and without taking into account the translational confining effect of the probing laser on the nanorocker (by trapping the nanorocker with a soft potential well to a domain about 10\% larger than its size) and find no discernable effect on its rotational diffusion. In the confined case, any modification of the particle rotation is only due to the hydrodynamic effects of the microtubulae. This evidences that the translational confinement of the probing beam does not affects its orientational fluctuating motion.
 Our simulations yield MSAD curves that match the theory and simulations in the absence of microtubulae to within statistical uncertainty. This evidences that the presence of microtubulae, at these concentrations, has practically no effect on the viscosity sampled by the nanorocker. From this, we conclude that, once all microtubulae is formed due to the effect of Taxol, there is less amount of intracellular material of comparable size to the nanorocker, which effectively reduces the viscosity sensed by it.
@@ -5302,10 +5213,10 @@ Our simulations yield MSAD curves that match the theory and simulations in the a
 
 \chapter{Star Polymer dynamics in shear flow}\label{ch:starpolymers}
 \begin{figure}[H]
-  \label{fig:starpic}
   \centering
   \includegraphics[width=0.7\textwidth]{star}
   \caption{A star polymer solution under a shear flow.}
+  \label{fig:starpic}
 \end{figure}
 
 In \cite{Pelaez2020} we use \gls{BDHI} via Cholesky (see chapter \ref{sec:chol}) to study the rheological properties of a low density solution of star polymers in shear flow.
@@ -5315,9 +5226,117 @@ We investigate tank-treading and breathing dynamics of individual star molecules
 % We use arguments based on force balance and monomer kinetics to predict the frequency and decorrelation rates of the different modes as functions of the star polymer structure. Furthermore we study the several equilibrium relaxation times and provide universal scaling laws for them. We also find that the equilibrium relaxation time for the star’s anisotropic shape fluctuations determine the onset of breathing and provides universal scaling laws for the star orientation angle in flow. Our claims are backed by extensive Brownian hydrodynamics simulations, allowing us to also study how the strong hydrodynamic correlations between arms affect the different rotation dynamics.
 %
 
-\chapter{Simulations of dynamically cross-linked actin networks}
-Simulations in this work are accelerated by \uammd's neighbour list capabilities.
-\todo{FILL}
+\chapter{Hydrodynamics in confined geometries}
+
+Let us start by discussing two works that study hydrodynamics in confined geometries. First in section \ref{sec:softconf} when particles are confined to the plane via a soft harmonic potential and then in section \ref{sec:strictconf} when the confinement is strict (in the quasi 2D regime introduced in chapter \ref{sec:q2D}).
+
+\section{From soft to strict confinement}\label{sec:softconf}
+In \cite{Pelaez2017} we study the hydrodynamics-enhanced collective diffusion of a group of colloids under soft two dimensional confinement as the confinement becomes stiff. Colloids are embedded in an unbounded fluid but their movement in the Z direction is constrained via an harmonic potential (see Fig. \ref{fig:q2dsch}) as we introduced in chapter \ref{sec:q2D}. As the spring constant of the confining (parabolic) potential is descreased, in this work we study the crossover between purely 3D hydrodynamics and quasi2D both numerically and theoretically.
+
+It is well-known that, in quasi2D, collective diffusion is enhanced due to the effective compressibility of the in-plane hydrodynamics. This is evidenced in Eq. \eqref{eq:q2Deffrepulsion} (and related discussion), where we saw how the divergence of the in-plane mobility can be interpreted as the colloids interacting via a Coulomb-like repulsive potential in an incompressible fluid. In \cite{Pelaez2017} we find that the enhancement of the collective diffusion is quite robust and remains significant when moving from strict to soft confinement.
+
+The enhancement, being collective in nature, decreases with the concentration of colloids. As an example, for a projected surface fraction, $\phi = \pi a^2N/L^2$, of about $0.4$, a rather soft confining potential of width $\delta = 3a$ will induce more than a $10$-fold increase in collective diffusion for a density perturbation of typical size given by a wavelength $ka \sim 6\cdot 10^{-2}$ (corresponding to a wavelength around $100a$). For nanoparticles (of about $10$ nm) these lengths are not small (order $10$ microns). We can find several experimental set-ups where the confinement is even more stiff than our example, $\delta\sim a$ (and thus the increase in diffusion is more pronounced). For instance, in the presence of walls (note that the mobility will be regularized by the presence of a wall) depletion forces can constrain the out-of-plane diffusion of colloids near the wall to $\delta\sim a$. If the surface and the colloids are charged the confinement will be related to the Debye length (nanometers). On the other hand, the theory presented in \cite{Pelaez2017} can be directly applicable to confinement by ultrasound~\cite{Balboa2013}. The pressure waves generated by high frequency (MHz) ultrasounds (an effective quadratic potential) can confine micron-sized colloids to a witdh $\delta \sim a$.
+In Fig. \ref{fig:q2DEnhancement} we show the collective diffusion coefficient at short times, given by \cite{Dhont1996},
+\begin{equation}
+  \label{eq:q2dcoldif}
+  D_c(k) = D_0\frac{H(k)}{S(k)},
+\end{equation}
+for systems with several densities.
+In Eq. \eqref{eq:q2dcoldif} $S(k)$ is the structure factor (which is $1$ for ideal particles, i.e no structure). $H(k):= H_s + H_c(k)$ is the so-called hydrodynamic mobility function, which further divides into a self ($H_s$) and collective ($H_c$) contributions.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{gfx/q2DEnhancement}
+  \caption{Collective diffusion, $D_c(k)$, of a group of ideal colloids under strict confinement ($\delta\rightarrow 0$) for several densities. Dashed line correspond to $D_c/D_0 = 1 + \frac{\lambda}{2\pi L_h}$. Here $L_h := \frac{2a}{3\phi}$ is the hydrodynamic length and $\lambda := \frac{2\pi}{k}$ is the wavelenght of a density perturbation. Note that for $\lambda \rightarrow \infty$, $D_c\rightarrow D_0$, corresponding to the single particle diffusion coefficient, i.e. in this limit there are no collective effects (in the case of ideal particles).}
+  \label{fig:q2DEnhancement}
+\end{figure}
+
+Under strict two-dimensional confinement (infinitely stiff trap) the collective colloidal diffusion is enhanced and diverges at zero wave number (like $k^{-1}$), due to the hydrodynamic propagation of the confining force across the layer. Physically this results in increasingly large density perturbations ``repelling'' with increasing strength.
+
+
+At intermediate and short wavelengths, we study to what extent the hydrodynamic enhancement of diffusion is masked by the conservative forces between colloids, which make the structure factor different from $1$. 
+
+Notably, at very large wavelengths, the collective diffusion becomes even faster than the solvent momentum diffusive transport and a transition from Stokesian dynamics to inertial dynamics takes place, which we study using the \gls{ICM} described in chapter \ref{ch:icm}.
+
+Figure~\ref{fig:q2Dfrom3dto2d} shows the gradual transition from quasi-2D (enhanced) collective diffusion and 3D diffusion, as the stiffness of the trap is decreased. The trap stiffness length is given by $\delta = \left(\frac{\kT}{K_{\text{trap}}}\right)^{\half}$, where $U_{\text{trap}} = \half K_{\text{trap}} z^2$. As expected $H(k)\rightarrow0$ as the diffusion becomes 3D. In other wrods $D_c(k) = D_0$ for ideal particles in 3D. We observe that the analytic solution for the collective diffusion of colloids under a Gaussian trap of width $\delta$ still shows enhanced diffusion for large wavelengths $k\delta < 1$, and a gradual transition to normal diffusion for $k\delta > 1$ (see Fig. \ref{fig:q2Dfrom3dto2d}).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{gfx/q2Dfrom3dto2d}
+  \caption{The enhancement of the collective diffusion (given by the hydrodynamic function $H_c(k)$ in Eq. \ref{eq:q2dcoldif}) of a group of ideal colloids ($S(k)=1$) as the confinement goes from non-existent ($\delta\rightarrow \infty$) to stiff ($\delta\rightarrow 0$) trap. Dashed lines correspond to Eq. (18) in \cite{Pelaez2017}, from where this figure has been taken from.}
+  \label{fig:q2Dfrom3dto2d}
+\end{figure}
+
+% Using our inertial coupling method code (resolving fluid inertia), we study this transition by performing simulations at small Schmidt number. Simulations confirm theoretical predictions for the $k \rightarrow 0$ limit [Phys. Rev. E 90, 062314 (2014)] showing negative density-density time correlations. However, at finite $k$ simulations show deviations from the theory.
+
+\section{Limit of strict confinement}\label{sec:strictconf}
+In \cite{Pelaez2018} we focus on the limit $\delta\rightarrow 0$ by taking the mathematical limit of the confining force becoming infinite. We already introduced this limit in chapter \ref{sec:q2D} by introducing a constraint into the mobility $M=M(z)$, leading to a thermal drift $\partial_zM\neq 0$. We saw how the confining force propagates to the fluid resulting in an effectively compressible in-plane mobility (which is the origin of the anomalous collective diffusion). In fact, as represented in Fig. \ref{fig:q2DEnhancement} the collective diffusion coefficient diverges like the inverse of the wavenumber.
+
+In \cite{Pelaez2018} we extend the previously existing hydrodynamic theory to account for a species/color labeling of the particles (which is needed to model experiments based on fluorescent techniques). We then study the magnitude and dynamics of the density and color density fluctuations theoretically (using linearized flucutating hydrodynamics) and simulations (with our novel \gls{BDHI} quasi 2D \gpu algorithm, see chapter \ref{sec:q2D}).
+The effects of the effective repulsion fundamentally change the dynamics in quasi 2D as evidenced in figs. \ref{fig:q2Doverdens} and \ref{fig:q2Dstripes}, where we place striped overdensities in the middle of the domain and study their time evolution.
+
+We measure concentration as the numer density defined as
+\begin{equation}
+  c^{(1)}(\vec{\fpos}) = \sum_i\delta(\vec{\fpos}-\vec{\ppos}_i)
+\end{equation}
+\begin{figure}[H]
+  \centering
+  \hspace*{-1.75cm}
+  \subfloat{\includegraphics[width=0.7\linewidth]{gfx/q2Dstripehisttotal}}
+  \subfloat{\includegraphics[width=0.7\linewidth]{gfx/q2Dstripehist}}
+  \caption{Time evolution of a striped density perturbation initially localized in the middle third of the domain in quasi 2D. Shown here are the density profiles averaged both in ensemble and in the x direction. (Left) The total density, $c^{(1)}(y, t)$, at time $t=0$ (dashed-solid black line) and at a later point in time (red squares), theory for the quasi 2D line (red) comes from our mean field (Eq. 30 in \cite{Pelaez2018}). The solution to the diffusion equation without hydrodynamic interactions (at the same time) is shown as a solid black line. (Right) We tag particles starting in the middle stripe as green ($c^{(1)}_G$, green lines and squares) and the rest as red ($c^{(1)}_R$, red lines and circles) and plot their density profiles, $c^{(1)}_{R/G}$. Red and green symbols correspond to $c^{(1)}_R$ and $c^{(1)}_G$ at the same point in time as the left pane. Dotted lines correspond to $t=0$. Our mean field theory is also shown here with solid lines. Dashed lines correspond to the diffusion equation without hydrodynamic interactions. All particles are passive tracers.}
+  \label{fig:q2Doverdens}
+\end{figure}
+Fig. \ref{fig:q2Doverdens} shows the ensemble average of the time evolution of the density profiles, evidencing the effect of the enhance collective diffusion (marked as q2D in the figure).
+On the other hand, we study non-equilibirum giant fluctuations by looking at the time evolution of a single realization of the diffusing stripes. In Fig. \ref{fig:q2Dstripes} we look at the time evolution of an overdensity, while \ref{fig:q2Dcolorstripe} shows simulations with ``color'' density gradients. In the latter simulations the system has uniform total density across the whole domain, but we mark (color) particles starting in the middle third of the domain and study the evolution of their concentration.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{gfx/q2Dstripes}
+  \caption{Time evolution (snapshots at times increasing from left to right) of a density perturbation initially localized in the middle third of the domain (blue represents zero concentration of particles). We show snapshots for quasi 2D (top row) and true 2D (bottom row) at the same diffusive times ($t^{t2D/q2D}= tD_0^{t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $128^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
+  \label{fig:q2Dstripes}
+\end{figure}
+Giant fluctuations (evident in the bottom row of Fig. \ref{fig:q2Dstripes} for true 2D) have dissapeared in quasi 2D in the presence of a density gradient. However, in Fig. \ref{fig:q2Dstripes} giant fluctuations are being masked by the vast dispersion enhanced by the collective diffusion in the presence of density gradients.
+
+The visual appearance of the true 2D panes is similar in figs. \ref{fig:q2Dstripes} and \ref{fig:q2Dcolorstripe} as expected, given that in both cases particles are passive, non-interacting, tracers. Furthermore, we observe giant fluctuations in both density and color gradient experiments for true 2D. On the other hand, giant fluctuations can only be seen for quasi 2D in the color gradient case.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{gfx/q2Dcolorstripe}
+  \caption{Time evolution (snapshots at times increasing from left to right) of a color (species) density perturbation initially localized in the middle third of the domain. All simulations have an uniform total density, with a packing fraction of $\phi = 1$. We show snapshots in the absence of hydrodynamics (BD, top row), quasi 2D (middle row) and true 2D (bottom row) at the same diffusive times ($t^{BD/t2D/q2D}= tD_0^{BD/t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $64^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
+  \label{fig:q2Dcolorstripe}
+\end{figure}
+
+Another puzzling effect discovered in this work is the effect of q2D dynamic's on the single particle diffusion (ideal tracers).
+In contrast with the diverging collective diffusion we find that the long time self diffusion coefficient is reduced (see Fig. \ref{fig:q2Dselfreduction}). Although the effect is small (less than 15\% reduction of the self diffusion coefficient, see Fig. \ref{fig:q2Dselfreduction}) its physics are an example of coupling between density fluctuations and single particle diffusion, in systems where the mobility divergence is not zero. The phenomena has been also observed in charged particles, where the electrostatic potential has the same role as the thermal drift $\partial_zM$ here~\cite{Pelaez2018}.
+
+The mathematical formalism for these type of phenomena is not trivial, and reference ~\cite{Pelaez2018} provides a first sketch of it.
+%due to the hydrodynamic coupling between a single particle and collective density fluctuations (even for non-interacting particles). We dilucidate the cause of this is \todo{fill}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{gfx/q2Dselfreduction}
+  \caption{Self diffusion coefficient (measuerd via the mean square displacement (MSD)) of a single particle in quasi 2D for different packing densities, $\phi$.}
+  \label{fig:q2Dselfreduction}
+\end{figure}
+
+
+
+
+
+%\chapter{Simulations of dynamically cross-linked actin networks}
+%Simulations in this work are accelerated by \uammd's neighbour list capabilities.
+%\todo{FILL}
+
+\chapter{Optofluidic control of the dispersion of nanoscale dumbbells}
+
+In \cite{Melendez2019} \uammd is used in conjunction with an already established in-house solver for interaction between particles and optical fields to study the hydrodynamically-enhanced dispersion of a collection of nanoscale dumbbells in a vortex lattice formed by an incident laser\todo{citas Mole y demas from PRE}. In particular, the system is simulated with open boundaries via the Cholesky decomposition apporach in chapter \ref{sec:chol}. In some simulations hydrodynamics are turned off to isolate their effect by using plain \gls{BD} (introduced in chapter \ref{sec:bd}).
+
+Previous research has shown that gold nanoparticles immersed in water in an optical vortex lattice formed by the perpendicular intersection of two standing light waves with a $\pi/2$ rad phase difference will experience enhanced dispersion that scales with the intensity of the incident laser. We show that flexible nanoscale dumbbells (created by attaching two such gold particles by means of a molecula chain such as a DNA o oligomer) in the same field display different types of motion depending on the chain length and field intensity. We have not disregarded the secondary optical forces due to light scattering. The dumbbells may disperse, rotate, or remain trapped. For some values of the parameters, the (enhanced) dispersion possesses a displacement distribution with exponential tails and exhibiting time-dependent diffusion, including anomalous (though Brownian) diffusion.
+
+The interested reader is refered to \cite{Melendez2019} for details. For the sake of this dissertation, the main outcome of this work (and research line) is to highlight the ability of UAMMD to include other type of interactions between fields and particles, which can be expressed in terms of Green functions. In particular, secondary optic forces (arising from light scattered by the nanoparticles) are evaluated from the optic Green function (see \cite{MolePRE,Melendez2019}). The techniques developed here for the hydrodynamic propagators can be also used for the optic problem, and this subject is part of ongoing research, teh resulting ``opto-hydrodynamic'' computational framework promises to be of great usefulness to analyze recent experiments with plasmonic nanoparticles \cite{Roger}.
+
+
+
+Besides the works presented in the current chapter, it is worth to mention \cite{Maxian2021Fibers}, a recent publication in which the author of this manuscript appears as a collaborator, in which UAMMD acts as an external accelerator library. In particular, an already stablished, in-house code written in python by the author for simulations of dynamically cross-linked actin networks offloads the construction of a neighbour list to UAMMD (using the cell list). Thanks to the inclusion of UAMMD, the previous bottle-neck of their implementation became effectively instantaneous and allowed them to reach larger simulation times and systems.
+
 
 \chapter{Ongoing work, future directions and conclusions}\label{ch:conclusions}
 We are living in the origins of the GPU era, in which new computing technologies evolve every day and the software development kits (SDK) that allow to use them evolve alongside them. Lagging behind both hardware and SDK are the applications that make use of them, such as UAMMD. Finally, one step behind all of them lie the novel algorithms, some of which have been developed during this thesis. Climbing up the proverbial ladder requires constant work and research into these new technologies, as if we were walking a mechanical ladder in reverse. In order to successfully survive the constant climb it is worth to, in my opinion, lose the fear of returning back to basics, to reinvent the wheel. We chose CUDA for UAMMD because it was the best choice at the moment, but we did so knowing that this might change over time. In UAMMD, reinventing the wheel is easy by design, the base modules (\emph{Interactor}, \emph{Integrator}, \emph{ParticleData},...) are simple and short, allowing for extension or modification of even the most basic assumptions. 
@@ -5331,15 +5350,17 @@ Currently UAMMD is a single GPU library. Once a GPU is selected at initializatio
 UAMMD offers a plethora of tools that researchers can leverage to accelerate their simulations, however, making use of them requires certain knowledge and resources that might not be in the skillset of a typical research group, moreover a experimental group. One of our current lines of work consists on bridging the gap between us, producers of scientific software, and their potential users, such as experimental research groups. In particular by offering easy-to-use graphical user interfaces (GUI) tailored for the (cuantitative) reproduction of specific experiments or experimental techniques. At the moment, we are pursuing this idea by iterating, with the help of a research group at CSIC, towards a GUI for a ``virtual QCM'' which will aid in the characterization of samples for this sensor.
 
 \subsubsection*{What others are doing with UAMMD}
-At the moment UAMMD is being actively developed by several collaborators. I still retain my role as the lead developer and routinely push fixes, improvements and new modules to the main repository, but other researchers have been forking, extending and hacking UAMMD for some time now. It is worth summarizing here some of the ongoing projects that are being carried out by collaborators using UAMMD.
+At the moment, extensions to UAMMD is being actively developed by several collaborators. I still retain my role as the lead developer and routinely push fixes, improvements and new modules to the main repository, but other researchers have been forking, extending and hacking UAMMD for some time now. It is worth summarizing here some of the ongoing projects that are being carried out by collaborators using UAMMD.
 
-\todo{FILL}
+
 \begin{itemize}
-\item Juan aragones DPD
 \item Pablo virus
 \item QCM
 \item Palaciosa magnetismo
+\item Interaction between particles and fields via free energy functionals.
 \end{itemize}
+
+Finally, several works exploring UAMMD's facet as an external, GPUI-enabled, accelerator library are ongoing. Mostly making use of the hydrodynamic solvers, electrostatic solvers and neighbour list capabilities of UAMMD.
 
 \subsubsection*{Nobel algorithims}
 \begin{itemize}
@@ -5349,7 +5370,7 @@ At the moment UAMMD is being actively developed by several collaborators. I stil
 
 \subsubsection*{New physics}
 \begin{itemize}
-\item Although this thesis is not centered in new physics per-se, we have discussed several works presenting new physics. Some of this lines of work are still active and more publications are expected.
+\item Although this thesis is not centered in new physics per-se, we have discussed several works presenting new physics. Some of these lines of work are still active and more publications are expected.
 \end{itemize}
 
 \todo{ What should I say here?}
