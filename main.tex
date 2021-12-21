@@ -726,7 +726,7 @@ The first term is called the drift or transport term (with $\vec{D}^{(1)}$ repre
 %
 The \gls{FPE} in Eq. \eqref{eq:fpe} simply represents the conservation of the conditional probability $P(\vec{x},t)d\vec{x}$ of finding a set of variables $\vec{x}$ in the range $[\vec{x}, \vec{x} + d\vec{x}]$. The generality of Eq. \eqref{eq:fpe} makes it applicable in a wide range of situations (a suspension of colloidal particles, fluctuations in electrical circuits, mechanical oscillators and chemical reactions just to name a few).
 
-We can use the probability distribution $P$ to compute the the average of a certain function $f(\vec{x}(t))$ as
+We can use the probability distribution $P$ to compute the average of a certain function $f(\vec{x}(t))$ as
 
 \begin{equation}
   \left\langle f\right\rangle(t) = \int {P(\vec{x},t) f(\vec{x}) d\vec{x}}.
@@ -1319,7 +1319,7 @@ auto createPairForcesWithPotential(UAMMD sim, Potential pot){
   //If the box is omitted, it is considered 
   // aperiodic and infinite in the three directions
   //Optionally, an instance of a neighbour list
-  // can also be passed as a parameter
+  // can also be provided as a parameter
   //par.nl = std::make_shared<NeighbourList>(sim.pd);
   return std::make_shared<PF> pf(sim.pd, par, pot);
 }
@@ -2099,7 +2099,7 @@ The next natural step after \gls{MD} equations are the so-called \gls{LD}.
 
 \chapter{Langevin Dynamics}\label{sec:langevin}
 
-In section \ref{sec:fpe} we introduced the Fokker-Plack formalism, which coarse grains the effects of a series of fast variables into a drift and diffussion coefficients, enabling us to leave in our description only the slow relevant variables.
+In section \ref{sec:fpe} we introduced the Fokker-Plack formalism, which coarse grains the effects of a series of fast variables into drift and diffusion coefficients, enabling us to leave in our description only the slow relevant variables.
 
 At the Langevin level of description, the dynamics of the solvent molecules (e.g. water) are orders of magnitude faster than the solute particles, leaving the positions and momenta of the solute particles as relevant variables. The dynamics of the solute particles are governed by a so-called Langevin equation, a manifestation of the \gls{FPE} that is often described as ``\gls{MD} with a thermostat''.
 %The solvent particles are removed entirely, the idea is that the motion of the solvent particles (water) is much faster than that of the submerged objects. Furthermore, the size of the simulation units is much larger than the size of the solvent particles. Instead of simulating a time scale fast enough to keep track of each individual collision between a slow object and a solvent particle we assume that between one instant and the next so many solvent particles have collided with the object that we can consider it an stochastic process.
@@ -2112,17 +2112,17 @@ We can write the Langevin \gls{SDE} as
   \label{eq:langevin}
   m\, d\vec{\pvel} = \underbrace{\vec{F}}_{\vec{\partial}_{\vec{\ppos}}U(\ppos)}dt - \overbrace{\xi\vec{\pvel}}^{\text{Drag}}dt + \underbrace{\vec{\beta}}_{\text{Fluctuations}},
 \end{equation}
-which can be intepreted as a form of Eq. \eqref{eq:md} coupled with a thermostat so that noise and drag forces are balanced according to the fluctuation-dissipation relation (see section \ref{sec:fdb}), guarantying the correct thermalization of the system (NVT ensemble).
+which can be intepreted as a form of Eq. \eqref{eq:md} coupled with a thermostat so that noise and drag forces are balanced according to the fluctuation-dissipation relation (see section \ref{sec:fdb}), guaranteeing the correct thermalization of the system (NVT ensemble).
 
-On the other hand, Eq. \eqref{eq:langevin} is an expression of the equivalent \gls{SDE} (Eq. \eqref{eq:fpesde}) for the \gls{FPE} with the particle momenta and positions as the relevant variables. The first term in Eq. \eqref{eq:langevin}, $\vec{F_c}$, is the sum of the conservative forces acting on particle $i$ (the ones comming from the underlying potential energy landscape), these can be steric interactions, electrostatic, bonded, etc.
-The second term represents the drag exterted by the solvend particles in the form of a dissipative force.
+On the other hand, Eq. \eqref{eq:langevin} is an expression of the equivalent \gls{SDE} (Eq. \eqref{eq:fpesde}) for the \gls{FPE} with the particle momenta and positions as the relevant variables. The first term in Eq. \eqref{eq:langevin}, $\vec{F_c}$, is the sum of the conservative forces acting on particle $i$ (the ones coming from the underlying potential energy landscape), these interactions can be steric, electrostatic, bonded, etc.
+The second term represents the drag exerted by the solvent particles in the form of a dissipative force.
 Finally, the third term represents the fluctuations produced by the fast and constant collisions of the solvent particles. Here $\vec{\beta}$ is a random increment which must be in fluctuation-dissipation balance with the friction term (see section \ref{sec:fdb}), we will shortly study its value.
 
 %This random term transforms Eq. \eqref{eq:langevin} into an stochastic differential equation, in which special care must be taken when integrating.
 
 The friction coefficient, $\xi$, is related with the damping rate as $\gamma = \xi/m$, which represents the decorrelation time of the velocity, $\tau = m/\xi$. Additionally, $\xi$ can be formally derived from a Green-Kubo relation involving the integral of the solvent-solute force time-correlation\cite{Green1954,Kubo1957}. Its value is often approximated by the Stokes (macroscopic) value $\xi=6\pi\eta a$, of a particle of radius $a$ in a solvent with viscosity $\eta$ (see Eq. \eqref{eq:stokesrel} and discussion in section \ref{sec:einstein}).
 
-When we introduced the Fokker-Planck formalism in chapter \ref{sec:fpe} we saw that when a system dissipates energy, for instance, due to a force like the drag force in Eq. \eqref{eq:langevin}, the fluctuation-dissipation theorem states that there must be an opposite process that reintroduces this energy via thermal fluctuations. Otherwise the system would spontaneously freeze or heat.
+When we introduced the Fokker-Planck formalism in chapter \ref{sec:fpe} we saw that when a system dissipates energy, for instance, due to a force like the drag force in Eq. \eqref{eq:langevin}, the fluctuation-dissipation theorem states that there must be an opposite process that reintroduces this energy via thermal fluctuations.
 
 We can use Eq. \eqref{eq:fpefdbal} to elucidate the relation between the drag, $\xi$ and the noise in Eq. \eqref{eq:langevin} by defining the single particle drift coefficient as $\widetilde{\vec{D}}^{(1)} := -\gamma \vec{\pvel}$. The dynamic ``matrix'' (in this case being just a scalar) is then $H = \gamma$. We can now write Eq. \eqref{eq:fpefdbal} in the small time interval limit, which yields
 \begin{equation}
@@ -2132,7 +2132,7 @@ We can use Eq. \eqref{eq:fpefdbal} to elucidate the relation between the drag, $
 % The fluctuation-dissipation balance can be interpreted as arising from the equipartition theorem in the long time limit. We can use the equipartition theorem for a single particle in the absence of any conservative forces to relate $\gamma$ with $B$.
 The equipartition theorem can be employed here to obtain the equilibrium covariance $\sigma_{\text{eq}} := \left\langle\vec{\pvel}^2\right\rangle$.
 In the absence of dissipative forces, the Hamiltonian is simply $H = \frac{p^2}{2m}$, where $p = m\dot{\ppos}$ is the momentum.
-Lets apply these arguments to a one dimensional system for simplicity, understanding they also hold for the three dimensional case. The equipartition theorem states that for every degree of freedom in the system the following equation must hold,
+Let's apply these arguments to a one-dimensional system for simplicity, understanding they also hold for the three-dimensional case. The equipartition theorem states that for every degree of freedom in the system the following equation must hold,
 \begin{equation}
   \left\langle p \frac{\partial H}{\partial p}\right\rangle = \left\langle p \frac{p}{m}\right\rangle = k_BT.
 \end{equation}
@@ -2156,7 +2156,7 @@ On the other hand, in order to satisfy Eqs. \eqref{eq:fpesdemean} and \eqref{eq:
 and be uncorrelated in time (since we are assuming the time interval is small enough to consider the transport coefficients as constants) with standard deviation given by
 \begin{equation}
   \label{eq:noiseautocorr}
-  \left\langle\beta(t)\beta(t')\right\rangle = 2D^{(2)}dt\delta_{t,t'} = 2\xi\kT dt\delta_{t,t'}.
+  \left\langle\beta(t)\beta(t')\right\rangle = 2D^{(2)}dt\delta(t-t') = 2\xi\kT dt\delta(t-t').
 \end{equation}
 Finally, we can write the Langevin equation as
 \begin{equation}
@@ -2194,7 +2194,7 @@ Where we have defined $\vec{\beta} := \sqrt{2\xi\kT}\vec{\noise}$.
 %\begin{equation}
 %  B = 2m\gamma k_BT
 %\end{equation}
-Technically, Eqs. \eqref{eq:noisemean} and \eqref{eq:noiseautocorr} would be compatible with any random distribution for the noise, $\vec{\noise}$, that has zero mean and variance $dt$. However, as the noise term comes from the action of countless independent random variables (collisions with the solvent particles) the central limit theorem\cite{Feller1968} applies. Thus, it is convenient to choose $\vec{\noise}$ as a Gaussian white noise (i.e. a Wienner process)\cite{dunweg1991}.
+Technically, Eqs. \eqref{eq:noisemean} and \eqref{eq:noiseautocorr} would be compatible with any random distribution for the noise, $\vec{\noise}$, that has zero mean and variance $dt$. However, as the noise term comes from the action of countless independent random variables (collisions with the solvent particles) the central limit theorem\cite{Feller1968} applies. Thus, it is convenient to choose $\vec{\noise}$ as a Gaussian white noise (i.e. a Wiener process)\cite{dunweg1991}.
 
 %
 %Finally, we can rewrite Eq. \eqref{eq:langevin} as
@@ -2227,10 +2227,10 @@ Technically, Eqs. \eqref{eq:noisemean} and \eqref{eq:noiseautocorr} would be com
 %\end{equation}
 %Where $\vec{\widetilde{W}}$ is a collection of independent Wiener increments.
 
-The presence of the noise term with $\vec{\widetilde{W}}$ makes Eq. \eqref{eq:langevinfull} an \gls{SDE}. Since Eq. \eqref{eq:langevinfull} is not analitic the assumptions in Eq. \eqref{eq:fdmtaylor} do not hold. In other words, we do not know how to differentiate a random variable. Luckily we can make assumptions about the integral of a random variable, this allows us to devise a solver for Eq. \eqref{eq:langevinfull} following a similar strategy as we did in Eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} in sec. \ref{sec:euler}.
+The presence of the noise term with $\vec{\widetilde{W}}$ makes Eq. \eqref{eq:langevinfull} an \gls{SDE}. Since Eq. \eqref{eq:langevinfull} is not analitic, the assumptions in Eq. \eqref{eq:fdmtaylor} do not hold. In other words, we do not know how to differentiate a random variable. Luckily, we can make assumptions about the integral of a random variable. This allows us to devise a solver for Eq. \eqref{eq:langevinfull} following a strategy  similar to what we did in Eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} in sec. \ref{sec:euler}.
 
 The challenge in the numerical integration of Eq. \eqref{eq:langevinfull} comes from the discretization of the noise term.
-A bad discretization of this term can lead to convergence issues, such is the case for the commonly used BBK (for Brooks-Brünger-Karplus) scheme\cite{Brunger1984}, which is known to provide the correct temperature with an error in the order of $O(\dt)$\cite{Wang2003}.
+A bad discretization of this term can lead to convergence issues, such as in the case of the commonly used BBK (for Brooks-Brünger-Karplus) scheme\cite{Brunger1984}, which is known to provide the correct temperature with an error of the order of $O(\dt)$\cite{Wang2003}.
 We can overcome this issue by solving Eq. \eqref{eq:langevinfull} in integral form. Lets start by studying the one dimensional case of a single particle, since the three directions are uncoupled and particles are independent (beyond the conservative forces) making the jump to 3D and many particles is then trivial. Now we integrate Eq. \eqref{eq:langevinfull} between the interval $t$ and $t+\dt$
 \begin{equation}
   \label{eq:langevinriemann}
@@ -2256,8 +2256,8 @@ It can be shown that this limit converges in probability\cite{Cohen2015}.
 %  \label{eq:langenoisint}
 %  \noise^{n+1} := d\noise
 %\end{equation}
-We can use the Riemann sum to transform Eq. \eqref{eq:langevinwiennerinc} into a sum with an arbitrarily large number of terms. Since in this case $f(t) = \sqrt{2\xi\kT}$ we are left with a sum of Gaussian distributed random numbers, which also happens to be a Gaussian random number . We can compute $d\noise$ as a Gaussian random numbers with zero mean and standard deviation $\left\langle d\noise^nd\noise^m\right\rangle = 2\xi\kT\dt\delta_{n,m}$ (uncorrelated in time).
-This realization now opens the door for a family of Verlet like integration schemes, in particular we are going to describe the algorithm developed by Grønbech-Jensen and Farago \cite{Gronbech2013}.
+We can use the Riemann sum to transform Eq. \eqref{eq:langevinwiennerinc} into a sum with an arbitrarily large number of terms. Since in this case $f(t) = \sqrt{2\xi\kT}$ we are left with a sum of Gaussian distributed random numbers, which also happens to be a Gaussian random number . We can compute $d\noise$ as Gaussian random numbers with zero mean and standard deviation $\left\langle d\noise^nd\noise^m\right\rangle = 2\xi\kT\dt\delta_{n,m}$ (uncorrelated in time).
+This realization now opens the door to a family of Verlet-like integration schemes, in particular we are going to describe the algorithm developed by Grønbech-Jensen and Farago \cite{Gronbech2013}.
 
 \section{Grønbech-Jensen}\label{sec:gronbechjensen}
 Without approximations, we can write Eq. \eqref{eq:langevinriemann} as
@@ -2294,13 +2294,13 @@ Where
 \begin{equation}
   a:=b \left(1-\frac{\xi\dt}{2}\right)
 \end{equation}
-Note that, since the we need the force at $t+\dt$ to compute the velocities at $t+\dt$ the forces have to be a function of the positions only (and not velocities).
+Note that, since we need the force at $t+\dt$ to compute the velocities at $t+\dt$ the forces have to be a function of the positions only (and not velocities).
 
 \section*{Use in UAMMD}
 The Grønbech-Jensen algorithm described above is available in \uammd as an Integrator module called \emph{GronbechJensen}, under the namespace \emph{VerletNVT}.
 
 This module will initialize the particle's velocities near the equilibrium Boltzmann distribution.
-Alternatively you can instruct it to leave particle velocities untouched. The system's temperature will then tend to the equilirbrium one according to the friction coefficient and each particle's mass.
+Alternatively you can instruct it to leave particle velocities untouched. The system's temperature will then tend to the equilirbrium value according to the friction coefficient and each particle's mass.
 
 \begin{code2}[Example of the creation of a \emph{VerletNVT} \emph{Integrator} module.]{label=code:verletnvt}
 #include<uammd.cuh>
@@ -2313,24 +2313,24 @@ auto createIntegratorVerletNVT(UAMMD sim){
   par.dt = sim.par.dt; //The time step
   par.friction = sim.par.friction;
   par.temperature = sim.par.temperature; 
-  //Optionally, you can force that all particles have the same mass, overriding the one in sim.pd even if it was set.
+  //Optionally, you can force all particles to have the same mass, overriding the one in sim.pd even if it was set.
   //par.mass = sim.par.mass;
   //If set to true, particle velocities will be left untouched at initialziation.
   //par.initVelocities = false;
-  //If 2D is se to true here the integrator will leave the third coordinate of the particles untouched.
+  //If 2D is set to true here the integrator will leave the third coordinate of the particles untouched.
   //par.is2D = true;
   return std::make_shared<VerletNVT>(sim.pd, par);
 }
 \end{code2}
 
 
-The Langevin model makes several assumptions to arrive at Eq. \eqref{eq:langevinfull}. At long time, hydrodynamic effects due to momentum propagation of the solvent (leading to long time tails in the velocity correlation of the particle) are neglected. The dynamics of short times $\tau<\gamma/m$ are also wrong, as memory effects in the noise forces start to matter at fast small scales. While solving these small scale effects requires to explicitly describe the solvent-solute forces using \gls{MD}, we will see in following chapters how to improve the long time limit introducing the solvent hydrodynamics.
+The Langevin model makes several assumptions to arrive at Eq. \eqref{eq:langevinfull}. At long times, hydrodynamic effects due to momentum propagation of the solvent (leading to long-time tails in the velocity correlation of the particle) are neglected. The dynamics of short times $\tau<\gamma/m$ are also wrong, as memory effects in the noise forces start to matter at fast small scales. While solving these small scale effects requires to explicitly describe the solvent-solute forces using \gls{MD}, we will see in subsequent chapters how to improve the long-time limit introducing the solvent hydrodynamics.
 
 \chapter{Dissipative Particle Dynamics}\label{ch:dpd}
-One of the most popular techniques used to reintroduce some of the degrees of freedom lost with \gls{LD} is \gls{DPD}. This coarse graining technique can be used to go further in the spatio-temporal scale by choosing groups of fluid particles as the simulation unit, sitting in between microscopic (as in \gls{MD}) and macroscopic (hydrodynamic) descriptions. In practice \gls{DPD} is a Langevin approach where friction acts by pairs of particles and conserves momentum. \gls{DPD} equations can be defined from the microscopic Hamiltonian using coarse-grain theory\cite{Hijon2010}.
-In the standard \gls{DPD} particles interact via a soft potential, modelling the interaction between two large groups of fluid particles.
+One of the most popular techniques used to reintroduce some of the degrees of freedom lost with \gls{LD} is \gls{DPD}. This coarse graining technique can be used to go further in the spatio-temporal scale by choosing groups of fluid particles as the simulation unit, sitting inbetween microscopic (as in \gls{MD}) and macroscopic (hydrodynamic) descriptions. In practice \gls{DPD} is a Langevin approach where friction acts by pairs of particles and conserves momentum. \gls{DPD} equations can be defined from the microscopic Hamiltonian using coarse-graining theory\cite{Hijon2010}.
+In the standard \gls{DPD}, particles interact via a soft potential, modelling the interaction between two large groups of fluid particles.
 In many instances\cite{BuscalioniPolymers} \gls{DPD} is used as a momentum-conserving thermostat, which thus permits to include hydrodynamics (contrary to a single Langevin approach). Local momemtum conservation results in the emergence of macroscopic hydrodynamic effects. These momentum conserving forces can then be tuned to reproduce not only thermodynamics, but also dynamical and rheological properties of diverse complex fluids.
-The equations of motion in \gls{DPD} have the same functional form as \gls{LD} and can be in fact considered as a momentum-conserving generalization of \gls{LD}. In fact, it can also be derived from the Fokker-Planck formalism\cite{dunweg1991}. The \gls{SDE} for \gls{DPD} reads,
+The equations of motion in \gls{DPD} have the same functional form as \gls{LD} and can be in fact considered as a momentum-conserving generalization of \gls{LD}. In fact, it can also be derived from the Fokker-Planck formalism\cite{dunweg1991}. The equations of motion for \gls{DPD} read,
 \begin{equation}
   \label{eq:dpddyn}
   m\vec{a} = \vec{F^c} + \vec{F^d} + \vec{F^r}.
@@ -2344,7 +2344,7 @@ Where the three forces are traditionally expressed as,
     \vec{F^r}_{ij} &=&\sqrt{2\xi\kT}\omega(r_{ij})\widetilde{W}_{ij}\hat{\vec{\ppos}}_{ij}    
   \end{aligned}
 \end{equation}
-Where $\vec{\pvel}_{ij} = \vec{\pvel}_j - \vec{\pvel}_i$ is the relative velocity between particles $i$ and $j$. Here $\xi$ represents a friction coefficient (similar as in sec. \ref{sec:langevin}) and is related to the random force strength via fluctuation-dissipation balance in a familiar way\cite{Espanol1995}. In general $\xi$ can be considered to be a tensorial quantity and even derived from atomistic simulations using dynamic coarse graining theory\cite{Hijon2010}. The factor $\widetilde{W}_{ij}$ is different from the one in sec. \ref{sec:langevin} in that it affects pairs of particles (instead of each individual one), it also represents a Gaussian random number with zero mean and unit standard deviation, but must be chosen independently for each pair while ensuring symmetry so that $\widetilde{W}_{ij} = \widetilde{W}_{ji}$.
+Where $\vec{\pvel}_{ij} = \vec{\pvel}_j - \vec{\pvel}_i$ is the relative velocity between particles $i$ and $j$. Here $\xi$ represents a friction coefficient (as in sec. \ref{sec:langevin}) and is related to the random force strength via fluctuation-dissipation balance in a familiar way\cite{Espanol1995}. In general $\xi$ can be considered to be a tensorial quantity and even derived from atomistic simulations using dynamic coarse graining theory\cite{Hijon2010}. The factor $\widetilde{W}_{ij}$ is different from the one in sec. \ref{sec:langevin} in that it affects pairs of particles (instead of each individual one), it also represents a Gaussian random number with zero mean and unit standard deviation, but must be chosen independently for each pair while ensuring symmetry so that $\widetilde{W}_{ij} = \widetilde{W}_{ji}$.
 The weight function $\omega(r)$ is a soft repulsive force usually defined as
 \begin{equation}
   \label{eq:dpdw}
@@ -2354,10 +2354,10 @@ The weight function $\omega(r)$ is a soft repulsive force usually defined as
     0 & r\ge r_{c}
   \end{cases}
 \end{equation}
-Where $r_{c}$ is a cut off distance. The strength parameter, $\alpha$, can in principle be different for each pair of particles ,$i$-$j$, but for simplicity we will assume it is the same for every pair. In fact, the conservative force, $\vec{F}_c$ can be derived from a bottom-up approach, resulting in the gradient of an effective potential\cite{Hijon2010}.
+Where $r_{c}$ is a cut-off distance. The strength parameter, $\alpha$, can in principle be different for each pair of particles ,$i$-$j$, but for simplicity we will assume it is the same for every pair. In fact, the conservative force, $\vec{F}_c$ can be derived from a bottom-up approach, resulting in the gradient of an effective potential\cite{Hijon2010}.
 
-Numerical integration of the \gls{SDE} \eqref{eq:dpddyn} is tricky for the same reasons as with Eq. \eqref{eq:langevin}. We have already described some methods of solving such an equation in sec. \ref{sec:gronbechjensen}. However, the Gronbech-Jensen method is not valid for \gls{DPD} since in this case the forces depend on the velocities of the particles. A simple modification can be made, sacrificing stability, by approximating the velocity to just first order in Eq. \eqref{eq:gsfinal}, so that the velocity depends only on the force for the current step. Unfortunately, this leads to artifacts in the transport properties and unnacceptable temperature drifts. There are several strategies in the literature trying to overcome this, usually presented as modifications of the velocity Verlet algorithm. A good summary can be found at\cite{Leimhuler2015}. These methods include empirical tweaks to velocity Verlet via a free parameter\cite{Groot1997}, a self consistent correction to the velocity to avoid the temperature drift\cite{Pagonabarraga1998} or a recomputation of the dissipative forces after the velocity update\cite{Besold2000}.
-All of these methods improve the accuracy of the predicted transport properties and response functions in exchange for increase computational cost. 
+Numerical integration of the \gls{SDE} \eqref{eq:dpddyn} is tricky for the same reasons as with Eq. \eqref{eq:langevin}. We have already described some methods of solving such an equation in sec. \ref{sec:gronbechjensen}. However, the Gronbech-Jensen method is not valid for \gls{DPD} since in this case the forces depend on the velocities of the particles. A simple modification can be made, sacrificing stability, by approximating the velocity to just first order in Eq. \eqref{eq:gsfinal}, so that the velocity depends only on the force for the current step. Unfortunately, this leads to artifacts in the transport properties and unnacceptable temperature drifts. There are several strategies in the literature trying to overcome this, usually presented as modifications of the velocity Verlet algorithm. A good summary can be found in~\cite{Leimhuler2015}. These methods include empirical tweaks to velocity Verlet via a free parameter\cite{Groot1997}, a self-consistent correction to the velocity to avoid the temperature drift\cite{Pagonabarraga1998} or a recomputation of the dissipative forces after the velocity update\cite{Besold2000}.
+All of these methods improve the accuracy of the predicted transport properties and response functions in exchange for increased computational cost. 
 One popular approach is to simply use velocity Verlet as described in sec. \ref{sec:velocityverlet} with the forces in Eq. \eqref{eq:dpdforces}. This yields ``poor'' stability and presents certain artifacts\cite{Besold2000} due to the mistreatment of the derivative of the noise term incurred by treating Eq. \eqref{eq:dpddyn} as an \gls{ODE} instead of a proper \gls{SDE}. However, it is often good enough and while it might require a smaller time step to recover measurables to an acceptable tolerance it is the fastest approach and trivial to implement in a code already providing the velocity Verlet algorithm.
 %\todo{Preguntar a Rafa sobre integradores DPD. Por que nadie lo trata como una SDE y evalua v en $t+1/2$?}
 \section*{Use in UAMMD}
@@ -2380,7 +2380,7 @@ auto createIntegratorDPD(UAMMD sim){
   //The strength of the weight function
   par.A = sim.par.strength; 
   par.dt = sim.par.dt;  
-  auto dpd = make_shared<Potential::DPD>(dpd_params);
+  auto dpd = make_shared<Potential::DPD>(dpd);
   //From the example in PairForces
   auto interactor = createPairForcesWithPotential(sim, dpd);
   //From the example in the MD section
@@ -2391,6 +2391,8 @@ auto createIntegratorDPD(UAMMD sim){
   return verlet;
 }
 \end{code2}
+It is worth mentioning that, following the ``one \emph{Integrator} with many \emph{Interactors}'' philosophy of UAMMD, in addition to the \gls{DPD} potential, one can add any other interactions to the \mintinline{\ucpp}{verlet} \emph{Integrator} returned by the function in source code \label{code:dpd} (such as bonds or an additional steric repulsion just to name a few).
+
 \newpage
 %\chapter{Smoothed Particle Hydrodynamics}
 %\todo{Describe SPH}
@@ -3177,7 +3179,7 @@ On the other hand, the integral for the inverse transform of the near part can b
   \label{eq:pserpynear}
   \tens{M}_{ij}^{\near}= F(r,\xi)\mathbb I - G(r,\xi)\left(\frac{\vec{r}\otimes\vec{r}}{r^2}\right)
 \end{equation}
-Where the functions $F$ and $G$ are two rapidly decaying functions with really convoluted expressions that can be found in Appendix A of\cite{Fiore2017} or in the \uammd source code\footnote{This expressions are really long and convoluted. The corresponding code evaluating the near field in Eq. \eqref{eq:pserpynear} is located in the \uammd source file \emph{RPY\_PSE.cuh}, which is written to facilitate its copy-pasting for other implementations.}. In essence, this means that the near field contribution to the mobility decays rapidly, i.e it is a compactly supported interaction.
+Where the functions $F$ and $G$ are two rapidly decaying functions with really convoluted expressions that can be found in Appendix A of\cite{Fiore2017} or in the \uammd source code\footnote{These expressions are really long and convoluted. The corresponding code evaluating the near field in Eq. \eqref{eq:pserpynear} is located in the \uammd source file \emph{RPY\_PSE.cuh}, which is written to facilitate its copy-pasting for other implementations.}. In essence, this means that the near field contribution to the mobility decays rapidly, i.e it is a compactly supported interaction.
 
 It is worth metioning that both contributions to the mobility in \eqref{eq:pserpynear} and \eqref{eq:pserpyfar} are guaranteed to be positive definite for all particle configurations, which is the main contribution of the original work describing the \gls{PSE}\cite{Fiore2017}.
 For our purposes this means that we can use the techniques we have already devised in previous sections to evaluate each term. The deterministic term (the multiplication of the mobility by the forces acting on the particles) can simply be computed separatedly (in the far and near fields) and then added.
@@ -3462,7 +3464,7 @@ The full algorithm can be summarized as follows:
 \end{enumerate}
 Since we are describing a triply periodic algorithm, we can use the discrete form of the differential operators for a staggered grid devised in previous sections (see sec. \ref{sec:staggered} and \ref{sec:fib}).
 
-\todo{Some test of the algorithm, maybe the MSD of a particle? or a high Reynolds plot of the fluid velocity around a sphere}
+%\todo{Some test of the algorithm, maybe the MSD of a particle? or a high Reynolds plot of the fluid velocity around a sphere}
 
 \subsection*{Use in UAMMD}
 Usage of the \emph{ICM} \emph{Integrator} requires a list of the familiar parameters for hydrodynamics thus far plus the fluid density, which for the first time plays a role.
@@ -3685,7 +3687,7 @@ It is important to note that if the support is even, the value of the factor $\v
 
 The interaction between a cell $j$ and a particle $i$ is mediated via the kernel $\delta_a(\vec{\ppos}_i-\vec{\fpos}_j)$, in principle, this would incur $n_s^3$ evaluations of the kernel for spreading or interpolation. However, if the kernels are separable (so that $\delta_a(\vec{r}) = \phi_x(r_x)\phi_y(r_y)\phi_z(r_z)$ by the first postulate in Eq. \eqref{eq:peskinseparable}) we can reduce it to just $3n_s$ by precomputing and storing $\phi_X(\ppos^i_x-\fpos^j_x)$ (and similarly for the other directions) for each direction before spreading/interpolating each particle. We can then just multiply the stored evaluations of $\phi_{x/y/z}$ in each direction to get $\delta_a$. Algorithm \ref{alg:precomputeKernel} shows how to take advantage of this optimization via two functions: The first one takes a position inside the unit box and its corresponding cell shift $P$ and stores (in some arrays with an undetermined location) the $3n_s$ necessary kernel evaluations. The second function takes the 3D index of a neighbour cell ($[0, n_s)$ in each direction) and uses the stored kernel evaluations (which assumes the first function has been called already) to compute and return the weight for that neighbour cell. 
 \begin{algorithm}[H]
-  \caption{Precomputing the kernel and accessing it via linear indexes. See alg. \ref{visitneigh}}
+  \caption{Precomputing the kernel and accessing it via linear indexes. We used a similar strategywhen discussing the cell list, see alg. \ref{alg:visitneigh}.}
   \label{alg:precomputeKernel}
   \begin{algorithmic}[1]
     \Function{precomputeKernel}{$\vec{\ppos} \in [0, L)_{\mathbb R^3}$, $\vec{P}_s$}
@@ -3953,11 +3955,13 @@ Which is just an empirical fit.
 We truncate the Gaussian kernel at a distance $r_c$ so that $\phi_G(r_c) < \epsilon$. The author of \cite{Keaveny2014} provides an in-depth analysis of the discretization errors of the Gaussian kernel.
 Figure \ref{fig:ibm_hydrovar} shows the average error inside a fluid cell for the Peskin kernels, compared to similarly supported Gaussian kernels. At first sight, it might seem like the error is not much better for the Peskin kernels as compared with the Gaussian ones. However, the Gaussian kernels require a greater upsampling (i.e more cells, see Eq. \eqref{eq:gaussianupsampling}) than the Peskin ones to achieve the same tolerance and thus is in general a better choice. Figure \ref{fig:ibmvar} shows the hydrodynamic radius variance inside a cell for some kernels, but in a slice of the cell (at the center height).
 \begin{figure}[H]
+\includegraphics[width=0.8\textwidth]{gfx/ibm_hydrodeviation}
+\caption{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating Eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean substracted. Since the signal is symmetric only the range $[0.5, 1]h$ is presented.}
 \label{fig:ibm_hydrovar}
-\includegraphics[width=\textwidth]{gfx/ibm_hydrodeviation}
-  \caption{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating Eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean substracted. Since the signal is symmetric only the range $[0.5, 1]h$ is presented.}
 \end{figure}
-In the case of BM the relation is different for each $n_s$ and $\beta$. A different support is chosen for each tolerance. \todo{Put here the actual relation from the work in DPStokes}
+Finally, in the case of BM the quadrature error and hydrodynamic radius are different for each $n_s$, $\beta$ and $h$. In a way, a new kernel is obtained for each support (which relates to the tolerance) and $\beta$ must be tweaked to achieve a particular hydrodynamic radius. The actual relations are still being tested and thus w
+e refrain from laying them here for the time being. It is worth mentioning that, provided the same support, the BM kernel tends to greatly outperform the Gaussian (by yielding a lower quadrature error). Still, there are some considerations that must be taking into account when using the BM kernel for immersed boundary, in particular coming from the fact that it is not separable. A more in depth discussion about the BM kernel can be found in \cite{Barnett2019}.
+%\todo{Put here the actual relation from the work in DPStokes}
 \subsection*{Staggered grids}
 We perform the same tests using the \gls{FIB}, which uses a staggered grid.
 \begin{itemize}
@@ -3966,13 +3970,12 @@ We perform the same tests using the \gls{FIB}, which uses a staggered grid.
 \item Peskin 6pt gives $a=(1.4830 \pm 0.0001 )h$
 \end{itemize}
 \begin{figure}[H]
-  \label{fig:ibmvar}
   \centering
   \subcaptionbox{Gaussian 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_3pt}}\label{fig:ibm_gauss3pt}
   \subcaptionbox{Peskin 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_peskin_3pt}}\label{fig:ibm_peskin3pt}
   \subcaptionbox{BM 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_bm_3pt}}\label{fig:ibm_bm3pt}
   \subcaptionbox{Gaussian 10pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_10pt}}\label{fig:ibm_gauss10pt}
-  \caption{Variance of the hydrodynamic radius inside a cell (2D slice at $z=L/2+h/2$ of a 3D system) for different kernels in \gls{FCM}. Test were carried out in a cubic box of size $L=32a$.}
+  \caption{Variance of the hydrodynamic radius inside a cell (2D slice at $z=L/2+h/2$ of a 3D system) for different kernels in \gls{FCM}. Test were carried out in a cubic box of size $L=32a$.} \label{fig:ibmvar}
 \end{figure}
 
 In general using a staggered grid requires a smaller grid to get the same hydrodynamic radius (with a similar translational invariance) than a collocated one. On the other hand, the access patterns in an staggered grid are usually more complex and can result in less performant code, even when the cost of the FFT will be slightly inferior. In the case of a triply periodic system, using a staggered grid via the \gls{FIB} is not worth it in general as compared to the \gls{FCM}.
@@ -3980,15 +3983,17 @@ All test were carried out with single precision (to measure the error in a ``rea
 %\gls{PSE} always uses a Gaussian, and the tolerance is chosen along with the splitting parameter so it is meaningless to talk about accuracy vs. kernel support in that case.
 
 
-\begin{itemize}
-\item Finishing words about methodology
-%\item A word about all things implemented in UAMMD thus far
-%\item Putting it all together
-%\item An outline of all the phisics that can be done with the algorithms and implementations thus far
-%\item Future direction and additions to the algorithms in this part
-%\item Introduce next part, novel algorithms and physics.
-\end{itemize}
+%\begin{itemize}
+%\item Finishing words about methodology
+%%\item A word about all things implemented in UAMMD thus far
+%%\item Putting it all together
+%%\item An outline of all the phisics that can be done with the algorithms and implementations thus far
+%%\item Future direction and additions to the algorithms in this part
+%%\item Introduce next part, novel algorithms and physics.
+%\end{itemize}
+%
 
+\newpage
 \cleardoublepage
 
 \ctparttext{}
@@ -4023,11 +4028,11 @@ Colloids might also be trapped in fluid-fluid interfaces and interact via capill
 
 A standing pressure wave with hundreds of megahertz or more creates an ultrasound potential which moves heavy colloidal particles towards two-dimensional traps formed at the node of the pressure wave (or the valleys if particles are lighter than the fluid)\cite{Settnes2012,Balboa2013}. The resulting ultrasound potential is harmonic, leading to a Gaussian colloidal dispersion around the pressure node\cite{Balboa2013}.
 
-Similar harmonic traps can be obtained by laser tweezers\cite{Ding2012}. Other forms of (non-Gaussian) traps can be prepared using electric fields (maybe leading to barometric-like density profiles).
+Similar harmonic traps can be obtained by laser tweezers\cite{Ding2012}\todo{Nature Communications 2015}. Other forms of (non-Gaussian) traps can be prepared using electric fields (maybe leading to barometric-like density profiles).
 
 In future sections, we will study diffusive phenomena arising in this special geometry. For now, lets lay the algorithmic machinery necessary to simulate it.
 
-Lets start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three dimensional incompressible fluid. As we saw in chapter \ref{sec:bdhi}, forces acting on the particles are propagated to the whole fluid, due to the its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting hydrodynamic drag acts like a flow source which tends to expel other particles around it. This can be interpreted as the flow in the plane having a positive divergence, which makes the fluid (as seen from the plane) being effectively compressible. We will see that this effect naturally arises in a particle based description (\gls{BDHI}) through an effective plane mobility with non zero divergence\cite{Pelaez2017}.
+Lets start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three dimensional incompressible fluid. As we saw in chapter \ref{sec:bdhi}, forces acting on the particles are propagated to the whole fluid, due to the its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting hydrodynamic drag acts like a flow source which tends to expel other particles around it (see Fig.~\ref{fig:q2dsch}). This can be interpreted as the flow in the plane having a positive divergence, which makes the fluid (as seen from the plane) being effectively compressible. We will see that this effect naturally arises in a particle based description (\gls{BDHI}) through an effective plane mobility with non zero divergence\cite{Pelaez2017}.
 
 There are several ways to gradually transform a perfect 2D confinement into an isotropic 3D distribution and, as illustrated in Fig. \ref{fig:q2dsch}, we model the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by an harmonic potential of the form
 \begin{equation}
@@ -4053,81 +4058,105 @@ In future sections, we will describe a family of pseudo-spectral algorithms capa
 
 We want to take the mathematical limit of Eq. \eqref{eq:bdhibdrelation} when $K_s\rightarrow\infty$ and hence particles move strictly in the plane $z=0$. Although it is possible to take this limit formally the general theory for it is quite complex. Luckily we can elaborate some simple arguments an assumptions to make this in a trivial way.
 
-We start with the realization that, given that the particles are restricted to a plane, the mobility tensor can be reordered in a diagonal blocked arregement 
+%We start with the realization that, given that the particles are restricted to a plane, the mobility tensor can be reordered in a diagonal blocked arregement 
+%
+%\begin{equation}
+%\tens M=\left[\begin{array}{cc}
+%\tens M^{\parallel} & \tens M^{\parallel,\perp}\\
+%\left(\tens M^{\parallel,\perp}\right)^{T} & \tens M^{\perp}
+%\end{array}\right]=\left[\begin{array}{cc}
+%\tens M^{\parallel}\\
+% & \tens M^{\perp}
+%\end{array}\right]
+%\end{equation}
+%Where the parallel mobility (in the $x,y$ plane) is decoupled from the perpendicular one (in $z$). We can see this by understanding that a perpendicular force cannot induce motion on the plane, since that would break symmetry. Equivalently, a parallel force cannot take a particle out of plane. On the other hand, the confinement does not cause a free energy gradient in the plane (since it is uniform in it).
+
+To understand the enhancement of collective diffusion in confined geometries, we first consider the Smoluchousky equation for the particle concentration field $\rho(\vec{\fpos}, t) = \sum_i\delta(\vec{\fpos} - \vec{\ppos}_i)$ of ideal (non-interacting) colloids,
 
 \begin{equation}
-\tens M=\left[\begin{array}{cc}
-\tens M^{\parallel} & \tens M^{\parallel,\perp}\\
-\left(\tens M^{\parallel,\perp}\right)^{T} & \tens M^{\perp}
-\end{array}\right]=\left[\begin{array}{cc}
-\tens M^{\parallel}\\
- & \tens M^{\perp}
-\end{array}\right]
+  \label{eq:smoludensq2D}
+  \partial_t \rho = -\vec{\partial}_{\vec{\fpos}}\cdot\left[-D_0\vec{\partial}\rho + \rho\vec{\fvel}_d \right].
 \end{equation}
-Where the parallel mobility (in the $x,y$ plane) is decoupled from the perpendicular one (in $z$). We can see this by understanding that a perpendicular force cannot induce motion on the plane, since that would break symmetry. Equivalently, a parallel force cannot take a particle out of plane. On the other hand, the confinement does not cause a free energy gradient in the plane (since it is uniform in it).
-
-This means that we can simply remove the $z$ component in our description and write
+Here $D_0$ is the bare diffusion coefficient and $\vec{\fvel}_d$ is the drfit velocity, given by
 \begin{equation}
-  d\vec{\ppos} = \tens{M}^{\parallel}\vec{F}dt + \sqrt{2\kT \tens{M}^{\parallel}}d\vec{\widetilde{W}^{\parallel}} + \kT\left(\partial_{\vec{\ppos}}\cdot\tens{M}^{\parallel}\right)\dt
+  \vec{\fvel}_d(\vec{\fpos}, t) = \int\tens{M}(\vec{\fpos}-\vec{\fpos}') f(\vec{\fpos}') d\vec{\fpos}'.
 \end{equation}
-Where the particle positions and forces, the mobility and the noise are now defined only in the plane.
-As we will soon see, in this case the thermal drift cannot be ommited.
-
-Up until now, we have not included the action of the thermal drift in the \gls{FCM}. We can use the general definition of the mobility tensor in Eq. \eqref{eq:bdhimob} as the double convolution of the Green's function with the kernel to write the thermal drift in the a similar form
-
+Where $f(\vec{\fpos})$ is the confining force density, which can be expressed as the gradient of an osmotic pressure. for an ideal gas of colloids, the pressure is $\pi := \kT \rho(\vec{\fpos})$, then
 \begin{equation}
-  \label{eq:q2Ddriftconv}
+  \vec{f}(\vec{\fpos}') = -\vec{\partial}_{\vec{\fpos}}\pi = -\kT \partial_{z}\rho = -\kT \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) \hat{\vec{e}}_z
+\end{equation}
+Where the last equality particularize for the in-plane confinement. The drift velocity is then,
+\begin{equation}
+  \label{eq:driftq2d}
   \begin{aligned}
-    \partial_{\vec{\ppos}}\tens{M}_{ij}=& \int\delta_a(\vec{\ppos_i} -\vec{r})\nabla\cdot\tens{G}(\vec{r}-\vec{r}')\delta_a(\vec{\ppos_j} -\vec{r})d\vec{r}d\vec{r}' =\\
-     &\int\delta_a(\vec{\ppos_i} -\vec{r})\tens{G}(\vec{r}-\vec{r}')\nabla\delta_a(\vec{\ppos_j} -\vec{r})d\vec{r}d\vec{r}'    
-\end{aligned}
+    \vec{\fvel}_d(\vec{\fpos}) &= \int\tens{M}(\vec{\fpos}-\vec{\fpos}') \vec{\partial}_{\vec{\fpos}}\rho d\vec{\fpos}' \\
+    &=-\kT\int\tens{M}(\vec{\fpos}-\vec{\fpos}') \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}' \overset{\text{(By parts)}}{=}\\
+    &=\kT\int \partial_{z'}\tens{M}(\vec{\fpos}-\vec{\fpos}') \sum_i \delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}'\\
+    &= -\sum_i\kT\int \partial_z \tens{M}|_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}'
+  \end{aligned}
 \end{equation}
-
-Where the second equality can be easily proven via integration by parts. A formal proof of this description can be found in\cite{Donev2014}. One simple way to see this is by computing the contribution of the thermal drift to the fluid velocity in Fourier space. Since we have periodic boundary conditions (remember that our description is now in the plane) the divergence commutes in Fourier space we can simply write
+Where we introduced the plane coordinates, $\vec{s}$, such that $\vec{\fpos} = \vec{s} + z\hat{\vec{e}}_z$.
+Now, the flow is incrompessible in 3D, which implies
 \begin{equation}
-  i\vec{k}\cdot\fou{\tens{G}}\mathfrak{F}\left[\delta_a(\vec{\ppos}_j -\vec{r})\right] = \fou{\tens{G}}\cdot \left(i\vec{k}\mathfrak{F}\left[\delta_a(\vec{\ppos}_j -\vec{r})\right]\right)
+  (\vec{\partial}_{\vec{s}} + \partial_z)\tens{M} = 0,  
 \end{equation}
-Which evidences that we can take the divergence in Eq. \eqref{eq:q2Ddriftconv} from the Green's function to the kernel.
-Once we have this, we can include the thermal drift in the \gls{FCM} framework as an external fluid forcing by redefining the force term in Eq. \eqref{eq:fcmvel} as
-
+thus
 \begin{equation}
-  \label{eq:q2Ddrifasforce}
-  \vec{f} = \oper{S}\vec{F} + \vec{\partial}\oper{S}(\kT)
+  \label{eq:flowq2Ddivergence}
+  \vec{\fvel}_d(\vec{\fpos}) = \kT\left( \vec{\partial}_{\vec{s}}\cdot\tens{M} \right)_{z=0} \sum_i\int\delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}' = \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0}
 \end{equation}
-
-Where $\partial_\alpha\oper{S} = \partial\oper{S}/\partial r_\alpha$ is the derivative of the kernel, in this case a Gaussian. Note that we can either spread the quantity $\kT$ to the grid using the derivative of the kernel, or use the regular kernel and \emph{ik} differentiate the term in Fourier. However, since the second option would require to isolate the Fourier transform of the thermal drift it is in principle not worth it over the simple evaluation of the derivative of a Gaussian in real space.
-\footnote{In fact, in the case of a Gaussian, we can spread a single quantity by using $\partial\phi_G(r) = 2\sigma_ar\phi_G(r)$ and spreading $\vec{F} + 2\kT\sigma_a\vec{r}$.}
-
-Interestily enough, interpreting the thermal drift as an external force gives us some insight into the physical effects of the non zero divergence of the mobility. In particular, because the quasi 2D mobility will still be translationally invariant and isotropic in the plane, we can still assume the general form in Eq. \eqref{eq:bdhimobgeneral}. In general, at long distances we have the Oseen approximation for $f(r)$ and $g(r)$\footnote{Interpreting that $M_0=1$ for the mobility written in this way.}
-\begin{equation}
-  f(r) \approx g(r) \approx \frac{1}{8\pi\eta} \text{ for } r\gg a
-\end{equation}
-Which yields a zero divergence in true 3D and true 2D. However, in quasi 2D we have
-\begin{equation}
-  \nabla\cdot\tens{M}_{\qtd} \approx \frac{1}{8\pi\eta r}\frac{\vec{r}}{r^3} \text{ for } r\gg a
-\end{equation}
-Using Eq. \eqref{eq:q2Ddrifasforce} we can see that this is equivalent to having the particles interact via a repulsive electrostatic potential
+Which indicates that $\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0}$ is acting as a flow source term in the plane\footnote{Note that we have defined $\vec{\partial}_{\vec{\ppos}}\cdot\tens{M} = \sum_i\vec{\partial}_{\vec{\ppos}_i}\cdot\tens{M}(\vec{s}-\vec{q}_i)$.}. Notably, the resulting hydrodynamic interaction between two particles $1$ and $2$ is similar to an electrostatic repulsion,
 \begin{equation}
   \label{eq:q2Deffrepulsion}
-  U_{\text{eff}}(r) = \frac{3a}{4r}\kT
+  \vec{\fvel}_d(\vec{q}_1) = \kT\left(\vec{\partial}_{\vec{q}_2}\right)_{z_1=z_2=0}\tens{M} \approx \frac{1}{8\pi\eta q_{12}^3}\vec{q}_{12}
 \end{equation}
-It is important to keep in mind, though, that this force is stochastic in nature and is in fluctuation-dissipation balance with the thermal fluctuations. The physical origin of this effective force comes from the rapid momentum transport perpendicular to the plane, which makes the plane in the flow behave with an effective non zero compressibility. This makes the quasi 2D system inherently different from a distribution of charges. In fact, since hydrodynamics will not change the equilibrium properties, these equations still describe, in the absence of other particle interactions, an ideal gas without structure. Nevertheless, this interpretation allows us to see the dramatic (purely hydrodynamic) effect of the confining force in the plane flow and highlights the necessity of including the thermal drift into the quasi 2D description.
+Where we have used the Oseen mobility for $\tens{M}$\footnote{This interaction could be equivalent to an effective electrostatic potential $U_{\text{eff}} \approx \frac{3a}{4r}\kT$. However, unlike a potential interaction, the thermal drift $\vec{\partial}_{\vec{s}}\cdot\tens{M}$ does not induce any distortion in the equilibrium distribution. On the contrary, the addition of the drift term $\kT\vec{\partial}_{\vec{s}}\cdot\tens{M}$ preciesly ensures that the equilibrium distribution is consistent with the Boltzmann presumption $P(\vec{\ppos}) \propto \exp({-\beta}H(\vec{\ppos}))$; given by the effective Hamiltonian of the system (see chapter \ref{sec:fpe}).}.
 
-Let us rewrite here the particle velocity equation \eqref{eq:bdhibdrelation} for the quasi 2D case,
+The colective effect on the colloidal density $\rho(\vec{\fpos},t)$ can be analized from eq. \eqref{eq:smoludensq2D}.
 \begin{equation}
-  \label{eq:q2dbdhirel}
-  \frac{d\vec{\ppos}_i}{dt} = \oper{J}_{\vec{\ppos}_i}\left[\tens{G}_{\qtd}\left(\oper{S}\vec{F} + \vec{\partial}\oper{S}(\kT)\right) + \vec{w}(\vec{\fpos}, t)\right]
-%  \begin{aligned}
-  %&\int{\delta_a(\vec{\ppos}_i-\vec{r}')\left[\sum_j\tens{G}_{\qtd}(\vec{r}', \vec{r}'')\left[\delta_a(\vec{\ppos}_i-\vec{r}'')\vec{F}_j + \kT\vec{\partial}(\delta_a)(\vec{\ppos}_j-\vec{r}')\right]d\vec{r}'}d\vec{r}'' + \vec{w}(\vec{\ppos}_i, t) }
-%\end{aligned}
+  \partial_t \rho = \vec{\partial}_{\vec{\fpos}}\cdot\left[D_0\vec{\partial}_{\vec{\fpos}}\rho + \kT \bar{\rho}\int\tens{M}(\vec{\fpos}-\vec{\fpos}')\vec{\partial}_{\vec{\fpos}}\rho d\vec{\fpos}'\right]
 \end{equation}
-Here we have put the fluctuating part, $\vec{w}$, aside. The fluctuating stress tensor ($\tens{Z}$ in Eq. \eqref{eq:bdhibdrelation}) and its divergence are described in three dimensions. In the quasi 2D case we do not have an easy mechanism to project the stress tensor into the plane in order to keep a fully two dimensional description. Instead, we will use the fluctuation-dissipation balance to generate a stochastic fluid velocity directly.
-It is important to note that the gradient of the spreading operator in Eq. \eqref{eq:q2dbdhirel} is taken in the plane in which diffusion happens (i.e two dimensions). Similarly, we would like for spreading and interpolation to also take place in the two-dimensional confining plane.
-In order to do that, we preconvolve the three dimensional Green's function of the Stokes equation (i.e the Oseen tensor in Eq. \eqref{eq:bdhioseen})  in the third direction leveraging the fact that, by construction, there are no particle forces in the third direction and particles remain strictly in the plane. In Fourier space, this amounts to defining the quasi 2D Green's function as the integral of the Oseen tensor multiplied by the square of the spreading kernel (a Gaussian),
+Where we have approximated $\rho$ by its average, $\bar{\rho}$, in the second term (linear perturbation approximation).
+Taking the Fourier transform in space,
+\begin{equation}
+  \partial_t \hat{\rho}(k,t) = \left[D_0k^2 + \kT \bar{\rho}\vec{k}\cdot\tens{M}\cdot{\vec{k}}\right]\hat{\rho}
+\end{equation}
+immediately reveals the collective diffusion coefficient
+\begin{equation}
+  D_c = D_0 + \bar{\rho}\kT \frac{\vec{k}\cdot\tens{M}\cdot{\vec{k}}}{q^2}
+\end{equation}
+In 3D, $D_c = D_0$, as expected for ideal particles. However, for q2D it is not difficult to show that,
+\begin{equation}
+  D_c = D_0 + (L_nk)^{-1} + O(k),
+\end{equation}
+with
+\begin{equation}
+  L_n := \frac{2}{3\pi a\bar{\rho}_{2D}}.
+  \end{equation}
+  Thus collective diffusion increases as the inverse of the wave number.
+  This analysis clearly indicates that the Brownian dynamics corresponding to q2d necessarily includes a thermal or spurious drift related to the divergence of the (effective) q2D mobility, $(\vec{\partial}_{\vec{s}}\cdot\tens{M})_{z=0}$. According to eq. \eqref{eq:flowq2Ddivergence} the resulting particle dynamics \textbf{at the confining plane} are described by (see eq. \eqref{eq:bdfull}).
+This means that we can simply remove the $z$ component in our description and write
+\begin{equation}
+  \label{eq:bdq2d}
+  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}} + \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)\dt
+\end{equation}
+Where the particle positions and forces, the mobility and the noise are now defined only in the plane.
+In order to implement eq. \eqref{eq:bdq2d} within the \gls{FCM} procedure (introduced in section \ref{sec:fcm}) we use the second equality of eq. \eqref{eq:driftq2d}, including also putative forces $\vec{F}$ (per particle) arising from colloidal interactions and/or external fields. In such a case the force density is,
+\begin{equation}
+  f(\vec{\fpos}) = \oper{S}\vec{F} + \vec{\partial}_{\vec{\ppos}}\oper{S}\left[\kT\right]
+\end{equation}
+We have generalized the Dirac delta by using the spreading operator, $\oper{S}$ (as we did when intoducing spreading and interpolation in chapter \ref{sec:bdhi}). The second term corresponds to the osmotic force, $-\partial_{\vec{\fpos}}\pi = -\kT\vec{\partial}_{\vec{\fpos}}\oper{S} = \kT\vec{\partial}_{\vec{\fpos}}\oper{S}$. The kernel $\oper{S}$ spreads forces while its derivative\footnote{In fact, in the case of a Gaussian, we can spread a single quantity by using $\partial\phi_G(r) = 2\sigma_ar\phi_G(r)$ and spreading $\vec{F} + 2\kT\sigma_a\vec{r}$.} spreads internal energies\footnote{This latter idea was generalized in \cite{Balboa2013} to model ultrasound forces on compressible particles, with energy $\psi(\rho)\kT$.}.
+
+Following the \gls{FCM}, we will set $\oper{S}$ as a Gaussian, and in order to implement a purely 2D computational set up, we need to integrate out the effect of the third direction, $z$, from the equations of motion. to that end, we recall that $\tens{M} = \oper{J}\tens{G}\oper{S}$, where $\tens{G}$ is the Green function for the fluid velocity field. The particle kernels are separable ($\oper{S} = \phi(x)\phi(y)\phi(z)$) which permits to include them into the 2D Fourier transform of the Green function, to yield,
+\begin{equation}
+  \hat{\tens{G}}_{\qtd}(\vec{k} = (k_x, k_y)) = \int_{z=0}\phi(z)\tens{G}(r;z=0)\phi(z)\exp(i\vec{k}\vec{s})d\vec{s}.
+\end{equation}
+For a Gaussian kernel,
+
 \begin{equation}
   \label{eq:q2dGreenintegral}
   \begin{aligned}
-  \fou{\tens{G}}_{\qtd}(\vec{k} = (k_x, k_y)) &= \frac{1}{2\pi\eta}\int_{k_z} \frac{dk_z}{(k')^2}\exp\left(-\frac{a^2k_z^2}{\pi}\right)\left( \mathbb{I} - \frac{\vec{k}'\otimes\vec{k}'}{(k')^2}\right) \\
+  \fou{\tens{G}}_{\qtd}(\vec{k}) &= \frac{1}{2\pi\eta}\int_{k_z} \frac{dk_z}{(k')^2}\exp\left(-\frac{a^2k_z^2}{\pi}\right)\left( \mathbb{I} - \frac{\vec{k}'\otimes\vec{k}'}{(k')^2}\right) \\
   &= \eta^{-1}\left(g_k(ka)\vec{k}_{\perp}\otimes\vec{k}_{\perp} + f_k(ka)\vec{k}\otimes\vec{k}\right).
 \end{aligned}
 \end{equation}
@@ -4152,9 +4181,71 @@ We can also write the Green's function for true 2D by redefining $f_k$ and $g_k$
 \end{equation}
 The Green's function \eqref{eq:q2dGreenintegral} is purely two-dimensional, allowing to reuse the \gls{FCM} machinery without the third direction altogether.
 
-\todo{Rafa, aqui puedo añadir G para saffman, tienes alguna referencia por ahi?, quizas esto deberia ir mas en ``future directions''}
+Using Eq. \eqref{eq:t2dfg} instead of Eq. \eqref{eq:q2dfg} allows for our algorithm to simulate a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known\footnote{Note that the analytical expression is not actually needed and it could be, for instance, computed numerically and then tabulated}. 
 
-Using Eq. \eqref{eq:t2dfg} instead of Eq. \eqref{eq:q2dfg} allows for our algorithm to simulate a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known\footnote{Note that the analytical expression is not actually needed and it could be, for instance, computed numerically and then tabulated}. For instance, the Saffman mobility could be used to model the diffusion of proteins in a lipid membrane\cite{Saffman}.
+The particle dynamics can thus be formally written as,
+
+
+
+%Up until now, we have not included the action of the thermal drift in the \gls{FCM}. We can use the general definition of the mobility tensor in Eq. \eqref{eq:bdhimob} as the double convolution of the Green's function with the kernel to write the thermal drift in the a similar form
+%
+%\begin{equation}
+%  \label{eq:q2Ddriftconv}
+%  \begin{aligned}
+%    \partial_{\vec{\ppos}}\tens{M}_{ij}=& \int\delta_a(\vec{\ppos_i} -\vec{r})\nabla\cdot\tens{G}(\vec{r}-\vec{r}')\delta_a(\vec{\ppos_j} -\vec{r})d\vec{r}d\vec{r}' =\\
+%     &\int\delta_a(\vec{\ppos_i} -\vec{r})\tens{G}(\vec{r}-\vec{r}')\nabla\delta_a(\vec{\ppos_j} -\vec{r})d\vec{r}d\vec{r}'    
+%\end{aligned}
+%\end{equation}
+%
+%Where the second equality can be easily proven via integration by parts. A formal proof of this description can be found in\cite{Donev2014}. One simple way to see this is by computing the contribution of the thermal drift to the fluid velocity in Fourier space. Since we have periodic boundary conditions (remember that our description is now in the plane) the divergence commutes in Fourier space we can simply write
+%\begin{equation}
+%  i\vec{k}\cdot\fou{\tens{G}}\mathfrak{F}\left[\delta_a(\vec{\ppos}_j -\vec{r})\right] = \fou{\tens{G}}\cdot \left(i\vec{k}\mathfrak{F}\left[\delta_a(\vec{\ppos}_j -\vec{r})\right]\right)
+%\end{equation}
+%Which evidences that we can take the divergence in Eq. \eqref{eq:q2Ddriftconv} from the Green's function to the kernel.
+%Once we have this, we can include the thermal drift in the \gls{FCM} framework as an external fluid forcing by redefining the force term in Eq. \eqref{eq:fcmvel} as
+%
+%\begin{equation}
+%  \label{eq:q2Ddrifasforce}
+%  \vec{f} = \oper{S}\vec{F} + \vec{\partial}\oper{S}(\kT)
+%\end{equation}
+%
+%Where $\partial_\alpha\oper{S} = \partial\oper{S}/\partial r_\alpha$ is the derivative of the kernel, in this case a Gaussian. Note that we can either spread the quantity $\kT$ to the grid using the derivative of the kernel, or use the regular kernel and \emph{ik} differentiate the term in Fourier. However, since the second option would require to isolate the Fourier transform of the thermal drift it is in principle not worth it over the simple evaluation of the derivative of a Gaussian in real space.
+%\footnote{In fact, in the case of a Gaussian, we can spread a single quantity by using $\partial\phi_G(r) = 2\sigma_ar\phi_G(r)$ and spreading $\vec{F} + 2\kT\sigma_a\vec{r}$.}
+%
+%Interestily enough, interpreting the thermal drift as an external force gives us some insight into the physical effects of the non zero divergence of the mobility. In particular, because the quasi 2D mobility will still be translationally invariant and isotropic in the plane, we can still assume the general form in Eq. \eqref{eq:bdhimobgeneral}. In general, at long distances we have the Oseen approximation for $f(r)$ and $g(r)$\footnote{Interpreting that $M_0=1$ for the mobility written in this way.}
+%\begin{equation}
+%  f(r) \approx g(r) \approx \frac{1}{8\pi\eta} \text{ for } r\gg a
+%\end{equation}
+%Which yields a zero divergence in true 3D and true 2D. However, in quasi 2D we have
+%\begin{equation}
+%  \nabla\cdot\tens{M}_{\qtd} \approx \frac{1}{8\pi\eta r}\frac{\vec{r}}{r^3} \text{ for } r\gg a
+%\end{equation}
+%Using Eq. \eqref{eq:q2Ddrifasforce} we can see that this is equivalent to having the particles interact via a repulsive electrostatic potential
+%\begin{equation}
+%  \label{eq:q2Deffrepulsion}
+%  U_{\text{eff}}(r) = \frac{3a}{4r}\kT
+%\end{equation}
+%It is important to keep in mind, though, that this force is stochastic in nature and is in fluctuation-dissipation balance with the thermal fluctuations. The physical origin of this effective force comes from the rapid momentum transport perpendicular to the plane, which makes the plane in the flow behave with an effective non zero compressibility. This makes the quasi 2D system inherently different from a distribution of charges. In fact, since hydrodynamics will not change the equilibrium properties, these equations still describe, in the absence of other particle interactions, an ideal gas without structure. Nevertheless, this interpretation allows us to see the dramatic (purely hydrodynamic) effect of the confining force in the plane flow and highlights the necessity of including the thermal drift into the quasi 2D description.
+
+%Let us rewrite here the particle velocity equation \eqref{eq:bdhibdrelation} for the quasi 2D case,
+\begin{equation}
+  \label{eq:q2dbdhirel}
+  \frac{d\vec{\ppos}_i}{dt} = \oper{J}_{\vec{\ppos}_i}\left[\tens{G}_{\qtd}\left(\oper{S}\vec{F} + \vec{\partial}\oper{S}(\kT)\right) + \vec{w}(\vec{\fpos}, t)\right]
+%  \begin{aligned}
+  %&\int{\delta_a(\vec{\ppos}_i-\vec{r}')\left[\sum_j\tens{G}_{\qtd}(\vec{r}', \vec{r}'')\left[\delta_a(\vec{\ppos}_i-\vec{r}'')\vec{F}_j + \kT\vec{\partial}(\delta_a)(\vec{\ppos}_j-\vec{r}')\right]d\vec{r}'}d\vec{r}'' + \vec{w}(\vec{\ppos}_i, t) }
+%\end{aligned}
+\end{equation}
+Here we have put the fluctuating part, $\vec{w}$, aside. The fluctuating stress tensor ($\tens{Z}$ in Eq. \eqref{eq:bdhibdrelation}) and its divergence are described in three dimensions. In the quasi 2D case we do not have an easy mechanism to project the stress tensor into the plane in order to keep a fully two dimensional description. Instead, we will use the fluctuation-dissipation balance to generate a stochastic fluid velocity directly.
+%
+%It is important to note that the gradient of the spreading operator in Eq. \eqref{eq:q2dbdhirel} is taken in the plane in which diffusion happens (i.e two dimensions). Similarly, we would like for spreading and interpolation to also take place in the two-dimensional confining plane.
+%In order to do that, we preconvolve the three dimensional Green's function of the Stokes equation (i.e the Oseen tensor in Eq. \eqref{eq:bdhioseen})  in the third direction leveraging the fact that, by construction, there are no particle forces in the third direction and particles remain strictly in the plane. In Fourier space, this amounts to defining the quasi 2D Green's function as the integral of the Oseen tensor multiplied by the square of the spreading kernel (a Gaussian),
+%\begin{equation}
+%  \label{eq:q2dGreenintegral}
+%  \begin{aligned}
+%  \fou{\tens{G}}_{\qtd}(\vec{k} = (k_x, k_y)) &= \frac{1}{2\pi\eta}\int_{k_z} \frac{dk_z}{(k')^2}\exp\left(-\frac{a^2k_z^2}{\pi}\right)\left( \mathbb{I} - \frac{\vec{k}'\otimes\vec{k}'}{(k')^2}\right) \\
+%  &= \eta^{-1}\left(g_k(ka)\vec{k}_{\perp}\otimes\vec{k}_{\perp} + f_k(ka)\vec{k}\otimes\vec{k}\right).
+%\end{aligned}
+%\end{equation}
 
 As previously discussed (see chapter \ref{sec:bdhicon}), the mobility tensor corresponding to Eq. \eqref{eq:q2dGreenintegral} can be written as
 \begin{equation}
@@ -4358,7 +4449,7 @@ Transforming to Fourier space in the plane we get a one dimensional problem for 
   % \end{bmatrix}
   \cdot\vec{f}
 \end{equation}
-Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. As a matter of fact, the \gls{FCT} is employed here (see Appendix \ref{sec:fct}) to transform the signals in the $z$ direction to the Chebyshev basis, as this allows to use the \gls{BVP} solver and facilitates the evaluation of the derivatives in this direction (by using the relations for the Chebyshev coefficients introduced in Appendix \ref{sec:bvp}). Therefore we will work with the Chebyshev coefficients, $\fou{p}_n$ (or $\fou{\vec{f}}_n$), of the different quantities. We can solve the pressure outside the domain using that
+Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. As a matter of fact, the \gls{FCT} is employed here to transform the signals in the $z$ direction to the Chebyshev basis, as this allows to use the \gls{BVP} solver and facilitates the evaluation of the derivatives in this direction (by using the relations for the Chebyshev coefficients introduced in Appendix \ref{sec:bvp}). Therefore we will work with the Chebyshev coefficients, $\fou{p}_n$ (or $\fou{\vec{f}}_n$), of the different quantities. We can solve the pressure outside the domain using that
 \begin{equation}
     (\partial^2_{z}-k^2)\fou{p} = 0, \quad \text{ for } z \notin [-H,H].
 \end{equation}
@@ -4380,7 +4471,7 @@ This implies
 \end{equation}
 For a given wave number, $k$, the system in Eq. \eqref{eq:dpstokesfreepressure} along the \glspl{BC} in Eq. \eqref{eq:dpstokespressurebcs} constitute a \gls{BVP} that can be solved in Chebyshev space with the solver described in Appendix \ref{sec:bvp}.
 
-Since this solver requires to define $z$ in the Chebyshev basis, we can apply $\partial_z$ in linear time by using recurrent relations on the Chebyshev coefficients (in this case of $\fou{f}^z$) instead of via \emph{ik} differentiation. As discussed in Appendix \ref{sec:bvp} and \ref{sec:fct}, the Fourier-Chebyshev\footnote{Fourier in the plane $(x,y)$ and Chebyshev in $z$.} coefficients $\fou{p}(\vec{k}, z)$ are computed via a hybrid \gls{FFT}-\gls{FCT}. Which amounts to performing the 3D \gls{FFT} of $\vec{f}$ periodic extended in $z$.
+Since this solver requires to define $z$ in the Chebyshev basis, we can apply $\partial_z$ in linear time by using recurrent relations on the Chebyshev coefficients (in this case of $\fou{f}^z$) instead of via \emph{ik} differentiation. As discussed in Appendix \ref{sec:bvp}, the Fourier-Chebyshev\footnote{Fourier in the plane $(x,y)$ and Chebyshev in $z$.} coefficients $\fou{p}(\vec{k}, z)$ are computed via a hybrid \gls{FFT}-\gls{FCT}. Which amounts to performing the 3D \gls{FFT} of $\vec{f}$ periodic extended in $z$.
 
 \subsection*{Velocity solve}
 Once the Chebyshev coefficients for the pressure for each wave number are known we can write the equations for the three components of the velocity in Fourier space as
@@ -4451,7 +4542,7 @@ Identifying the already known solution for the pressure (see Eq. \eqref{eq:dpsto
   \label{eq:dpstokesperpvelbc}
   \left(\partial_z\pm k\right)\fou{\vec{\fvel}}^\perp(\vec{k}, \pm H) = \frac{1}{2\eta}\fou{p}(\vec{k}, \pm H).
 \end{equation}
-\todo{The k=0 modes}
+%\todo{The k=0 modes}
 Thus far we have shown how to compute, for all wave numbers, the Chebyshev coefficients for the pressure and the three directions of the velocity in the free-space case. We will now study the correction in the bottom wall and slit channel geometries.
 \section{Corrections}
 We will compute, for each wave number, the analytical solution of the velocity and pressure inside the domain due to the presence of the walls and sum it to the main solution.
@@ -5280,7 +5371,7 @@ We measure concentration as the numer density defined as
 \end{equation}
 \begin{figure}[H]
   \centering
-  \hspace*{-1.75cm}
+  \hspace*{-2.0cm}
   \subfloat{\includegraphics[width=0.7\linewidth]{gfx/q2Dstripehisttotal}}
   \subfloat{\includegraphics[width=0.7\linewidth]{gfx/q2Dstripehist}}
   \caption{Time evolution of a striped density perturbation initially localized in the middle third of the domain in quasi 2D. Shown here are the density profiles averaged both in ensemble and in the x direction. (Left) The total density, $c^{(1)}(y, t)$, at time $t=0$ (dashed-solid black line) and at a later point in time (red squares), theory for the quasi 2D line (red) comes from our mean field (Eq. 30 in \cite{Pelaez2018}). The solution to the diffusion equation without hydrodynamic interactions (at the same time) is shown as a solid black line. (Right) We tag particles starting in the middle stripe as green ($c^{(1)}_G$, green lines and squares) and the rest as red ($c^{(1)}_R$, red lines and circles) and plot their density profiles, $c^{(1)}_{R/G}$. Red and green symbols correspond to $c^{(1)}_R$ and $c^{(1)}_G$ at the same point in time as the left pane. Dotted lines correspond to $t=0$. Our mean field theory is also shown here with solid lines. Dashed lines correspond to the diffusion equation without hydrodynamic interactions. All particles are passive tracers.}
@@ -5350,30 +5441,30 @@ Currently UAMMD is a single GPU library. Once a GPU is selected at initializatio
 UAMMD offers a plethora of tools that researchers can leverage to accelerate their simulations, however, making use of them requires certain knowledge and resources that might not be in the skillset of a typical research group, moreover a experimental group. One of our current lines of work consists on bridging the gap between us, producers of scientific software, and their potential users, such as experimental research groups. In particular by offering easy-to-use graphical user interfaces (GUI) tailored for the (cuantitative) reproduction of specific experiments or experimental techniques. At the moment, we are pursuing this idea by iterating, with the help of a research group at CSIC, towards a GUI for a ``virtual QCM'' which will aid in the characterization of samples for this sensor.
 
 \subsubsection*{What others are doing with UAMMD}
-At the moment, extensions to UAMMD is being actively developed by several collaborators. I still retain my role as the lead developer and routinely push fixes, improvements and new modules to the main repository, but other researchers have been forking, extending and hacking UAMMD for some time now. It is worth summarizing here some of the ongoing projects that are being carried out by collaborators using UAMMD.
-
+At the moment, extensions to UAMMD is being actively developed by several collaborators. I still retain my role as the lead developer and routinely push fixes, improvements and new modules to the main repository, but other researchers have been forking, extending and hacking UAMMD for some time now. It is worth mentioning here some of the ongoing projects that are being carried out by collaborators using UAMMD.
 
 \begin{itemize}
-\item Pablo virus
-\item QCM
-\item Palaciosa magnetismo
+\item Pablo Ibañez is studying mechanical properties of virus
+\item Marc Melendez and collaborators are studying the dynamical properties of a Quarzt Crystal Microbalance (QCM) biosensor for sample characterization, which involves embedding an oscillating wall in a fluid with inertial effects. The subtle coupling between a sample (placed on top of the wall) and the oscillating motion of the wall is studied to provide insights about the sample.
+\item Pablo Palacios is studying the response of bioconjugated magnetic nanoparticles to an alternating magnetic field for biomarker detection. This endeavor requires the development of a new \gls{FCM}-like algorithm for magnetism. Furthermore, the aforementioned nanoparticles have a direction, requiring to take torques and angular displacements into account when adding hydrodynamics.
+\item Collaborators at the New York University are using UAMMD's hydrodynamic and electrostatics modules for several works, such as the study of the rheological properties of a fiber suspension (actin networks), charge diffusion in ionic channels, and more. 
 \item Interaction between particles and fields via free energy functionals.
 \end{itemize}
 
-Finally, several works exploring UAMMD's facet as an external, GPUI-enabled, accelerator library are ongoing. Mostly making use of the hydrodynamic solvers, electrostatic solvers and neighbour list capabilities of UAMMD.
+Finally, several works exploring UAMMD's facet as an external, GPU-enabled, accelerator library are ongoing. Mostly making use of the hydrodynamic solvers, electrostatic solvers and neighbour list capabilities of UAMMD. In particular, I rutinely provide external collaborators with python interfaces for the different UAMMD modules required by their research.
 
-\subsubsection*{Nobel algorithims}
-\begin{itemize}
-\item New algorithms have been developed that enable simulations of regimes that where previously unachievable. These algorithms are accompanied by highly performant GPU implementations in UAMMD, which boosts their applicability.
-\end{itemize}
+\subsubsection*{Novel algorithms}
+New algorithms have been developed that enable simulations of physical regimes that where previously unachievable. These algorithms are accompanied by highly performant GPU implementations in UAMMD, boosting their applicability. The gross of this thesis contribution to this end deals with hydrodynamics and electrostatics in confined geometries. Furthermore, an efficient, GPU-enabled, algorithm for particle-grid communication has been developed and shown to outperfom existing alternatives in the use-cases habitual to complex fluid simulations.
 
 
 \subsubsection*{New physics}
-\begin{itemize}
-\item Although this thesis is not centered in new physics per-se, we have discussed several works presenting new physics. Some of these lines of work are still active and more publications are expected.
-\end{itemize}
+%\begin{itemize}
+%\item
+Although this thesis is not centered in new physics per se, we have shown several works presenting new physics. In particular, we have mentioned works studying diffusion in confined geometries, rheological properties of star polymer suspensions, intra-cellular viscosity and opto-hydrodynamics. Some of these lines of work are still active and more publications are expected.
+%\item For instance, the Saffman mobility could be used to model the diffusion of proteins in a lipid membrane\cite{Saffman}.
+%\end{itemize}
 
-\todo{ What should I say here?}
+%\todo{ What should I say here?}
 
 %\begin{itemize}
 %\item Long time self diffussion
@@ -5466,6 +5557,8 @@ Finally, several works exploring UAMMD's facet as an external, GPUI-enabled, acc
 %\end{itemize}
 %
 
+\newpage
+\cleardoublepage
 
 \part{Appendix}
 
@@ -5475,7 +5568,7 @@ Finally, several works exploring UAMMD's facet as an external, GPUI-enabled, acc
 
 \uammd uses the C++14 standard\footnote{The only restriction in adopting more modern standards, like C++20, is the adoption rate of CUDA. Up to the date of this writing, the latest CUDA toolkit supports up to C++17.}, which presents subtle but sometimes important differences with the previous iteration of the language (C++11). Note however, that this standard is wildly different to ``classic'' C++98, which could be considered another language altogether. Furthermore, \uammd uses the CUDA extensions to the language, which introduce some new keywords and subtle rules.
 
-In this chapter, we will give a few hints to ease the interpretation of the code examples throughout this manuscript for the uninitiated. Note that this is not intended to be a thorough description or tutorial of the language. For that the reader is redirected to the plethora of resources available online regarding CUDA and modern C++. This chapter summarizes the bare minimum necessary for a reader to follow the logic in the examples scattered throughout this manuscript.
+In this chapter, we will give a few hints to ease the interpretation of the code examples throughout this manuscript for the uninitiated. Note that this is not intended to be a thorough description or tutorial of the language. For that the reader is redirected to the plethora of resources available online regarding CUDA and modern C++. This chapter summarizes most of the tools from the C++ language (the bare minimum) that a reader needs to be aware of in order to follow the logic in the examples scattered throughout this manuscript.
 
 CUDA/C++ is a compiled language, meaning that before executing a source code, it must be transformed into an executable binary by an external program called the \emph{compiler}. We will also refrain from discussing the compilation of CUDA codes\footnote{\uammd's online resources shed light on this process, which might change over time for reasons outside of the author's control.}.
 
@@ -5537,13 +5630,13 @@ By default, a C++ source code will have access only to the basic rules of the la
 \subsection*{Namespaces and the using keyword}
 In order to avoid naming collisions (two libraries or files defining entities with the same name) C++ provides the concept of \emph{namespaces}. We have already seen the standard library namespace, \emph{std}, in action in example \ref{code:hello}. In order to reference an entity inside a given namespace, the ``::'' operator is used. In the aforementioned example, we access the object \emph{cout} of the \emph{std} namespace with \mintinline{\ucpp}{std::cout}.
 
-This can become a nuissance when a given namespace is constantly used. C++ provides the \mintinline{\ucpp}{using namespace} construct to mitigate this. For instance, throughout this manuscript, the line \mintinline{\ucpp}{using namespace uammd;} is used to omit writting \mintinline{\ucpp}{uammd::} every time an \uammd entity is referenced.
+This can become a nuisance when a given namespace is constantly used. C++ provides the \mintinline{\ucpp}{using namespace} construct to mitigate this. For instance, throughout this manuscript, the line \mintinline{\ucpp}{using namespace uammd;} is used to omit writting \mintinline{\ucpp}{uammd::} every time an \uammd entity is referenced.
 
 The \mintinline{\ucpp}{using} keyword has a second usage, it allows to ``rename'' a type. In C++ type names can become quite convoluted and long. The \mintinline{\ucpp}{using} keyword can be used in these cases. For instance, in example code \ref{code:pf} we write the line \mintinline{\ucpp}{using PF = PairForces<Potential, NeighbourList>;}, allowing to use simply ``PF'' when we want to refer to the longer type name.
 \subsection*{Objects}
 Although C++ can work as a functional language, it is heavily object oriented. The \mintinline{\ucpp}{struct} and \mintinline{\ucpp}{class} keywords are used to define objects in C++.
 
-An object can hold both variables and functions, which are refered to as \emph{members}. A member function in a class has access to all other members of the object. In general, object members (functions or variables) can have either private or public visibility. From the outside, only public members can be accessed, whereas private members can only be accessed by other members of the same class.
+An object can hold both variables and functions, which are referred to as \emph{members}. A member function in a class has access to all other members of the object. In general, object members (functions or variables) can have either private or public visibility. From the outside, only public members can be accessed, whereas private members can only be accessed by other members of the same class.
 
 In the author's personal programming style, structs are usually employed to serve as an aggregate of variables, whereas classes are used as a more complex object (with member functions, etc). Note however, that the struct and class keywords are almost interchangeable\footnote{The only difference between a struct and a class is the default visibility of its members. By default, members in a struct have public visibility, whereas a class defaults to private visibility.}.
 
@@ -5585,7 +5678,7 @@ A name (be it of a function, class, variable, etc...) is only visible inside a c
 In particular, when a new instance of an object (or in general any variable) is created, as we saw in example \ref{code:class}, it will live until it goes out of \emph{scope}. At that point, the object/variable will be destroyed.
 Destruction involves the invalidation of the variable and the release of the memory allocated for it. Additionally, in the case of objects the destructor function, if defined for that object, will be called. When a name goes out of scope it is made available for use again (i.e. we cannot have two variables with the same name, unless is out of scope).
 
-The portion of code between two curly brackets is called a \emph{block}. As a rule of thumb, a variable will live until the code block in which it has been defined is closed. In \uammd this is used, for instance, to release the handles to the particle properties provided by \emph{ParticleData}. When the destructor of one of these handles is called, it signals \emph{ParticleData} for it to take it into account (for instance, by synchronizing the CPU and \gpu verions of the data).
+The portion of code between two curly brackets is called a \emph{block}. As a rule of thumb, a variable will live until the code block in which it has been defined is closed. In \uammd this is used, for instance, to release the handles to the particle properties provided by \emph{ParticleData}. When the destructor of one of these handles is called, it signals \emph{ParticleData} for it to take it into account (for instance, by synchronizing the CPU and \gpu versions of the data).
 
 Let us showcase the lifespan of a variable by creating some instances inside different types of code blocks.
 \begin{code2}[Examples of a variable going out of scope]{label=code:scope}
@@ -5690,7 +5783,7 @@ Without going into details (the reader can learn more online), a C++ shared poin
     //The getAreaOf function works for pointers of any class that inherits from Polygon
     double as = getAreaOf(s);
     double ac = getAreaOf(c);
-    //We can also aggregate pointers to Polygon childs in a vector
+    //We can also aggregate pointers to Polygon children in a vector
     std::vector<std::shared_ptr<Polygon> > vec({s, c});
     return 0;  
   }
@@ -5753,7 +5846,7 @@ int main(){
 \end{code2}
 In another instance an algorithm may require to iterate through the elements of a container in reverse (starting at the last element and iterating up to the first), a \emph{reverse} iterator could be used instead of reordering the container prior to the execution of the algorithm.
 
-Iterators appear many times in \uammd. For instance, any \emph{random access} iterator can be provided for the input per-particle and per-grid quantities in the \gls{IBM} module (see chapter \ref{sec:ibm}). The only restriction here would be that depending on wether we are spreading or interpolating, the iterators will be required to be either input or output ones. A simple example case of this would be, for instance, spreading the charges of a collection of equally charged particles. A \emph{constant iterator} could be provided in this case.
+Iterators appear many times in \uammd. For instance, any \emph{random access} iterator can be provided for the input per-particle and per-grid quantities in the \gls{IBM} module (see chapter \ref{sec:ibm}). The only restriction here would be that depending on whether we are spreading or interpolating, the iterators will be required to be either input or output ones. A simple example case of this would be, for instance, spreading the charges of a collection of equally charged particles. A \emph{constant iterator} could be provided in this case.
 
 \subsection*{Other keywords}
 The \mintinline{\ucpp}{const} keyword simply informs the reader (and compiler) that the value of the accompanying variable cannot be modified after its declaration. When appearing in the signature of an object's member function, it conveys that the function will not modify the state of the object in any way.
@@ -5834,7 +5927,7 @@ This is the original motivation for the \emph{ParticleData} \uammd object.
 
 \chapter{Dealing with the FFT in the GPU} \label{ch:appendixa}
 
-Many of the numerical techniques in this manuscript make use of the \gls{FFT}, mostly in order to easily compute convolutions. The \gpu is a very powerful hardware for \gls{FFT}, but using the available \glspl{API} can become a real nuisance. In this chapter we will see how \uammd makes use of the CUDA library \emph{cuFFT}\cite{cufft} and how to work with data in Fourier space. While the information hereafter is centric to the \emph{cuFFT} library, most lessons are applicable to other popular \gls{FFT} libraries (such as \emph{FFTW}).
+Many of the numerical techniques in this manuscript make use of the \gls{FFT}, mostly in order to easily compute convolutions. The \gpu is a very powerful hardware for \gls{FFT}, but using the available \glspl{API} can become a real nuisance. In this chapter we will see how \uammd makes use of the CUDA library \emph{cuFFT}\cite{cufft} and how to work with data in Fourier space. While the information hereafter focuses on the \emph{cuFFT} library, most lessons are applicable to other popular \gls{FFT} libraries (such as \emph{FFTW}).
 The documentation of the \emph{cuFFT} library is sometimes obscure (and even lacking). There are some particular details that have made me waste countless hours, hopefully with the help of this chapter you can spare some.
 
 Lets assume we want to work on some three dimensional\footnote{The dimensionality of the transformation is tipically refered to as \emph{rank}, so a 3D transform has rank 3.} data defined on the nodes (cells) of a mesh (grid) with size $\vec{n} = (n_x, n_y, n_z)$. For instance, the forces spreaded to the grid in \gls{FCM}.
@@ -5850,10 +5943,10 @@ We will store the data in a linear array of size $n_xn_yn_z$, and access the val
 n = 2^i3^j5^k7^l11^m
 \end{equation}
 
-Where $i,j,k,l,m$ are positive integers. A number that can be expressed like this is refered to as an \gls{FFT}-friendly number.
+Where $i,j,k,l,m$ are positive integers. A number that can be expressed like this is referred to as an \gls{FFT}-friendly number.
 Typically we will look for the next friendly number given a certain target size. One way to find this number is to simply generate all numbers, limiting the exponents to some low arbitrary numbers, that meet Eq. \eqref{eq:fftfriendly}, sort them and find the nearest one to a target\footnote{The code in \uammd that performs this operation is at \emph{utils/Grid.cuh}.}.
 
-Although this is a good rule of thumb, we can expect the performance to vary between implementations, hardware and version. The best strategy is to test in a case by case basis. This can be worth for long simulations, since this means that a bigger transformation can sometimes be faster. Given that in many spectral algorithms a bigger grid size means more accuracy, we could get a more accurate run with a shorter runtime.
+Although this is a good rule of thumb, we can expect the performance to vary between implementations, hardware and version. The best strategy is to test in a case by case basis. This can be worth for long simulations, since this means that a bigger transformation can sometimes be faster. Given that in many spectral algorithms a bigger grid size means more accuracy, we could get a more accurate run with a shorter runtime. As a side note, in my personal experience, virtually every \gls{FFT} implementation will be much more performant when $i\le 1$ in Eq. \eqref{eq:fftfriendly}.
 
 
 \section*{Complex to real (C2R) and Real to complex (R2C) transforms}
@@ -5883,14 +5976,14 @@ int3 indexToWaveNumber(int i, int3 nk){
 }
 \end{code2}
 
-Most \gls{FFT} libraries povide some kind of advanced interface allowing to customize the data layout to some extent. In \emph{cuFFT} this is called the \emph{Advanced Data Layout}. In \uammd this is used extensively to compute three or four transformations in a single batch using interleaved data. For example, we can transform in a single call the three directions of the forces spreaded to the grid in \gls{FCM} (see sec. \ref{sec:fcm}), which are stored in a vector with \emph{real3}\footnote{The real3 type stores three scalars contigously.} type elements.
+Most \gls{FFT} libraries provide some kind of advanced interface allowing to customize the data layout to some extent. In \emph{cuFFT} this is called the \emph{Advanced Data Layout}. In \uammd this is used extensively to compute three or four transformations in a single batch using interleaved data. For example, we can transform in a single call the three directions of the forces spreaded to the grid in \gls{FCM} (see sec. \ref{sec:fcm}), which are stored in a vector with \emph{real3}\footnote{The real3 type stores three scalars contigously.} type elements.
 For example, if we want to transform the three coordinates for the forces in an interleaved array, we can instruct the library to interpret this data as three signals, each starting after the other and strided by three elements.
 \section*{Nyquist points}
-The complex data resulting of a R2C transform (or the input data of a C2R transform) meet the conditoin $data(\vec{i}) = data(\vec{i} - \vec{n})^*$. A consequence of this is that, in a transformation with an even number of points in some direction, there are some points that are the conjugates of themselves. We call this uncoupled modes Nyquist points.
+The complex data resulting of a R2C transform (or the input data of a C2R transform) meet the condition $data(\vec{i}) = data(\vec{i} - \vec{n})^*$. A consequence of this is that, in a transformation with an even number of points in some direction, there are some points that are the conjugates of themselves. We call this uncoupled modes Nyquist points.
 
 In \uammd, we take this into account mainly when including random fluctuations in Fourier space (see for instance the \gls{FCM} in chapter \ref{sec:fcm}).
 
-There are $8$ nyquist points at most (including the $\vec{k} = (0,0,0)$ mode), corresponding to the vertices of the inferior left cuadrant of the grid.
+There are $8$ nyquist points at most (including the $\vec{k} = (0,0,0)$ mode), corresponding to the vertices of the inferior left quadrant of the grid.
 Here is a convenience function that determines if a certain wave number is a Nyquist point:
 \begin{code2}[Finding if a wave number corresponds to a Nyquist point given the wave number and the grid size.]{label=code:nyquist}  
 bool isNyquistWaveNumber(int3 ik, int3 n){
@@ -5942,7 +6035,7 @@ We will work with the discrete Chebyshev transform of Eq. \eqref{eq:bvpmain}. In
 \label{eq:bvpchebexp}
 g(z) = \sum_{n=0}^{N-1} \fou{g}_n T_n(z)
 \end{equation}
-Where we use the subscript $n$ to distinghuish between the Chebyshev and Fourier coefficients (since throughout this manuscript we have used the subscript $k$ to denote Fourier coefficients).
+Where we use the subscript $n$ to distinguish between the Chebyshev and Fourier coefficients (since throughout this manuscript we have used the subscript $k$ to denote Fourier coefficients).
 
 In general, the Chebyshev polynomials of the first kind, $T_n$, are defined via a recurrent relation with
 \begin{equation}
@@ -5954,7 +6047,8 @@ In general, the Chebyshev polynomials of the first kind, $T_n$, are defined via 
   \end{aligned}
 \end{equation}
 
-On the other hand, the Chebyshev polynomials can be interpreted as a cosine series under a change of variables. Given that by definition $T_n(cos(\theta))= cos(n\theta)$, evaluating the function at the extrema points $x_n = cos(n\pi/(N-1))$ transforms the expansion in Eq. \eqref{eq:bvpchebexp} into a cosine series. We can then leverage the \gls{FFT} to perform a discrete cosine transform by transforming the periodic extension of a signal. This allows to obtain the Chebyshev coefficients of a signal in $O(Nlog(N))$ operations. We refer to this technique as the \gls{FCT} (see chapter 8 of \cite{Trefethen2000}). In Appendix \ref{sec:fct} we give some details about how to do this in a computer implementation.
+On the other hand, the Chebyshev polynomials can be interpreted as a cosine series under a change of variables. Given that by definition $T_n(cos(\theta))= cos(n\theta)$, evaluating the function at the extrema points $x_n = cos(n\pi/(N-1))$ transforms the expansion in Eq. \eqref{eq:bvpchebexp} into a cosine series. We can then leverage the \gls{FFT} to perform a discrete cosine transform by transforming the periodic extension of a signal. This allows to obtain the Chebyshev coefficients of a signal in $O(Nlog(N))$ operations. We refer to this technique as the \gls{FCT} (see chapter 8 of \cite{Trefethen2000}).
+%In Appendix \ref{sec:fct} we give some details about how to do this in a computer implementation.
 
 We can then leverage several interesting properties of the Chebyshev series to easily (and exactly) derivate and integrate the different quantities.
 
@@ -6031,15 +6125,15 @@ using the pre-factorized modified \emph{KBPENTA} algorithm.
 Note that we need to solve this system for each wave number, $k$. Our solver requires the evaluation of several recurrent relations, making it mostly a serial algorithm not worth parallelizing. In order to take advantage of the \gpu, we assign a thread to each $k$. As described above, much of the problem can be precomputed at the expense of memory storage (around $5N_kN$ values in total, being $N_k$ the number of wave vectors\footnote{Since we use R2C \gls{FFT} we will typically have $N_k=(N_x/2+1)N_y$.}
 Except for the $k=0$ wave number, every solve is identical in operations, meaning that each thread will present the same memory access pattern in the, precomputed, auxiliar arrays. We take advantage of this by storing them in a coherent (strided) way, where a given element of an auxiliar array is stored contigously (and ordered) for all wave numbers (so that the thread access pattern is cache friendly)\footnote{I wrote a special \gpu auxiliar storage handler for this that allows to switch between a strided and contigous pattern. It can be found in the file \emph{BVPMemory.cuh} in \uammd. In general a strided access provides a much better performance.}. Testing suggests that our \gls{BVP} solver yields similar performance as the \gls{FCT} for small $N_k$, becoming increasingly faster for increasing $N_k$ (as expected given that our solver has linear scaling as opposed to the $O(Nlog(N))$ operation count of the \gls{FCT}).
 
-\chapter{The Fast Chebyshev Transform}\label{sec:fct}
-
-\begin{itemize}
-\item Describe the FCT.
-\item Its the FFT of the periodic extension of the signal evaluated at the Chebyshev roots
-\item Numerical periodic extension is $F_{2N-i} = f_i$ where $i=1,2,...,N-1$.
-\item Describe the numerical indexing intricacies and the scaling factors
-\end{itemize}
-
+%\chapter{The Fast Chebyshev Transform}\label{sec:fct}
+%
+%\begin{itemize}
+%\item Describe the FCT.
+%\item Its the FFT of the periodic extension of the signal evaluated at the Chebyshev roots
+%\item Numerical periodic extension is $F_{2N-i} = f_i$ where $i=1,2,...,N-1$.
+%\item Describe the numerical indexing intricacies and the scaling factors
+%\end{itemize}
+%
 
 \defbibheading{bibintoc}[\bibname]{%
   \phantomsection
@@ -6051,7 +6145,7 @@ Except for the $k=0$ wave number, every solve is identical in operations, meanin
 }
 
 \chapter{UAMMD's online documentation}\label{ch:online}
-At the time of writing, the \uammd codebase is hosted as a git repository on the github platform (currently the de facto standard git hosting platform), at \url{https://github.com/RaulPPelaez/UAMMD}. Platforms change over time and github might not exist at the time you are reading this\footnote{As a side note, the \uammd was included among the github's Artic Code Vault program repositories. Thus, a physical copy of the codebase can be found 250 meters under the permafrost in a vault inside an abandoned coal mine in the Svalbard archipielago. This means that the codebase should be retrievable for at least the next thousand years.}. If that is the case and a google search does not help you locate its new hosting you have two options; either find me and request it directly or look in the wayback machine. At the time of writing, the internet archive has already scraped the uammd repository at least once, you can find the archived versions at \url{http://web.archive.org/web/202*/https://github.com/RaulPPelaez/UAMMD}.
+At the time of writing, the \uammd codebase is hosted as a git repository on the github platform (currently the de facto standard git hosting platform), at \url{https://github.com/RaulPPelaez/UAMMD}. Platforms change over time and github might not exist at the time you are reading this\footnote{As a side note, the \uammd was included among the github's Artic Code Vault program repositories. Thus, a physical copy of the codebase can be found 250 meters under the permafrost in a vault inside an abandoned coal mine in the Svalbard archipelago. This means that the codebase should be retrievable for at least the next thousand years.}. If that is the case and a google search does not help you locate its new hosting you have two options; either find me and request it directly or look in the wayback machine. At the time of writing, the internet archive has already scraped the uammd repository at least once, you can find the archived versions at \url{http://web.archive.org/web/202*/https://github.com/RaulPPelaez/UAMMD}.
 
 This very manuscript is focused on the underlying theory behind the many algorithms exposed by the code as well as the design choices involved in its creation. However, it is not intended as a usage guide for \uammd (although several code examples are included). A user wanting to learn how to use \uammd can benefit from the online resources. In particular, \uammd offers three distinct sources of knowledge:
 \begin{enumerate}
@@ -6064,21 +6158,22 @@ This very manuscript is focused on the underlying theory behind the many algorit
 \end{enumerate}
 
 \chapter{The Transverser and Potential interfaces}\label{ch:transverser}
+
 \section{The Transverser Interface} \label{sec:transverser}
-\todo{Transverser comes from traverse and transform}
+
 Many of the algorithms described in this manuscript require some kind of particle traversal.
 %A Transverser is a concept that refers to the action of going through each element of something.  
 Say, for instance, that for each particle we want to visit the rest of the particles that are closer than a certain distance. Or simply all of the other particles. More generally, we might want to perform some kind of operation equivalent to a matrix-vector multiplication, for which in order to compute one element of the result, the vector needs to go through a row of the matrix.
-In these cases, a \emph{Transverser} is used.
+In these cases, a \emph{Transverser}\footnote{The word \emph{Transverser} was chosen to convey that it is used to traverse and transform} is used.
 
 A \emph{Transverser} holds information about what to do with a pair of particles, what information is needed to compute this interaction, and what to do when a particle has interacted with all pairs it is involved in.  
 
 Being such a general concept, a \emph{Transverser} is used as a template argument, and therefore cannot be a base virtual class that can be inherited. This is why it is a "concept". No assumption can be made about the return types of each function, or the input parameters, the only common things are the function names.  
 
-For each particle to be processed the \emph{Transverser} will be called for: \todo{Draw this in a skematik}
+For each particle to be processed the \emph{Transverser} will be called for: %\todo{Draw this in a skematik}
 \begin{itemize}
 \item Setting the initial value of the interaction result (function \emph{zero})
-\item Fetching the necesary data to process a pair of particles  (function \emph{getInfo})
+\item Fetching the necessary data to process a pair of particles  (function \emph{getInfo})
 \item Compute the interaction between the particle  and each of its neighbours (function \emph{compute})
 \item Accumulate/reduce  the result for each neighbour (function \emph{accumulate})
 \item  Set/write/handle the accumulated result for all neighbours (function \emph{set})
@@ -6092,7 +6187,7 @@ The \emph{Transverser} interface requires a given class/struct to provide the fo
 
   
   For a pair of particles
-  characterised by position and info this function must return the
+  characterized by position and info this function must return the
   result of the interaction for that pair of particles. The last
   two arguments must be present only when \emph{getInfo} is defined.The
   returning type, \emph{Compute}, must be a POD type (just an aggregate of
@@ -6134,7 +6229,7 @@ The \emph{Transverser} interface requires a given class/struct to provide the fo
   This function is optional and defaults to simply nothing.
  \end{itemize}
 
-Example code \ref{code:ncounter} contains a very barebones instance of a \emph{Transverser}. In particular, \emph{NeighbourCounter} relies on as much default behavior as possible, presenting only a \emph{compute} and \emph{set} functions.
+Example code \ref{code:ncounter} contains a very bare-bones instance of a \emph{Transverser}. In particular, \emph{NeighbourCounter} relies on as much default behavior as possible, presenting only a \emph{compute} and \emph{set} functions.
 If we apply the \emph{NeighbourCounter} \emph{Transverser} to one of the neighbour lists in \uammd (see chapter \ref{sec:nlist}), the output (``nneigh'' array) will hold, for each particle, the number of neighbour particles.
 \begin{code2}[A \emph{Transverser} that counts the number of neighbours of each particle.]{label=code:ncounter}
 struct NeighbourCounter{
@@ -6169,7 +6264,7 @@ struct NeighbourCounter{
 Alternatively, if we apply the \emph{Transverser} in the code example \ref{code:ncounter} to the \emph{NBody} module (see chapter \ref{sec:nbody}) each particle will go through every other one, and thus all the elements of the \emph{NeighbourCounter} output will be equal to the total number of particles.
 \section{The Potential Interface} \label{sec:potential}
 
-This interface is just a connection between the \emph{Transverser} and \emph{Interactor} concepts. Additionally, \emph{Potential} aids with one limitation of the CUDA programming language and \gls{GPU} programming in general. On the one hand, register memory in a \gpu is quite limited, so it is not a good idea to use large objects in a kernel. On the other, there are some technical details that prevent certain objects from existing in a \gpu kernel. For example, objects are passed by value to a kernel, which can incur undesired copies and/or destructors being called. Thus, it is some times worth it to make a conceptual and programmatic separation between CPU and \gpu objects.
+This interface is just a connection between the \emph{Transverser} and \emph{Interactor} concepts. Additionally, \emph{Potential} aids with one limitation of the CUDA programming language and \gls{GPU} programming in general. On the one hand, register memory in a \gpu is quite limited, so it is not a good idea to use large objects in a kernel. On the other, there are some technical details that prevent certain objects from existing in a \gpu kernel. For example, objects are provided by value to a kernel, which can incur undesired copies and/or destructors being called. Thus, it is some times worth it to make a conceptual and programmatic separation between CPU and \gpu objects.
 In this regard, \emph{Transversers} are \gpu objects, while \emph{Interactors} or \emph{Potentials} are meant to be used in the CPU.
 Furthermore, while \emph{Transverser} describes a very general computation, \emph{Potential} only holds the logic on how to compute forces, energies and/or virials.
 \emph{Potential}s exist as a way to serve \emph{Transversers} to \emph{Interactors}. In particular, the \emph{PairForces} module (see chapter \ref{sec:shortrange}) needs a \emph{Potential} encoding the specific particle interaction. \todo{This is too abstract}
@@ -6186,7 +6281,7 @@ The \emph{Potential} interface is straightforward, requiring only two functions:
 \end{itemize}
 
 \todo{Check highlight in example}
-\begin{code2}[An example \emph{Potential} that computes Lennard-Jonnes forces, energies and/or virials.]{label=code:potential}
+\begin{code2}[An example \emph{Potential} that computes Lennard-Jones forces, energies and/or virials.]{label=code:potential}
   //Some functions to compute forces/energies
   __device__ real lj_force(real r2){
     const real invr2 = real(1.0)/r2;
@@ -6261,7 +6356,7 @@ struct SimpleLJ{
      with MD can at last have an idea of what you are doing. In
      the caption, you say that the potential calculates LJ forces...
      but I think you should add that it does this when associated
-     with an integrator. In other words, you should emphasise that
+     with an integrator. In other words, you should emphasize that
      you use potentials to define an interactor, which will be used
      by an integrator to calculate forces, energies, etc.}
 
@@ -6331,11 +6426,11 @@ Most of the modules listed below have a corresponding chapter in this manuscript
 
 \printbibliography[heading=bibintoc]
 
-\newpage
+%\newpage
 
-\cleardoublepage\input{FrontBackmatter/Declaration}
-\cleardoublepage\input{FrontBackmatter/Colophon}
-\newpage
+%\cleardoublepage\input{FrontBackmatter/Declaration}
+%\cleardoublepage\input{FrontBackmatter/Colophon}
+%\newpage
 
 \end{document}
 
