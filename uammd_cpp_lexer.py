@@ -78,7 +78,7 @@ class CFamilyLexer2(RegexLexer):
                     'static', 'switch', 'typedef', 'volatile', 'while', 'union',
                     'thread_local', 'alignas', 'alignof', 'static_assert', '_Pragma'),
                    suffix=r'\b'), Keyword),
-            (r'(bool|int|long|float|short|double|char|unsigned|signed|void|uint|real4|real|real3|real2|int2|int3|int4)\b',
+            (r'(bool|int|long|float|short|double|char|unsigned|signed|void|uint|Box|real4|real|real3|real2|int2|int3|int4)\b',
              Keyword.Type),
             (words(('inline', '_inline', '__inline', 'naked', 'restrict','__global__','__device__','__host__',
                     'thread'), suffix=r'\b'), Keyword.Reserved),
