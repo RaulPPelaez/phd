@@ -451,7 +451,7 @@ Recently, a new paradigm of supercomputing has arisen. The \gpu, a massively par
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{gpu_and_me}
-  \caption{A picture of the author with a GPU (a NVIDIA's RTX 2080Ti). This card will grant its owner the computing power of a small CPU cluster for a price of around 1000€.}
+  \caption{A picture a GPU (NVIDIA Tesla). This card will grant its owner the computing power of a small CPU cluster for a price of around 1000€.}
   \label{fig:gpuandme}
 \end{figure}
 
@@ -5433,7 +5433,7 @@ Besides the works presented in the current chapter, it is worth to mention ~\cit
 
 
 \chapter{Ongoing work, future directions and conclusions}\label{ch:conclusions}
-We are living in the origins of the GPU era, in which new computing technologies evolve every day and the software development kits (SDK) that allow to use them evolve alongside them. Lagging behind both hardware and SDK are the applications that make use of them, such as UAMMD. Finally, one step behind all of them lie the novel algorithms, some of which have been developed during this thesis. Climbing up the proverbial ladder requires constant work and research into these new technologies, as if we were walking a mechanical ladder in reverse. In order to successfully survive the constant climb it is worth to, in my opinion, lose the fear of returning back to basics, to reinvent the wheel. We chose CUDA for UAMMD because it was the best choice at the moment, but we did so knowing that this might change over time. In UAMMD, reinventing the wheel is easy by design, the base modules (\emph{Interactor}, \emph{Integrator}, \emph{ParticleData},...) are simple and short, allowing for extension or modification of even the most basic assumptions. 
+We are living in the origins of the GPU era, in which new computing technologies evolve every day and the software development kits (SDK) that allow to use them evolve alongside them. Lagging behind both hardware and SDK are the applications that make use of them, such as UAMMD. Finally, one step behind all of them lie the novel algorithms, some of which have been developed during this thesis. Climbing up the proverbial ladder requires constant work and research into these new technologies, as if we were walking a mechanical ladder in reverse. In order to successfully survive the constant climb it is worth to, in my opinion, lose the fear of returning back to basics, to reinvent the wheel. We chose CUDA for UAMMD because it was the best choice at the moment, but we did so knowing that this might change over time. In UAMMD reinventing the wheel is easy by design. The base modules (\emph{Interactor}, \emph{Integrator}, \emph{ParticleData},...) are simple and short, allowing for extension or modification of even the most basic assumptions. 
 
 \subsubsection*{New programming interfaces}
 Recently SYCL, a cross-platform C++ programming model for heterogeneous computing, has been gaining a lot of traction. The SYCL standard was introduced by the Khronos group (the same group behind OpenCL and OpenGL) and several implementations already exist (like Intel's DPC++ and hipSYCL just to name a few). SYCL aims to provide a common specification allowing to write code that will run in any massively parallel accelerator, such as a GPU or CPU, by having backends to accomodate the different hardware vendors (CUDA for NVIDIA, ROCm for AMD, oneAPI for Intel...). In the future, it is within the realm of possibilities to port UAMMD to SYCL, which will enable it to run on any hardware and, moreover, would make it more future-proof.
@@ -5464,7 +5464,23 @@ New algorithms have been developed that enable simulations of physical regimes t
 \subsubsection*{New physics}
 %\begin{itemize}
 %\item
-Although this thesis is not centered in new physics per se, we have shown several works presenting new physics. In particular, we have mentioned works studying diffusion in confined geometries, rheological properties of star polymer suspensions, intra-cellular viscosity and opto-hydrodynamics. Some of these lines of work are still active and more publications are expected.
+Although this thesis is not centered in new physics per se, several works presenting new physics have been shown. In particular, works studying diffusion in confined geometries, rheological properties of star polymer suspensions, intra-cellular viscosity and opto-hydrodynamics have been discussed. Some of these lines of work are still active and more publications are expected.
+
+
+
+\chapter{Spanish conclusions}
+Estamos viviendo los orígenes de la era de la GPU, en la que las nuevas tecnologías evolucionan cada día, así como las herramientas de software que permiten hacer uso de ellas. Un paso por detrás se encuentran las aplicaciones que hacen uso de la GPU, tales como UAMMD. Finalmente, aún más atrás están los algoritmos novedosos, algunos de los cuales han sido desarrollados en esta tesis. Trepar por la escalera proverbial requiere trabajo e investigación constantes en estas nuevas tecnologías, como si quisiéramos subir por una escalera mecánica en sentido contrario. Para sobrevivir con éxito esta constante subida es necesario, en mi opinión, perder el miedo a volver a explorar las asunciones más básicas y a reinventar la rueda. Elegimos CUDA para UAMMD porque era la opción más adecuada en el momento, pero lo hicimos sabiendo que esto podría cambiar en el futuro. En UAMMD reinventar la rueda es fácil por diseño. Los módulos base (\emph{Interactor}, \emph{Integrator}, \emph{ParticleData},...) son simples y cortos, permitiendo la extensión y/o modificación de incluso sus principios más fundamentales.
+
+\subsubsection*{Nuevos algoritmos}
+Durante esta tesis se han desarollado nuevos algoritmos que permiten la simulación de regímenes físicos que eran previamente inalcanzables. Estos algoritmos están acompañados de implementaciones de alto rendimiento en GPU dentro de UAMMD, impulsando su aplicabilidad. El grueso de los algoritmos desarrollados en esta tesis lidian con la hidrodinámica y electrostática en geometrías confinadas. Además, se ha desarrollado e implementado en UAMMD un algoritmo GPU para la comunicación entre partículas y una malla que muestra ser más performante que las alternativas existentes en los casos de uso habituales en las simulaciones de fluidos complejos.
+
+\subsubsection*{Nueva Física}
+%\begin{itemize}
+%\item
+Aunque esta tesis no está centrada en la obtención de resultados per se, se han mostrado varios trabajos presentando nueva física. En particular se han mencionado trabajos que estudian difusión en geometrías confinadas, propiedades rehológicas de polímeros estrella en suspensión, viscosidad intra celular y opto-hidrodinámica. Algunas de estas lineas de trabajo están aún activas y se esperan más publicaciones.
+
+
+
 %\item For instance, the Saffman mobility could be used to model the diffusion of proteins in a lipid membrane~\cite{Saffman}.
 %\end{itemize}
 
