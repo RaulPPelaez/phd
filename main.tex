@@ -2877,7 +2877,7 @@ We are now ready to extract more information about the mobility matrix, which is
 \end{equation}
 Here $\oper{L}$ is the Green's function for Eq. \eqref{eq:stokes} with the particular boundary conditions.
 
-The mobility tensor definition in Eq. \eqref{eq:bdhimob} is general for any geometry. For an unbounded fluid, the Green's function is the Oseen tensor in Eq. \eqref{eq:bdhioseen} and the resulting mobility (when using $\delta_a:=\delta$) is refered to as the Oseen mobility, so that $\tens{M}_{ij} = \tens{O}(\vec{\ppos}_j - \vec{\ppos}_i)$.
+The mobility tensor definition in Eq. \eqref{eq:bdhimob} is general for any geometry. For an unbounded fluid, the Green's function is the Oseen tensor in Eq. \eqref{eq:bdhioseen} and the resulting mobility (when using $\delta_a:=\delta$) is referred to as the Oseen mobility, so that $\tens{M}_{ij} = \tens{O}(\vec{\ppos}_j - \vec{\ppos}_i)$.
 
 The Oseen mobility presents several problems when particles get too close stemming from the point particle assumption. For instance, the tensor becomes ill-formed (and non positive-definite) at close distances, hindering the applicability of the assumption in Eq. \eqref{eq:mobsqrt}. On the other hand, the Oseen mobility diverges at zero distance, which can result in numerical issues in the absence of steric repulsions and requires treating the self mobility separately. The Oseen mobility can be in a way interpreted as the mobility for colloidal particles with size $a\rightarrow 0$.
 
@@ -3411,9 +3411,9 @@ auto createIntegratorFIB(UAMMD sim){
 
 
 \section{Inertial Coupling Method (ICM)}\label{ch:icm}
-Thus far we have neglected the intertial terms in Eq. \eqref{eq:navierstokes} and focused on the Stokes level (in what we call \gls{BDHI}). In this last chapter about triply periodic hydrodynamics we will explore an algorithm, refered to as \gls{ICM}~\cite{Balboa2014}, that allows to reintroduce inertia. In particular, we will consider both the temporal and convective intertial terms in Eq. \eqref{eq:navierstokes}.
+Thus far we have neglected the inertial terms in Eq. \eqref{eq:navierstokes} and focused on the Stokes level (in what we call \gls{BDHI}). In this last chapter about triply periodic hydrodynamics we will explore an algorithm, refered to as \gls{ICM}~\cite{Balboa2014}, that allows to reintroduce inertia. In particular, we will consider both the temporal and convective inertial terms in Eq. \eqref{eq:navierstokes}.
 
-Note, however, that we will not consider particle inertial terms coming from an excess mass of the particles, i.e we consider neutrally buoyant particles with $m_e := m - \rho\Delta V = 0$. This implies that the particles still follow the local fluid velocity exactly and particles reach terminal velocity instantaneously. As demonstrated in ~\cite{Balboa2014} particle inertial effects can be reintroduced as a constraint via a Lagrange multiplier.
+Note, however, that we will not consider particle inertial terms coming from an excess mass of the particles, i.e we consider neutrally buoyant particles with $m_e := m - \rho\Delta V = 0$. This implies that the particles still follow the local fluid velocity exactly and particles reach terminal velocity instantaneously. As demonstrated in ~\cite{Balboa2014} particle excess mass (inertial) effects can be reintroduced as a constraint via a Lagrange multiplier.
 
 We will use the same staggered grid spatial discretization as in \gls{FIB} (see chapter \ref{sec:staggered}).
 Using the proyection method descibed in chapter \ref{sec:bdhi}, we can write Eq. \eqref{eq:navierstokes} as
@@ -3436,8 +3436,8 @@ We use a second-order accurate\footnote{A non-zero excess mass will demote the s
     &\vec{\ppos}^{n+1} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^{n+\half}\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right).
   \end{aligned}
 \end{equation}
-Which requires to evaluate the non-linear fluid forcing terms at mid step (i.e advection and diffusion).
-This discretization is similar to the mid point predictor-corrector schemes in \gls{FIB} but the convective term is discretized using a second order explicit Adams-Bashforth method (Eq. 35 in ~\cite{Balboa2014}),
+Which requires evaluating the non-linear fluid forcing terms at mid step (i.e advection and diffusion).
+This discretization is similar to the midpoint predictor-corrector schemes in \gls{FIB} but the convective term is discretized using a second order explicit Adams-Bashforth method (Eq. 35 in ~\cite{Balboa2014}),
 \begin{equation}
   \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n+\half} = \frac{3}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n - \half \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n-1}.
 \end{equation}
@@ -3452,10 +3452,10 @@ Replacing both equations into \eqref{eq:icmalgo} and solving for the velocity at
   \begin{aligned}
     &\vec{\fvel}^{n+1} = \tilde{\oper{P}}\vec{g}^n =\tilde{\oper{P}}\Big[    \left(\frac{\rho}{\dt}\mathbb{I} + \frac{\eta}{2}\nabla^2\right)\vec{\fvel}^n- \\
     & \frac{3\dt}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n - \frac{\dt}{2} \nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^{n-1}+\\
-    &\oper{S}\vec{F}^{n+\half} + \nabla\cdot\mathcal{Z}^n \Big].
+    &\oper{S}\vec{F}^{n+\half} + \nabla\cdot\mathcal{Z}^n \Big],
   \end{aligned}
 \end{equation}
-Where the modified projection operator is defined as
+where the modified projection operator is defined as
 \begin{equation}
   \tilde{\oper{P}} :=\left(\frac{\rho}{\dt}\mathbb{I} - \frac{\eta}{2}\nabla^2\right)^{-1}\oper{P}
 \end{equation}
@@ -3463,9 +3463,9 @@ and is applied in Fourier space.
 The full algorithm can be summarized as follows:
 \begin{enumerate}
 \item Take particle positions to time $n+\half$: $\vec{\ppos}^{n+\half} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^n\vec{\fvel}^n$.
-\item Spread particles to the staggered grid: $\oper{S}\vec{F}^{n+\half}$.
+\item Spread forces on particles to the staggered grid: $\oper{S}\vec{F}^{n+\half}$.
 \item Compute and store advection: $\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})^n$.
-\item Compute the rest of the terms in $\vec{g}$ in Eq. \eqref{eq:icmfluidvel}, using the just computed advective term in addition to the one stored in the previous step.
+\item Compute the rest of the terms in $\vec{g}$ in Eq. \eqref{eq:icmfluidvel}, using the advective term just computed in addition to the one stored in the previous step.
 \item Take $\vec{g}$ to Fourier space and apply $\tilde{\oper{P}}$: $\fou{\vec{\fvel}}^{n+1} = \fou{\tilde{\oper{P}}}\fou{\vec{g}}$.
 \item Take $\fou{\vec{\fvel}}^{n+1}$ back to real space.
 \item Evaluate particle positions at $n+1$ by interpolating: $\vec{\ppos}^{n+1} = \vec{\ppos}^n + \frac{\dt}{2}\oper{J}^{n+\half}\left(\vec{\fvel}^{n+1} + \vec{\fvel}^{n}\right)$.
@@ -3619,7 +3619,7 @@ We get the expression for the 6-point kernel
 
 Given its complexity it is advisable to tabulate $\phi_{p_6}$.
 \subsubsection*{Barnett-Magland (BM) kernel}
-A new kernel, called ``exponential of the semicircle''(ES) and here refered to as BM, has been recently developed to improve the efficiency of non-uniform \gls{FFT} methods~\cite{Barnett2019}. This kernel has been used for electrostatics~\cite{Shamshirgar2021}, but we will also apply it to the Stokes equation. This kernel has a simple mathematical expression
+A new kernel, called ``exponential of the semicircle''(ES) and here referred to as BM, has been recently developed to improve the efficiency of non-uniform \gls{FFT} methods~\cite{Barnett2019}. This kernel has been used for electrostatics~\cite{Shamshirgar2021}, but we will also apply it to the Stokes equation. This kernel has a simple mathematical expression
 \begin{equation}
   \label{eq:bmkernel}
   \phi_{BM}(r,\{\beta, w\}) = \left\{
@@ -3746,7 +3746,7 @@ In a serial implementation of spreading, we can simply sum the contribution, $\d
 \end{algorithm}
 In serial, we can simply apply algorithm \ref{alg:visitneigh} to each particle to get a fairly efficient algorithm. However, a direct parallelization of this approach by assigning a worker to each particle is not possible for spreading. In this case two particles could write at the same time to the same cell, resulting in a race condition. This race condition can be circumvented by ensuring that line \ref{alg:visitspread} in alg. \ref{alg:visitneigh} is an \emph{atomic} operation\footnote{In a parallel environment, an \emph{atomic} operation enforces that only one thread performs the operation a time. Allowing several workers (threads) to modify (for instance by reading, modifying and then writing) the same memory location at the same time can result in some of the information being lost (for instance when a second thread reads while the first is still modifying). CUDA comes with a great GPU atomic library, which has become more and more efficient with time. CUDA atomics have come to a point in which, in the absence of collisions (two threads trying to access the same memory location), the overhead of using atomics is almost negligible.}.
 
-Another solution is to traverse per cell instead of per particle, usually refered to as mesh-based approaches. Each cell is assigned to a worker, which then traverses all nearby particles. This requires to construct a cell list. While this approach is free of atomic operations (which can hurt performance if a lot of collisions happen) it makes the algorithm scale with the number of cells and it will be inefficient in low density systems (or in configurations with large density disparities), where many cells are empty. On the other hand, CUDA atomic operations have come a long way, presenting almost no overhead when there are no collisions. Furthermore, a per-cell approach does not allow to take advantage of Eq. \eqref{eq:peskinseparable} easily, increasing the number of kernel evaluations to $n_s^3$.
+Another solution is to traverse per cell instead of per particle, usually referred to as mesh-based approaches. Each cell is assigned to a worker, which then traverses all nearby particles. This requires to construct a cell list. While this approach is free of atomic operations (which can hurt performance if a lot of collisions happen) it makes the algorithm scale with the number of cells and it will be inefficient in low density systems (or in configurations with large density disparities), where many cells are empty. On the other hand, CUDA atomic operations have come a long way, presenting almost no overhead when there are no collisions. Furthermore, a per-cell approach does not allow to take advantage of Eq. \eqref{eq:peskinseparable} easily, increasing the number of kernel evaluations to $n_s^3$.
 We usually have to spread quasi uniform configurations in 3D and we typically deal with a few million number of particles, which makes a per-particle approach the overall best option. Note, however, that there is not a best-for-all algorithm regarding spreading and a mesh based approach will probably have the upper-hand in some situations (probably when highly dense systems are considered).
 For our typical use, the few corner cases in which the per-cell approach is more optimal are not worth enough to consider it as an option. A review of several mesh-based methods is available at~\cite{Guo2015}.
 
@@ -3757,7 +3757,7 @@ Regarding \gpu friendly parallelizations of particle-based spreading algorithms,
 \subsubsection*{Thread Per Particle (TPP)}
 Let us start with the \emph{naive} version of the algorithm in which we assign a thread to each particle and then simply apply algorithm \ref{alg:visitneigh}, summing the particles contributions atomically to the grid data as previously discussed. Each thread must then evaluate the kernel as many times as needed for its assigned particle. We deal with the kernel evaluations in two different ways:
 \begin{enumerate}
-\item \textbf{TPP (register)}: Store the $3n_s$ kernel evaluations (making use of the optimization in Algorithm \ref{alg:precomputeKernel}) in each thread's \emph{register} memory. Given the scarcity of register memory, storing $3n_s$ values in it could easily result in register spilling\footnote{In a given CUDA kernel, when more register memory than available is requested, the compiler stores the excess in global memory. This is known as \emph{register spilling}. Naturally, register spilling should be avoided at all costs, since accessing global memory is orders of magnitude slower than register memory.}. This algorithm is refered to as \emph{GM} in ~\cite{Shih2021}.
+\item \textbf{TPP (register)}: Store the $3n_s$ kernel evaluations (making use of the optimization in Algorithm \ref{alg:precomputeKernel}) in each thread's \emph{register} memory. Given the scarcity of register memory, storing $3n_s$ values in it could easily result in register spilling\footnote{In a given CUDA kernel, when more register memory than available is requested, the compiler stores the excess in global memory. This is known as \emph{register spilling}. Naturally, register spilling should be avoided at all costs, since accessing global memory is orders of magnitude slower than register memory.}. This algorithm is referred to as \emph{GM} in ~\cite{Shih2021}.
 \item \textbf{TPP (recompute)}: We do not take advantage of the kernel separation at all and simply recompute the kernel whenever is needed (in particular $n_s^3$ times). This naturally increases arithmetic pressure compared with the register version. However, as a general rule, GPUs are much more forgiving to extra arithmetic operations than they are to extra memory traffic. Thus exchanging memory for arithmetics is usually a good call.
 \end{enumerate}
 While assigning a thread to a particle sounds like a reasonable separation of tasks, in doing so we are missing out on the intra-thread-block collaborative capabilities of the GPU (such as the shared memory space, see sec. \ref{ch:gpuintroduction}). Furthermore, in TPP threads in the same block are dealing with different particles, so there is no mechanism in place reducing the chance of atomic collisions. If the particles assigned to two adjacent threads happen to be close in space, there will be a high chance that at some point these two threads try to write to the same cells in the grid. Luckily there is a yet more fine-grained parallelization hidden in this algorithm that happens to be perfectly suited for the GPU architecture. This parallelization emerges when assigning an entire thread block to a particle as we will discuss now.
@@ -4910,9 +4910,9 @@ The tolerance parameter is the maximum relative error allowed in the potential f
 \newcommand{\botl}{{0}}
 \newcommand{\topl}{{H}}
 
-\begin{itemize}
-\item Introduce the need for slit channel electrostatics
-\end{itemize}
+%\begin{itemize}
+%\item Introduce the need for slit channel electrostatics
+%\end{itemize}
 We present a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and arbitrary surface charges at the domain walls (in the open direction).
 
 \begin{figure}[h]
@@ -4959,7 +4959,7 @@ In the same way as with the triply periodic algorithm, we can compute the electr
 Since we do not have periodic boundaries in the $z$ direction, the application of the nabla operator on the potential to compute the electric field is not as straight-forward as in the triply periodic case. In particular, as we will study in the following sections, our solver works in the Fourier-Chebyshev space (similar to the doubly periodic Stokes solver in chapter \ref{sec:dpstokes}).
 
 \section{Solver description}
-We use a grid-based solver to get an algorithm with linear complexity with the number of particles. We evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (similarly as in chapter \ref{ch:tppoisson}), then solve the potential in that grid and finally interpolate the required quantities back to the particle positions (Eqs. \eqref{eq:dppu} and \eqref{eq:dppf}).
+We use a grid-based solver to get an algorithm with linear complexity with the number of particles. We evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (similarly as in chapter \ref{ch:tppoisson}), then solve the potential in that grid and finally interpolate the required quantities back to the particle positions (i.e the energy in Eq. \eqref{eq:dppu} or the force with Eq. \eqref{eq:tppoisson_force}).
 In order to accurately describe the charge density $f(\vec{x})$ in the grid we must choose a sufficiently small grid size, $h$. Since the correct description of the charge density field produced by the Gaussian sources requires $h \sim a$ this method will be inefficient for point-like charges ($a\rightarrow 0$). To overcome this limitation (similarly as with the triply periodic case described in chapter \ref{ch:tppoisson}) we make use of Ewald splitting.
 
 Let us start with the non-Ewald split case by considering that the distance between charges is comparable to their width, $a$.
@@ -5432,7 +5432,7 @@ In ~\cite{Melendez2019} \uammd is used in conjunction with an already establishe
 
 Previous research has shown that gold nanoparticles immersed in water in an optical vortex lattice formed by the perpendicular intersection of two standing light waves with a $\pi/2$ rad phase difference will experience enhanced dispersion that scales with the intensity of the incident laser. We show that flexible nanoscale dumbbells (created by attaching two such gold particles by means of a molecule chain such as a DNA o oligomer) in the same field display different types of motion depending on the chain length and field intensity. We have not disregarded the secondary optical forces due to light scattering. The dumbbells may disperse, rotate, or remain trapped. For some values of the parameters, the (enhanced) dispersion possesses a displacement distribution with exponential tails and exhibiting time-dependent diffusion, including anomalous (though Brownian) diffusion.
 
-The interested reader is refered to ~\cite{Melendez2019} for details. For the sake of this dissertation, the main outcome of this work (and research line) is to highlight the ability of UAMMD to include other type of interactions between fields and particles, which can be expressed in terms of Green functions. In particular, secondary optic forces (arising from light scattered by the nanoparticles) are evaluated from the optic Green function (see ~\cite{Buscalioni2018,Melendez2019}). The techniques developed here for the hydrodynamic propagators can be also used for the optic problem, and this subject is part of ongoing research, teh resulting ``opto-hydrodynamic'' computational framework promises to be of great usefulness to analyze recent experiments with plasmonic nanoparticles ~\cite{Ye2020}.
+The interested reader is referred to ~\cite{Melendez2019} for details. For the sake of this dissertation, the main outcome of this work (and research line) is to highlight the ability of UAMMD to include other type of interactions between fields and particles, which can be expressed in terms of Green functions. In particular, secondary optic forces (arising from light scattered by the nanoparticles) are evaluated from the optic Green function (see ~\cite{Buscalioni2018,Melendez2019}). The techniques developed here for the hydrodynamic propagators can be also used for the optic problem, and this subject is part of ongoing research, teh resulting ``opto-hydrodynamic'' computational framework promises to be of great usefulness to analyze recent experiments with plasmonic nanoparticles ~\cite{Ye2020}.
 
 
 
@@ -5792,7 +5792,7 @@ In \uammd, \emph{Interactor} and \emph{Integrator} are virtual classes such as \
 Let us discuss now the type of pointer used throughout this manuscript, the \mintinline{\ucpp}{std::shared_ptr}.
 
 \subsection*{Shared pointers}
-Without going into details (the reader can learn more online), a C++ shared pointer can hold ownership of an object through a pointer. In the \uammd examples in this manuscript we use shared pointers mainly to pass around \emph{Interactors} and \emph{Integrators}. For instance, in example \ref{code:pf} we create and return an instance of \emph{PairForces}, a class inherited from \emph{Interactor}. On the other hand, the \emph{Integrator} member function \mintinline{\ucpp}{addInteractor();} will take in its argument a pointer to an \emph{Interactor}, meaning that the \emph{PairForces} instance created in example \ref{code:pf} can be passed to an \emph{Integrator} (such as the one created in example \ref{code:md}) directly.
+Without going into details (the reader can learn more online), a C++ shared pointer can hold ownership of an object through a pointer. In the \uammd examples in this manuscript we use shared pointers mainly to pass around \emph{Interactors} and \emph{Integrators}. For instance, in example \ref{code:pf} we create and return an instance of \emph{PairForces}, a class inherited from \emph{Interactor}. On the other hand, the \emph{Integrator} member function \mintinline{\ucpp}{addInteractor();} will take in its argument a pointer to an \emph{Interactor}, meaning that the \emph{PairForces} instance created in example \ref{code:pf} can be passed to an \emph{Integrator} (such as the one created in example \ref{code:verletnve}) directly.
 
 
 \begin{code2}[Using shared pointer to hold many types of polygons.] {label=code:sharedptr}
@@ -5957,7 +5957,7 @@ This is the original motivation for the \emph{ParticleData} \uammd object.
 Many of the numerical techniques in this manuscript make use of the \gls{FFT}, mostly in order to easily compute convolutions. The \gpu is a very powerful hardware for \gls{FFT}, but using the available \glspl{API} can become a real nuisance. In this chapter we will see how \uammd makes use of the CUDA library \emph{cuFFT}~\cite{cufft} and how to work with data in Fourier space. While the information hereafter focuses on the \emph{cuFFT} library, most lessons are applicable to other popular \gls{FFT} libraries (such as \emph{FFTW}).
 The documentation of the \emph{cuFFT} library is sometimes obscure (and even lacking). There are some particular details that have made me waste countless hours. Hopefully with the help of this chapter you can save some.
 
-Let's assume we want to work on some three-dimensional\footnote{The dimensionality of the transformation is tipically refered to as \emph{rank}, so a 3D transform has rank 3.} data defined on the nodes (cells) of a mesh (grid) with size $\vec{n} = (n_x, n_y, n_z)$. For instance, the forces spread to the grid in \gls{FCM}.
+Let's assume we want to work on some three-dimensional\footnote{The dimensionality of the transformation is tipically referred to as \emph{rank}, so a 3D transform has rank 3.} data defined on the nodes (cells) of a mesh (grid) with size $\vec{n} = (n_x, n_y, n_z)$. For instance, the forces spread to the grid in \gls{FCM}.
 A one dimensional transform has size $n: = \vec{n} =(n_x,1,1)$.
 
 We will store the data in a linear array of size $n_xn_yn_z$, and access the value of cell $\vec{c} = (c_x,c_y,c_z)$ at the element $i = c_x + (c_y + c_zn_y)n_x$. Where $c_{x/y/z} \in [0, n_{x/y/z}-1]$.
@@ -6079,7 +6079,7 @@ On the other hand, the Chebyshev polynomials can be interpreted as a cosine seri
 
 We can then leverage several interesting properties of the Chebyshev series to easily (and exactly) derivate and integrate the different quantities.
 
-%If we evaluate $f(z)$ in the roots of the Chebyshev polynomials, $z_i=cos(i\pi/N)$, we can leverage the \gls{FFT} to provide the coefficients of the Chebyshev transform (in what is usually refered to as a Fast Chebyshev Transform (FCT)) by using it to compute a discrete cosine transform. The proof, while straight forward, is cumbersome and beyond the scope of this work, it can be found in Chapter 8 of~\cite{Trefethen2000}. In particular, the fast Chebyshev transform is carried out by taking the \gls{FFT} of the periodic extension of $f(z)$\footnote{cuFFT can be used for this, which is the approach in \uammd.} 
+%If we evaluate $f(z)$ in the roots of the Chebyshev polynomials, $z_i=cos(i\pi/N)$, we can leverage the \gls{FFT} to provide the coefficients of the Chebyshev transform (in what is usually referred to as a Fast Chebyshev Transform (FCT)) by using it to compute a discrete cosine transform. The proof, while straight forward, is cumbersome and beyond the scope of this work, it can be found in Chapter 8 of~\cite{Trefethen2000}. In particular, the fast Chebyshev transform is carried out by taking the \gls{FFT} of the periodic extension of $f(z)$\footnote{cuFFT can be used for this, which is the approach in \uammd.} 
 
 In particular, we can use the well known indefinite integrals of the Chebyshev polynomials to integrate $\fou{y}''_n$ twice and get $\fou{y}_n$. First by integrating $\fou{y}''_n$:
 \begin{equation}
@@ -6135,7 +6135,7 @@ We use a Schur complement approach to solve the algebraic system of equations \e
 \begin{bmatrix} \fou{\bm{y}}''\\ \fou{y}_0 \\ \fou{y}'_0 \\ \end{bmatrix}
 = \begin{bmatrix}  \fou{\bm{f}}\\ \alpha \\ \beta\\ \end{bmatrix}. 
 \end{equation}
-Here $\bm{B}$ is $N \times 2$, $\bm{C}$ is $2 \times N$, $\bm{D}$ is $2 \times 2$, and $\bm{A}$ is an $N \times N$ \textit{pentadiagonal} matrix. In particular, the matrix $\bm{A}$, refered to as the second integral matrix, has only three non zero diagonals ($i=j$ and $i = j\pm 2$) which allows to use a specialized factorization algorithm. In \uammd we use the so-called \emph{KBPENTA} in ~\cite{Karawia2010}, modified for the special case of only three nonzero diagonals.\footnote{The matrix $\bm{A}$ is pre factorized (incurring an auxiliar storage of $3N$ elements for a given $k$). Using this our special pentadiagonal system can be solved in just $2N$ operations.} 
+Here $\bm{B}$ is $N \times 2$, $\bm{C}$ is $2 \times N$, $\bm{D}$ is $2 \times 2$, and $\bm{A}$ is an $N \times N$ \textit{pentadiagonal} matrix. In particular, the matrix $\bm{A}$, referred to as the second integral matrix, has only three non zero diagonals ($i=j$ and $i = j\pm 2$) which allows to use a specialized factorization algorithm. In \uammd we use the so-called \emph{KBPENTA} in ~\cite{Karawia2010}, modified for the special case of only three nonzero diagonals.\footnote{The matrix $\bm{A}$ is pre factorized (incurring an auxiliar storage of $3N$ elements for a given $k$). Using this our special pentadiagonal system can be solved in just $2N$ operations.} 
 
 We start by solving the $2 \times 2$ system
 \begin{equation}
