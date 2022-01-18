@@ -285,7 +285,24 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \noindent\myName: \textit{\myTitle,} \mySubtitle, %\myDegree,
 \textcopyright\ \myTime
 
-\cleardoublepage\input{FrontBackmatter/Dedication}
+\cleardoublepage
+\thispagestyle{empty}
+\phantomsection
+%\pdfbookmark[1]{Quotes}{Quotes}
+
+\vspace*{3cm}
+
+\begin{center}
+      This thing is complex... so complex not even God gets it.\\ \medskip
+    --- Rafa Buscalioni
+    \\ \medskip\medskip
+        There is no way you are getting a quote for your stupid thesis\\ \medskip
+    --- NVIDIA
+
+\end{center}
+
+\medskip
+
 %\cleardoublepage\input{FrontBackmatter/Foreword}
 \cleardoublepage
 %*******************************************************
@@ -3496,12 +3513,12 @@ auto createIntegratorICM(UAMMD sim){
 All the algorithms laid out in this chapter make use of the spreading and interpolator operators first introduced in chapter \ref{sec:bdhi}. For this matter, let us delve into the Eulerian-Lagrangian coupling found in the \gls{IBM} and how to efficiently encode it in a \gpu.
 
 \chapter{The Immersed Boundary Method (IBM) kernels}\label{sec:ibm}
-If we want to directly solve Eq. \eqref{eq:bdhibdrelation} instead of imposing a specific mobility (perhaps because we do not know the analytical form of the Green's function for a particular geometry), we need to discretize the spreading and interpolation operators in Eqs. \eqref{eq:spreadoper} and \eqref{eq:bdhifvel}. However, we cannot directly discretize deltas and we would like to take into account the size of the particles. We could smear the delta into a Gaussian, but the Gaussian kernels come with some inconveniences. In particular stemming from their infinite range, forcing us to truncate them at a certain length. We would like to reduce the support of our kernels as much as possible without hurting accuracy. We can borrow some lessons from the \gls{IBM} to help us in this regard.
+If we want to directly solve Eq. \eqref{eq:bdhibdrelation} instead of imposing a specific mobility (perhaps because we do not know the analytical form of the Green's function for a particular geometry), we need to discretize the spreading and interpolation operators in Eqs. \eqref{eq:spreadoper} and \eqref{eq:bdhifvel}. However, we cannot directly discretize deltas and we would like to take into account the size of the particles. We could smear the delta into a Gaussian, but the Gaussian kernels come with some inconveniences. In particular, their infinite range forces us to truncate them at a certain length. We would like to reduce the support of our kernels as much as possible without damaging accuracy. We can borrow some lessons from the \gls{IBM} to help us in this regard.
 
-The \gls{IBM}~\cite{Peskin1977}~\cite{Peskin2002} is a mathematical framework for simulation of fluid-structure interaction. It is commonly used to discretize the spreading and interpolation operations we have seen in sec. \ref{sec:bdhi}\footnote{Which incidentally happen to be identical to the ones for electrostatics (sec. \ref{ch:tppoisson})}. In \gls{IBM} the forces acting on a certain marker (particle) are distributed (spreaded) to the nearby fluid grid points via some smeared delta function (see figure \ref{fig:ibm}). \gls{IBM} offers us a way to discretize the spreading (Eq. \eqref{eq:spreadoper}) and interpolation (Eq. \eqref{eq:bdhifvel}) operators via some sophisticated $\delta_a$ kernels often refereed to as Peskin kernels\footnote{In honor of their creator~\cite{Peskin1977}}.
-Furthermore, the spreading and interpolation algorithms that we are going to devise for its implementation will also be applicable to other situations outside it's intended purpose. For instance, to spread charges and interpolate electric fields when solving the Poisson equation (see sec. \ref{ch:tppoisson} or \ref{ch:dppoisson}). In general, we can use the spreading and interpolation algorithms here for transforming between a Lagrangian (particles) and an Eulerian (grid) description.
+The \gls{IBM}~\cite{Peskin1977}~\cite{Peskin2002} is a mathematical framework for simulation of fluid-structure interaction. It is commonly used to discretize the spreading and interpolation operations we have seen in sec. \ref{sec:bdhi}\footnote{Which incidentally happen to be identical to the ones for electrostatics (sec. \ref{ch:tppoisson}).}. In \gls{IBM} the forces acting on a certain marker (particle) are distributed (spread) to the nearby fluid grid points via some smeared delta function (see figure \ref{fig:ibm}). \gls{IBM} offers us a way to discretize the spreading (Eq. \eqref{eq:spreadoper}) and interpolation (Eq. \eqref{eq:bdhifvel}) operators via some sophisticated $\delta_a$ kernels often refereed to as Peskin kernels\footnote{In honor of their creator~\cite{Peskin1977}.}.
+Furthermore, the spreading and interpolation algorithms that we are going to devise for its implementation will also be applicable to other situations outside its intended purpose. For instance, to spread charges and interpolate electric fields when solving the Poisson equation (see sec. \ref{ch:tppoisson} or \ref{ch:dppoisson}). In general, we can use the spreading and interpolation algorithms here for transforming between a Lagrangian (particles) and an Eulerian (grid) description.
 
-We will discretize the interpolation operator in Eq. \eqref{eq:bdhifvel} in a grid as
+We will discretize the interpolation operator in Eq. \eqref{eq:bdhifvel} on a grid as
 
 \begin{equation}
   \label{eq:interpdiscrete}
@@ -3514,22 +3531,23 @@ Where the sum goes over all the cells, $j$, in the grid, with centers at $\vec{\
 \begin{figure}[h]
   \centering
   \includesvg[width=0.7\columnwidth]{gfx/ibm}
-  \caption{A representation of the Immersed Boundary. The blue circle represents a particle (being the green cross its center). Some quantity (i.e. the force) acting on it will be spreaded to the grid points inside its radius of action(red crosses).}
+  \caption{A representation of the Immersed Boundary. The blue circle represents a particle (with the green cross marking its center). Some quantity (i.e. the force) acting on it will be spread to the grid points inside its radius of action(red crosses).}
   \label{fig:ibm}  
 \end{figure}
 
 A thorough description of the whole \gls{IBM} framework can be found at~\cite{Peskin2002}, including the equations of motion for an arbitrary structure submerged in an incompressible fluid. However, we will only make use of the properties devised for the kernels.
 
-In particular, Peskin kernels must abide to a series of postulates that intend to maximize computational efficiency (which translates to closer support) while minimizing the discretization effect of the grid (such as translational invariance).
+In particular, Peskin kernels must abide by a series of postulates that intend to maximize computational efficiency (which translates to closer support) while minimizing the discretization effect of the grid (such as translational invariance).
 
 For the sake of simplicity, the first postulate consists in assuming the kernel can be separated as
 \begin{equation}
   \label{eq:peskinseparable}
   \delta_a(\vec{r}=(x,y,z)) =\frac{1}{h^3}\phi\left(\frac{x}{h}\right)\phi\left(\frac{y}{h}\right)\phi\left(\frac{z}{h}\right)
 \end{equation}
-This allows to state the postulates regarding the one dimensional function, $\phi$. Additionally, this form yields $\delta_a\rightarrow\delta$ as $h\rightarrow 0$.
-The second postulate is that $\phi(r)$ must be continuous for $r\in\mathbb R$, avoiding jumps in the quantities spreaded to, or interpolated from, the grid. The close support postulate says that $\phi(r>r_c := Ph) = 0$. This is our main means for seeking computational efficiency, since reducing the support of the kernel by one cells reduces dramatically the required operations. In particular, spreading or interpolating require visiting $n_s^3$ nearby cells (where $n_s = 2P +1$), so a support of $n_s=5$ requires $125$ cells while a support of $3$ requires just $27$.
-The last basic postulate is required for the kernel to conserve the communicated quantities and its simply a discrete expression of the fact that the kernel must integrate to unity.
+This allows to state the postulates regarding the one-dimensional function, $\phi$. Additionally, this form yields $\delta_a\rightarrow\delta$ as $h\rightarrow 0$.
+The second postulate is that $\phi(r)$ must be continuous for $r\in\mathbb R$, avoiding jumps in the quantities spread to, or interpolated from, the grid. The close support postulate says that $\phi(r>r_c) = 0$, being $r_c$ a cut off radius. This is our main means for seeking computational efficiency, since reducing the support of the kernel by one cell reduces dramatically the required operations. In particular, if the kernel has a support of $n_s$ cells in each direction, spreading or interpolating requires visiting $n_s^3$ nearby cells, so a support of $n_s=5$ requires $125$ cells while a support of $3$ requires just $27$. Note that the support, $n_s$ must be large enough to include all cells within $r_c$ of the point to spread. In the case of a regular grid, this can be achieved by choosing $n_s \ge 2r_c/h+1$.
+
+The last basic postulate is required for the kernel to conserve the communicated quantities and it is simply a discrete expression of the fact that the kernel must integrate to unity.
 \begin{equation}
   \label{eq:peskinunity}
   \sum_j \phi(r-j) = 1 \textrm{ for } r\in\mathbb R
@@ -3565,14 +3583,15 @@ In particular, enforcing only the condition for the first moment (with $K_1=0$) 
     & 0 & r>1.5 
   \end{aligned}\right.
 \end{equation}
-Where the argument $|r|$ represents that the above expression must be evaluated for the absolute value of the separation (since the kernel is simetric).
+Where the argument $|r|$ represents the fact that the above expression must be evaluated for the absolute value of the separation (since the kernel is symmetrical).
+
+\subsubsection*{4-point Peskin kernel}
 We can add a more restrictive condition on the integration to unity postulate
 \begin{equation}
   \label{eq:evenodd}
-  \sum_{j \textrm{ even}} =\phi(r-j)   \sum_{j \textrm{ odd}} \phi(r-j) = \half
+  \sum_{j \textrm{ even}} \phi(r-j)  =  \sum_{j \textrm{ odd}} \phi(r-j) = \half
 \end{equation}
 Which smooths the contributions of the kernel when using a central difference discretization for the gradient operator.
-\subsubsection*{4-point Peskin kernel}
 Solving for $\phi$ with this extra condition yields the classic 4-point Peskin kernel
 
 \begin{equation}
@@ -3587,7 +3606,7 @@ Solving for $\phi$ with this extra condition yields the classic 4-point Peskin k
 The main advantage of this kernel is that it interpolates linear functions exactly, and smooth functions are interpolated to second order accuracy.
 
 \subsubsection*{6-point Peskin kernel}
-Recently, a new 6-point kernel has been developed that satisfies the moment conditions up to $n=3$ for a special choice of $K_2$~\cite{Bao2016}. Additionally, it also satisfies the even-odd condition in Eq. \eqref{eq:evenodd}, it is three times differentiable and offers a really good translational invariance compared with similarly supported kernels.
+Recently, a new 6-point kernel has been developed that satisfies the moment conditions up to $n=3$ for a special choice of $K_2$~\cite{Bao2016}. Additionally, it also satisfies the even-odd condition in Eq. \eqref{eq:evenodd}, it is three times differentiable and offers a really good translational invariance compared to similarly supported kernels.
 
 This kernel sets $K_1= K_3 = 0$ and
 \begin{equation}
@@ -3630,8 +3649,8 @@ A new kernel, called ``exponential of the semicircle''(ES) and here referred to 
 \end{equation}
 Where $\beta$ and $w$ are parameters related to the shape and support (width) of the kernel. The parameter $S(\beta, w)$ is the necessary normalization to ensure that Eq. \eqref{eq:bmkernel} integrates to unity. Since Eq. \eqref{eq:bmkernel} does not have an analytic integral, this factor must be computed numerically. One advantage of BM kernel is that it decays faster than a Gaussian in Fourier space, which is beneficial in spectral methods~\cite{Barnett2019}.
 
-One disadvantage of the kernels above is that we do not know their analytical Fourier transform (in the case of the BM kernel stems from it not having an analytic integral), which hinders our ability to elaborate analytical expressions for the mobility in Eq. \eqref{eq:bdhimob}.
-For our purposes, this means that we have to estimate numerically the relation between the width of the kernels and the hydrodynamic radius, which will sometimes subject also to the size of the grid.
+One disadvantage of the kernels above is that we do not know their analytical Fourier transform (in the case of the BM kernel this stems from it not having an analytical integral), which hinders our ability to elaborate analytical expressions for the mobility in Eq. \eqref{eq:bdhimob}.
+For our purposes, this means that we have to numerically estimate the relation between the width of the kernels and the hydrodynamic radius, which will sometimes subject also to the size of the grid.
 On the other hand, all of them will present Oseen-like behavior at long distances and will be regularized in a similar way to the \gls{RPY} mobility at short distances.
 We will investigate this in more detail shortly.
 \subsubsection*{Gaussian kernel}
@@ -3647,9 +3666,9 @@ Section \ref{sec:kernelcomp} presents a comparison of the different kernels show
 
 \section{Spreading and interpolation algorithms}
 In this chapter we will see how to efficiently spread and interpolate in a \gpu.
-Let us consider that the communication will take place between a set of $N$ particles (aka markers) with positions $\{\vec{\ppos}_0,\dots,\vec{\ppos}_{N-1}\}$ inside a cubic box of size $L$ and a discrete regular grid with dimensions $n$ in each direction (representing the field). Therefore, each cell in the grid is a cube of size $l := n/L$. The kernel is truncated at some distance $r_c$, which translates to a number of support cells $n_s:=r_c/h$, ensuring that each particle only has to communicate with $n_s^3$ cells in its vicinity. Note that the algorithms described in the following sections can be generalized then to non-cubic boxes, non-regular grids, etc in a straight-forward way.
+Let us consider that the communication will take place between a set of $N$ particles (aka markers) with positions $\{\vec{\ppos}_0,\dots,\vec{\ppos}_{N-1}\}$ inside a cubic box of size $L$ and a discrete regular grid with dimensions $n$ in each direction (representing the field). Therefore, each cell in the grid is a cube of size $l := n/L$. The kernel is truncated at some distance $r_c$, which translates to a number of support cells $n_s:=r_c/h$, ensuring that each particle only has to communicate with $n_s^3$ cells in its vicinity. Note that the algorithms described in the following sections can be generalized then to non-cubic boxes, non-regular grids, etc in a straightforward way.
 
-For convenience we will assume that particles will spread forces, represented with $\vec{F}:=\{\vec{F}_0,\dots,\vec{F}_{N-1}\}$, into a force density field, $\vec{f}_j$ (where $j$ represents a given cell), in the grid. Similarly particles will interpolate a velocity field, $\vec{\fvel}_j$, from the grid into a set per-particle velocities, $\vec{\pvel}:=\{\vec{\pvel}_0,\dots,\vec{\pvel}_{N-1}\}$. Naturally, the algorithms will be generic for any per-particle and per-cell quantity.
+For convenience we will assume that particles will spread forces, represented with $\vec{F}:=\{\vec{F}_0,\dots,\vec{F}_{N-1}\}$, into a force density field, $\vec{f}_j$ (where $j$ represents a given cell), in the grid. Similarly particles will interpolate a velocity field, $\vec{\fvel}_j$, from the grid into a set of per-particle velocities, $\vec{\pvel}:=\{\vec{\pvel}_0,\dots,\vec{\pvel}_{N-1}\}$. Naturally, the algorithms will be generic for any per-particle and per-cell quantity.
 
 We want to devise algorithms for two purposes:
 \begin{enumerate}
@@ -3662,18 +3681,18 @@ We want to devise algorithms for two purposes:
     \label{eq:interpdiscrete}
     \vec{u}_i = \oper{J}_{\vec{\ppos}_i}\vec{\fvel} = \sum_j{\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{\fvel}_jdV}
   \end{equation}
-  Where, owning to the assumption of a regular grid, the quadrature weights, $dV$, are assumed to be the same for all cells in the grid.
+  Where, owing to the assumption of a regular grid, the quadrature weights, $dV$, are assumed to be the same for all cells in the grid.
 \end{enumerate}
 
 
-In a regular grid, we can find the cell in which a given particle with position $\ppos^{(\alpha)} \in [-L/2, L/2)$ (being $\alpha$ any direction) lies using $c^{(\alpha)} = \floor((\ppos^{(\alpha)}/L + 0.5)N_\alpha)$, where $N_\alpha$ is the number of cells in the direction $\alpha$. From there, it is straight-forward to find the coordinates of the $n_s^3$ cells in the support of the particle, which are given by
-$$\vec{c}_s \in [\vec{c}_q - \vec{P}, \vec{c}_q + \vec{P}].$$
+In a regular grid, we can find the cell in which a given particle with position $\ppos^{(\alpha)} \in [-L/2, L/2)$ (being $\alpha$ any direction) lies using $c^{(\alpha)} = \floor((\ppos^{(\alpha)}/L + 0.5)N_\alpha)$, where $N_\alpha$ is the number of cells in the direction $\alpha$. From there, it is straightforward to find the coordinates of the $n_s^3$ cells in the support of the particle, which are given by
+$$\vec{c}_s \in [\vec{c}_q - \vec{P}, \vec{c}_q - \vec{P} + n_s].$$
 Where $\vec{c}_q$ represents the cell in which a particle with position $\vec{q}$ is located.
 The factor $\vec{P}$ is defined, in each direction, as
 $$
 P^{(\alpha)} := n_s/2 + s^{(\alpha)}
 $$
-The shift, $s^{(\alpha)}$, has to be defined depending on wether the support, $n_s$, is even or odd (see Fig. \ref{fig:ibm2}). In particular, we have
+The shift, $s^{(\alpha)}$, has to be defined depending on whether the support, $n_s$, is even or odd (see Fig. \ref{fig:ibm2}). In particular, we have
 \begin{equation}
 s^{(\alpha)} := \left \{
 \begin{aligned}
@@ -3688,21 +3707,21 @@ It is important to note that if the support is even, the value of the factor $\v
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/ibm2}
-  \caption{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($N_x=5, N_y=N_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation. In this particular example, the shift, $P$, in the bottom (even) support case will be $2$ for the red particle and $1$ for the blue one.}
+  \caption{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($N_x=5, N_y=N_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by the spreading or interpolation operations for each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation. In this particular example, the shift, $P$, on the bottom (even) support case will be $2$ for the red particle and $1$ for the blue one.}
   \label{fig:ibm2}  
 \end{figure}
 
 
 The interaction between a cell $j$ and a particle $i$ is mediated via the kernel $\delta_a(\vec{\ppos}_i-\vec{\fpos}_j)$, in principle, this would incur $n_s^3$ evaluations of the kernel for spreading or interpolation. However, if the kernels are separable (so that $\delta_a(\vec{r}) = \phi_x(r_x)\phi_y(r_y)\phi_z(r_z)$ by the first postulate in Eq. \eqref{eq:peskinseparable}) we can reduce it to just $3n_s$ by precomputing and storing $\phi_X(\ppos^i_x-\fpos^j_x)$ (and similarly for the other directions) for each direction before spreading/interpolating each particle. We can then just multiply the stored evaluations of $\phi_{x/y/z}$ in each direction to get $\delta_a$. Algorithm \ref{alg:precomputeKernel} shows how to take advantage of this optimization via two functions: The first one takes a position inside the unit box and its corresponding cell shift $P$ and stores (in some arrays with an undetermined location) the $3n_s$ necessary kernel evaluations. The second function takes the 3D index of a neighbour cell ($[0, n_s)$ in each direction) and uses the stored kernel evaluations (which assumes the first function has been called already) to compute and return the weight for that neighbour cell. 
 \begin{algorithm}[H]
-  \caption{Precomputing the kernel and accessing it via linear indexes. We used a similar strategywhen discussing the cell list, see alg. \ref{alg:visitneigh}.}
+  \caption{Precomputing the kernel and accessing it via linear indexes. We used a similar strategy when discussing the cell list, see alg. \ref{alg:visitneigh}.}
   \label{alg:precomputeKernel}
   \begin{algorithmic}[1]
     \Function{precomputeKernel}{$\vec{\ppos} \in [0, L)_{\mathbb R^3}$, $\vec{P}_s$}
     \State $\vec{c} \gets$ cell of $\vec{\ppos}$
     \For{$i=0$ until $n_s$}
     \State $\vec{c}_s \gets \vec{c} - \vec{P}_s + (i,i,i)$
-    \State $\vec{r}_s \gets \text{center of} \vec{c}_s$ \Comment{Center position of cell $\vec{c}_s$ in each direction}
+    \State $\vec{r}_s \gets \text{ center of } \vec{c}_s$ \Comment{Center position of cell $\vec{c}_s$ in each direction}
     \State $\vec{r} \gets \text{dist}(\vec{r}_s, \vec{\ppos})$ \Comment{Distance to cell $\vec{c}_s$ in each direction}
     \State Store $\phi_X[i] \gets \phi(\vec{r}_x/h)/h$
     \State Store $\phi_Y[i] \gets \phi(\vec{r}_y/h)/h$
@@ -3744,11 +3763,11 @@ In a serial implementation of spreading, we can simply sum the contribution, $\d
     \EndFor
   \end{algorithmic}
 \end{algorithm}
-In serial, we can simply apply algorithm \ref{alg:visitneigh} to each particle to get a fairly efficient algorithm. However, a direct parallelization of this approach by assigning a worker to each particle is not possible for spreading. In this case two particles could write at the same time to the same cell, resulting in a race condition. This race condition can be circumvented by ensuring that line \ref{alg:visitspread} in alg. \ref{alg:visitneigh} is an \emph{atomic} operation\footnote{In a parallel environment, an \emph{atomic} operation enforces that only one thread performs the operation a time. Allowing several workers (threads) to modify (for instance by reading, modifying and then writing) the same memory location at the same time can result in some of the information being lost (for instance when a second thread reads while the first is still modifying). CUDA comes with a great GPU atomic library, which has become more and more efficient with time. CUDA atomics have come to a point in which, in the absence of collisions (two threads trying to access the same memory location), the overhead of using atomics is almost negligible.}.
+In a serial version, we can simply apply algorithm \ref{alg:visitneigh} to each particle to get a fairly efficient algorithm. However, a direct parallelization of this approach by assigning a worker to each particle is not possible for spreading. In this case two particles could write at the same time to the same cell, resulting in a race condition. This race condition can be circumvented by ensuring that line \ref{alg:visitspread} in alg. \ref{alg:visitneigh} is an \emph{atomic} operation\footnote{In a parallel environment, an \emph{atomic} operation enforces that only one thread performs the operation a time. Allowing several workers (threads) to modify (for instance by reading, modifying and then writing) the same memory location at the same time can result in some of the information being lost (for instance when a second thread reads while the first is still modifying). CUDA comes with a great GPU atomic library, which has become more and more efficient with time. CUDA atomics have come to a point in which, in the absence of collisions (two threads trying to access the same memory location), the overhead of using atomics is almost negligible.}.
 
-Another solution is to traverse per cell instead of per particle, usually referred to as mesh-based approaches. Each cell is assigned to a worker, which then traverses all nearby particles. This requires to construct a cell list. While this approach is free of atomic operations (which can hurt performance if a lot of collisions happen) it makes the algorithm scale with the number of cells and it will be inefficient in low density systems (or in configurations with large density disparities), where many cells are empty. On the other hand, CUDA atomic operations have come a long way, presenting almost no overhead when there are no collisions. Furthermore, a per-cell approach does not allow to take advantage of Eq. \eqref{eq:peskinseparable} easily, increasing the number of kernel evaluations to $n_s^3$.
+Another solution is to traverse per cell instead of per particle, usually referred to as mesh-based approaches. Each cell is assigned to a worker, which then traverses all nearby particles. This requires to construct a cell list. While this approach is free of atomic operations (which can hurt performance if lots of collisions happen) it makes the algorithm scale with the number of cells and it will be inefficient in low density systems (or in configurations with large density disparities), where many cells are empty. On the other hand, CUDA atomic operations have come a long way, presenting almost no overhead when there are no collisions. Furthermore, a per-cell approach does not allow to take advantage of Eq. \eqref{eq:peskinseparable} easily, increasing the number of kernel evaluations to $n_s^3$.
 We usually have to spread quasi uniform configurations in 3D and we typically deal with a few million number of particles, which makes a per-particle approach the overall best option. Note, however, that there is not a best-for-all algorithm regarding spreading and a mesh based approach will probably have the upper-hand in some situations (probably when highly dense systems are considered).
-For our typical use, the few corner cases in which the per-cell approach is more optimal are not worth enough to consider it as an option. A review of several mesh-based methods is available at~\cite{Guo2015}.
+For our typical use, the few corner cases in which the per-cell approach is more optimal are not worth the effort to consider it as an option. A review of several mesh-based methods is available at~\cite{Guo2015}.
 
 It is worth mentioning the specific geometry of the loop in line \ref{alg:visitneighloop} of algorithm \ref{alg:visitneigh}. When looping through the cells inside the support of a particle, using the strategy in algorithm \ref{alg:visitneigh} instead of the naive three nested loops results in more integer operations, but reduces the operation to a single loop, reducing conditional logic pressure and facilitating loop unrolling, also giving the compiler more chances for optimization. Furthermore, the traversal order can be tweaked easily by modifying the relation between the linear neighbour index and the cell offsets in lines \ref{alg:visit_ix} and below from algorithm \ref{alg:visitneigh}.
 
@@ -3758,7 +3777,7 @@ Regarding \gpu friendly parallelizations of particle-based spreading algorithms,
 Let us start with the \emph{naive} version of the algorithm in which we assign a thread to each particle and then simply apply algorithm \ref{alg:visitneigh}, summing the particles contributions atomically to the grid data as previously discussed. Each thread must then evaluate the kernel as many times as needed for its assigned particle. We deal with the kernel evaluations in two different ways:
 \begin{enumerate}
 \item \textbf{TPP (register)}: Store the $3n_s$ kernel evaluations (making use of the optimization in Algorithm \ref{alg:precomputeKernel}) in each thread's \emph{register} memory. Given the scarcity of register memory, storing $3n_s$ values in it could easily result in register spilling\footnote{In a given CUDA kernel, when more register memory than available is requested, the compiler stores the excess in global memory. This is known as \emph{register spilling}. Naturally, register spilling should be avoided at all costs, since accessing global memory is orders of magnitude slower than register memory.}. This algorithm is referred to as \emph{GM} in ~\cite{Shih2021}.
-\item \textbf{TPP (recompute)}: We do not take advantage of the kernel separation at all and simply recompute the kernel whenever is needed (in particular $n_s^3$ times). This naturally increases arithmetic pressure compared with the register version. However, as a general rule, GPUs are much more forgiving to extra arithmetic operations than they are to extra memory traffic. Thus exchanging memory for arithmetics is usually a good call.
+\item \textbf{TPP (recompute)}: We do not take advantage of the kernel separation at all and simply recompute the kernel whenever needed (in particular $n_s^3$ times). This naturally increases arithmetic pressure compared with the register version. However, as a general rule, GPUs are much more forgiving to extra arithmetic operations than they are to extra memory traffic. Thus exchanging memory for arithmetics is usually a good call.
 \end{enumerate}
 While assigning a thread to a particle sounds like a reasonable separation of tasks, in doing so we are missing out on the intra-thread-block collaborative capabilities of the GPU (such as the shared memory space, see sec. \ref{ch:gpuintroduction}). Furthermore, in TPP threads in the same block are dealing with different particles, so there is no mechanism in place reducing the chance of atomic collisions. If the particles assigned to two adjacent threads happen to be close in space, there will be a high chance that at some point these two threads try to write to the same cells in the grid. Luckily there is a yet more fine-grained parallelization hidden in this algorithm that happens to be perfectly suited for the GPU architecture. This parallelization emerges when assigning an entire thread block to a particle as we will discuss now.
 
@@ -3786,40 +3805,40 @@ We suggest a particle-based approach, presenting subtle differences with the exi
 
 In BPP, only one of the threads (typically the first one) needs to fetch the particle position and quantity to spread and compute its information (lines \ref{alg:visitneighgetcell} to \ref{alg:visitneighshift} in alg. \ref{alg:visitneigh}).
 One benefit of assigning a block per particle is that it is guaranteed that no atomic collisions will occur for threads in the same block. Since the execution order of blocks is not guaranteed the chances of atomic collisions between blocks are reduced on average.
-In a thread-per-particle approach, if the particles are sorted randomly in memory chances of atomic collision are reduced at the expense of worse access pattern (both when reading particles and writing to cells).
+In a thread-per-particle approach, if the particles are sorted randomly in memory chances of atomic collision are reduced at the expense of a worse access pattern (both when reading particles and writing to cells).
 
-On another consideration we can sort particles in memory by spatial hash (so that close in space also means close in memory) which results in faster fetching of the grid data, but increased chance of atomic overlap\footnote{In \uammd, particles can be sorted using the Z-Morton hash (see chapter \ref{sec:celllist}) easily.}. In general, there will be a trade-off between these two effects.
+We might also consider sorting particles in memory by spatial hash (so that close in space also means close in memory) which results in faster fetching of the grid data, but increased chance of atomic overlap\footnote{In \uammd, particles can be sorted using the Z-Morton hash (see chapter \ref{sec:celllist}) easily.}. In general, there will be a trade-off between these two effects.
 
 However, our block-per-particle algorithm hides these issues (effect of particle sorting and atomic overlap) to an extent, since only one thread in each block will fetch a particle and atomic overlap is reduced by design.
 
 Still, testing suggests that particle sorting via spatial hashing dramatically improves performance (an overall speedup of $\times 7$ for TPP and $\times 2$ for BPP). Suggesting that atomic overlap is far less important than a cache-friendly memory access pattern\footnote{Which goes to show how far have CUDA atomics have come.}.
-The storage layout of the grid data can also influence the performance of the algorithm. In particular, using a space filling curve (as the one in sec. \ref{sec:celllist}) could improve the access pattern in both spreading and interpolation~\cite{Shih2021}. However, this has not been considered in this work, were a linear index is always used (so that the data for cell with indexes $(i,j,k)$ is located at element $i+(j+kn_y)n_x$ in the relevant array)\footnote{Note however, that the software interface for this module allows for an arbitrary ordering of the grid data, as we will later see.}. This ordering comes imposed by the usual relation between spreading/interpolation and spectral methods in fluctuating hydrodynamics, which requires using \gls{FFT} libraries that benefit from (or are restricted to) it.
+The storage layout of the grid data can also influence the performance of the algorithm. In particular, using a space-filling curve (as the one in sec. \ref{sec:celllist}) could improve the access pattern in both spreading and interpolation~\cite{Shih2021}. However, this has not been considered in this work, where a linear index is always used (so that the data for cell with indexes $(i,j,k)$ is located at element $i+(j+kn_y)n_x$ in the relevant array)\footnote{Note however, that the software interface for this module allows for an arbitrary ordering of the grid data, as we will later see.}. This ordering comes imposed by the usual relation between spreading/interpolation and spectral methods in fluctuating hydrodynamics, which requires using \gls{FFT} libraries that benefit from (or are restricted to) it.
 
 
 \subsubsection*{Block Per Domain (BPD)}
-Recently, a new \gpu-friendly algorithm has been developed~\cite{Shih2021} that uses an hybrid strategy, lying in between particle and grid based approachs, by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken again until each thread block deals with a subproblem with up to a maximum number of particles (see Fig. 1 in ~\cite{Shih2021}) to aide with load-balancing. Subproblems are then spreaded into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems is reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Testing suggest that, for a single \gpu, the new strategy in ~\cite{Shih2021} is only worth for large and dense systems (with more than $~2$ million particles) and 2D grids (see Fig. \ref{fig:ibmcomp}). Although it is arguably the best algorithm at the time of writing if one wants to take advantage of several GPUs.
+Recently, a new \gpu-friendly algorithm has been developed~\cite{Shih2021} that uses a hybrid strategy, lying in between particle and grid based approachs, by breaking the domain into subdomains (called subproblems) and assigning each one to a thread block. Subproblems with more than a certain number of particles are broken again until each thread block deals with a subproblem with up to a maximum number of particles (see Fig. 1 in ~\cite{Shih2021}) to aide with load-balancing. Subproblems are then spread into shared memory copies of the subdomains, which are then reduced and added atomically into global memory. Since overlap between subproblems is reduced to a shell of ghost cells atomic collisions are minimized. One particular advantage of this method is that its generalization to multi-gpu via domain decomposition comes naturally, as the algorithm already works by subdividing the domain. Testing suggest that, for a single \gpu, the new strategy in ~\cite{Shih2021} is only worth it for large and dense systems (with more than $~2$ million particles) and 2D grids (see Fig. \ref{fig:ibmcomp}). Although it is arguably the best algorithm at the time of writing if one wants to take advantage of several GPUs.
 We refer to this algorithm as Block Per Domain (BPD), although the authors of ~\cite{Shih2021} refer to it as \emph{SM} (from shared memory). It is worth noting that the authors of the BPD algorithm do take into account the previously introduced separable-kernel optimization.
 
 \subsection*{Performance comparison of the spreading algorithms}
-It is worth mentioning that, although particle sorting usually takes a negligible amount of the runtime, in the \uammd implementation sorting is carried away by \emph{ParticleData} independently of whether spreading/interpolation is present (since sorting is beneficial in several other sections of the codebase, like neighbour traversing). In this sense, the overhead of sorting is hidden. Nonetheless, for the sake of fairness, sorting time is included as part of the runtime in the performance figures when applicable.
+It is worth mentioning that, although particle sorting usually takes a negligible amount of the runtime, in the \uammd implementation sorting is carried out by \emph{ParticleData} independently of whether spreading/interpolation is present (since sorting is beneficial in several other sections of the codebase, like neighbour traversing). In this sense, the overhead of sorting is hidden. Nonetheless, for the sake of fairness, sorting time is included as part of the runtime in the performance figures when applicable.
 
-Finally, the \uammd implementation presents another benefit when compared to others seen in the wild. In particular when referring to spreading/interpolating several quantities at once (such as forces/velocities). The general strategy when dealing with vectorial quantities (or simply several scalars) is to run the algorithm as many times as there are components. This is related to the AoS (array-of-structures) vs SoA (structure-of-arrays) debate. In general terms, it is best to take an SoA approach in the GPU, which calls for the usual spread-many-times strategy. However, there is one crucial caveat to this rule worth taking into account: In complex fluid simulations we usually deal with vectorial quantities with $3$ or $4$ elements (i.e. positions, forces+energies...), which happen to be special in NVIDIA GPUs\footnote{And probably in the GPU architecture in general.}. In particular, CUDA presents especial load/store instructions that fetch/write $128$ bits from memory (the space for $4$ floats). In SoA we would store and treat each component separately, so that reading the (for instance) position of a particle would take $3$ instructions. If we store the positions in an array composed by groups of $4$ floats\footnote{A series of vectorial types names \emph{realX} (with X being 2,3 or 4) are available in \uammd. For instance, the type \emph{real4} containing $4$ scalars.} (an AoS approach) we only need a single instruction to load all three coordinates (and we get a fourth number to leverage for free). Using vector types can potentially make the cost of spreading/interpolation $4$ values at the same time much cheaper than repeating the operation $4$ times. \uammd's spreading/interpolation implementation interface is templated for any random access iterator\footnote{See Appendix \ref{sec:cpp} for more information on C++ iterators.} containing the per-particle and per-cell data as long as the type of the elements follows a certain set of sane rules (in particular, that the values of the iterator can be added together and that the per-particle type can be converted to the per-cell type when required\footnote{\uammd's vector types come with a large set of algebraic overloads. In general, any operation that can be used in a scalar also works for vector types in a per-element manner. For instance, the result of multiplying two \emph{real4} values $a$ and $b$ will be, $c = (a_xb_x, a_yb_y, a_zb_z, a_wb_w)$.}).
+Finally, the \uammd implementation presents another benefit when compared to others seen in the wild. In particular when referring to spreading/interpolating several quantities at once (such as forces/velocities). The general strategy when dealing with vectorial quantities (or simply several scalars) is to run the algorithm as many times as there are components. This is related to the AoS (array-of-structures) vs SoA (structure-of-arrays) debate. In general terms, it is best to take an SoA approach in the GPU, which calls for the usual spread-many-times strategy. However, there is one crucial caveat to this rule worth taking into account: In complex fluid simulations we usually deal with vectorial quantities with $3$ or $4$ elements (i.e. positions, forces+energies...), which happen to be special in NVIDIA GPUs\footnote{And probably in the GPU architecture in general.}. In particular, CUDA presents special load/store instructions that fetch/write $128$ bits from memory (the space for $4$ floats). In SoA we would store and treat each component separately, so that reading the (for instance) position of a particle would take $3$ instructions. If we store the positions in an array composed by groups of $4$ floats\footnote{A series of vectorial types names \emph{realX} (with X being 2,3 or 4) are available in \uammd. For instance, the type \emph{real4} containing $4$ scalars.} (an AoS approach) we only need a single instruction to load all three coordinates (and we get a fourth number to leverage for free). Using vector types can potentially make the cost of spreading/interpolation $4$ values at the same time much cheaper than repeating the operation $4$ times. \uammd's spreading/interpolation implementation interface is templated for any random access iterator\footnote{See Appendix \ref{sec:cpp} for more information on C++ iterators.} containing the per-particle and per-cell data as long as the type of the elements follows a certain set of sane rules (in particular, that the values of the iterator can be added together and that the per-particle type can be converted to the per-cell type when required\footnote{\uammd's vector types come with a large set of algebraic overloads. In general, any operation that can be used in a scalar also works for vector types in a per-element manner. For instance, the result of multiplying two \emph{real4} values $a$ and $b$ will be, $c = (a_xb_x, a_yb_y, a_zb_z, a_wb_w)$.}).
 
 We compare the TPP and BPP algorithms with the hybrid BPD (or \emph{SM} in ~\cite{Shih2021}) in figures \ref{fig:ibmcomp} and \ref{fig:ibmcompsorted}, measuring the performance of spreading one scalar per particle for a uniform distribution of positions at different densities (an average of $1$ (left) and $0.1$ (right) particles per cell). The Gaussian kernel is used in Fig. \ref{fig:ibmcomp} for TPP and BPP, while ~\cite{Shih2021} uses the \emph{BM} kernel. However, as the kernel is precomputed with $3n_s$ evaluations which are then used $n_s^3$ times, the cost of evaluating the kernel is negligible in any case. In the case of recomputing the kernel our implementation could have an unfair advantage here, but since it happens to be the slower option in general, we will not consider it.
-In any case, if the kernel evaluation becomes a problem due to it being expensive, it is always a possibility to tabulate the kernel into a global memory array\footnote{The \uammd utility \emph{TabulatedFunction} can be employed here. This tool mimics the old CUDA textures, allowing to tabulate a function inside a range and then interpolate it at any point in between.}. By doing so, the cost of computing the kernel becomes constant regardless of its mathematical expression, amounting to fetching some value from memory.
+In any case, if the kernel evaluation becomes a problem due to it being expensive, it is always a possibility to tabulate the kernel in a global memory array\footnote{The \uammd utility \emph{TabulatedFunction} can be employed here. This tool mimics the old CUDA textures, allowing to tabulate a function inside a range and then interpolate it at any point in between.}. By doing so, the cost of computing the kernel becomes constant regardless of its mathematical expression, amounting to fetching some value from memory.
 
 The following remarks about performance trends should be taken with a grain of salt, since with time the \gpu architecture tends to become more and more forgiving about things like the memory access pattern, atomic operations, etc. The compiler also grows smarter with time, being able to better optimize the code. However, it is worth mentioning here at least some of the trends that will probably hold. Performance measurements were carried out using a NVIDIA RTX 2080Ti \gpu, which has the \emph{sm\_75} architecture.
 
-The TPP strategies particularly benefit from the AoS approach, where testing suggest that spreading $4$ numbers at once is overall $\times 5$ faster than spreading a single number. Alas, the overall more performant BPP strategy does not seem to benefit from this particular optimization and, in fact, the cost of spreading $4$ numbers in an AoS manner is slightly higher than spreading $4$ times separately.
+The TPP strategies particularly benefit from the AoS approach, where testing suggest that spreading $4$ numbers at once is overall $5\times$ faster than spreading a single number. Alas, the overall more performant BPP strategy does not seem to benefit from this particular optimization and, in fact, the cost of spreading $4$ numbers in an AoS manner is slightly higher than spreading $4$ times separately.
 \begin{figure}[h]
   \centering
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens1_2080ti}}
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens0.1_2080ti}}
-\caption{Performance comparison between the different spreading schemes considered for two different densities. Particles are distributed uniformly in a cubic grid and spreaded with a support $n_s=8$ using a Gaussian kernel. A single scalar is spreaded per particle. The considered algorithms are: A block-per-particle (BPP), the algorithm used in \uammd. A thread-per-particle (TPP) precomputing the kernel to register memory (register, similar to \emph{GM-sort} in Shih2021~\cite{Shih2021}) and recomputing it (recompute). Finally, timing for the BDP algorithm (\emph{SM} in ~\cite{Shih2021}) is also presented. For these tests, particle sorting was not employed, i.e. the particles are randomly distributed in memory with respect to their physical positions. Performance data was gathered in an RTX2080Ti \gpu using single precision. The crossover between BPP and SM happens at around $2$ million particles in both cases.}
+\caption{Performance comparison between the different spreading schemes considered for two different densities. Particles are distributed uniformly on a cubic grid and spread with a support $n_s=8$ using a Gaussian kernel. A single scalar is spread per particle. The considered algorithms are: A block-per-particle (BPP), the algorithm used in \uammd. A thread-per-particle (TPP) precomputing the kernel to register memory (register, similar to \emph{GM-sort} in Shih2021~\cite{Shih2021}) and recomputing it (recompute). Finally, timing for the BDP algorithm (\emph{SM} in ~\cite{Shih2021}) is also presented. For these tests, particle sorting was not employed, i.e. the particles are randomly distributed in memory with respect to their physical positions. Performance data was gathered in an RTX2080Ti \gpu using single precision. The crossover between BPP and SM happens at around $2$ million particles in both cases.}
 \label{fig:ibmcomp}
 \end{figure}
 
-Spatial hashing and sorting dramatically improves performance for all of our algorithms\footnote{We observe a speedup of up to $\times 10$ for BPP and as high as $\times 400$ for TPP.} for medium to large problem sizes (for BPP, the performance crossover between unsorted and sorted happens at around $n_x=n_y=n_z=100$ regardless of density). For small sizes, we elucidate the increased atomic overlap caused by sorting hurts the internal atomic handling system in the particular architecture at hand. Furthermore, the performance of the sorting algorithm (radix sort) increases with the number of particles. Figure \ref{fig:ibmcompsorted} presents the same situation as figure \ref{fig:ibmcomp} but with particle pre-sorting.
+Spatial hashing and sorting dramatically improves performance for all of our algorithms\footnote{We observe a speedup of up to $10\times $ for BPP and as high as $400\times $ for TPP.} for medium to large problem sizes (for BPP, the performance crossover between unsorted and sorted happens at around $n_x=n_y=n_z=100$ regardless of density). For small sizes, we elucidate the increased atomic overlap caused by sorting hurts the internal atomic handling system in the particular architecture at hand. Furthermore, the performance of the sorting algorithm (radix sort) increases with the number of particles. Figure \ref{fig:ibmcompsorted} presents the same situation as figure \ref{fig:ibmcomp} but with particle pre-sorting.
 
 It is worth mentioning that, in the case of BPP, the optimal number of threads per block will in general depend on the number of support cells ($512$ cells in total for the showcased examples), besides other hardware considerations. For the data presented in figures \ref{fig:ibmcomp} and \ref{fig:ibmcompsorted} the optimal block size was $32$, the minimum meaningful block size (since a warp, the minimum hardware computing unit in CUDA GPUs, is composed of $32$ threads).
 Finally, if sorting is used, the performance of BPP appears to be robust to changes in density. Whereas the TPP will typically be more performant with a higher density. Without sorting, neither of the algorithms seems to be affected by density.
@@ -3830,18 +3849,18 @@ Sizes beyond $512$ cells per direction (in a cubic domain) start to suffer from 
   \centering
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens1_sorted_2080ti}}
   \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens0.1_sorted_2080ti}}
-\caption{The same situation as in Fig. \ref{fig:ibmcomp}, but in this case particles are presorted to increase spatial locality in memory (particles close in space are placed close in memory). Both the positions and the spreaded quantity are sorted. Sorting is carried out using the same Morton hash technique laid out in chapter \ref{sec:celllist}. Sorting takes a neglegible amount of time and, moreover, it does not need to be done every time spreading occurs. Typically particles are sorted at the start of a given simulation and then every few diffusive times.}
+\caption{The same situation as in Fig. \ref{fig:ibmcomp}, but in this case particles are presorted to increase spatial locality in memory (particles close in space are placed close in memory). Both the positions and the spread quantity are sorted. Sorting is carried out using the same Morton hash technique laid out in chapter \ref{sec:celllist}. Sorting takes a neglegible amount of time and, moreover, it does not need to be done every time spreading occurs. Typically particles are sorted at the start of a given simulation and then every few diffusive times.}
 \label{fig:ibmcompsorted}
 \end{figure}
 
 
 \subsubsection*{Interpolation algorithm}
 Interpolation is inherently a more efficient operation than spreading, since no atomic operations are required and, moreover, we only need to read the grid data (see alg. \ref{alg:visitneigh}). The worker assigned to a particle can accumulate the result of the interaction with nearby particles into a local variable and then write it to the global result array. Furthermore, interpolation requires only $N$ write operations, while spreading requires to perform $n_s^3N$ atomic writes.
-The same TPP vs BPP arguments from spreading can be broadly employed here, prompting for a BPP approach. In this case, each thread in the block assigned to a given particle will compute the interaction with one (or several) cells, storing the result in a thread local register.
-When all threads in the block have finished, the local results are reduced into a final result, which is then written to global memory by a single thread (usually the first one).
-A naive block reduction involves the first thread fetching the local values from the rest of the threads (via shared memory or with CUDA shuffle intrinsics) and then performing a dumb sum. However, using \emph{cub}'s~\cite{cub} \emph{BlockReduce} utility proves to be a vastly superior alternative\footnote{With \emph{cub} the reduction algorithm will be different depending on a series of factors (GPU architecture, data type, number of elements...).}.
+The same TPP vs BPP arguments from spreading can be broadly employed here, prompting a BPP approach. In this case, each thread in the block assigned to a given particle will compute the interaction with one (or several) cells, storing the result in a thread local register.
+When all threads in the block have finished, the local results are reduced to a final result, which is then written to global memory by a single thread (usually the first one).
+A naive block reduction involves the first thread fetching the local values from the rest of the threads (via shared memory or with CUDA shuffle intrinsics) and then performing a simple addition. However, using \emph{cub}'s~\cite{cub} \emph{BlockReduce} utility proves to be a vastly superior alternative\footnote{With \emph{cub} the reduction algorithm will be different depending on a series of factors (GPU architecture, data type, number of elements...).}.
 
-Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the same situation as Fig. \ref{fig:ibmcomp}. Timings present a good linearity with the number of particles and are almost independent from the density. 
+Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the same situation as Fig. \ref{fig:ibmcomp}. Timings present a good linearity with the number of particles and are almost independent of the density. 
 %\todo{Differences maybe due to block size?, should be faster I would say}
 \begin{figure}[h]
   \centering
@@ -3855,9 +3874,9 @@ Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the
 
 The \emph{IBM} module in \uammd exposes the spreading and interpolation algorithms described in the previous sections.
 
-This interface is quite generic, allowing to spread or gather in a wide variety of situations. The geometry of the grid is abstracted via the \emph{Grid} object (see Appendix \ref{ch:online}) so non regular grids can be used. By default, the module will assume that data for cell $(i,j,k)$ is located at index $i+(j+kn_y)n_x$, but any indexing can be used by providing the module with a functor whose parenthesis operator takes $(i,j,k)$ and returns the index in the grid data array.
+This interface is quite generic, allowing to spread or gather in a wide variety of situations. The geometry of the grid is abstracted via the \emph{Grid} object (see Appendix \ref{ch:online}) so non-regular grids can be used. By default, the module will assume that data for cell $(i,j,k)$ is located at index $i+(j+kn_y)n_x$, but any indexing can be used by providing the module with a functor whose parenthesis operator takes $(i,j,k)$ and returns the index in the grid data array.
 
-The types of the grid and particle data arrays are templated. In fact any random access iterator can be provided as long as the value type of the grid data is convertible to the one of the particle data (and vice-versa) and any two given elements can be summed. So one can, for instance, using a \emph{transform iterator},  compute the quantity to spread on the fly without storing or reading anything. For additional information on C++ templates and iterators, see Appendix \ref{sec:cpp}.
+The types of the grid and particle data arrays are templated. In fact any random access iterator can be provided as long as the value type of the grid data is convertible to the corresponding variable in the particle data (and vice-versa) and any two given elements can be summed. So one can, for instance, using a \emph{transform iterator},  compute the quantity to spread on the fly without storing or reading anything. For additional information on C++ templates and iterators, see Appendix \ref{sec:cpp}.
 
 The gather operation can take an additional functor whose parenthesis operator takes the coordinates of a given cell and a grid object and returns the quadrature weights for that cell.
 
@@ -3867,7 +3886,7 @@ The kernel can also be specified as a template argument. The kernel interface al
 
 An implementation of all the kernels in sec. \ref{sec:ibm} can be found at file \emph{IBM\_kernels.cuh}.
 
-A lot of extra functionality, omitted here for simplicity) is laid out in \uammd's online documentation, here we provide an example function that spreads and/or gathers an isotropic Gaussian kernel into a regular Cartesian grid. Representing the simplest, yet most usual, use case.
+A lot of extra functionality (omitted here for simplicity) is laid out in \uammd's online documentation, here we provide an example function that spreads and/or gathers an isotropic Gaussian kernel into a regular Cartesian grid. Representing the simplest, yet most common, use case.
 
 %\todo{This interface is super big and complex, what do?}
 \begin{code2}[Usage example of the spreading and interpolation module.]  {label=code:ibm}
@@ -3916,10 +3935,10 @@ void spreadOrInterpWithIBM(Grid grid, real4* positions,
 \section{Comparing the different spreading kernels for BDHI}\label{sec:kernelcomp}
 As explained in previous sections using different kernels will yield slightly different regularizations of the near field hydrodynamics. In particular, the specific shape of the kernel will have an effect on the hydrodynamic radius when performing the convolution in Eq. \eqref{eq:bdhimob}. In this section we will explore the relation between the different kernels showcased in section \ref{sec:ibm} and the resulting hydrodynamic radius. %\todo{dont really like this intro}
 
-The spatial discretization (collocated vs. staggered grid) will also influence the hydrodynamic radius, so we will make a separation between the both.
-Finally, some kernels must be truncated at a certain distance hurting accuracy.
-Since the domain is periodic in the three directions it is straight-forward to see that any possible effect of the kernels on the grid will be the same for any cell. Thus, we just need to measure in one of the cells, or more appropriately, fold our results to an unit cell and average.
-In particular, we will study the variance of the hydrodynamic radius inside a cell to determine both the accuracy (translational invariance) and the relation between the grid size, $h$, and the hydrodynamic radius, $a$\footnote{We are assuming a cubic domain in which cells in all directions have the same length.}. It is possible the following relations are slightly renormalized in the case of non-cubic cells. However, the self mobility is not well defined anyway in non-cubic periodic domains. As a matter of fact, if a particle is being pulled on the plane in a box with increasingly large size in the perpendicular direction its in-plane self mobility monotonically increases up to infinity~\cite{Vogele2016}\footnote{An effect that is well captured by all the periodic methods we have seen thus far.}.
+The spatial discretization (collocated vs. staggered grid) will also influence the hydrodynamic radius, so we will make a separation between them.
+Finally, some kernels must be truncated at a certain distance damaging accuracy.
+Since the domain is periodic in the three directions it is straightforward to see that any possible effect of the kernels on the grid will be the same for any cell. Thus, we just need to measure in one of the cells, or more appropriately, fold our results to a unit cell and average.
+In particular, we will study the variance of the hydrodynamic radius inside a cell to determine both the accuracy (translational invariance) and the relation between the grid size, $h$, and the hydrodynamic radius, $a$\footnote{We are assuming a cubic domain in which cells in all directions have the same length.}. It is possible that the following relations are slightly renormalized in the case of non-cubic cells. However, the self mobility is not well-defined anyway in non-cubic periodic domains. As a matter of fact, if a particle is being pulled on the plane in a box with increasingly large size in the perpendicular direction its in-plane self mobility monotonically increases towards infinity~\cite{Vogele2016}\footnote{An effect that is well captured by all the periodic methods we have seen thus far.}.
 
 The self mobility of a single particle being pulled inside a periodic cubic domain of size $L$ is computed using the well known periodic correction for the Stokes drag of a sphere~\cite{Hasimoto1959},
 \begin{equation}
@@ -3944,9 +3963,9 @@ We define the error as
 \subsection*{Regular grids}
 We will test using the \gls{FCM} with the different kernels since the \gls{PSE} is tied to the Gaussian kernel.
 
-Being defined for specific support cells, the Peskin kernels are tied to the grid size, $h$. When performing the double convolution with the hydrodynamics Green's function (see Eq. \eqref{eq:bdhimob}) the resulting self mobility will be regularized differently for each one and will be dependent on $h$.
+Being defined for specific support cells, the Peskin kernels are tied to the grid size, $h$. When performing the double convolution with the hydrodynamic Green's function (see Eq. \eqref{eq:bdhimob}) the resulting self mobility will be regularized differently for each one and will be dependent on $h$.
 Since we cannot perform the double convolution in Eq. \eqref{eq:bdhimob} analytically in the case of Peskin kernels we measure the self mobility (either dynamically as explained in the previous section or by looking at fluctuations) and then renormalize the hydrodynamic radius so that $M_{0}(L\rightarrow\infty) = \frac{1}{6\pi\eta a}$.
-In particular, for the Peskin kernels introduced in section \ref{sec:ibm}, the resulting hydrodynamic radius are:
+In particular, for the Peskin kernels introduced in section \ref{sec:ibm}, the resulting hydrodynamic radii are:
 \begin{itemize}
 \item Peskin 3pt gives $a=(1\pm 0.01) h$
 \item Peskin 4pt gives $a=(1.31\pm 0.001) h$
@@ -3954,21 +3973,20 @@ In particular, for the Peskin kernels introduced in section \ref{sec:ibm}, the r
 \end{itemize}
 It is important to note that the Peskin kernels prevent us from tweaking the translational invariance of the hydrodynamic radius (as evidenced by the error ranges in the above list).
 
-In contrast with the Peskin kernels for the Gaussian we are free to choose how fine the grid is (which we refer to as upsampling) and a truncation distance. Both parameters will affect the overall accuracy of the spreading and interpolation. The Gaussian gives $a=h \sqrt{\pi} g_u$, where we set the upsampling, $g_u$, large enough to satisfy a given tolerance. In particular we set
+In contrast to the Peskin kernels for the Gaussian we are free to choose how fine the grid is (which we refer to as upsampling) and a truncation distance. Both parameters will affect the overall accuracy of the spreading and interpolation. The Gaussian gives $a=h \sqrt{\pi} g_u$, where we set the upsampling, $g_u$, large enough to satisfy a given tolerance. In particular we set
 \begin{equation}
   \label{eq:gaussianupsampling}
   g_u(\epsilon) := \text{min}\left(0.55 -0.11 \log_{10}(3\epsilon), 1.65\right)
 \end{equation}
 Which is just an empirical fit.
 We truncate the Gaussian kernel at a distance $r_c$ so that $\phi_G(r_c) < \epsilon$. The author of ~\cite{Keaveny2014} provides an in-depth analysis of the discretization errors of the Gaussian kernel.
-Figure \ref{fig:ibm_hydrovar} shows the average error inside a fluid cell for the Peskin kernels, compared to similarly supported Gaussian kernels. At first sight, it might seem like the error is not much better for the Peskin kernels as compared with the Gaussian ones. However, the Gaussian kernels require a greater upsampling (i.e more cells, see Eq. \eqref{eq:gaussianupsampling}) than the Peskin ones to achieve the same tolerance and thus is in general a better choice. Figure \ref{fig:ibmvar} shows the hydrodynamic radius variance inside a cell for some kernels, but in a slice of the cell (at the center height).
+Figure \ref{fig:ibm_hydrovar} shows the average error inside a fluid cell for the Peskin kernels, compared to similarly supported Gaussian kernels. At first sight, it might seem like the error is not much better for the Peskin kernels as compared with the Gaussian ones. However, the Gaussian kernels require a greater upsampling (i.e more cells, see Eq. \eqref{eq:gaussianupsampling}) than the Peskin ones to achieve the same tolerance and thus the latter are in general a better choice. Figure \ref{fig:ibmvar} shows the hydrodynamic radius variance inside a cell for some kernels, but in a slice of the cell (at the center height).
 \begin{figure}[H]
 \includegraphics[width=0.8\textwidth]{gfx/ibm_hydrodeviation}
-\caption{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating Eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean substracted. Since the signal is symmetric only the range $[0.5, 1]h$ is presented.}
+\caption{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating Eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean subtracted. Since the signal is symmetrical only the range $[0.5, 1]h$ is presented.}
 \label{fig:ibm_hydrovar}
 \end{figure}
-Finally, in the case of BM the quadrature error and hydrodynamic radius are different for each $n_s$, $\beta$ and $h$. In a way, a new kernel is obtained for each support (which relates to the tolerance) and $\beta$ must be tweaked to achieve a particular hydrodynamic radius. The actual relations are still being tested and thus w
-e refrain from laying them here for the time being. It is worth mentioning that, provided the same support, the BM kernel tends to greatly outperform the Gaussian (by yielding a lower quadrature error). Still, there are some considerations that must be taking into account when using the BM kernel for immersed boundary, in particular coming from the fact that it is not separable. A more in depth discussion about the BM kernel can be found in ~\cite{Barnett2019}.
+Finally, in the case of BM the quadrature error and hydrodynamic radius are different for each $n_s$, $\beta$ and $h$. In a way, a new kernel is obtained for each support (which relates to the tolerance) and $\beta$ must be tweaked to achieve a particular hydrodynamic radius. The actual relations are still being tested and thus we refrain from laying them out here for the time being. It is worth mentioning that, provided the same support, the BM kernel tends to greatly outperform the Gaussian (by yielding a lower quadrature error). Still, there are some considerations that must be taking into account when using the BM kernel for immersed boundary, in particular coming from the fact that it is not separable. A more in depth discussion about the BM kernel can be found in ~\cite{Barnett2019}.
 %\todo{Put here the actual relation from the work in DPStokes}
 \subsection*{Staggered grids}
 We perform the same tests using the \gls{FIB}, which uses a staggered grid.
@@ -3983,11 +4001,11 @@ We perform the same tests using the \gls{FIB}, which uses a staggered grid.
   \subcaptionbox{Peskin 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_peskin_3pt}}\label{fig:ibm_peskin3pt}
   \subcaptionbox{BM 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_bm_3pt}}\label{fig:ibm_bm3pt}
   \subcaptionbox{Gaussian 10pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_10pt}}\label{fig:ibm_gauss10pt}
-  \caption{Variance of the hydrodynamic radius inside a cell (2D slice at $z=L/2+h/2$ of a 3D system) for different kernels in \gls{FCM}. Test were carried out in a cubic box of size $L=32a$.} \label{fig:ibmvar}
+  \caption{Variance of the hydrodynamic radius inside a cell (2D slice at $z=L/2+h/2$ of a 3D system) for different kernels in \gls{FCM}. Tests were carried out on a cubic box of size $L=32a$.} \label{fig:ibmvar}
 \end{figure}
 
-In general using a staggered grid requires a smaller grid to get the same hydrodynamic radius (with a similar translational invariance) than a collocated one. On the other hand, the access patterns in an staggered grid are usually more complex and can result in less performant code, even when the cost of the FFT will be slightly inferior. In the case of a triply periodic system, using a staggered grid via the \gls{FIB} is not worth it in general as compared to the \gls{FCM}.
-All test were carried out with single precision (to measure the error in a ``real-life'' setting) using an RTX3080 \gpu.
+In general using a staggered grid requires a smaller grid to get the same hydrodynamic radius (with a similar translational invariance) than a collocated one. On the other hand, the access patterns in a staggered grid are usually more complex and can result in less performant code, even when the cost of the FFT will be slightly inferior. In the case of a triply periodic system, using a staggered grid via the \gls{FIB} is not worth it in general as compared to the \gls{FCM}.
+All tests were carried out with single precision (to measure the error in a ``real-life'' setting) using an RTX3080 \gpu.
 %\gls{PSE} always uses a Gaussian, and the tolerance is chosen along with the splitting parameter so it is meaningless to talk about accuracy vs. kernel support in that case.
 
 
@@ -4274,7 +4292,7 @@ Equivalently, we can write the fluctuation-dissipation relation for the fluid ve
   \label{eq:q2dfdb}
   \left\langle\fou{\vec{w}}\otimes \fou{\vec{w}}\right\rangle = 2\kT \fou{\tens{G}}_{\qtd}
 \end{equation}
-It is straight-forward to devise a functional form for the stochastic fluid velocity that satisfies Eq. \eqref{eq:q2dfdb}.
+It is straightforward to devise a functional form for the stochastic fluid velocity that satisfies Eq. \eqref{eq:q2dfdb}.
 We can use a similar trick as we did for \gls{PSE} in Eq. \eqref{eq:psenoise} to separate the contribution of the noise in two,
 \begin{equation}
   \begin{aligned}
@@ -4956,7 +4974,7 @@ Once the potential is known the total electrostatic energy can be computed as
 Where $\oper{J}$ represents the interpolation operator as in chapter \ref{ch:tppoisson}.
 In the same way as with the triply periodic algorithm, we can compute the electric field using Eq. \eqref{eq:tppoisson_fieldnablaphi} and interpolate it to the particles positions with Eq. \eqref{tppoisson_avgfield}. Finally, we compute the force acting on each particle with Eq. \eqref{eq:tppoisson_force}.
 
-Since we do not have periodic boundaries in the $z$ direction, the application of the nabla operator on the potential to compute the electric field is not as straight-forward as in the triply periodic case. In particular, as we will study in the following sections, our solver works in the Fourier-Chebyshev space (similar to the doubly periodic Stokes solver in chapter \ref{sec:dpstokes}).
+Since we do not have periodic boundaries in the $z$ direction, the application of the nabla operator on the potential to compute the electric field is not as straightforward as in the triply periodic case. In particular, as we will study in the following sections, our solver works in the Fourier-Chebyshev space (similar to the doubly periodic Stokes solver in chapter \ref{sec:dpstokes}).
 
 \section{Solver description}
 We use a grid-based solver to get an algorithm with linear complexity with the number of particles. We evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (similarly as in chapter \ref{ch:tppoisson}), then solve the potential in that grid and finally interpolate the required quantities back to the particle positions (i.e the energy in Eq. \eqref{eq:dppu} or the force with Eq. \eqref{eq:tppoisson_force}).
@@ -6172,16 +6190,20 @@ Except for the $k=0$ wave number, every solve is identical in operations, meanin
 }
 
 \chapter{UAMMD's online documentation}\label{ch:online}
-At the time of writing, the \uammd codebase is hosted as a git repository on the github platform (currently the de facto standard git hosting platform), at \url{https://github.com/RaulPPelaez/UAMMD}. Platforms change over time and github might not exist at the time you are reading this\footnote{As a side note, the \uammd was included among the github's Artic Code Vault program repositories. Thus, a physical copy of the codebase can be found 250 meters under the permafrost in a vault inside an abandoned coal mine in the Svalbard archipelago. This means that the codebase should be retrievable for at least the next thousand years.}. If that is the case and a google search does not help you locate its new hosting you have two options; either find me and request it directly or look in the wayback machine. At the time of writing, the internet archive has already scraped the uammd repository at least once, you can find the archived versions at \url{http://web.archive.org/web/202*/https://github.com/RaulPPelaez/UAMMD}.
+This manuscript is based on UAMMD version 2.0 (which was released at the same time as this manuscript). Its contents, as well as the code examples, should be valid at least until version 3.0, the next release that might contain API breaking changes.
 
-This very manuscript is focused on the underlying theory behind the many algorithms exposed by the code as well as the design choices involved in its creation. However, it is not intended as a usage guide for \uammd (although several code examples are included). A user wanting to learn how to use \uammd can benefit from the online resources. In particular, \uammd offers three distinct sources of knowledge:
+At the time of writing, the \uammd codebase is hosted as a git repository on the github platform (currently the de facto standard git hosting platform), at \url{https://github.com/RaulPPelaez/UAMMD}. Note that the UAMMD repository offers a git branch for each major version. Be sure to check out the branch \emph{v2.x} to have a version that corresponds to this manuscript. A summary of changes between releases can be found at the \emph{CHANGELOG} file included in UAMMD's repository.
+
+Platforms change over time and github might not exist at the time you are reading this\footnote{As a side note, \uammd was included among github's Artic Code Vault program repositories. Thus, a physical copy of the codebase can be found 250 meters under the permafrost in a vault inside an abandoned coal mine in the Svalbard archipelago. This means that the codebase should be retrievable for at least the next thousand years.}. If that is the case and a google search does not help you locate its new hosting you have two options; either find me and request it directly or look in the wayback machine. At the time of writing, the internet archive has already scraped the uammd repository at least once, you can find the archived versions at \url{http://web.archive.org/web/202*/https://github.com/RaulPPelaez/UAMMD}.
+
+This very manuscript is focused on the underlying theory behind the many algorithms exposed by the code as well as the design choices involved in its creation. However, it is not intended as a usage guide for \uammd (although several code examples are included). A user wanting to learn how to use \uammd can also benefit from the online resources. In particular, \uammd offers three distinct sources of knowledge:
 \begin{enumerate}
 \item Code examples.
-  The repository itself contains a plethora of organized usage examples showcasing the different \uammd functionalities. In particular, the \emph{basic\_concepts} folder contains a series of tutorial-like examples intended as an introduction to the \uammd ecosystem.
+  The repository itself contains a plethora of organized usage examples showcasing the different \uammd functionalities. In particular, the \emph{basic\_concepts} folder contains a series of tutorial-like examples intended as an introduction to the \uammd ecosystem. This is the recommended next step into UAMMD for the reader of this manuscript.
 \item Wiki.
   A wiki accompanying the codebase provides extensive information about all the available modules, as well as detailed information about the compilation process.
 \item The book, ``A Painless Introduction to Programming UAMMD Modules'' by Marc Meléndez~\cite{Marc2020}.
-  This book provides an introduction to \uammd from the very ground up, while making little assumptions about the readers familiarity with programming, complex fluids and their related numerical methods.
+  This book provides an introduction to \uammd from the very ground up, while making little assumptions about the readers familiarity with programming, complex fluids and their related numerical methods. Note, however, that at the time of writing \cite{Marc2020} introduces UAMMD ``v1.x''. Therefore some modifications might be required to translate its lessons into ``v2.0'' (the \emph{CHANGELOG} can help with this).
 \end{enumerate}
 
 \chapter{The Transverser and Potential interfaces}\label{ch:transverser}
