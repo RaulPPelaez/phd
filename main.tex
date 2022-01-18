@@ -3889,7 +3889,7 @@ An implementation of all the kernels in sec. \ref{sec:ibm} can be found at file 
 A lot of extra functionality (omitted here for simplicity) is laid out in \uammd's online documentation, here we provide an example function that spreads and/or gathers an isotropic Gaussian kernel into a regular Cartesian grid. Representing the simplest, yet most common, use case.
 
 %\todo{This interface is super big and complex, what do?}
-\begin{code2}[Usage example of the spreading and interpolation module.]  {label=code:ibm}
+\begin{code2}[Usage example of the spreading and interpolation module. Some data (stored in \emph{dataAtParticlePositions}) located at some positions (stored in the \emph{positions} array) can be spread to a grid (for which the values of each cell will be stored in \emph{dataAtCellPositions}) using the function \emph{spreadWithIBM}. Similarly, the function \emph{interpolateWithIBM} can be used for the interpolation operation. As an example, the \gls{FCM} module (chapter \ref{sec:fcm}) uses code similar to this one in order to spread particle forces into a grid and, after solving the Stokes equation, interpolate the velocities on a grid back to the particle positions.]  {label=code:ibm}
 #include<uammd.cuh>
 #include<misc/IBM.cuh>
 using namespace uammd;
@@ -3915,18 +3915,31 @@ public:
 };
 
 template<class Iter1, class Iter2>
-void spreadOrInterpWithIBM(Grid grid, real4* positions,
-                   Iter gridData, Iter2 particleData,
+void spreadWithIBM(Grid grid, real4* positions,
+                   Iter dataAtCellPositions,
+                   Iter2 dataAtParticlePositions,
                    int numberParticles){
   const real width = 1; //An arbitrary width
   const int support = 8;//An arbitrary support
   auto kernel = std::make_shared<Gaussian>(width, support);
   IBM<Gaussian> ibm(kernel, grid);
-  //Spreads particleData into gridData
-  ibm.spread(positions, particleData, gridData, numberParticles);
-  //Interpolates gridData into particleData
-  ibm.gather(positions, particleData, gridData, numberParticles);
+  //Spreads dataAtParticlePositions into dataAtCellPositions
+  ibm.spread(positions, dataAtParticlePositions, dataAtCellPositions, numberParticles);
 }
+
+template<class Iter1, class Iter2>
+void interpolateWithIBM(Grid grid, real4* positions,
+                        Iter dataAtCellPositions,
+                        Iter2 dataAtParticlePositions,
+                        int numberParticles){
+  const real width = 1; //An arbitrary width
+  const int support = 8;//An arbitrary support
+  auto kernel = std::make_shared<Gaussian>(width, support);
+  IBM<Gaussian> ibm(kernel, grid);
+  //Interpolates dataAtCellPositions into dataAtParticlePositions
+  ibm.gather(positions, dataAtParticlePositions, dataAtCellPositions, numberParticles);
+}
+
 \end{code2}
 
 
@@ -4029,10 +4042,10 @@ In this part of the manuscript we will go through several novel, \gpu-focused, a
 In particular, we will discuss four new algorithms; two of them solving the Stokes equation (see Eq. \eqref{eq:stokes}) for hydrodynamics and the other two solving the, not yet introduced, Poisson equation (see Eq. \eqref{eq:ttpoisson}) for electrostatics.
 In chapter \ref{sec:q2D} we introduce a novel algorithm for solving the Stokes equation in quasi 2D geometries, in which particles are restricted to move in a periodic plane while embedded in a fluid that is either open (quasi 2D) or non existent (true 2D) in the third direction.
 Later, in chapter \ref{sec:dpstokes} we solve the Stokes equation again but this time letting the particles move freely inside a doubly periodic domain (periodic in the plane and open in the third direction), introducing the possibility of placing walls at the domain limits, creating slit or walled geometries.
-The doubly periodic Stokes algorithm will be the last methodology for hydrodynamics in this manuscript. We will use the two next chapters in this part to introduce two algorithms for electrostatics (by solving the Poisson equation)\footnote{The algorithms for electrostatics make use of the toolset developed for \gls{FCM} and \gls{PSE} in previous chapters, which is the reason why its introduction was delayed up to this point}. We will start by describing a method for computing the electrostatic interactions of a group of charged particles in a triply  periodic environment in chapter \ref{ch:tppoisson}. Finally, in a similar way as done with Stokes, we will compute electrostatic interactions in a doubly periodic environment (with the possibility of placing surface charged walls at the domain limits).
+The doubly periodic Stokes algorithm will be the last methodology for hydrodynamics in this manuscript. We will use the two subsequent chapters in this part to introduce two algorithms for electrostatics (by solving the Poisson equation)\footnote{The algorithms for electrostatics make use of the toolset developed for \gls{FCM} and \gls{PSE} in previous chapters, which is the reason why its introduction was delayed up to this point.}. We will start by describing a method for computing the electrostatic interactions of a group of charged particles in a triply  periodic environment in chapter \ref{ch:tppoisson}. Finally, in a similar way as done with Stokes, we will compute electrostatic interactions in a doubly periodic environment (with the possibility of placing surface charged walls at the domain limits).
 % Hydrodynamics in slit channels are key in several contexts of technological and biological significance.
 
-\chapter{Hydrodynamics under quasi two dimensional confinement}\label{sec:q2D}
+\chapter{Hydrodynamics under quasi two-dimensional confinement}\label{sec:q2D}
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/q2d}
@@ -4040,29 +4053,29 @@ The doubly periodic Stokes algorithm will be the last methodology for hydrodynam
   \label{fig:q2dsch}
 \end{figure}
 
-In this section we will develop algorithms to study the dynamics of a group of colloidal particles whose movement is constraint in the $z$ direction by some external force (see Fig. \ref{fig:q2dsch}) while submerged in an otherwise unbounded three dimensional fluid. We refer to this geometry as quasi 2D (q2D for short). As opposed to a situation in which both the particles \emph{and} the fluid are restricted to the plane (true 2D or t2D) or when both are unbounded in the three directions (true 3D or t3D). In the limit when the confining force is infinitely stiff, particles move in an strictly two dimensional plane. This can be used to model, for instance, the transport the properties of systems at a fluid-fluid or air-fluid interfaces. 
+In this section we will develop algorithms to study the dynamics of a group of colloidal particles whose movement is constrained in the $z$ direction by some external force (see Fig. \ref{fig:q2dsch}) while submerged in an otherwise unbounded three-dimensional fluid. We refer to this geometry as quasi 2D (q2D for short), as opposed to a situation in which both the particles \emph{and} the fluid are restricted to the plane (true 2D or t2D) or when both are unbounded in the three directions (true 3D or t3D). In the limit when the confining force is infinitely stiff, particles move in a strictly two-dimensional plane. This can be used to model, for instance, the transport the properties of systems at fluid-fluid or air-fluid interfaces. 
 
-Besides being common in subcellular biology, there are several examples of this constrained dynamics systems in a wide variety of industrial applications, like food, creams, or crude oil (e.g., asphaltenes near water interfaces).
+Besides being common in subcellular biology, there are several examples of these constrained dynamics systems in a wide variety of industrial applications, like food, creams, or crude oil (e.g., asphaltenes near water interfaces).
 On the other hand, the transverse diffusion of proteins embedded in lipid bilayers controls their biological function~\cite{Brown20112}.
 Note that although confined to the membrane plane, these proteins will be subject to relatively large spatial fluctuations.
 
 In general, diffusion of colloidal particles confined to two-dimensional surfaces is a key transport mechanism in several contexts of technological and biological significance.
 
-As to the physical phenomena that actually constraints the particles to a plane we have, for instance the so-called Pickering emulsions, which are stabilized by the spontaneous absorption of colloidal particles to the fluid-fluid interface.
+As to the physical phenomenon that actually constrains the particles to a plane we have, for instance, the so-called Pickering emulsions, which are stabilized by the spontaneous absorption of colloidal particles to the fluid-fluid interface.
 
 Colloids might also be trapped in fluid-fluid interfaces and interact via capillary~\cite{Dominguez2010} or electrostatic~\cite{Gao2016} forces. By placing walls, particles can be forced to diffuse in a plane~\cite{Lin2014}. 
 
-A standing pressure wave with hundreds of megahertz or more creates an ultrasound potential which moves heavy colloidal particles towards two-dimensional traps formed at the node of the pressure wave (or the valleys if particles are lighter than the fluid)~\cite{Settnes2012,Balboa2013}. The resulting ultrasound potential is harmonic, leading to a Gaussian colloidal dispersion around the pressure node~\cite{Balboa2013}.
+A standing pressure wave with hundreds of megahertz or more creates an ultrasound potential which moves heavy colloidal particles towards two-dimensional traps formed at the nodes of the pressure wave (or the valleys if particles are lighter than the fluid)~\cite{Settnes2012,Balboa2013}. The resulting ultrasound potential is harmonic, leading to a Gaussian colloidal dispersion around the pressure node~\cite{Balboa2013}.
 
 Similar harmonic traps can be obtained by laser tweezers~\cite{Ding2012}.
 % \todo{Nature Communications 2015}
 Other forms of (non-Gaussian) traps can be prepared using electric fields (maybe leading to barometric-like density profiles).
 
-In future sections, we will study diffusive phenomena arising in this special geometry. For now, lets lay the algorithmic machinery necessary to simulate it.
+In future sections, we will study diffusive phenomena arising in this special geometry. For now, let's lay out the algorithmic machinery necessary to simulate it.
 
-Lets start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three dimensional incompressible fluid. As we saw in chapter \ref{sec:bdhi}, forces acting on the particles are propagated to the whole fluid, due to the its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting hydrodynamic drag acts like a flow source which tends to expel other particles around it (see Fig.~\ref{fig:q2dsch}). This can be interpreted as the flow in the plane having a positive divergence, which makes the fluid (as seen from the plane) being effectively compressible. We will see that this effect naturally arises in a particle based description (\gls{BDHI}) through an effective plane mobility with non zero divergence~\cite{Pelaez2017}.
+Let's start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three-dimensional incompressible fluid. As we saw in chapter \ref{sec:bdhi}, forces acting on the particles are propagated to the whole fluid, due to its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting hydrodynamic drag acts like a flow source which tends to expel other particles around it (see Fig.~\ref{fig:q2dsch}). This can be interpreted as the flow in the plane having a positive divergence, which makes the fluid (as seen from within the plane) being effectively compressible. We will see that this effect naturally arises in a particle-based description (\gls{BDHI}) through an effective plane mobility with non-zero divergence~\cite{Pelaez2017}.
 
-There are several ways to gradually transform a perfect 2D confinement into an isotropic 3D distribution and, as illustrated in Fig. \ref{fig:q2dsch}, we model the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by an harmonic potential of the form
+There are several ways to gradually transform a perfect 2D confinement into an isotropic 3D distribution and, as illustrated in Fig. \ref{fig:q2dsch}, we model the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by a harmonic potential of the form
 \begin{equation}
 U(z)=\half K_sz^2
 \end{equation}
@@ -4076,11 +4089,11 @@ The dynamics of the system are then governed by Eq. \eqref{eq:bdhibdrelation} wi
 
 Thus far, all the algorithms we have developed for solving \eqref{eq:bdhibdrelation} (or more generally Eq. \eqref{eq:navierstokes}) deal with either fully open or triply periodic boundary conditions. However, now the perpendicular direction should be open while leaving the plane periodic.
 
-To be fair, our mathematical infrastructure allows to discretize the Stokes operator in any geometry to accommodate any boundary conditions. But since our implementations rely on the \gls{FFT} to be efficient and \gpu-friendly these modifications are not straight forward. 
+To be fair, our mathematical infrastructure allows to discretize the Stokes operator in any geometry to accommodate any boundary conditions. But since our implementations rely on the \gls{FFT} to be efficient and \gpu-friendly these modifications are not straightforward. 
 
 One approach to deal with this is to simply use the triply periodic algorithms with a box with width, $L_z\gg \delta$, large enough to neglect finite-size effects. However, since hydrodynamics are long ranged in nature we will be forced to perform a full finite-size analysis to ensure the convergence of the measured properties.
 
-In future sections, we will describe a family of pseudo-spectral algorithms capable of dealing with non periodic boundary conditions. For the moment, lets adapt the already developed \gls{FCM} to the limit of strict confinement (q2D). Lets see how we can compute the Fourier expression of a Green's function specific for q2D.
+In future sections, we will describe a family of pseudo-spectral algorithms capable of dealing with non periodic boundary conditions. For the moment, let's adapt the already developed \gls{FCM} to the limit of strict confinement (q2D). Let's see how we can compute the Fourier expression of a Green's function specific for q2D.
 
 \section{The Force Coupling Method in quasi 2D}
 
