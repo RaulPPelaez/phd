@@ -192,7 +192,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 \addbibresource{Bibliography.bib}
 
 % \hyphenation{put special hyphenation here}
-
+\pdfmapfile{-mpfonts.map}
 
 \begin{document}
 \frenchspacing
@@ -3812,7 +3812,7 @@ We might also consider sorting particles in memory by spatial hash (so that clos
 However, our block-per-particle algorithm hides these issues (effect of particle sorting and atomic overlap) to an extent, since only one thread in each block will fetch a particle and atomic overlap is reduced by design.
 
 Still, testing suggests that particle sorting via spatial hashing dramatically improves performance (an overall speedup of $\times 7$ for TPP and $\times 2$ for BPP). Suggesting that atomic overlap is far less important than a cache-friendly memory access pattern\footnote{Which goes to show how far have CUDA atomics have come.}.
-The storage layout of the grid data can also influence the performance of the algorithm. In particular, using a space-filling curve (as the one in sec. \ref{sec:celllist}) could improve the access pattern in both spreading and interpolation~\cite{Shih2021}. However, this has not been considered in this work, where a linear index is always used (so that the data for cell with indexes $(i,j,k)$ is located at element $i+(j+kn_y)n_x$ in the relevant array)\footnote{Note however, that the software interface for this module allows for an arbitrary ordering of the grid data, as we will later see.}. This ordering comes imposed by the usual relation between spreading/interpolation and spectral methods in fluctuating hydrodynamics, which requires using \gls{FFT} libraries that benefit from (or are restricted to) it.
+The storage layout of the grid data can also influence the performance of the algorithm. In particular, using a space-filling curve (as the one in sec. \ref{sec:celllist}) could improve the access pattern in both spreading and interpolation~\cite{Shih2021}. However, this has not been considered in this work, where a linear index is always used (so that the data for cell with indexes $(i,j,k)$ is located at element $i+(j+kn_y)n_x$ in the relevant array)\footnote{Note, however, that the software interface for this module allows for an arbitrary ordering of the grid data, as we will later see.}. This ordering comes imposed by the usual relation between spreading/interpolation and spectral methods in fluctuating hydrodynamics, which requires using \gls{FFT} libraries that benefit from (or are restricted to) it.
 
 
 \subsubsection*{Block Per Domain (BPD)}
@@ -4077,7 +4077,8 @@ Let's start by considering a suspension of colloidal particles confined near $z=
 
 There are several ways to gradually transform a perfect 2D confinement into an isotropic 3D distribution and, as illustrated in Fig. \ref{fig:q2dsch}, we model the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by a harmonic potential of the form
 \begin{equation}
-U(z)=\half K_sz^2
+  \label{eq:q2Dconf}
+U_{\text{conf}}(z)=\half K_sz^2
 \end{equation}
 applied to each individual particle.
 The spring constant $K_s$ controls the width, $\delta$, of the Gaussian distribution of particles in the $z$ direction.
@@ -4097,7 +4098,7 @@ In future sections, we will describe a family of pseudo-spectral algorithms capa
 
 \section{The Force Coupling Method in quasi 2D}
 
-We want to take the mathematical limit of Eq. \eqref{eq:bdhibdrelation} when $K_s\rightarrow\infty$ and hence particles move strictly in the plane $z=0$. Although it is possible to take this limit formally the general theory for it is quite complex. Luckily we can elaborate some simple arguments an assumptions to make this in a trivial way.
+Suppose that all particles are subject to a force coming from the potential in Eq. \eqref{eq:q2Dconf}. We want to take the mathematical limit of Eq. \eqref{eq:bdhibdrelation} (using $\vec{F} = \vec{\partial}_{\vec{\ppos}} U_{\text{conf}}$) when $K_s\rightarrow\infty$ (hence particles move strictly in the plane $z=0$). Although it is possible to take this limit formally the general theory for it is quite complex. Luckily we can elaborate some simple arguments and assumptions to make this in a trivial way.
 
 %We start with the realization that, given that the particles are restricted to a plane, the mobility tensor can be reordered in a diagonal blocked arregement 
 %
@@ -4112,7 +4113,7 @@ We want to take the mathematical limit of Eq. \eqref{eq:bdhibdrelation} when $K_
 %\end{equation}
 %Where the parallel mobility (in the $x,y$ plane) is decoupled from the perpendicular one (in $z$). We can see this by understanding that a perpendicular force cannot induce motion on the plane, since that would break symmetry. Equivalently, a parallel force cannot take a particle out of plane. On the other hand, the confinement does not cause a free energy gradient in the plane (since it is uniform in it).
 
-To understand the enhancement of collective diffusion in confined geometries, we first consider the Smoluchousky equation for the particle concentration field $\rho(\vec{\fpos}, t) = \sum_i\delta(\vec{\fpos} - \vec{\ppos}_i)$ of ideal (non-interacting) colloids,
+To understand the enhancement of collective diffusion in confined geometries, we first consider the Smoluchousky equation for the particle concentration field $\rho(\vec{\fpos}, t) = \sum_i\delta(\vec{\fpos} - \vec{\ppos}_i)$ of ideal (non-interacting) colloids\footnote{Save those involving the medium (hydrodynamic interactions).},
 
 \begin{equation}
   \label{eq:smoludensq2D}
@@ -4126,25 +4127,26 @@ Where $f(\vec{\fpos})$ is the confining force density, which can be expressed as
 \begin{equation}
   \vec{f}(\vec{\fpos}') = -\vec{\partial}_{\vec{\fpos}}\pi = -\kT \partial_{z}\rho = -\kT \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) \hat{\vec{e}}_z
 \end{equation}
-Where the last equality particularize for the in-plane confinement. The drift velocity is then,
+Where the last equality particularizes the equation for the in-plane confinement. The drift velocity is then,
 \begin{equation}
   \label{eq:driftq2d}
   \begin{aligned}
-    \vec{\fvel}_d(\vec{\fpos}) &= \int\tens{M}(\vec{\fpos}-\vec{\fpos}') \vec{\partial}_{\vec{\fpos}}\rho d\vec{\fpos}' \\
+    \vec{\fvel}_d(\vec{\fpos}) &= -\int\tens{M}(\vec{\fpos}-\vec{\fpos}') \vec{\partial}_{\vec{\fpos}}\pi d\vec{\fpos}' \\
     &=-\kT\int\tens{M}(\vec{\fpos}-\vec{\fpos}') \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}' \overset{\text{(By parts)}}{=}\\
     &=\kT\int \partial_{z'}\tens{M}(\vec{\fpos}-\vec{\fpos}') \sum_i \delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}'\\
-    &= -\sum_i\kT\int \partial_z \tens{M}|_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}'
+    &= -\sum_i\kT\int \left[\partial_z \tens{M}(\vec{\fpos}-\vec{s}')\right]|_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}'
   \end{aligned}
 \end{equation}
-Where we introduced the plane coordinates, $\vec{s}$, such that $\vec{\fpos} = \vec{s} + z\hat{\vec{e}}_z$.
+Where we introduced the plane coordinates, $\vec{s}$, such that $\vec{\fpos} = \vec{s} + z\hat{\vec{e}}_z$. Here $\delta$ represents the Dirac delta.
 Now, the flow is incompressible in 3D, which implies
 \begin{equation}
-  (\vec{\partial}_{\vec{s}} + \partial_z)\tens{M} = 0,  
+  \label{eq:q2dtotalflow}
+  (\vec{\partial}_{\vec{s}} + \partial_z)\tens{M} = 0 \rightarrow \partial_z\tens{M} = -\vec{\partial}_{\vec{s}}\tens{M},  
 \end{equation}
-thus
+thus, substituting $\partial_z\tens{M}$ in Eq. \eqref{eq:driftq2d} with Eq. \eqref{eq:q2dtotalflow},
 \begin{equation}
   \label{eq:flowq2Ddivergence}
-  \vec{\fvel}_d(\vec{\fpos}) = \kT\left( \vec{\partial}_{\vec{s}}\cdot\tens{M} \right)_{z=0} \sum_i\int\delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}' = \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0}
+  \vec{\fvel}_d(\vec{\fpos}) = \kT\sum_i \int \left( \vec{\partial}_{\vec{s}}\tens{M} \right)_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}' = \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0}
 \end{equation}
 Which indicates that $\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0}$ is acting as a flow source term in the plane\footnote{Note that we have defined $\vec{\partial}_{\vec{\ppos}}\cdot\tens{M} = \sum_i\vec{\partial}_{\vec{\ppos}_i}\cdot\tens{M}(\vec{s}-\vec{q}_i)$.}. Notably, the resulting hydrodynamic interaction between two particles $1$ and $2$ is similar to an electrostatic repulsion,
 \begin{equation}
@@ -4175,7 +4177,7 @@ with
   L_n := \frac{2}{3\pi a\bar{\rho}_{2D}}.
   \end{equation}
   Thus collective diffusion increases as the inverse of the wave number.
-  This analysis clearly indicates that the Brownian dynamics corresponding to q2d necessarily includes a thermal or spurious drift related to the divergence of the (effective) q2D mobility, $(\vec{\partial}_{\vec{s}}\cdot\tens{M})_{z=0}$. According to eq. \eqref{eq:flowq2Ddivergence} the resulting particle dynamics \textbf{at the confining plane} are described by (see eq. \eqref{eq:bdfull}).
+  This analysis clearly indicates that the Brownian dynamics corresponding to q2d necessarily includes a thermal or spurious drift related to the divergence of the (effective) q2D mobility, $(\vec{\partial}_{\vec{s}}\cdot\tens{M})_{z=0}$ (according to eq. \eqref{eq:flowq2Ddivergence}). The resulting particle dynamics \textbf{at the confining plane} are described by eq. \eqref{eq:bdfull}.
 This means that we can simply remove the $z$ component in our description and write
 \begin{equation}
   \label{eq:bdq2d}
@@ -4188,7 +4190,7 @@ In order to implement eq. \eqref{eq:bdq2d} within the \gls{FCM} procedure (intro
 \end{equation}
 We have generalized the Dirac delta by using the spreading operator, $\oper{S}$ (as we did when introducing spreading and interpolation in chapter \ref{sec:bdhi}). The second term corresponds to the osmotic force, $-\partial_{\vec{\fpos}}\pi = -\kT\vec{\partial}_{\vec{\fpos}}\oper{S} = \kT\vec{\partial}_{\vec{\fpos}}\oper{S}$. The kernel $\oper{S}$ spreads forces while its derivative\footnote{In fact, in the case of a Gaussian, we can spread a single quantity by using $\partial\phi_G(r) = 2\sigma_ar\phi_G(r)$ and spreading $\vec{F} + 2\kT\sigma_a\vec{r}$.} spreads internal energies\footnote{This latter idea was generalized in ~\cite{Balboa2013} to model ultrasound forces on compressible particles, with energy $\psi(\rho)\kT$.}.
 
-Following the \gls{FCM}, we will set $\oper{S}$ as a Gaussian, and in order to implement a purely 2D computational set up, we need to integrate out the effect of the third direction, $z$, from the equations of motion. to that end, we recall that $\tens{M} = \oper{J}\tens{G}\oper{S}$, where $\tens{G}$ is the Green function for the fluid velocity field. The particle kernels are separable ($\oper{S} = \phi(x)\phi(y)\phi(z)$) which permits to include them into the 2D Fourier transform of the Green function, to yield,
+Following the \gls{FCM}, we will set $\oper{S}$ as a Gaussian, and in order to implement a purely 2D computational set up, we need to integrate out the effect of the third direction, $z$, from the equations of motion. To that end, we recall that $\tens{M} = \oper{J}\tens{G}\oper{S}$, where $\tens{G}$ is the Green function for the fluid velocity field. The particle kernels are separable ($\oper{S} = \phi(x)\phi(y)\phi(z)$) which permits including them into the 2D Fourier transform of the Green function, to yield,
 \begin{equation}
   \hat{\tens{G}}_{\qtd}(\vec{k} = (k_x, k_y)) = \int_{z=0}\phi(z)\tens{G}(r;z=0)\phi(z)\exp(i\vec{k}\vec{s})d\vec{s}.
 \end{equation}
@@ -4222,7 +4224,7 @@ We can also write the Green's function for true 2D by redefining $f_k$ and $g_k$
 \end{equation}
 The Green's function \eqref{eq:q2dGreenintegral} is purely two-dimensional, allowing to reuse the \gls{FCM} machinery without the third direction altogether.
 
-Using Eq. \eqref{eq:t2dfg} instead of Eq. \eqref{eq:q2dfg} allows for our algorithm to simulate a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known\footnote{Note that the analytical expression is not actually needed and it could be, for instance, computed numerically and then tabulated}. 
+Using Eq. \eqref{eq:t2dfg} instead of Eq. \eqref{eq:q2dfg} allows for our algorithm to simulate a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known.
 
 The particle dynamics can thus be formally written as,
 
@@ -4312,7 +4314,7 @@ We can use a similar trick as we did for \gls{PSE} in Eq. \eqref{eq:psenoise} to
     \fou{\vec{w}}(\vec{k}, t) := \sqrt{\frac{2\kT}{\eta}}\left(\sqrt{f_k(ka)}\vec{k}_\perp\fou{\tens{Z}}^1_k + \sqrt{g_k(ka)}\vec{k}\fou{\tens{Z}}^2_k\right).
   \end{aligned}
 \end{equation}
-Where $\fou{\tens{Z}}^{1,2}_k$ are independent Wienner processes. The same concerns about the delicate conjugacy properties of the noise we discussed in sec. \ref{sec:fcm} are applicable here.
+Where $\fou{\tens{Z}}^{1,2}_k$ are independent Wiener processes. The same concerns about the delicate conjugacy properties of the noise we discussed in sec. \ref{sec:fcm} are applicable here.
 
 We now have all the necessary ingredients to apply the \gls{FCM} framework and solve Eq. \eqref{eq:q2dbdhirel} for the particle velocities.
 % This integral can be done analitically to give
@@ -4350,7 +4352,7 @@ auto createIntegratorQ2D(UAMMD sim){
 \newpage
 
 \chapter{Hydrodynamics in doubly periodic geometries}\label{sec:dpstokes}
-Thus far we have seen how to compute hydrodynamic displacements in domains that are either triply periodic (periodic in the three directions) or two dimensional and periodic in the plane. In the case of quasi 2D, where the particles are constrained to a plane, the boundary conditions for the fluid in the perpendicular directions are open, while in true 2D both the fluid and the particles exists in the plane. We refer to a domain as \gls{DP} when it is periodic in the plane directions ($x,y$) but aperiodic in the perpendicular one ($z$). In this sense the quasi 2D algorithm in chapter \ref{sec:q2D} can be regarded as a \gls{DP} algorithm. However, the aforementioned algorithm only allows to simulate environments in which the submerged particles diffuse in two dimensions (for instance, a fluid-fluid interface). If we are looking to model a system lying in between the triply periodic and quasi 2D regimes, for instance a lipid membrane (see Fig. \ref{fig:dpstokessketch}), currently our only option is to perform a triply periodic simulation and do some kind of finite-size analysis, measuring the relevant properties with an increasingly large simulation domain size in the perpendicular direction. Of course, given that the algorithmic complexity of all our pseudo-spectral algorithms scales linearly with the volume of the domain (or more appropriately, with the number of cells in the grid), the triply periodic approach is not optimal.
+Thus far we have seen how to compute hydrodynamic displacements in domains that are either triply periodic (periodic in the three directions) or two dimensional and periodic in the plane. In the case of quasi 2D, where the particles are constrained to a plane, the boundary conditions for the fluid in the perpendicular directions are open, while in true 2D both the fluid and the particles exist in the plane. We refer to a domain as \gls{DP} when it is periodic in the plane directions ($x,y$) but aperiodic in the perpendicular one ($z$). In this sense the quasi 2D algorithm in chapter \ref{sec:q2D} can be regarded as a \gls{DP} algorithm. However, the aforementioned algorithm only allows to simulate environments in which the submerged particles diffuse in two dimensions (for instance, a fluid-fluid interface). If we are looking to model a system lying in between the triply periodic and quasi 2D regimes, for instance a lipid membrane (see Fig. \ref{fig:dpstokessketch}), currently our only option is to perform a triply periodic simulation and do some kind of finite-size analysis, measuring the relevant properties with an increasingly large simulation domain size in the perpendicular direction. Of course, given that the algorithmic complexity of all our pseudo-spectral algorithms scales linearly with the volume of the domain (or more appropriately, with the number of cells in the grid), the triply periodic approach is not optimal.
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/dpstokes_sketch}
@@ -4358,7 +4360,7 @@ Thus far we have seen how to compute hydrodynamic displacements in domains that 
   \label{fig:dpstokessketch}
 \end{figure}
 
-We propose a novel pseudo-spectral \gls{FCM}-like algorithm, with a wildly different approach to the ones we have seen thus far, that allows to compute the hydrodynamic displacements of a suspension of colloids inside a \gls{DP} domain with arbitrary boundary conditions in the third direction.
+We propose a novel pseudo-spectral \gls{FCM}-like algorithm, with a wildly different approach to the ones we have seen thus far, that allows to compute the hydrodynamic displacements of a suspension of colloids inside a \gls{DP} domain with either open or no-slip conditions in the third direction.
 In particular, we will see how to solve the incompressible Stokes equation \eqref{eq:stokes} without fluctuations in a \gls{DP} domain of size $L_{x,y}$ (we will assume $L_x=L_y$, which can then be easily generalized). Thus, we want to solve
 \begin{equation}
   \label{eq:dpstokes}
@@ -4369,7 +4371,7 @@ In particular, we will see how to solve the incompressible Stokes equation \eqre
 \end{equation}
 with $z\in(-\infty, \infty)$ and a certain set of \glspl{BC} (that will be introduced shortly) in $z$, assuming that $\vec{\fvel}_{\dpr}$ is bounded as $|z|\rightarrow\infty$. The plane $(x,y)$ is periodic as in quasi 2D.
 
-Here $p$ is the pressure and the fluid forcing includes the particle forces and torques (similarly as with \gls{FCM} in sec. \ref{sec:fcm})
+Here $p$ is the pressure and the fluid forcing includes the particle forces and torques (similarly to the section on \gls{FCM}, see sec. \ref{sec:fcm})
 \begin{equation}
   \vec{f}(\vec{\fpos}) = \oper{S}\vec{F} + \half\nabla\times\oper{S}_{\tau}\vec{\tau}
 \end{equation}
@@ -4393,52 +4395,9 @@ Our solver is periodic in the plane $(x,y)$ (as in quasi 2D). In the $z$ directi
 \end{enumerate}
 The unbounded mode allows to simulate systems were particles are not restricted to a plane, so $\delta>0$. Additionally the other modes can be used in a variety of simulations. For instance, the bottom wall mode can be used to model the hydrodynamics of a Quartz Crystal Microbalance (QCM), improving existing models~\cite{Melendez2020}.
 
-\section{About spreading and interpolation}
+The present \gls{DP} solver is vastly different from the \gls{FCM} family of methods we have seen thus far.
 
-Similarly as with all the Force Coupling Method-like methods described thus far, the communication between the particles information and the grid (in this case to construct $\vec{f}$ in Eq. \eqref{eq:dpstokes}) is carried out via the Immersed Boundary module in UAMMD (see chapter \ref{ch:icm}). Note however, that there is a fundamental difference with respect to the rest of the use cases for the \gls{IBM} up to this point. In particular, now the grid is not regular in the $z$ direction, being a Chebyshev grid instead (see Fig. \ref{fig:chebgrid}). 
-\begin{figure}[h]
-  \centering
-  \includesvg[width=0.5\columnwidth]{gfx/chebgrid}
-  \caption{Representation of an hybrid regular-Chebyshev grid. In the Doubly Periodic Stokes algorithm, the plane-parallel components ($x$ and $y$) are described in a regular grid (with nodes at $x = -L/2 + i/N L$ and similarly for $y$), whereas the perpendicular direction ($z$) is discretized at the Gauss-Chebyshev-Lobatto points (the extrema of the Chebyshev polynomials), $z=H\cos(\pi i/N_z)$ (where $i$ runs from $0$ to $N_z$).}
-  \label{fig:chebgrid}
-\end{figure}
-
-The Chebyshev spacing in the $z$ direction has several consequences with respect to our usual regular grid. First, the non regularity of the grid makes the number of support cells of the kernel vary with the height of the particle. Secondly, the quadrature weights (i.e. the size of each cell) are different for each height. In particular, we have to use the so-called Clenshaw-Curtis weights~\cite{Clenshaw1960}, so that a cell centered at the Chebyshev root $z = H\cos(\pi i/N_z)$ will have a quadrature weight, $w(z)$, of\footnote{The \uammd source code containing the special considerations for Chebyshev grids can be found at \emph{src/utils/ChebyshevUtils.cuh}.}
-\begin{equation}
-  \label{eq:clencurt}
-  w(z=H\cos(\pi i/N_z)) = \frac{2}{N_z}\sum_{k=0}^i\cos\left(\frac{2ik\pi}{N_z}\right)\left\{
-  \begin{aligned}
-    &1/2 & i=0,N_z\\
-    & 1 & \textrm{otherwise}
-  \end{aligned}\right.
-\end{equation}
-In the plane directions, the quadrature weights are the cell sizes, $h$, and are the same everywhere.
-The \uammd \gls{IBM} interface can be customized (via templates) to accept arbitrary quadrature weights and non regular grids as well as different supports for each particle according to its position.
-
-Furthermore, given that the domain is not periodic in $z$, we need special considerations when spreading and interpolating near the boundaries. In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\notin [-H,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by subtracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
-\begin{equation}
-  \label{eq:dpstokeskernel}
-  \widetilde{\delta_a}(\vec{\fpos}-\vec{\ppos}_i) = \delta_a(\vec{\fpos}-\vec{\ppos}_i) - \delta_a(\vec{\fpos}-\vec{\ppos}^{\text{img}}_i)
-\end{equation}
-Were $\vec{\ppos}_i^{\text{img}}$ is the particle's point of reflection about the wall, defined as
-\begin{equation}
-  \label{eq:dpstokesimg}
-  \begin{aligned}
-  &\vec{\ppos}_i^{\text{img}_b} = \vec{\ppos}_i - 2(H+r_z)\hat{\vec{e}}_z, \quad \text{For the bottom wall}\\
-  &\vec{\ppos}_i^{\text{img}_t} = \vec{\ppos}_i + 2(H-r_z)\hat{\vec{e}}_z, \quad \text{For the top wall}
-\end{aligned}
-\end{equation}
-Being $\hat{\vec{e}}_z$ a unitary vector in the $z$ direction. The no-slip condition is then imposed by the fact that a particle at the height of a wall does not affect (nor it is affected by) the fluid. A visual representation of the effect of the images is available in Fig. \ref{fig:dpstokesspread}.
-\begin{figure}[h]
-  \centering
-  \includesvg[width=\columnwidth]{gfx/dpstokesspread}
-  \caption{Representation of the image spreading in the \gls{DP} Stokes algorithm. Forces acting on particles (blue circles) are translated to the fluid as a force density. Due to images, part of the particle's force is zero near walls. Zero fluid forcing is depicted as white. A particle located at exactly the height of a wall has no effect on the fluid.}
-  \label{fig:dpstokesspread}
-\end{figure}
-
-Besides the usage of the \gls{IBM} for spreading and interpolation, the \gls{DP} solver is vastly different from the \gls{FCM} family of methods we have seen thus far.
-
-Our approach consists of solving the Stokes equation in an unbounded domain, adding the effects of the walls afterwards as a correction. Thus we first solve Eq. \eqref{eq:dpstokes} with free-space \glspl{BC} and $z\in (-\infty, \infty)$. Then we compute the final result in the presence of one or two walls as
+Our approach consists in solving the Stokes equation in an unbounded domain, adding the effects of the walls afterwards as a correction. Thus we first solve Eq. \eqref{eq:dpstokes} with free-space \glspl{BC} and $z\in (-\infty, \infty)$. Then we compute the final result in the presence of one or two walls as
 \begin{equation}
   \label{eq:dpstokescorrsum}
   \begin{aligned}
@@ -4466,8 +4425,7 @@ Solved in a domain with $z\in [-H,\infty)$ in the case of a bottom wall and $z\i
 \end{equation}
 Where the second condition, at $z=H$, is imposed only in the case of a slit channel geometry.
 
-In Appendix \ref{sec:bvp} we describe a fast and \gpu-friendly \gls{BVP} solver that solves one-dimensional \glspl{PDE} in the Chebyshev basis. Our strategy in the next sections will be to write equations for the velocity and pressure in a way that is compatible with this solver.
-
+In Appendix \ref{sec:bvp} we describe a fast and \gpu-friendly \gls{BVP} solver that solves one-dimensional \glspl{PDE} in the Chebyshev basis. Our strategy in the next sections will be to write equations for the velocity and pressure in a way that is compatible with this solver. 
 
 We will first discuss the free-space solver ($\vec{\fvel}_{\corr} = 0$ and $p_\corr=0$) and then see how to solve the correction in each case. 
 \section{Free-space solver}
@@ -4490,7 +4448,9 @@ Transforming to Fourier space in the plane we get a one dimensional problem for 
   % \end{bmatrix}
   \cdot\vec{f}
 \end{equation}
-Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. As a matter of fact, the \gls{FCT} is employed here to transform the signals in the $z$ direction to the Chebyshev basis, as this allows to use the \gls{BVP} solver and facilitates the evaluation of the derivatives in this direction (by using the relations for the Chebyshev coefficients introduced in Appendix \ref{sec:bvp}). Therefore we will work with the Chebyshev coefficients, $\fou{p}_n$ (or $\fou{\vec{f}}_n$), of the different quantities. We can solve the pressure outside the domain using that
+Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. As a matter of fact, the \gls{FCT} is employed here to transform the signals in the $z$ direction to the Chebyshev basis, as this allows to use the \gls{BVP} solver and facilitates the evaluation of the derivatives in this direction (by using the relations for the Chebyshev coefficients introduced in Appendix \ref{sec:bvp}). Therefore we will work with the Chebyshev coefficients, $\fou{p}_n$ (or $\fou{\vec{f}}_n$), of the different quantities.
+
+We can solve the pressure outside the domain using that
 \begin{equation}
     (\partial^2_{z}-k^2)\fou{p} = 0, \quad \text{ for } z \notin [-H,H].
 \end{equation}
@@ -4717,6 +4677,54 @@ The \gls{BVP} for the parallel velocities can be laid out following similar argu
 \end{equation}
 For the \glspl{BC}, due to the no-slip, we have $\fou{\vec{\fvel}}^\parallel(\vec{k} = 0, z=\pm H) = 0$.
 
+\section{About spreading and interpolation}
+
+Using the Chebyshev basis to discretize the $z$ direction makes the grid of our solver non-regular. In particular, we will have a regular binning in the plane directions and bins defined at the extrema of the Chebyshev polynomials in $z$.
+%Thus we need to evaluate the forces in Eq. \eqref{eq:dpstokes} at the roots of the Chebyshev polynomials in the $z$ direction.
+
+Similarly to all the Force Coupling Method-like methods described thus far, the communication between the particles information and the grid (in this case to construct $\vec{f}$ in Eq. \eqref{eq:dpstokes} and interpolate back the velocities to the particle positions) is carried out via the Immersed Boundary module in UAMMD (see chapter \ref{ch:icm}). Note however, that there is a fundamental difference with respect to the rest of the use cases for the \gls{IBM} up to this point. In particular, now the grid is not regular in the $z$ direction, being a Chebyshev grid instead (see Fig. \ref{fig:chebgrid}). 
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.5\columnwidth]{gfx/chebgrid}
+  \caption{Representation of a hybrid regular-Chebyshev grid. In the Doubly Periodic Stokes algorithm, the plane-parallel components ($x$ and $y$) are described on a regular grid (with nodes at $x = -L/2 + i/N L$ and similarly for $y$), whereas the perpendicular direction ($z$) is discretized at the Gauss-Chebyshev-Lobatto points (the extrema of the Chebyshev polynomials), $z=H\cos(\pi i/N_z)$ (where $i$ runs from $0$ to $N_z$).}
+  \label{fig:chebgrid}
+\end{figure}
+
+The Chebyshev spacing in the $z$ direction has several consequences with respect to our usual regular grid. First, the non-regularity of the grid makes the number of support cells of the kernel vary with the height of the particle. Secondly, the quadrature weights (i.e. the sizes of each cell) are different for each height. In particular, we have to use the so-called Clenshaw-Curtis weights~\cite{Clenshaw1960}, so that a cell centered at the Chebyshev root $z = H\cos(\pi i/N_z)$ will have a quadrature weight, $w(z)$, of\footnote{The \uammd source code containing the special considerations for Chebyshev grids can be found at \emph{src/utils/ChebyshevUtils.cuh}.}
+\begin{equation}
+  \label{eq:clencurt}
+  w(z=H\cos(\pi i/N_z)) = \frac{2}{N_z}\sum_{k=0}^i\cos\left(\frac{2ik\pi}{N_z}\right)\left\{
+  \begin{aligned}
+    &1/2 & i=0,N_z\\
+    & 1 & \textrm{otherwise}
+  \end{aligned}\right.
+\end{equation}
+In the plane directions, the quadrature weights are the cell sizes, $h$, and are the same everywhere.
+The \uammd \gls{IBM} interface can be customized (via templates) to accept arbitrary quadrature weights and non regular grids as well as different supports for each particle according to its position.
+
+Furthermore, given that the domain is not periodic in $z$, we need special considerations when spreading and interpolating near the boundaries. In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\notin [-H,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by subtracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
+\begin{equation}
+  \label{eq:dpstokeskernel}
+  \widetilde{\delta_a}(\vec{\fpos}-\vec{\ppos}_i) = \delta_a(\vec{\fpos}-\vec{\ppos}_i) - \delta_a(\vec{\fpos}-\vec{\ppos}^{\text{img}}_i)
+\end{equation}
+Were $\vec{\ppos}_i^{\text{img}}$ is the particle's point of reflection about the wall, defined as
+\begin{equation}
+  \label{eq:dpstokesimg}
+  \begin{aligned}
+  &\vec{\ppos}_i^{\text{img}_b} = \vec{\ppos}_i - 2(H+r_z)\hat{\vec{e}}_z, \quad \text{For the bottom wall}\\
+  &\vec{\ppos}_i^{\text{img}_t} = \vec{\ppos}_i + 2(H-r_z)\hat{\vec{e}}_z, \quad \text{For the top wall}
+\end{aligned}
+\end{equation}
+Being $\hat{\vec{e}}_z$ a unitary vector in the $z$ direction. The no-slip condition is then imposed by the fact that a particle at the height of a wall does not affect (nor it is affected by) the fluid. A visual representation of the effect of the images is available in Fig. \ref{fig:dpstokesspread}.
+\begin{figure}[h]
+  \centering
+  \includesvg[width=\columnwidth]{gfx/dpstokesspread}
+  \caption{Representation of the image spreading in the \gls{DP} Stokes algorithm. Forces acting on particles (blue circles) are translated to the fluid as a force density. Due to images, part of the particle's force is zero near walls. Zero fluid forcing is depicted as white. A particle located at exactly the height of a wall has no effect on the fluid.}
+  \label{fig:dpstokesspread}
+\end{figure}
+
+
+
 \section*{Use in UAMMD}
 At the time of writing, the Doubly Periodic Stokes module is still in development (although in its final stages) and thus its interface is bound to change in the near future. Furthermore, its applicability is hindered by the absence of fluctuations, which make this module not suitable for Brownian Dynamics simulations in its current state (note, however, that the addition of fluctuations is a work in progress). For the time being this module is not available as an integrator and can only be used to compute the hydrodynamic displacements of a series of particles given the forces and/or torques acting on them. The heuristics for the different parameters required by the module are still being actively tested and developed, so many implementation details leak into the parameter list. In particular, the BM kernel parameters (mainly $\beta$ and the support, $w$) and the grid size information must be provided.
 
@@ -4821,7 +4829,7 @@ The electric field can be derived from the potential in fourier space via \emph{
   \hat{\vec{E}} = i\vec{k}\hat{\phi}
 \end{equation}
 
-Similarly as with \gls{FCM}, Eq. \eqref{tppoisson_phihat} can be discretized using 3D \gls{FFT} in a grid with spacing fine enough to resolve the Gaussian charges in Eq. \eqref{eq:tppoisson_cdens}.
+Similarly to the section on \gls{FCM}, Eq. \eqref{tppoisson_phihat} can be discretized using 3D \gls{FFT} in a grid with spacing fine enough to resolve the Gaussian charges in Eq. \eqref{eq:tppoisson_cdens}.
 
 The whole algorithm, going from particle charges to forces, can be summarized as follows
 \begin{enumerate}

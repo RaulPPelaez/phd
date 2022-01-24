@@ -28,9 +28,9 @@
      inkscape:cx="504.16714"
      inkscape:cy="306.88434"
      inkscape:window-width="1920"
-     inkscape:window-height="1043"
+     inkscape:window-height="1020"
      inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:window-y="567"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
      showguides="true">
@@ -449,6 +449,20 @@
          d="M 5.77,0 -2.88,5 V -5 Z"
          id="path7990-9" />
     </marker>
+    <marker
+       style="overflow:visible"
+       id="TriangleOutM-4-0-9-3"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="TriangleOutM"
+       inkscape:isstock="true">
+      <path
+         transform="scale(0.4)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path7972-8-6-3-6" />
+    </marker>
   </defs>
   <g
      inkscape:label="Layer 1"
@@ -552,13 +566,13 @@
        d="M 52.255911,200.27643 V 186.18705"
        id="path7792-0-7-0" />
     <path
-       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:1.95087;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutM-6-1)"
-       d="M 70.776741,200.27643 V 186.18705"
-       id="path7792-0-1-9" />
-    <path
        style="fill:none;stroke:#000000;stroke-width:1.95087;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutM-4-0-9)"
        d="M 90.620492,200.27643 V 186.18705"
        id="path7792-0-7-5-63" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1.95087;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutM-4-0-9-3)"
+       d="M 70.906061,200.22648 V 186.1371"
+       id="path7792-0-7-5-63-7" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1.95087;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutM-6-6-9)"
        d="M 109.14133,200.27643 V 186.18705"

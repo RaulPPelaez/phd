@@ -8,7 +8,7 @@
    version="1.1"
    id="svg5"
    sodipodi:docname="dpstokes_sketch.svg"
-   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -24,15 +24,15 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="1.6478043"
-     inkscape:cx="324.37103"
-     inkscape:cy="189.34287"
-     inkscape:window-width="1920"
-     inkscape:window-height="1043"
-     inkscape:window-x="0"
+     inkscape:zoom="0.82390215"
+     inkscape:cx="185.70166"
+     inkscape:cy="234.25112"
+     inkscape:window-width="1080"
+     inkscape:window-height="1892"
+     inkscape:window-x="1920"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="g1358" />
   <defs
      id="defs2">
     <filter
@@ -1804,17 +1804,22 @@
                    style="fill:#008c00;fill-opacity:1" />
               </g>
               <g
-                 style="fill:#008c00;fill-opacity:1"
-                 id="g3921">
+                 style="fill:#008c00;fill-opacity:0.843137;stroke:#008c00;stroke-opacity:0.843137"
+                 id="g6928-3"
+                 transform="translate(-0.50117471,0.22921139)">
                 <use
-                   xlink:href="#symbol717"
-                   x="110.28252"
+                   xlink:href="#symbol6524"
+                   x="110.28"
                    y="81.962997"
-                   id="use8982"
+                   id="use3766-6"
                    width="100%"
                    height="100%"
-                   style="fill:#008c00;fill-opacity:1" />
+                   style="fill:#008c00;fill-opacity:0.843137;stroke:#008c00;stroke-opacity:0.843137" />
               </g>
+              <path
+                 style="opacity:0.842995;fill:#008c00;fill-opacity:1;stroke:#008c00;stroke-width:0.41;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+                 d="m 107.44221,79.278666 h 3.5219"
+                 id="path1347" />
             </g>
           </g>
           <g
