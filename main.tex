@@ -726,8 +726,8 @@ One of the basic theories for coarse graining is embedded in the Fokker-Planck f
     \label{eq:fpe}
     \partial_t P = -\vec{\partial}_{\vec{x}}\cdot \vec{J}
   \end{equation}
-Where $P_0 := P(\vec{x}_0, t_0)$ is known and $\vec{\partial}_{\vec{x}}\cdot \vec{J} := \nabla_{\vec{x}}\cdot\vec{J} = \sum_i\partial J_i/\partial x_i  $ represents the divergence (note that the derivation is made with respect to the slow variables by using supervectors, i.e. all the variables and their coordinates\cite{Dhont1996}).
-Using the well-known backwards Kramers-Moyal expansion~\cite{Risken2012} truncated at the second term\footnote{The Pawula theorem~\cite{Tabar2019} can be invoked here, which proves that all terms beyond the second are meaningless. In particular, the Pawula theorem states that there are only three possible truncations of the Kramers-Moyal expansion: (1) truncating at the first term, in which case the process is deterministic; (2) truncating at the second term, in which case the process is diffusive; (3) keeping all terms up to infinity. However, keeping any term beyond the second results in a non-positive probability density.}, the probability flux vector, $\vec{J}$, is defined as
+Where $P_0 := P(\vec{x}_0, t_0)$ is known, $\vec{J}$ is the flux of probability vector  and $\vec{\partial}_{\vec{x}}\cdot \vec{J} := \nabla_{\vec{x}}\cdot\vec{J} = \sum_i\partial J_i/\partial x_i  $ represents the divergence (note that the derivation is made with respect to the slow variables by using supervectors, i.e. all the variables and their coordinates\cite{Dhont1996}).
+Using the well-known backwards Kramers-Moyal expansion~\cite{Risken2012} truncated at the second term\footnote{The Pawula theorem~\cite{Tabar2019} can be invoked here, which proves that all terms beyond the second are meaningless. In particular, the Pawula theorem states that there are only three possible truncations of the Kramers-Moyal expansion: (1) truncating at the first term, in which case the process is deterministic; (2) truncating at the second term, in which case the process is diffusive; (3) keeping all terms up to infinity. However, keeping any term beyond the second results in a non-positive probability density.}, the probability flux vector, $\vec{J}$, result to be,
 \begin{equation}
   \label{eq:fpefluxkinetic}
     \vec{J}(\vec{x}, t) := \widetilde{\vec{D}}^{(1)}(\vec{x},t)P - \vec{\partial}_{\vec{x}}\cdot\left[\tens{D}^{(2)}(\vec{x}, t)  P\right]
@@ -760,14 +760,15 @@ Its time evolution can be then expressed as
     &= \left\langle \vec{D}^{(1)} \vec{\partial}_{\vec{x}}f\right\rangle + \left\langle \vec{\partial}_{\vec{x}}\cdot\left[\tens{D}^{(2)}\vec\partial_{\vec{x}}f\right]\right\rangle,
   \end{aligned}
 \end{equation}
-where the second equality comes from using integration by parts and the divergence theorem in an straightforward, yet verbose, procedure that leverages the self-adjoint properties of the Kramers-Moyal expansion (the middle steps can be found in the literature, for instance in~\cite{Risken2012}). Additionally, we assumed natural boundary conditions (closed system).
+where the second equality comes from using integration by parts and the divergence theorem in an straightforward way~\cite{Risken2012}. Additionally, we assumed natural boundary conditions (closed system).
 The choice of names for the coefficients becomes evident if we now study the temporal evolution of the first moments of the relevant variables. The first one (the mean) yields
 \begin{equation}
   \label{eq:fpemean}  
   \frac{d\langle\vec{x}\rangle}{dt} = \underbrace{\left\langle \widetilde{\vec{D}}^{(1)}\right\rangle}_{\text{Drift}} = \overbrace{\left\langle \vec{D}^{(1)}\right\rangle}^{\text{Systematic drift}} + \underbrace{\left\langle \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}\right\rangle}_{\text{Thermal drift}}.
 \end{equation}
 % Where $\widetilde{\vec{D}}^{(1)} := \vec{D}^{(1)} + \vec{\partial}_{\vec{x}}\cdot\tens{D}^{(2)}$.
-Applying the chain rule in Eq. \eqref{eq:fpetimeevol} allows to compute the second moment,
+% Applying the chain rule in Eq. \eqref{eq:fpetimeevol} allows to compute the second moment,
+The evolution of the second moment (matrix),$\langle \vec{x}\otimes\vec{x}\rangle$, can be obtained following a similar route as that leading to Eq. \eqref{eq:fpetimeevol} (see~\cite{Risken2012}), the result is
 %In the next section, we will see that the second moment, the variance of the relevant variables, is closely related with the diffusion coefficients, $\tens{D}^{(2)}$. The second moment %It is however straightforward to study the variance in the case of a single dimension with a variable $x$, where the variance can be written as
 \begin{equation}
   \label{eq:fpevar}
@@ -827,7 +828,7 @@ In a stationary or equilibrium state we have $\partial_t\left.\tens{\sigma}\righ
   \label{eq:fpefdbal}
   2\left\langle\tens{D}^{(2)}\right\rangle = \tens{H}\tens{\sigma}_{\text{eq}} + \tens{\sigma}_{\text{eq}}\tens{H}^T.
 \end{equation}
-This key relation is known as the Fluctuation-Dissipation Balance.
+This key relation is known as the Fluctuation-Dissipation Balance, and it can be also used in steady, yet non-equilibrium, states~\cite{Zarate2006}.
 
 We can now go a little bit further and investigate the evolution of the relevant variables during a small time interval, $dt$, which will allow us to derive an \gls{SDE}.
 Let us assume that we know the values of the relevant variables at some initial point in time, $t_0 = 0$, so that $P(\vec{x}, t_0) = \delta(\vec{x}-\vec{x}_0)$ (where $\vec{x}_0 :=\vec{x}(t_0)$).
@@ -849,7 +850,7 @@ Finally, we can decompose any function into its average and a fluctuation, so th
   \label{eq:fpesde}
   d\vec{x} = \vec{x}(t_0 + dt) - \vec{x}_0 = \widetilde{\vec{D}}^{(1)}dt + \delta\vec{x}.
 \end{equation}
-Where the fluctuating part must satisfy Eq. \eqref{eq:fpesdefluc}. Furthermore, the diffusion and drag terms are related via the fluctuation-dissipation balance in Eq. \eqref{eq:fpefdbal}.
+Where the fluctuating part must satisfy Eq. \eqref{eq:fpesdefluc}. Furthermore, the diffusion and drag terms in the dynamic matrix, $\tens{H}$, are related via the fluctuation-dissipation balance in Eq. \eqref{eq:fpefdbal}.
 
 In future chapters, we will apply the Fokker-Planck formalism to the different levels of detail described in Fig. \ref{fig:multiscale} and its related discussion.
 %\todo{The math in this section is confusing. add some references about FP and the relation with the SDE}
@@ -866,7 +867,9 @@ Thus
   \label{eq:fluxeqln}
 \vec{\partial}_{\vec{x}}\ln \left(P_{\text{eq}}\right) = \frac{\vec{D}^{(1)}(\vec{x})}{\tens{D}^{(2)}(\vec{x})}
 \end{equation}
-Now, quite generally, consider that $\vec{D}^{(1)} = -\tens{M}\vec{\partial}_{\vec{x}}U(\vec{x})$ where $U$ is the free energy of the system, satisfying $P_{\text{eq}} = \frac{1}{Z}\exp\left[-\beta U(\vec{x})\right]$ (or $\vec{\partial}_{\vec{x}}P_{\text{eq}} = -\beta \vec{\partial}_{\vec{x}} U(\vec{x})$) and $\tens{M}(\vec{x})$ is called ``mobility'', as it relates forces, $\vec{F} = -\vec{\partial}_{\vec{x}}U$, with the displacement created by the systematic drift, $\left\langle d\vec{x}\right\rangle = \tens{M}\vec{F} dt$. Inserting $\vec{D}^{(1)} = -\tens{M}\vec{\partial}_{\vec{x}}U$ into Eq. \eqref{eq:fluxeqln} and comparing with the equilibrium result, we conclude that
+Now, quite generally, consider that $\vec{D}^{(1)} = -\tens{M}(\vec{x})\vec{\partial}_{\vec{x}}U(\vec{x})$ where $\tens{M}(\vec{x})$ is the so called ``mobility matrix'' which relates forces ($\vec{F} = -\vec{\partial}_{\vec{x}}U$) with the systematic part (mean) of the displacement $d\langle\vec{x}\rangle = \tens{M}\vec{F} dt$.
+
+Note that $U(\vec{x})$ is the free energy of the system providing the equilibrium distribution $P_{\text{eq}} = \frac{1}{Z}\exp\left[-\beta U(\vec{x})\right]$. This relation can also be written as $\vec{\partial}_{\vec{x}}\ln\left(P_{\text{eq}}\right) = -\beta \vec{\partial}_{\vec{x}} U(\vec{x})$. Inserting $\vec{D}^{(1)} = -\tens{M}\vec{\partial}_{\vec{x}}U$ into Eq. \eqref{eq:fluxeqln} and comparing with the equilibrium result, we conclude that
 \begin{equation}
   \frac{\vec{D}^{(1)}(\vec{x})}{\tens{D}^{(2)}(\vec{x})} = \frac{-\tens{M}(\vec{x})\vec{\partial}_{\vec{x}}U}{\tens{D}^{(2)}(\vec{x})} = -\beta\vec{\partial}_{\vec{x}}U
 \end{equation}
@@ -877,9 +880,7 @@ So that,
 \end{equation}
 Which is the celebrated Einstein relation. Note that the Einstein relation also relates fluctuations (governed by $\tens{D}^{(2)}$) with dissipation (determined by the inverse mobility, aka friction).
 
-While the Einstein relation is quite general, in colloidal systems $\tens{M}(\vec{x})$ is calculated from macroscopic (deterministic) hydrodynamics. 
-
-For instance, the mobility of a single (isolated) sphere with a no-slip surface moving in a fluid at rest with velocity $\vec{\pvel}$ can be obtained \cite{Dhont1996} by studying the total traction created by the fluid stress on its surface, $\vec{F} = \oint\tens{\sigma}\cdot \hat{\vec{n}}dS$ where $\tens{\sigma}$ is the fluid pressure tensor. The result is the well-known Stokes relation
+In colloidal systems $\tens{M}(\vec{x})$ is calculated from macroscopic (deterministic) hydrodynamics. For instance, the mobility of a single (isolated) sphere with a no-slip surface moving in a fluid at rest with velocity $\vec{\pvel}$ can be obtained \cite{Dhont1996} by studying the total traction created by the fluid stress on its surface, $\vec{F} = \oint\tens{\sigma}\cdot \hat{\vec{n}}dS$ where $\tens{\sigma}$ is the fluid pressure tensor. The result is the well-known Stokes relation
 \begin{equation}
   \label{eq:stokesrel}
   \vec{F} = -M_0^{-1} \vec{\pvel}
