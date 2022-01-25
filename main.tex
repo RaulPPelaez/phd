@@ -4098,7 +4098,7 @@ In future sections, we will describe a family of pseudo-spectral algorithms capa
 
 \section{The Force Coupling Method in quasi 2D}
 
-Suppose that all particles are subject to a force coming from the potential in Eq. \eqref{eq:q2Dconf}. We want to take the mathematical limit of Eq. \eqref{eq:bdhibdrelation} (using $\vec{F} = \vec{\partial}_{\vec{\ppos}} U_{\text{conf}}$) when $K_s\rightarrow\infty$ (hence particles move strictly in the plane $z=0$). Although it is possible to take this limit formally the general theory for it is quite complex. Luckily we can elaborate some simple arguments and assumptions to make this in a trivial way.
+Suppose that all particles are subject to a force coming from the potential in Eq. \eqref{eq:q2Dconf}. We want to take the mathematical limit of Eq. \eqref{eq:bdhibdrelation} (using $\vec{F} = \vec{\partial}_{\vec{\ppos}} U_{\text{conf}}$) when $K_s\rightarrow\infty$ (hence particles move strictly in the plane $z=0$). Although it is possible to take this limit formally the general theory for it is quite complex. Luckily we can elaborate some simple arguments and assumptions to make this in a trivial way (we provide a more in depth analysis in \cite{Pelaez2018}).
 
 %We start with the realization that, given that the particles are restricted to a plane, the mobility tensor can be reordered in a diagonal blocked arregement 
 %
@@ -4125,7 +4125,7 @@ Here $D_0$ is the bare diffusion coefficient and $\vec{\fvel}_d$ is the drift ve
 \end{equation}
 Where $f(\vec{\fpos})$ is the confining force density, which can be expressed as the gradient of an osmotic pressure. for an ideal gas of colloids, the pressure is $\pi := \kT \rho(\vec{\fpos})$, then
 \begin{equation}
-  \vec{f}(\vec{\fpos}') = -\vec{\partial}_{\vec{\fpos}}\pi = -\kT \partial_{z}\rho = -\kT \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) \hat{\vec{e}}_z
+  \vec{f}(\vec{\fpos}') = -\vec{\partial}_{\vec{\fpos}}\pi = -\kT \vec{\partial}_{\vec{\fpos}}\rho = -\kT \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) \hat{\vec{e}}_z
 \end{equation}
 Where the last equality particularizes the equation for the in-plane confinement. The drift velocity is then,
 \begin{equation}
@@ -4134,7 +4134,7 @@ Where the last equality particularizes the equation for the in-plane confinement
     \vec{\fvel}_d(\vec{\fpos}) &= -\int\tens{M}(\vec{\fpos}-\vec{\fpos}') \vec{\partial}_{\vec{\fpos}}\pi d\vec{\fpos}' \\
     &=-\kT\int\tens{M}(\vec{\fpos}-\vec{\fpos}') \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}' \overset{\text{(By parts)}}{=}\\
     &=\kT\int \partial_{z'}\tens{M}(\vec{\fpos}-\vec{\fpos}') \sum_i \delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}'\\
-    &= -\sum_i\kT\int \left[\partial_z \tens{M}(\vec{\fpos}-\vec{s}')\right]|_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}'
+    &= -\kT\sum_i\int \left[\partial_z \tens{M}(\vec{\fpos}-\vec{s}')\right]|_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}'
   \end{aligned}
 \end{equation}
 Where we introduced the plane coordinates, $\vec{s}$, such that $\vec{\fpos} = \vec{s} + z\hat{\vec{e}}_z$. Here $\delta$ represents the Dirac delta.
@@ -4162,22 +4162,27 @@ The collective effect on the colloidal density $\rho(\vec{\fpos},t)$ can be anal
 Where we have approximated $\rho$ by its average, $\bar{\rho}$, in the second term (linear perturbation approximation).
 Taking the Fourier transform in space,
 \begin{equation}
-  \partial_t \hat{\rho}(k,t) = \left[D_0k^2 + \kT \bar{\rho}\vec{k}\cdot\tens{M}\cdot{\vec{k}}\right]\hat{\rho}
+  \partial_t \hat{\rho}(\vec{k},t) = \left[D_0k^2 + \kT \bar{\rho}\vec{k}\cdot\tens{M}\cdot{\vec{k}}\right]\hat{\rho},
 \end{equation}
-immediately reveals the collective diffusion coefficient
+which solution is given by
 \begin{equation}
-  D_c = D_0 + \bar{\rho}\kT \frac{\vec{k}\cdot\tens{M}\cdot{\vec{k}}}{q^2}
+  \hat{\rho}(k,t) = \hat{\rho}(k,0)\exp\left(-k^2D_c(\vec{k}) t\right), 
 \end{equation}
-In 3D, $D_c = D_0$, as expected for ideal particles. However, for q2D it is not difficult to show that,
+where $D_c$ is the short time collective diffusion coefficient\footnote{The collective diffusion coefficient can be interpreted as the decorrelation time of a density fluctuation of typical length given by $k^{-1}$.},
+\begin{equation}
+  D_c(\vec{k}) = D_0 + \bar{\rho}\kT \frac{\vec{k}\cdot\tens{M}\cdot{\vec{k}}}{k^2}.
+\end{equation}
+
+In 3D, $D_c = D_0$ (since the divergence of the mobility is null), as expected for ideal particles. However, for q2D it is not difficult to show that,
 \begin{equation}
   D_c = D_0 + (L_nk)^{-1} + O(k),
 \end{equation}
 with
 \begin{equation}
-  L_n := \frac{2}{3\pi a\bar{\rho}_{2D}}.
-  \end{equation}
-  Thus collective diffusion increases as the inverse of the wave number.
-  This analysis clearly indicates that the Brownian dynamics corresponding to q2d necessarily includes a thermal or spurious drift related to the divergence of the (effective) q2D mobility, $(\vec{\partial}_{\vec{s}}\cdot\tens{M})_{z=0}$ (according to eq. \eqref{eq:flowq2Ddivergence}). The resulting particle dynamics \textbf{at the confining plane} are described by eq. \eqref{eq:bdfull}.
+  L_n := \frac{2}{3\pi a\bar{\rho}_{\text{2D}}},
+\end{equation}
+where $\bar{\rho}_{\text{2D}}$ is the surface density. Thus collective diffusion increases as the inverse of the wave number.
+This analysis clearly indicates that the Brownian dynamics corresponding to q2d necessarily includes a thermal or spurious drift related to the divergence of the (effective) q2D mobility, $(\vec{\partial}_{\vec{s}}\cdot\tens{M})_{z=0}$ (according to eq. \eqref{eq:flowq2Ddivergence}). The resulting particle dynamics \textbf{at the confining plane} are described by eq. \eqref{eq:bdfull}.
 This means that we can simply remove the $z$ component in our description and write
 \begin{equation}
   \label{eq:bdq2d}
@@ -4188,7 +4193,7 @@ In order to implement eq. \eqref{eq:bdq2d} within the \gls{FCM} procedure (intro
 \begin{equation}
   f(\vec{\fpos}) = \oper{S}\vec{F} + \vec{\partial}_{\vec{\ppos}}\oper{S}\left[\kT\right]
 \end{equation}
-We have generalized the Dirac delta by using the spreading operator, $\oper{S}$ (as we did when introducing spreading and interpolation in chapter \ref{sec:bdhi}). The second term corresponds to the osmotic force, $-\partial_{\vec{\fpos}}\pi = -\kT\vec{\partial}_{\vec{\fpos}}\oper{S} = \kT\vec{\partial}_{\vec{\fpos}}\oper{S}$. The kernel $\oper{S}$ spreads forces while its derivative\footnote{In fact, in the case of a Gaussian, we can spread a single quantity by using $\partial\phi_G(r) = 2\sigma_ar\phi_G(r)$ and spreading $\vec{F} + 2\kT\sigma_a\vec{r}$.} spreads internal energies\footnote{This latter idea was generalized in ~\cite{Balboa2013} to model ultrasound forces on compressible particles, with energy $\psi(\rho)\kT$.}.
+We have generalized the Dirac delta by using the spreading operator, $\oper{S}$ (as we did when introducing spreading and interpolation in chapter \ref{sec:bdhi}). The second term corresponds to the osmotic force, $-\partial_{\vec{\fpos}}\pi = -\kT\vec{\partial}_{\vec{\fpos}}\oper{S} = \kT\vec{\partial}_{\vec{\ppos}}\oper{S}$. The kernel $\oper{S}$ spreads forces while its derivative\footnote{In fact, in the case of a Gaussian, we can spread a single quantity by using $\partial\phi_G(r) = 2\sigma_ar\phi_G(r)$ and spreading $\vec{F} + 2\kT\sigma_a\vec{r}$.} spreads internal energies\footnote{This latter idea was generalized in ~\cite{Balboa2013} to model ultrasound forces on compressible particles, with energy $\psi(\rho)\kT$.}.
 
 Following the \gls{FCM}, we will set $\oper{S}$ as a Gaussian, and in order to implement a purely 2D computational set up, we need to integrate out the effect of the third direction, $z$, from the equations of motion. To that end, we recall that $\tens{M} = \oper{J}\tens{G}\oper{S}$, where $\tens{G}$ is the Green function for the fluid velocity field. The particle kernels are separable ($\oper{S} = \phi(x)\phi(y)\phi(z)$) which permits including them into the 2D Fourier transform of the Green function, to yield,
 \begin{equation}
