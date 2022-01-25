@@ -4125,16 +4125,16 @@ Here $D_0$ is the bare diffusion coefficient and $\vec{\fvel}_d$ is the drift ve
 \end{equation}
 Where $f(\vec{\fpos})$ is the confining force density, which can be expressed as the gradient of an osmotic pressure. for an ideal gas of colloids, the pressure is $\pi := \kT \rho(\vec{\fpos})$, then
 \begin{equation}
-  \vec{f}(\vec{\fpos}') = -\vec{\partial}_{\vec{\fpos}}\pi = -\kT \vec{\partial}_{\vec{\fpos}}\rho = -\kT \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) \hat{\vec{e}}_z
+  \vec{f}(\vec{\fpos}') = -\vec{\partial}_{\vec{\fpos}}\pi = -\kT \vec{\partial}_{\vec{\fpos}}\rho = -\kT \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) \hat{\vec{e}}_z,
 \end{equation}
-Where the last equality particularizes the equation for the in-plane confinement. The drift velocity is then,
+where the last equality particularizes the equation for the in-plane confinement. The drift velocity is then,
 \begin{equation}
   \label{eq:driftq2d}
   \begin{aligned}
     \vec{\fvel}_d(\vec{\fpos}) &= -\int\tens{M}(\vec{\fpos}-\vec{\fpos}') \vec{\partial}_{\vec{\fpos}}\pi d\vec{\fpos}' \\
     &=-\kT\int\tens{M}(\vec{\fpos}-\vec{\fpos}') \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}' \overset{\text{(By parts)}}{=}\\
     &=\kT\int \partial_{z'}\tens{M}(\vec{\fpos}-\vec{\fpos}') \sum_i \delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}'\\
-    &= -\kT\sum_i\int \left[\partial_z \tens{M}(\vec{\fpos}-\vec{s}')\right]|_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}'
+    &= -\kT\sum_i\int \left[\partial_z \tens{M}(\vec{\fpos}-\vec{s}')\right]|_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}'.
   \end{aligned}
 \end{equation}
 Where we introduced the plane coordinates, $\vec{s}$, such that $\vec{\fpos} = \vec{s} + z\hat{\vec{e}}_z$. Here $\delta$ represents the Dirac delta.
@@ -4146,14 +4146,14 @@ Now, the flow is incompressible in 3D, which implies
 thus, substituting $\partial_z\tens{M}$ in Eq. \eqref{eq:driftq2d} with Eq. \eqref{eq:q2dtotalflow},
 \begin{equation}
   \label{eq:flowq2Ddivergence}
-  \vec{\fvel}_d(\vec{\fpos}) = \kT\sum_i \int \left( \vec{\partial}_{\vec{s}}\tens{M} \right)_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}' = \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0}
+  \vec{\fvel}_d(\vec{\fpos}) = \kT\sum_i \int \left( \vec{\partial}_{\vec{s}}\tens{M} \right)_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}' = \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0},
 \end{equation}
-Which indicates that $\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0}$ is acting as a flow source term in the plane\footnote{Note that we have defined $\vec{\partial}_{\vec{\ppos}}\cdot\tens{M} = \sum_i\vec{\partial}_{\vec{\ppos}_i}\cdot\tens{M}(\vec{s}-\vec{q}_i)$.}. Notably, the resulting hydrodynamic interaction between two particles $1$ and $2$ is similar to an electrostatic repulsion,
+which indicates that $\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0}$ is acting as a flow source term in the plane\footnote{Note that we have defined $\vec{\partial}_{\vec{\ppos}}\cdot\tens{M} = \sum_i\vec{\partial}_{\vec{\ppos}_i}\cdot\tens{M}(\vec{s}-\vec{q}_i)$.}. Notably, the resulting hydrodynamic interaction between two particles $1$ and $2$ is similar to an electrostatic repulsion,
 \begin{equation}
   \label{eq:q2Deffrepulsion}
-  \vec{\fvel}_d(\vec{q}_1) = \kT\left(\vec{\partial}_{\vec{q}_2}\right)_{z_1=z_2=0}\tens{M} \approx \frac{1}{8\pi\eta q_{12}^3}\vec{q}_{12}
+  \vec{\fvel}_d(\vec{q}_1) = \kT\left(\vec{\partial}_{\vec{q}_2}\right)_{z_1=z_2=0}\tens{M} \approx \frac{1}{8\pi\eta q_{12}^3}\vec{q}_{12},
 \end{equation}
-Where we have used the Oseen mobility for $\tens{M}$\footnote{This interaction could be equivalent to an effective electrostatic potential $U_{\text{eff}} \approx \frac{3a}{4r}\kT$. However, unlike a potential interaction, the thermal drift $\vec{\partial}_{\vec{s}}\cdot\tens{M}$ does not induce any distortion in the equilibrium distribution. On the contrary, the addition of the drift term $\kT\vec{\partial}_{\vec{s}}\cdot\tens{M}$ preciesly ensures that the equilibrium distribution is consistent with the Boltzmann presumption $P(\vec{\ppos}) \propto \exp({-\beta}H(\vec{\ppos}))$; given by the effective Hamiltonian of the system (see chapter \ref{sec:fpe}).}.
+where we have used the Oseen mobility for $\tens{M}$\footnote{This interaction could be equivalent to an effective electrostatic potential $U_{\text{eff}} \approx \frac{3a}{4r}\kT$. However, unlike a potential interaction, the thermal drift $\vec{\partial}_{\vec{s}}\cdot\tens{M}$ does not induce any distortion in the equilibrium distribution. On the contrary, the addition of the drift term $\kT\vec{\partial}_{\vec{s}}\cdot\tens{M}$ preciesly ensures that the equilibrium distribution is consistent with the Boltzmann presumption $P(\vec{\ppos}) \propto \exp({-\beta}H(\vec{\ppos}))$; given by the effective Hamiltonian of the system (see chapter \ref{sec:fpe}).}.
 
 The collective effect on the colloidal density $\rho(\vec{\fpos},t)$ can be analyzed from eq. \eqref{eq:smoludensq2D}.
 \begin{equation}
@@ -4186,12 +4186,12 @@ This analysis clearly indicates that the Brownian dynamics corresponding to q2d 
 This means that we can simply remove the $z$ component in our description and write
 \begin{equation}
   \label{eq:bdq2d}
-  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}} + \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)\dt
+  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}} + \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)\dt,
 \end{equation}
-Where the particle positions and forces, the mobility and the noise are now defined only in the plane.
+where the particle positions and forces, the mobility and the noise are now defined only in the plane.
 In order to implement eq. \eqref{eq:bdq2d} within the \gls{FCM} procedure (introduced in section \ref{sec:fcm}) we use the second equality of eq. \eqref{eq:driftq2d}, including also putative forces $\vec{F}$ (per particle) arising from colloidal interactions and/or external fields. In such a case the force density is,
 \begin{equation}
-  f(\vec{\fpos}) = \oper{S}\vec{F} + \vec{\partial}_{\vec{\ppos}}\oper{S}\left[\kT\right]
+  f(\vec{\fpos}) = \oper{S}\vec{F} + \vec{\partial}_{\vec{\ppos}}\oper{S}\left[\kT\right].
 \end{equation}
 We have generalized the Dirac delta by using the spreading operator, $\oper{S}$ (as we did when introducing spreading and interpolation in chapter \ref{sec:bdhi}). The second term corresponds to the osmotic force, $-\partial_{\vec{\fpos}}\pi = -\kT\vec{\partial}_{\vec{\fpos}}\oper{S} = \kT\vec{\partial}_{\vec{\ppos}}\oper{S}$. The kernel $\oper{S}$ spreads forces while its derivative\footnote{In fact, in the case of a Gaussian, we can spread a single quantity by using $\partial\phi_G(r) = 2\sigma_ar\phi_G(r)$ and spreading $\vec{F} + 2\kT\sigma_a\vec{r}$.} spreads internal energies\footnote{This latter idea was generalized in ~\cite{Balboa2013} to model ultrasound forces on compressible particles, with energy $\psi(\rho)\kT$.}.
 
@@ -4231,7 +4231,7 @@ The Green's function \eqref{eq:q2dGreenintegral} is purely two-dimensional, allo
 
 Using Eq. \eqref{eq:t2dfg} instead of Eq. \eqref{eq:q2dfg} allows for our algorithm to simulate a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known.
 
-The particle dynamics can thus be formally written as,
+The particle dynamics can thus be formally written as
 
 
 
@@ -4278,7 +4278,7 @@ The particle dynamics can thus be formally written as,
 %Let us rewrite here the particle velocity equation \eqref{eq:bdhibdrelation} for the quasi 2D case,
 \begin{equation}
   \label{eq:q2dbdhirel}
-  \frac{d\vec{\ppos}_i}{dt} = \oper{J}_{\vec{\ppos}_i}\left[\tens{G}_{\qtd}\left(\oper{S}\vec{F} + \vec{\partial}\oper{S}(\kT)\right) + \vec{w}(\vec{\fpos}, t)\right]
+  \frac{d\vec{\ppos}_i}{dt} = \oper{J}_{\vec{\ppos}_i}\left[\tens{G}_{\qtd}\left(\oper{S}\vec{F} + \vec{\partial}\oper{S}(\kT)\right) + \vec{w}(\vec{\fpos}, t)\right].
 %  \begin{aligned}
   %&\int{\delta_a(\vec{\ppos}_i-\vec{r}')\left[\sum_j\tens{G}_{\qtd}(\vec{r}', \vec{r}'')\left[\delta_a(\vec{\ppos}_i-\vec{r}'')\vec{F}_j + \kT\vec{\partial}(\delta_a)(\vec{\ppos}_j-\vec{r}')\right]d\vec{r}'}d\vec{r}'' + \vec{w}(\vec{\ppos}_i, t) }
 %\end{aligned}
@@ -4305,12 +4305,12 @@ On the other hand, we know that fluctuation-dissipation (discussed in chapter \r
 \end{equation}
 must be related with the mobility as
 \begin{equation}
-  \langle\tilde{\vec{\pvel}}_i\otimes\tilde{\vec{\pvel}}_i\rangle = 2\kT \tens{M}_{\qtd}
+  \langle\tilde{\vec{\pvel}}_i\otimes\tilde{\vec{\pvel}}_i\rangle = 2\kT \tens{M}_{\qtd}.
 \end{equation}
 Equivalently, we can write the fluctuation-dissipation relation for the fluid velocity in Fourier space,
 \begin{equation}
   \label{eq:q2dfdb}
-  \left\langle\fou{\vec{w}}\otimes \fou{\vec{w}}\right\rangle = 2\kT \fou{\tens{G}}_{\qtd}
+  \left\langle\fou{\vec{w}}\otimes \fou{\vec{w}}\right\rangle = 2\kT \fou{\tens{G}}_{\qtd}.
 \end{equation}
 It is straightforward to devise a functional form for the stochastic fluid velocity that satisfies Eq. \eqref{eq:q2dfdb}.
 We can use a similar trick as we did for \gls{PSE} in Eq. \eqref{eq:psenoise} to separate the contribution of the noise in two,
@@ -4378,7 +4378,7 @@ with $z\in(-\infty, \infty)$ and a certain set of \glspl{BC} (that will be intro
 
 Here $p$ is the pressure and the fluid forcing includes the particle forces and torques (similarly to the section on \gls{FCM}, see sec. \ref{sec:fcm})
 \begin{equation}
-  \vec{f}(\vec{\fpos}) = \oper{S}\vec{F} + \half\nabla\times\oper{S}_{\tau}\vec{\tau}
+  \vec{f}(\vec{\fpos}) = \oper{S}\vec{F} + \half\nabla\times\oper{S}_{\tau}\vec{\tau}.
 \end{equation}
 
 We assume that the fluid forcing is zero outside a domain $z\in [-H, H]$. In the case of an unbounded fluid this domain is arbitrary and physically meaningless, serving only to define a numerical domain for our grid-based solver. The same thing happens in the case of a bottom wall with the top limit at $z=H$. Furthermore, assuming $\vec{f}(|z|>H) = 0$ allows us to define a set of \glspl{BC} more easily.
@@ -4398,7 +4398,7 @@ Our solver is periodic in the plane $(x,y)$ (as in quasi 2D). In the $z$ directi
     \vec{\fvel}_{\dpr}(z=H) = 0.
   \end{equation}
 \end{enumerate}
-The unbounded mode allows to simulate systems were particles are not restricted to a plane, so $\delta>0$. Additionally the other modes can be used in a variety of simulations. For instance, the bottom wall mode can be used to model the hydrodynamics of a Quartz Crystal Microbalance (QCM), improving existing models~\cite{Melendez2020}.
+The unbounded mode allows to generalize our quasi2D simulations to systems where particles are not restricted to a plane. Additionally the other modes can be used in a variety of simulations. For instance, the bottom wall mode can be used to model the hydrodynamics of a Quartz Crystal Microbalance (QCM), improving existing models~\cite{Melendez2020}.
 
 The present \gls{DP} solver is vastly different from the \gls{FCM} family of methods we have seen thus far.
 
@@ -4407,28 +4407,28 @@ Our approach consists in solving the Stokes equation in an unbounded domain, add
   \label{eq:dpstokescorrsum}
   \begin{aligned}
   &\vec{\fvel} =   \vec{\fvel}_{\dpr} +   \vec{\fvel}_{\corr}\\
-  &\vec{p} =   \vec{p}_{\dpr} +   \vec{p}_{\corr}
+  &\vec{p} =   \vec{p}_{\dpr} +   \vec{p}_{\corr}.
 \end{aligned}
 \end{equation}
 
-For the corrections, we solve, analytically, Eq. \eqref{eq:dpstokes} in the absence of forces with one or two slip walls. In particular we have
+For the corrections we solve analytically Eq. \eqref{eq:dpstokes} in the absence of forces with one or two slip walls. In particular we have
 \begin{equation}
   \label{eq:dpstokescorr}
 \begin{aligned}
     &\nabla p_{\corr} - \eta\nabla^2\vec{\fvel}_{\corr} = 0\\
-    &\nabla\cdot\vec{\fvel}_{\corr} = 0  
+    &\nabla\cdot\vec{\fvel}_{\corr} = 0,
 \end{aligned}
 \end{equation}
-Solved in a domain with $z\in [-H,\infty)$ in the case of a bottom wall and $z\in [-H, H]$ in the case of a slit channel. Finally, we set slip \glspl{BC} at the walls so
+solved in a domain with $z\in [-H,\infty)$ in the case of a bottom wall and $z\in [-H, H]$ in the case of a slit channel. Finally, we set slip \glspl{BC} at the walls so
 
 \begin{equation}
   \label{eq:dpstokescorrbcs}
   \begin{aligned}
     &\vec{\fvel}_b:=-\vec{\fvel}_{\corr}(z=-H) = \vec{\fvel}_{\dpr}(z=-H)\\
-    &\vec{\fvel}_t:=-\vec{\fvel}_{\corr}(z=H) = \vec{\fvel}_{\dpr}(z=H)    
+    &\vec{\fvel}_t:=-\vec{\fvel}_{\corr}(z=H) = \vec{\fvel}_{\dpr}(z=H),
 \end{aligned}
 \end{equation}
-Where the second condition, at $z=H$, is imposed only in the case of a slit channel geometry.
+where the second condition, at $z=H$, is imposed only in the case of a slit channel geometry.
 
 In Appendix \ref{sec:bvp} we describe a fast and \gpu-friendly \gls{BVP} solver that solves one-dimensional \glspl{PDE} in the Chebyshev basis. Our strategy in the next sections will be to write equations for the velocity and pressure in a way that is compatible with this solver. 
 
@@ -4440,7 +4440,7 @@ Let us start by writing the equations for the pressure (Eq. \eqref{eq:stokespres
 By taking the divergence of Eq. \eqref{eq:dpstokes} we eliminate the velocity
 \begin{equation}
   \label{eq:dpstokespressure}
-  \nabla^2 p = \nabla\cdot\vec{f}
+  \nabla^2 p = \nabla\cdot\vec{f}.
 \end{equation}
 Transforming to Fourier space in the plane we get a one dimensional problem for each wave number
 \begin{equation}
@@ -4451,9 +4451,9 @@ Transforming to Fourier space in the plane we get a one dimensional problem for 
     i\vec{k},
     \partial_z\right]
   % \end{bmatrix}
-  \cdot\vec{f}
+  \cdot\vec{f},
 \end{equation}
-Where the wave vector $\vec{k}:=(k_x, k_y)$ is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. As a matter of fact, the \gls{FCT} is employed here to transform the signals in the $z$ direction to the Chebyshev basis, as this allows to use the \gls{BVP} solver and facilitates the evaluation of the derivatives in this direction (by using the relations for the Chebyshev coefficients introduced in Appendix \ref{sec:bvp}). Therefore we will work with the Chebyshev coefficients, $\fou{p}_n$ (or $\fou{\vec{f}}_n$), of the different quantities.
+where the wave vector, $\vec{k}:=(k_x, k_y)$, is defined on the plane and has modulus $k^2 = k_x^2 + k_y^2$. The forces, $\vec{f}=(f^x, f^y, f^z)$ can be non-zero only inside a certain domain with $z\in [-H,H]$. Note that the pressure (and the forces) are Fourier transformed only in the plane, so that $\fou{p} :=\fou{p}(\vec{k}, z)$. As a matter of fact, the \gls{FCT} is employed here to transform the signals in the $z$ direction to the Chebyshev basis, as this allows to use the \gls{BVP} solver and facilitates the evaluation of the derivatives in this direction (by using the relations for the Chebyshev coefficients introduced in Appendix \ref{sec:bvp}). Therefore we will work with the Chebyshev coefficients, $\fou{p}_n$ (or $\fou{\vec{f}}_n$), of the different quantities.
 
 We can solve the pressure outside the domain using that
 \begin{equation}
@@ -4461,19 +4461,19 @@ We can solve the pressure outside the domain using that
 \end{equation}
 Whose solution is
 \begin{equation}
-  \fou{p}(k, z) = C_1\exp(-kz) + C_2\exp(kz)
+  \fou{p}(k, z) = C_1\exp(-kz) + C_2\exp(kz).
 \end{equation}
 By using the boundness of the pressure at $|z|\rightarrow\infty$ we can write the solution outside the domain
 \begin{equation}
   \begin{aligned}
     &\fou{p}(k,z\le -H) = C_2\exp(kz)\\
-    &\fou{p}(k,z\ge H) = C_1\exp(-kz)    
+    &\fou{p}(k,z\ge H) = C_1\exp(-kz).
   \end{aligned}
 \end{equation}
 This implies
 \begin{equation}
   \label{eq:dpstokespressurebcs}
-  (\partial_z\pm k)\fou{p}(k, z=\pm H) = 0
+  (\partial_z\pm k)\fou{p}(k, z=\pm H) = 0.
 \end{equation}
 For a given wave number, $k$, the system in Eq. \eqref{eq:dpstokesfreepressure} along the \glspl{BC} in Eq. \eqref{eq:dpstokespressurebcs} constitute a \gls{BVP} that can be solved in Chebyshev space with the solver described in Appendix \ref{sec:bvp}.
 
@@ -4489,11 +4489,9 @@ Once the Chebyshev coefficients for the pressure for each wave number are known 
     i\vec{k}\\
     \partial_z
   \end{bmatrix}
-  \fou{p} -\fou{\vec{f}}
+  \fou{p} -\fou{\vec{f}},
 \end{equation}
-
-Where the derivative of the pressure, $\partial_z\fou{p}$, can be computed via the Chebyshev coefficients of the pressure.
-
+where the derivative of the pressure, $\partial_z\fou{p}$, can be computed via the Chebyshev coefficients of the pressure.
 For the \glspl{BC} we know that outside the domain, where $\fou{\vec{f}} = 0$, the velocity satisfies
 \begin{equation}
   \label{eq:dpstokesvelout}
@@ -4502,7 +4500,7 @@ For the \glspl{BC} we know that outside the domain, where $\fou{\vec{f}} = 0$, t
     i\vec{k}\\
     \partial_z
   \end{bmatrix}
-  \fou{p}, \quad \text{ for } z \notin [-H,H]
+  \fou{p}, \quad \text{ for } z \notin [-H,H].
 \end{equation}
 The \glspl{BC} for Eq. \eqref{eq:dpstokesvelout} must be computed independently for the plane, $\vec{\fvel}^\parallel$, and perpendicular, $\vec{\fvel}^\perp$, velocities.
 \subsubsection*{Parallel velocity solve}
@@ -4524,7 +4522,7 @@ We can make use of the previously computed solution for the pressure outside the
 to finally write the \glspl{BC} for the parallel velocity as
 \begin{equation}
   \label{eq:dpstokesparvelbc}
-  \left(\partial_z\pm k\right)\fou{\vec{\fvel}}^\parallel(\vec{k}, \pm H) = \mp \frac{i\vec{k}}{2\eta k}\fou{p}(\vec{k}, \pm H)
+  \left(\partial_z\pm k\right)\fou{\vec{\fvel}}^\parallel(\vec{k}, \pm H) = \mp \frac{i\vec{k}}{2\eta k}\fou{p}(\vec{k}, \pm H).
 \end{equation}
 Note that the pressure at the domain limits, $\fou{p}(\vec{k}, \pm H)$, can be easily computed from the already available Chebyshev coefficients of the pressure.
 
@@ -4532,9 +4530,9 @@ Note that the pressure at the domain limits, $\fou{p}(\vec{k}, \pm H)$, can be e
 Following a similar strategy as with the parallel velocity, we can write the solution for the perpendicular velocity outside the domain as
 \begin{equation}
     \label{eq:dpstokesperpvel}
-  \fou{\vec{\fvel}}^{\perp} = \frac{C_1\vec{k}\exp(\pm kz)\left(2zk\mp 1\right)}{4\eta k} + C_2\exp(\pm zk).
+  \fou{\vec{\fvel}}^{\perp} = \frac{C_1\vec{k}\exp(\pm kz)\left(2zk\mp 1\right)}{4\eta k} + C_2\exp(\pm zk)
 \end{equation}
-And its derivative
+and its derivative
 \begin{equation}
   \label{eq:dpstokesperpvelder}
   \partial_z\fou{\vec{\fvel}}^{\perp} = \pm k\fou{\vec{\fvel}}^{\perp} + \frac{C_1\exp(\pm kz)}{2\eta}.
@@ -4559,26 +4557,24 @@ Let us start with the bottom wall case.
 We want to solve Eq. \eqref{eq:dpstokescorr} with \glspl{BC} in Eq. \eqref{eq:dpstokesbwvelbc}.
 
 For simplicity, let us define and $z':=(z+H)/2$.
-It is straight forward to prove that the following solutions for the velocity and the pressure satisfy Eq. \eqref{eq:dpstokescorr} with \glspl{BC} in Eq. \eqref{eq:dpstokesbwvelbc}:
+It is straightforward to prove that the following solutions for the velocity and the pressure satisfy Eq. \eqref{eq:dpstokescorr} with \glspl{BC} in Eq. \eqref{eq:dpstokesbwvelbc}:
 \begin{equation}
   \fou{\vec{\fvel}}_{\corr}(\vec{k}, z) = \left(  \fou{\vec{\fvel}}_b -
     \begin{bmatrix}
     \vec{k}\\
     ik
   \end{bmatrix}
-  \left(\left[\vec{k},ik\right]\cdot\fou{\vec{\fvel}}_b\right) \frac{z'}{k}\right)\exp\left(-kz'\right)
+  \left(\left[\vec{k},ik\right]\cdot\fou{\vec{\fvel}}_b\right) \frac{z'}{k}\right)\exp\left(-kz'\right),
 \end{equation}
 \begin{equation}
-  \fou{p}_{\corr}(\vec{k}, z) = 2\eta \left[-i\vec{k},k\right]\cdot\fou{\vec{\fvel}}_b\exp\left(-kz'\right)
+  \fou{p}_{\corr}(\vec{k}, z) = 2\eta \left[-i\vec{k},k\right]\cdot\fou{\vec{\fvel}}_b\exp\left(-kz'\right).
 \end{equation}
 
 The velocity at the bottom, $\fou{\vec{\fvel}}_b$, can be trivially evaluated via its already available Chebyshev coefficients. Once the solution is computed for every wave number, the Chebyshev coefficients can be obtained by applying the \gls{FCT} to each of them. Finally, we compute the total solution using Eq. \eqref{eq:dpstokescorrsum}.
 
 \subsection*{Slit channel}
 The double wall case proves to be a little more convoluted. We want to solve Eq. \eqref{eq:dpstokescorr} with \glspl{BC} in Eq. \eqref{eq:dpstokesbwvelbc} and \eqref{eq:dpstokestwvelbc}.
-
 The general solution for the correction in this case is
-
 \begin{equation}
   \label{eq:dpstokesslitcor}
   \begin{aligned}
@@ -4609,7 +4605,6 @@ The general solution for the correction in this case is
     \right)\exp(kz')
   \end{aligned}
 \end{equation}
-
 \begin{equation}
   \fou{p}_{\corr}(\vec{k}, z) = C_0\exp(-k z') + D_0\exp(k z')
 \end{equation}
@@ -4619,11 +4614,11 @@ The six equations above are not enough to compute the values of the eight unknow
   [i\vec{k}, \partial_z] \cdot\fou{\vec{\fvel}}_{\corr}(\vec{k}, z) = 0,
 \end{equation}
 evaluated at both the domain limits, $z=-H,H$.
-Evaluating Eq. \eqref{eq:dpstokesincompres} and replacing $\partial_z\fou{\fvel}_{\corr}^z(\vec{k}, z=\pm H)$ from Eq. \eqref{eq:dpstokesslitcor} yields the last two required equations
+Evaluating Eq. \eqref{eq:dpstokesincompres} and replacing $\partial_z\fou{\fvel}_{\corr}^z(\vec{k}, z=\pm H)$ from Eq. \eqref{eq:dpstokesslitcor} yields the last two required equations,
 \begin{equation}
   \begin{aligned}
     \frac{C_0}{2\eta} + \frac{D_0}{2\eta} - C_3k + D3_k &= -ik_x\fou{\vec{\fvel}}_b^x - ik_y\fou{\vec{\fvel}}_b^y\\
-    \left[(1-2kH)\frac{C_0}{2\eta}-kC_3\right]\exp(-2kH) +&\\ \left[(1+2kH)\frac{D_0}{2\eta} + kD_3\right]\exp(2kH) &= -ik_x\fou{\vec{\fvel}}_t^x - ik_y\fou{\vec{\fvel}}_t^y
+    \left[(1-2kH)\frac{C_0}{2\eta}-kC_3\right]\exp(-2kH) +&\\ \left[(1+2kH)\frac{D_0}{2\eta} + kD_3\right]\exp(2kH) &= -ik_x\fou{\vec{\fvel}}_t^x - ik_y\fou{\vec{\fvel}}_t^y.
 \end{aligned}
 \end{equation}
 We now have a linear system of 8 equations and 8 unknowns ($\vec{C}$ and $\vec{D}$). Once this system is solved\footnote{The system can be written in matrix form and partially precomputed (via matrix inversion) so that solving the slit correction at runtime amounts to a simple 8x8 matrix-vector multiplication. The related functions in \uammd can be found in the file \emph{StokesSlab/Correction.cuh}.} we can evaluate the correction and compute its Chebyshev coefficients. Finally we sum the correction to the free domain solution, obtaining the final result as per Eq. \eqref{eq:dpstokescorrsum}.
@@ -4635,10 +4630,9 @@ Instead of computing the zero mode for each of the subproblems separately (the f
 For the zero mode, the equation for total pressure is reduced to
 \begin{equation}
   \label{eq:dppressurebtm}
-  \partial_z\fou{p}(\vec{k}=0, z) = \fou{f}_z(\vec{k} = 0, z).
+  \partial_z\fou{p}(\vec{k}=0, z) = \fou{f}_z(\vec{k} = 0, z),
 \end{equation}
-
-Whose solution is
+which solution is
 \begin{equation}
   \fou{p}(\vec{k}=0, z) = \int_{-H}^z\fou{\vec{f}}(\vec{k} = 0, z')dz' + C.
 \end{equation}
@@ -4657,7 +4651,7 @@ On the other hand, the in-plane velocity satisfies
     1\\
     1
   \end{bmatrix}
-  \fou{f}_z
+  \fou{f}_z.
 \end{equation}
 For the \glspl{BC} we can use the fact that the bottom wall imposes a no-slip condition to elucidate $\fou{\fvel}^\parallel(\vec{k} = 0, z=-H) = 0$. Given that the forces are bound to the inside of the domain, we can assume that $\fou{\fvel}^\parallel(\vec{k} = 0, z\ge H)$ is constant. Using the continuity of its derivative at the domain limit, we can obtain the second \gls{BC} as $\partial_z\fou{\vec{\fvel}}^\parallel(\vec{k} = 0, z=H) = 0$.
 
@@ -4710,17 +4704,17 @@ The \uammd \gls{IBM} interface can be customized (via templates) to accept arbit
 Furthermore, given that the domain is not periodic in $z$, we need special considerations when spreading and interpolating near the boundaries. In the free-space case we can simply define the limits of the domain far enough from the particles so that $\vec{f}(z\notin [-H,H]) = 0$. However, in the presence of a wall we must ensure that the force goes smoothly to zero at the wall. We enforce this by subtracting the envelope of a given particle centered at its image about the wall. We can thus redefine the kernel close to the wall\footnote{Closer than the kernel's support, which effectively means everywhere.} as
 \begin{equation}
   \label{eq:dpstokeskernel}
-  \widetilde{\delta_a}(\vec{\fpos}-\vec{\ppos}_i) = \delta_a(\vec{\fpos}-\vec{\ppos}_i) - \delta_a(\vec{\fpos}-\vec{\ppos}^{\text{img}}_i)
+  \widetilde{\delta_a}(\vec{\fpos}-\vec{\ppos}_i) = \delta_a(\vec{\fpos}-\vec{\ppos}_i) - \delta_a(\vec{\fpos}-\vec{\ppos}^{\text{img}}_i),
 \end{equation}
-Were $\vec{\ppos}_i^{\text{img}}$ is the particle's point of reflection about the wall, defined as
+where $\vec{\ppos}_i^{\text{img}}$ is the particle's point of reflection about the wall, defined as
 \begin{equation}
   \label{eq:dpstokesimg}
   \begin{aligned}
-  &\vec{\ppos}_i^{\text{img}_b} = \vec{\ppos}_i - 2(H+r_z)\hat{\vec{e}}_z, \quad \text{For the bottom wall}\\
-  &\vec{\ppos}_i^{\text{img}_t} = \vec{\ppos}_i + 2(H-r_z)\hat{\vec{e}}_z, \quad \text{For the top wall}
+  &\vec{\ppos}_i^{\text{img}_b} = \vec{\ppos}_i - 2(H+r_z)\hat{\vec{e}}_z, \quad \text{For the bottom wall},\\
+  &\vec{\ppos}_i^{\text{img}_t} = \vec{\ppos}_i + 2(H-r_z)\hat{\vec{e}}_z, \quad \text{For the top wall}.
 \end{aligned}
 \end{equation}
-Being $\hat{\vec{e}}_z$ a unitary vector in the $z$ direction. The no-slip condition is then imposed by the fact that a particle at the height of a wall does not affect (nor it is affected by) the fluid. A visual representation of the effect of the images is available in Fig. \ref{fig:dpstokesspread}.
+Here $\hat{\vec{e}}_z$ is a unitary vector in the $z$ direction. The no-slip condition is then imposed by the fact that a particle at the height of a wall does not affect (nor it is affected by) the fluid. A visual representation of the effect of the images is available in Fig. \ref{fig:dpstokesspread}.
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/dpstokesspread}
@@ -4792,46 +4786,46 @@ We will use the spreading operator, $\oper{S}$, (introduced in chapter \ref{sec:
 Identifying $a$ as the width the charges (notice that the case $a\rightarrow 0$ corresponds to point charges).
 Once Eq. \eqref{eq:ttpoisson} is solved we have the value of the potential in every point in space and can be evaluated at the charges locations via the interpolation operator (introduced in chapter \ref{sec:bdhi})
 \begin{equation}  
-  \phi_{\vec{\ppos}_i} = \oper{J}_{\vec{\ppos}_i}\phi = \int Q_i\delta_a(\vec{\ppos}_i - \vec{\fpos})\phi(\vec{\fpos})d\vec{\fpos}
+  \phi_{\vec{\ppos}_i} = \oper{J}_{\vec{\ppos}_i}\phi = \int Q_i\delta_a(\vec{\ppos}_i - \vec{\fpos})\phi(\vec{\fpos})d\vec{\fpos}.
 \end{equation}
 Here $\oper{J}$ represents the interpolation operator, that averages a quantity defined in space to a charge's location.
 The electrostatic energy can be computed as
 \begin{equation}
   \label{tppoisson_avgpot}
-  U =  \frac{1}{2}\sum_i{\phi_{\vec{\ppos}_i}} 
+  U =  \frac{1}{2}\sum_i{\phi_{\vec{\ppos}_i}}.
 \end{equation}
 % Where $\bar{\phi}(\vec{z}_i)=\bar{\phi}_i$ is the convolution of the potential with a Gaussian centered at the charge's location and can also be interpreted as the average potential at that point.
 
-In a similar way we compute the electrostatic force $\vec{F}_i = -Q_i\nabla_i{\phi}$ acting on each charge from the electric field
+In a similar way we compute the electrostatic force, $\vec{F}_i = -Q_i\nabla_i{\phi}$, acting on each charge from the electric field
 \begin{equation}
   \label{eq:tppoisson_fieldnablaphi}
-  \vec{E} = -\nabla{\phi}
+  \vec{E} = -\nabla{\phi}.
 \end{equation}
-By interpolating again
+Interpolating again we get
 \begin{equation}
   \label{tppoisson_avgfield}
-\vec{E}_i = \oper{J}_{\vec{\ppos}_i}\vec{E}(\vec{\fpos})
+\vec{E}_i = \oper{J}_{\vec{\ppos}_i}\vec{E}(\vec{\fpos}).
 \end{equation}
-So that the electrostatic force acting on particle $i$ is
+Thus, the electrostatic force acting on particle $i$ is
 \begin{equation}
   \label{eq:tppoisson_force}
-\vec{F}_i = Q_i\oper{J}_{\vec{\ppos}_i}\vec{E}
+\vec{F}_i = Q_i\oper{J}_{\vec{\ppos}_i}\vec{E}.
 \end{equation}
 
 % Where the sum in Eq. \ref{eq:tpppoisson_gaussiansource} goes through every point $\vec{z}_k$ in the domain.
 Given that Eq. \eqref{eq:tpppoisson_gaussiansource} has in principle an infinite support evaluating Eq. \eqref{eq:tppoisson_cdens} at every point in space, as well as computing the averages of the electric potential and field in Eqs. \eqref{tppoisson_avgpot} and \eqref{tppoisson_avgfield} can be highly inefficient. In practice we overcome this limitation by truncating Eq. \eqref{eq:tpppoisson_gaussiansource} at a certain distance according to a desired tolerance.
 \subsection*{Basic Algorithm}
-Eq. \eqref{eq:ttpoisson} can be easily solved in Fourier space by convolution with the Poisson's Greens function 
+Eq. \eqref{eq:ttpoisson} can be easily solved in Fourier space by convolution with the Poisson's Greens function,
 \begin{equation}
   \label{tppoisson_phihat}
- \hat\phi(\vec{k}) = \frac{\hat f(\vec{k})}{\varepsilon k^2}
+ \hat\phi(\vec{k}) = \frac{\hat f(\vec{k})}{\varepsilon k^2}.
 \end{equation}
 We can reuse the methodological machinery devised for the \gls{FCM} (see chapter \ref{sec:fcm}) identifying $\fou{\oper{G}} := \frac{1}{k^2}$ as the Green's function and interpreting the viscosity as the permittivity. Naturally, in the current case fluctuations are not present.
 
-The electric field can be derived from the potential in fourier space via \emph{ik} differentiation.
+The electric field can be derived from the potential in fourier space via \emph{ik} differentiation,
 \begin{equation}
     \label{tppoisson_ehat}
-  \hat{\vec{E}} = i\vec{k}\hat{\phi}
+  \hat{\vec{E}} = i\vec{k}\hat{\phi}.
 \end{equation}
 
 Similarly to the section on \gls{FCM}, Eq. \eqref{tppoisson_phihat} can be discretized using 3D \gls{FFT} in a grid with spacing fine enough to resolve the Gaussian charges in Eq. \eqref{eq:tppoisson_cdens}.
@@ -4860,9 +4854,9 @@ The main problem with the approach in the previous section is that the grid need
 
 We can write the potential as
 \begin{equation}
- \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{\near} + \phi^{\far}.
+ \phi=(\phi - \gamma^{1/2}\star\psi) + \gamma^{1/2}\star\psi = \phi^{\near} + \phi^{\far},
 \end{equation}
-Where $\star$ represents convolution and the intermediate solution $\psi$ satisfies
+where $\star$ represents convolution and the intermediate solution $\psi$ satisfies
  \begin{equation}
  \varepsilon\Delta\psi=-f\star\gamma^{1/2}.
 \end{equation}   
@@ -4881,46 +4875,48 @@ Given that the Laplacian commutes with the convolution we can divide the problem
 \end{equation}   
 The convolution of two Gaussians is also a Gaussian, so in the case of the far field the RHS results in wider Gaussian sources that can be interpreted as smeared versions of the original ones. The far field RHS thus decays exponentially in Fourier space and is solved as in the non Ewald split case by effectively modifying the width of the Gaussian sources from $a$ to
 \begin{equation}
-  g_t = \sqrt{\frac{1}{4\xi^2} + a^2}
+  g_t = \sqrt{\frac{1}{4\xi^2} + a^2}.
 \end{equation}
 Notice that this overcomes the difficulties for the case of point sources, since we can arbitrarily increase $\xi$ to work with an arbitrarily large Gaussian source.
 
-In contrast the near field effective charges are sharply peaked and narrower than the originals, rapidly decaying to zero. We can compute the Green's function for Eq. \eqref{tppoisson_ewald_near} analytically by convolving the original Poisson Green's function with the effective charges in Eq. \eqref{tppoisson_ewald_near} in Fourier space
+In contrast the near field effective charges are sharply peaked and narrower than the originals, rapidly decaying to zero. We can compute the Green's function for Eq. \eqref{tppoisson_ewald_near} analytically by convolving the original Poisson Green's function with the effective charges in Eq. \eqref{tppoisson_ewald_near} in Fourier space, yielding
 \begin{equation}
-  \hat{\oper{G}}^{\near}(k) = \frac{(1-\hat{\gamma})\hat{f}}{\varepsilon k^2}
+  \hat{\oper{G}}^{\near}(k) = \frac{(1-\hat{\gamma})\hat{f}}{\varepsilon k^2}.
 \end{equation}
-The inverse transform of this kernel gives us the potential at any point of the grid 
+The inverse transform of this kernel gives us the potential at any point of the grid as
 \begin{equation}
-  \phi^{\near}(\vec{\fpos}) = \sum_i{Q_i\oper{G}^{\near}(||\vec{\fpos}-\vec{\ppos}_i||)}
+  \phi^{\near}(\vec{\fpos}) = \sum_i{Q_i\oper{G}^{\near}(||\vec{\fpos}-\vec{\ppos}_i||)}.
 \end{equation}
 However, we are only interested in the potential averaged at the charges locations. Instead of storing and computing the potential in a grid and then interpolating as in the far field we can compute this analytically. Given that $\oper{J} \phi^{\near} = f\star \phi^{\near}$ we can define a pre-interpolated interaction kernel as
 \begin{equation}
-  \hat{\oper{G}}_{\oper{J}}^{\near}(k) = \hat{f}\hat{\oper{G}}^{\near} = \frac{(1-\hat{\gamma})\hat{f}^2}{\varepsilon k^2}
+  \hat{\oper{G}}_{\oper{J}}^{\near}(k) = \hat{f}\hat{\oper{G}}^{\near} = \frac{(1-\hat{\gamma})\hat{f}^2}{\varepsilon k^2}.
 \end{equation}
 This expression is radially symmetric, which allows to compute the inverse Fourier transform as
 \begin{equation}
   \label{tppoisson_gnear}
   \begin{aligned}
     \oper{G}_{\oper{J}}^{\near}(r) &= \frac{1}{2\pi^2r}\int{\hat{\oper{G}}^{\near}_{\oper{J}}k \sin(kr)dk} \\
-            &= \frac{1}{4\pi\epsilon r}\left(\erf\left(\frac{r}{2a}\right) - \erf\left(\frac{r}{2g_t}\right)\right)
+            &= \frac{1}{4\pi\epsilon r}\left(\erf\left(\frac{r}{2a}\right) - \erf\left(\frac{r}{2g_t}\right)\right),
   \end{aligned}
 \end{equation}
-Which decays exponentially and thus can be truncated at a certain cut off radius $r_c$. Furthermore this expression requires special consideration at short distances where numerical issues could arise. In this cases the Taylor expansion of Eq. \eqref{tppoisson_gnear} can be used instead.
-We can use this expression to compute the potential or energy at the charges locations
+which decays exponentially and can be truncated at a certain cut off radius $r_c$. Furthermore this expression requires special consideration at short distances where numerical issues could arise. In these cases the Taylor expansion of Eq. \eqref{tppoisson_gnear} can be used instead.
+We can use this expression to compute the potential or energy at the charges locations as
 \begin{equation}
-  U_i = Q_i\oper{J}_{\vec{\ppos}_i}\phi^{\near}(\vec{\fpos}) = Q_i\sum_j{Q_j\oper{G}_{\oper{J}}^{\near}(||\vec{\ppos}_i - \vec{\ppos}_j||)}
+  U_i = Q_i\oper{J}_{\vec{\ppos}_i}\phi^{\near}(\vec{\fpos}) = Q_i\sum_j{Q_j\oper{G}_{\oper{J}}^{\near}(||\vec{\ppos}_i - \vec{\ppos}_j||)}.
 \end{equation}
-Similarly we compute the electric field or force acting on each charge 
+Similarly we compute the electric field or force acting on each charge,
 \begin{equation}
-  \vec{F}_i = Q_i \oper{J}_{\vec{\ppos}_i} \vec{E}^{\near} = Q_i\sum_j{Q_j\frac{\partial G_{\oper{J}}^{\near}({r_{ij}})}{\partial r}\frac{\vec{r}_{ij}}{r_{ij}}}
+  \vec{F}_i = Q_i \oper{J}_{\vec{\ppos}_i} \vec{E}^{\near} = Q_i\sum_j{Q_j\partial_r G_{\oper{J}}^{\near}({r_{ij}})\frac{\vec{r}_{ij}}{r_{ij}}},
 \end{equation}
-Where $\vec{r}_{ij} = \vec{\ppos}_i - \vec{\ppos}_j$ and $r_{ij} = ||\vec{r}_{ij}||$. The derivative of Eq. \eqref{tppoisson_gnear} can be computed analytically.
+where $\vec{r}_{ij} = \vec{\ppos}_i - \vec{\ppos}_j$ and $r_{ij} = ||\vec{r}_{ij}||$. The derivative of Eq. \eqref{tppoisson_gnear} can be computed analytically \cite{Maxian2021}.
 \subsection*{Accuracy}
 There are several parameters than can be tweaked to control the overall accuracy of the algorithm:
-The grid cell size $h:=L/n$ (being $L$ the box size and $n$ the number of grid cells\footnote{A cubic box is considered, but the arguments can be extended easily to any domain dimensions.}) control how fine the Gaussian sources are described and provides a cut off wave number for the fourier description of the Poisson's Green's function.
+The grid cell size $h:=L/n$ (being $L$ the box size and $n$ the number of grid cells\footnote{A cubic box is considered, but the arguments can be extended easily to any domain dimensions.}) controls how fine the Gaussian sources are described (providing a cut off wave number for the fourier description of the Poisson's Green's function). Empirically I have found that $h = \left[1.3 - \text{min}\left(-0.1\log_{10}(\epsilon), 0.9\right)\right]g_t$ ensures enough accuracy to ensure a relative error below the desired tolerance, $\epsilon$.
 Note that $n$ should be chosen to be an \gls{FFT}-friendly number (see Appendix \ref{ch:appendixa}).
 
-On the other hand, we also truncate the Gaussian kernel, $\phi_G$, up to a certain distance, $r_c$, such that $\phi_G(r_c)< \epsilon$ (being $\epsilon$ a desired tolerance).
+On the other hand, we also truncate the Gaussian kernel, $\phi_G$, up to a certain distance, $r_c$, such that $\phi_G(r_c)< \epsilon\phi_G(0)$.
+
+A cut off distance is also required for the near field, where we choose $r_c^{nf}$ such that $\oper{G}_{\oper{J}}^{\near}(r_c) < \epsilon\oper{G}_{\oper{J}}^{\near}(0)$.
 
 
 \subsection*{Use in UAMMD}
