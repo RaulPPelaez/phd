@@ -987,7 +987,7 @@ The \emph{ParticleData} \uammd class\footnote{Note that since \uammd usually exp
 In CUDA/C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the program crashing.
 
 \emph{ParticleData} can provide handles giving access to the different particle properties.
-When requesting a handle to a property from \emph{ParticleData} with the intention of writing the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If another part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property becoming out of sync. The solution to this is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed. Furthermore, trying to use a handle for a different intention than requested (choosing the GPU as the device but accesing from the CPU or writing to a handle that was requested for reading) will result in either undefined behavior or the code crashing\footnote{Whenever is possible \uammd will throw an exception instead of crashing.}. The example code \ref{code:pd} showcases the basic usage of the \emph{ParticleData} class. In particular, showing how to access and modify particle properties.
+When requesting a handle to a property from \emph{ParticleData} with the intention of writing the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If some other part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property becoming out of sync. The solution is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed. Furthermore, trying to use a handle for a different intention than requested (choosing the GPU as the device but accesing from the CPU or writing to a handle that was requested for reading) will result in either undefined behavior or the code crashing\footnote{Whenever is possible \uammd will throw an exception instead of crashing.}. The example code \ref{code:pd} showcases the basic usage of the \emph{ParticleData} class. In particular, showing how to access and modify particle properties.
 
 \begin{code2}[Creating and using an instance of \emph{ParticleData}.]
   {label=code:pd}
@@ -1015,12 +1015,108 @@ int main(){
   return 0;
 }
 \end{code2}
-Adding new particle properties in \uammd amounts to including them in a especial list (in the source code \emph{ParticleData.cuh}, to be precise). Many particle properties are already available in this list at the time of writing, such as positions, velocities, forces, mass, radius and many more. Each particle is assigned a name when \emph{ParticleData} is created. \emph{ParticleData} refers to this special property as ``Id'' (and exposes it just like the rest, with a corresponding \mintinline{\ucpp}{getId(access::gpu, access::read);} function). The name, or id, property has the unique quality of being immutable, meaning that it can only be requested for reading. \uammd can under some circumstances change (reorder) the memory location of the particles\footnote{For instance to increase the data locality in memory for particles close in physical space.} (so that a particle named \emph{id} that started at some index \emph{i} would no longer be located at index \emph{i}). Naturally, it is possible to query \emph{ParticleData} for the index of a particle given its name\footnote{The \emph{ParticleData} member function \mintinline{\ucpp}{getIdOrderedIndices();} returns an array that stores the memory location (index) of a particle given its name (aka id).} (the reader can refer to the online \uammd documentation, see Appendix \ref{ch:online}, to learn more about this). Note that in general in a GPU-centric algorithm, when we assign a worker (be it a thread or a thread block) to each particle, given that each worker runs asynchronously with the rest the specific order of the particles in memory becomes irrelevant from an algorithmic point of view.
+Adding new particle properties in \uammd amounts to including them in a special list (in the source code \emph{ParticleData.cuh}, to be precise). Many particle properties are already available in this list at the time of writing, such as positions, velocities, forces, mass, radius and many more. Each particle is assigned a name when \emph{ParticleData} is created. \emph{ParticleData} refers to this special property as ``Id'' (and exposes it just like the rest, with a corresponding \mintinline{\ucpp}{getId(access::gpu, access::read);} function). The name, or id, property has the unique quality of being immutable, meaning that it can only be requested for reading. \uammd can under some circumstances change (reorder) the memory location of the particles\footnote{For instance to increase the data locality in memory for particles close in physical space.} (so that a particle named \emph{id} that started at some index \emph{i} would no longer be located at index \emph{i}). Naturally, it is possible to query \emph{ParticleData} for the index of a particle given its name\footnote{The \emph{ParticleData} member function \mintinline{\ucpp}{getIdOrderedIndices();} returns an array that stores the memory location (index) of a particle given its name (aka id).} (the reader can refer to the online \uammd documentation, see Appendix \ref{ch:online}, to learn more about this). Note that in general in a GPU-centric algorithm, when we assign a worker (be it a thread or a thread block) to each particle, given that each worker runs asynchronously with the rest the specific order of the particles in memory becomes irrelevant from an algorithmic point of view.
 
 Besides working as a multi container, \emph{ParticleData} offers a series of functionalities overlooked here for simplicity (the reader can find more information in Appendix \ref{ch:online}). However, it is worth mentioning that \emph{ParticleData} has the ability to spatially hash and sort particles to increase data locality when accesing the particles' properties.
 
 %\todo{Maybe reference to the different chapters in Fig. \ref{fig:uammdsketch_interactors}?}
 %The Poisson leaf in Fig. \ref{fig:uammdsketch_interactors} deals with electrostatics and involves a series of numerical techniques that will not be discussed until much later in this manuscript. Thus, we simply mention it here and defer its description to chapter \ref{ch:tppoisson}.
+
+
+\chapter{A self-contained UAMMD code example}
+
+Before moving on, it is worth laying out here a complete example of an UAMMD simulation in hopes of helping the reader not to loose sight of the framework as a whole. Source code \ref{code:selfcontained} contains the UAMMD code required to perform a constant-energy (NVE ensemble) \gls{MD} simulation of a collection of \gls{LJ} particles.
+Note that most of the concepts (both physical and programming ones) in this example have not been introduced in detail yet. In the course of this manuscript we will introduce the necessary tools required for the reader to understand each part of code \ref{code:selfcontained}. It is not the goal of this example to be understood in its entirety at this point of the manuscript, rather offer to the reader an overview, in general terms, of how a complete simulation code using UAMMD might look like.
+A quick look at the main function at the end of source code \ref{code:selfcontained} reveals the general structure of the program, with most steps executing one of the functions defined before.
+
+\newpage
+
+\begin{code2}[A constant-energy UAMMD simulation of a collection of Lennard-Jones particles. For simplicity, all parameters are hard-coded (as opposed to, for instance, being read from a file). ]{label=code:selfcontained}
+# include "uammd.cuh"
+# include "utils/InitialConditions.cuh"
+# include "Interactor/Potential/Potential.cuh"
+# include "Interactor/NeighbourList/CellList.cuh"
+# include "Interactor/PairForces.cuh"
+# include "Integrator/VerletNVE.cuh"
+
+using namespace uammd;
+using std::make_shared;
+using std::shared_ptr;
+
+auto initializeParticles(int numberOfParticles, Box box){
+  auto particles = make_shared<ParticleData>(numberOfParticles);
+  auto position = particles->getPos(access::cpu, access::write);
+  auto initial =  initLattice(box.boxSize, numberOfParticles, sc);
+  std::copy(initial.begin(), initial.end(), position.begin());
+  return particles;
+}
+
+auto createVerletNVE(shared_ptr<ParticleData> particles){
+  using Verlet = VerletNVE;
+  Verlet::Parameters VerletParams;
+  VerletParams.dt = 0.01;
+  VerletParams.initVelocities = true;
+  VerletParams.energy = 1.0;
+  auto integrator = make_shared<Verlet>(particles, VerletParams);
+  return integrator;
+}
+
+auto  createLJInteraction(shared_ptr<ParticleData> particles,
+			  Box box){
+  auto LJPotential = make_shared<Potential::LJ>();
+  Potential::LJ::InputPairParameters LJParams;
+  LJParams.epsilon = 1.0;
+  LJParams.sigma = 1.0;
+  LJParams.cutOff = 2.5*LJParams.sigma;
+  LJParams.shift = true;
+  LJPotential->setPotParameters(0, 0, LJParams);
+  using LJForces = PairForces<Potential::LJ>;
+  LJForces::Parameters interactionParams;
+  interactionParams.box = box;
+  auto interaction = make_shared<LJForces>(particles, interactionParams, LJPotential);
+  return interaction;
+}
+
+void runSimulation(shared_ptr<Integrator> integrator){
+  int numberOfSteps = 1000;
+  for(int step = 0; step < numberOfSteps; ++step) {
+    integrator->forwardTime();
+  }
+}
+
+void writePositions(shared_ptr<ParticleData> particles){
+  std::string outputFile = "Lennard-Jones.dat";
+  std::ofstream out(outputFile);
+  auto position = particles->getPos(access::cpu, access::read);
+  const int * index = particles->getIdOrderedIndices(access::cpu);
+  out<<std::endl;
+  for(int id = 0; id < numberOfParticles; ++id){    
+    auto pi = box.apply_pbc(make_real3(position[index[id]]));
+    out<<pi<<std::endl;
+  }
+}
+
+int main(int argc, char *argv[]){
+  int numberOfParticles = 100000;
+  // Simulation box (periodic by default)
+  real L = 128;
+  Box box(make_real3(L, L, L));
+  // Initial configuration
+  auto particles = initializeParticles(numberOfParticles, box);
+  // Integration scheme (Verlet)
+  auto integrator = createVerletNVE(particles);
+  // Add interactions (Lennard-Jones)
+  auto lj = createLJInteraction(particles, box);
+  integrator->addInteractor(lj);
+  // Numerical integration of the equations of motion
+  runSimulation(integrator);
+  // Output final configuration
+  writePositions(particles);
+  return 0;
+}
+\end{code2}
+
+\newpage
 
 \chapter{Particle interactions}\label{sec:interactions}
 
@@ -1952,7 +2048,7 @@ The force can usually be expressed as the gradient of an underlying potential en
 which in general is a function of the positions of the particles.
 
 
-At their core, Eqs. \eqref{eq:md} and \eqref{eq:md} are an expression of the conservation of the total energy of the entire system. Consequently, these equations of motion can be used to perform simulations in the so-called microcanonical ensemble (NVE)\footnote{Although other systems can also be simulated with \gls{MD}. For example, \gls{MD} could be used to simulate the dynamics a group of gas molecules inside a piston (in which volume is not conserved).}, where the number of particles (N), the volume of the domain (V) and the total energy (E) are conserved. Note, however, that the energy is only conserved when forces stem from the gradient of a potential.
+At their core, Eqs. \eqref{eq:md} and \eqref{eq:mdfv} are an expression of the conservation of the total energy of the entire system. Consequently, these equations of motion can be used to perform simulations in the so-called microcanonical ensemble (NVE)\footnote{Although other systems can also be simulated with \gls{MD}. For example, \gls{MD} could be used to simulate the dynamics a group of gas molecules inside a piston (in which volume is not conserved).}, where the number of particles (N), the volume of the domain (V) and the total energy (E) are conserved. Note, however, that the energy is only conserved when forces stem from the gradient of a potential.
 
 
 Our goal is to numerically integrate Eq. \eqref{eq:md}. Starting from the state of the system at a certain time $t$ (where the system is conformed by the positions and velocities of the particles and the forces acting on them) we want to find the state of the system at time $t + \dt$. We refer to $\dt$ as the time step.
@@ -2133,7 +2229,7 @@ We can write the Langevin \gls{SDE} as
 \end{equation}
 which can be interpreted as a form of Eq. \eqref{eq:md} coupled with a thermostat so that noise and drag forces are balanced according to the fluctuation-dissipation relation (see section \ref{sec:fdb}), guaranteeing the correct thermalization of the system (NVT ensemble).
 
-On the other hand, Eq. \eqref{eq:langevin} is an expression of the equivalent \gls{SDE} (Eq. \eqref{eq:fpesde}) for the \gls{FPE} with the particle momenta and positions as the relevant variables. The first term in Eq. \eqref{eq:langevin}, $\vec{F_c}$, is the sum of the conservative forces acting on particle $i$ (the ones coming from the underlying potential energy landscape), these interactions can be steric, electrostatic, bonded, etc.
+On the other hand, Eq. \eqref{eq:langevin} is an expression of the equivalent \gls{SDE} (Eq. \eqref{eq:fpesde}) for the \gls{FPE} with the particle momenta and positions as the relevant variables. The first term in Eq. \eqref{eq:langevin}, $\vec{F}$, is the sum of the conservative forces acting on particle $i$ (the ones coming from the underlying potential energy landscape), these interactions can be steric, electrostatic, bonded, etc.
 The second term represents the drag exerted by the solvent particles in the form of a dissipative force.
 Finally, the third term represents the fluctuations produced by the fast and constant collisions of the solvent particles. Here $\vec{\beta}$ is a random increment which must be in fluctuation-dissipation balance with the friction term (see section \ref{sec:fdb}), we will shortly study its value.
 
@@ -2369,7 +2465,7 @@ The weight function $\omega(r)$ is a soft repulsive force usually defined as
   \label{eq:dpdw}
   \omega(r) =
   \begin{cases}
-    \alpha\left(1-\dfrac{\ppos}{r_{c}}\right) & r<r_{c}\\
+    \alpha\left(1-\dfrac{r}{r_{c}}\right) & r<r_{c}\\
     0 & r\ge r_{c}
   \end{cases}
 \end{equation}
@@ -2703,7 +2799,7 @@ The incompressible Navier-Stokes equations can be written as~\cite{Balboa2014}
 \begin{equation}
   \label{eq:navierstokes}
   \begin{aligned}
-    \overbrace{\underbrace{\rho\partial_t{\vec{\fvel}}}_{\text{time}} +\underbrace{\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})}_{\text{convection}}}^{\text{fluid inertia}} + \underbrace{\nabla \pi}_{\text{internal stress}} &= \overbrace{\eta \nabla^2\vec{\fvel}}^{\text{momentum diffusion}} + \underbrace{\vec{f} + \nabla\cdot \mathcal{Z}}_{\text{external stress}}\\
+    \overbrace{\underbrace{\rho\partial_t{\vec{\fvel}}}_{\text{time}} +\underbrace{\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})}_{\text{convection}}}^{\text{fluid inertia}} + \underbrace{\nabla \pi}_{\text{internal stress}} &= \overbrace{\eta \nabla^2\vec{\fvel}}^{\text{momentum diffusion}} + \underbrace{\vec{f} + \nabla\cdot \mathcal{Z}}_{\text{\parbox{2cm}{\centering external forces\\[-4pt] and\\[-4pt] thermal noise}}}\\
     \nabla\cdot\vec{\fvel} &= 0\quad\mathllap{\underbrace{\phantom{\nabla\cdot\vec{\fvel} = 0}}_{\text{incompressibility}}}
   \end{aligned}
 \end{equation}
@@ -2746,7 +2842,7 @@ On the other hand, $m_p\dot{\vec{\pvel}} = \vec{F}_{\text{drag}} + \vec{F}$ wher
 \begin{equation}
   m_e\dot{\vec{\pvel}} = \vec{F} - \vec{\lambda}.
 \end{equation}
-Which implies, for $m_e = 0$, $\vec{\lambda}=\vec{F}$. Thus any force on the particle goes to the fluid.
+Which implies, for $m_e = 0$, $\vec{\lambda}=\vec{F}$. Thus any force on the particle goes to the fluid. In fact, this is another important assumption in Brownian dynamics; neglect the particle inertia.
 
 %In the spirit of \gls{BD}, we also assume that the friction time $\tau_F = m/\xi$ is quite small compared with any other physical process. In other words, we assume particles are neutrally buoyant and disregard their inertia ($\dot{\vec{\pvel}} = 0$). As demonstrated in ~\cite{Balboa2014}, the inertial effects of the particles due also to a non zero excess mass can be reintroduced via a Lagrange multiplier, $\lambda$, (which enforces $\vec{\pvel} = \vec{\fvel}$). Physically, $\lambda$ is the net force that the particle exerts on the fluid which, in turn (third Newton law) exerts a force $-\lambda$ to the particle. The particle's equation of motion is then
 %\begin{equation}
@@ -2767,7 +2863,7 @@ Which implies, for $m_e = 0$, $\vec{\lambda}=\vec{F}$. Thus any force on the par
 %
 \section*{The Stokes limit}
 
-If we take the overdamped limit of Eq. \eqref{eq:navierstokes}, where the momentum of the fluid can be eliminated as a fast variable (allowing to neglect the transient term $\partial_t \vec{\fvel}$ as well as the convection\footnote{We assume that the Schmidt number is very large, $S_c = \eta/(\rho D_0) \gg 1$, were $D_0 = \kT/(6\pi\eta a)$ is the typical diffusion coefficient of a submerged particle (see sec. \ref{sec:einstein}).}) we get the so-called Stokes equations
+If we take the overdamped limit of Eq. \eqref{eq:navierstokes}, where the momentum of the fluid can be eliminated as a fast variable (allowing to neglect the transient term $\partial_t \vec{\fvel}$ as well as the convection\footnote{Neglecting convection is valid for small Reynolds number hydrodynamics, i.e, $\text{Re} = \frac{\eta v}{\rho L} \ll 1$ with $L$ the smallest characteristic length of the system (e.g. particle radius).}\footnote{Moreover, we assume that the Schmidt number is very large, $S_c = \eta/(\rho D_0) \gg 1$, where $D_0 = \kT/(6\pi\eta a)$ is the typical diffusion coefficient of a submerged particle (see sec. \ref{sec:einstein}), which implies that fluid momentum propagates much faster than particle diffusion. For $S_c\gg 1$ the transient term $\rho\partial_t\vec{v}$ can be neglected, which is a sane approximation (even for proteins in water).}) we get the so-called Stokes equations
 \begin{equation}
   \label{eq:stokes}
   \begin{aligned}
@@ -2848,7 +2944,7 @@ The reverse of interpolation is spreading. As stated, we compute the force densi
   \label{eq:spreadoper}
   \vec{f}(\vec{\fpos}) = \oper{S}(\vec{\fpos})\vec{F} = \sum_i\delta_a(\vec{\ppos}-\vec{\fpos}_i)\vec{F}_i,
 \end{equation}
-where we have stretched the notation by interpreting $\vec{F} := \{\vec{F}_1,\dots,\vec{F}_N\}$.
+where we have used the supervector notation \cite{Dhont1996}, $\vec{F} := \{\vec{F}_1,\dots,\vec{F}_N\}$.
 The benefit of using the same kernel to spread and interpolate is that it makes the operations adjoint to each other, $\oper{J} = \oper{S}^*$, which is required in the following derivation~\cite{Delong2014}.
 
 The physical volume $\Delta V$ of a particle is related to the kernel via
@@ -4074,7 +4170,7 @@ Other forms of (non-Gaussian) traps can be prepared using electric fields (maybe
 
 In future sections, we will study diffusive phenomena arising in this special geometry. For now, let's lay out the algorithmic machinery necessary to simulate it.
 
-Let's start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three-dimensional incompressible fluid. As we saw in chapter \ref{sec:bdhi}, forces acting on the particles are propagated to the whole fluid, due to its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting hydrodynamic drag acts like a flow source which tends to expel other particles around it (see Fig.~\ref{fig:q2dsch}). This can be interpreted as the flow in the plane having a positive divergence, which makes the fluid (as seen from within the plane) being effectively compressible. We will see that this effect naturally arises in a particle-based description (\gls{BDHI}) through an effective plane mobility with non-zero divergence~\cite{Pelaez2017}.
+Let's start by considering a suspension of colloidal particles confined near $z=0$ by a strong confining potential submerged in an otherwise unbounded three-dimensional incompressible fluid. As we saw in chapter \ref{sec:bdhi}, forces acting on the particles are propagated to the whole fluid, due to its incompressibility, via the Oseen tensor. This results in part of the momemtum introduced in the fluid by the confining force acting on one particle (which acts in the normal direction) being propagated over the plane. As we will soon see, the resulting flow source tends to expel other particles around it (see Fig.~\ref{fig:q2dsch}). This can be interpreted as the flow in the plane having a positive divergence, as seen from within the plane. Indeed, we will see that this effect naturally arises in a particle-based description (\gls{BDHI}) through an effective plane mobility with non-zero divergence~\cite{Pelaez2017}.
 
 There are several ways to gradually transform a perfect 2D confinement into an isotropic 3D distribution and, as illustrated in Fig. \ref{fig:q2dsch}, we model the case where the 2D interface of colloids becomes Gaussianly blurred. In particular, we consider a suspension of colloids confined in the $z$ direction around some height, $z=0$, by a harmonic potential of the form
 \begin{equation}
@@ -4099,7 +4195,7 @@ In future sections, we will describe a family of pseudo-spectral algorithms capa
 
 \section{The Force Coupling Method in quasi 2D}
 
-Suppose that all particles are subject to a force coming from the potential in Eq. \eqref{eq:q2Dconf}. We want to take the mathematical limit of Eq. \eqref{eq:bdhibdrelation} (using $\vec{F} = \vec{\partial}_{\vec{\ppos}} U_{\text{conf}}$) when $K_s\rightarrow\infty$ (hence particles move strictly in the plane $z=0$). Although it is possible to take this limit formally the general theory for it is quite complex. Luckily we can elaborate some simple arguments and assumptions to make this in a trivial way (we provide a more in depth analysis in \cite{Pelaez2018}).
+Suppose that all particles are subject to a force coming from the potential in Eq. \eqref{eq:q2Dconf}. We want to take the mathematical limit of Eq. \eqref{eq:bdhibdrelation} (using $\vec{F} = -\vec{\partial}_{\vec{\ppos}} U_{\text{conf}}$) when $K_s\rightarrow\infty$ (hence particles move strictly in the plane $z=0$). Although it is possible to take this limit formally the general theory for it is quite complex. Luckily we can elaborate some simple arguments and assumptions to make this in a trivial way (we provide a more in depth analysis in \cite{Pelaez2018}).
 
 %We start with the realization that, given that the particles are restricted to a plane, the mobility tensor can be reordered in a diagonal blocked arregement 
 %
@@ -4114,7 +4210,7 @@ Suppose that all particles are subject to a force coming from the potential in E
 %\end{equation}
 %Where the parallel mobility (in the $x,y$ plane) is decoupled from the perpendicular one (in $z$). We can see this by understanding that a perpendicular force cannot induce motion on the plane, since that would break symmetry. Equivalently, a parallel force cannot take a particle out of plane. On the other hand, the confinement does not cause a free energy gradient in the plane (since it is uniform in it).
 
-To understand the enhancement of collective diffusion in confined geometries, we first consider the Smoluchousky equation for the particle concentration field $\rho(\vec{\fpos}, t) = \sum_i\delta(\vec{\fpos} - \vec{\ppos}_i)$ of ideal (non-interacting) colloids\footnote{Save those involving the medium (hydrodynamic interactions).},
+To understand the enhancement of collective diffusion in confined geometries, we first consider the Smoluchousky equation for the particle concentration field $\rho(\vec{\fpos}, t) = \sum_i\delta(\vec{\fpos} - \vec{\ppos}_i)$ of ideal (i.e, non-interacting via potential forces) colloids,
 
 \begin{equation}
   \label{eq:smoludensq2D}
@@ -4124,7 +4220,7 @@ Here $D_0$ is the bare diffusion coefficient and $\vec{\fvel}_d$ is the drift ve
 \begin{equation}
   \vec{\fvel}_d(\vec{\fpos}, t) = \int\tens{M}(\vec{\fpos}-\vec{\fpos}') f(\vec{\fpos}') d\vec{\fpos}'.
 \end{equation}
-Where $f(\vec{\fpos})$ is the confining force density, which can be expressed as the gradient of an osmotic pressure. for an ideal gas of colloids, the pressure is $\pi := \kT \rho(\vec{\fpos})$, then
+Where $f(\vec{\fpos})$ is the confining force density, which can be expressed as the gradient of an osmotic pressure. For an ideal gas of colloids, the pressure is $\pi := \kT \rho(\vec{\fpos})$, then
 \begin{equation}
   \vec{f}(\vec{\fpos}') = -\vec{\partial}_{\vec{\fpos}}\pi = -\kT \vec{\partial}_{\vec{\fpos}}\rho = -\kT \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) \hat{\vec{e}}_z,
 \end{equation}
@@ -4134,7 +4230,7 @@ where the last equality particularizes the equation for the in-plane confinement
   \begin{aligned}
     \vec{\fvel}_d(\vec{\fpos}) &= -\int\tens{M}(\vec{\fpos}-\vec{\fpos}') \vec{\partial}_{\vec{\fpos}}\pi d\vec{\fpos}' \\
     &=-\kT\int\tens{M}(\vec{\fpos}-\vec{\fpos}') \sum_i \partial_z\delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}' \overset{\text{(By parts)}}{=}\\
-    &=\kT\int \partial_{z'}\tens{M}(\vec{\fpos}-\vec{\fpos}') \sum_i \delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}'\\
+    &=\kT\int \left[\partial_{z'}\tens{M}(\vec{\fpos}-\vec{\fpos}')\right] \sum_i \delta(\vec{\fpos}-\vec{\ppos}_i) d\vec{\fpos}'\\
     &= -\kT\sum_i\int \left[\partial_z \tens{M}(\vec{\fpos}-\vec{s}')\right]|_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}'.
   \end{aligned}
 \end{equation}
@@ -4147,9 +4243,9 @@ Now, the flow is incompressible in 3D, which implies
 thus, substituting $\partial_z\tens{M}$ in Eq. \eqref{eq:driftq2d} with Eq. \eqref{eq:q2dtotalflow},
 \begin{equation}
   \label{eq:flowq2Ddivergence}
-  \vec{\fvel}_d(\vec{\fpos}) = \kT\sum_i \int \left( \vec{\partial}_{\vec{s}}\tens{M} \right)_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}' = \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0},
+  \vec{\fvel}_d(\vec{s}) = \kT\sum_i \int \left( \vec{\partial}_{\vec{s}}\tens{M} \right)_{z=0} \delta(\vec{s}' - \vec{\ppos}_i)d\vec{s}' = \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0},
 \end{equation}
-which indicates that $\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0}$ is acting as a flow source term in the plane\footnote{Note that we have defined $\vec{\partial}_{\vec{\ppos}}\cdot\tens{M} = \sum_i\vec{\partial}_{\vec{\ppos}_i}\cdot\tens{M}(\vec{s}-\vec{q}_i)$.}. Notably, the resulting hydrodynamic interaction between two particles $1$ and $2$ is similar to an electrostatic repulsion,
+which indicates that $\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)_{z=0}$ is acting as a flow source term in the plane\footnote{Note that we have restored back to supervector notation, i.e, $\vec{\partial}_{\vec{\ppos}}\cdot\tens{M} = \sum_i\vec{\partial}_{\vec{\ppos}_i}\cdot\tens{M}(\vec{s}-\vec{q}_i)$.}. Notably, the resulting hydrodynamic interaction between two particles $1$ and $2$ is similar to an electrostatic repulsion,
 \begin{equation}
   \label{eq:q2Deffrepulsion}
   \vec{\fvel}_d(\vec{q}_1) = \kT\left(\vec{\partial}_{\vec{q}_2}\right)_{z_1=z_2=0}\tens{M} \approx \frac{1}{8\pi\eta q_{12}^3}\vec{q}_{12},
@@ -4169,12 +4265,12 @@ which solution is given by
 \begin{equation}
   \hat{\rho}(k,t) = \hat{\rho}(k,0)\exp\left(-k^2D_c(\vec{k}) t\right), 
 \end{equation}
-where $D_c$ is the short time collective diffusion coefficient\footnote{The collective diffusion coefficient can be interpreted as the decorrelation time of a density fluctuation of typical length given by $k^{-1}$.},
+where $D_c$ is the short time collective diffusion coefficient\footnote{The collective diffusion coefficient determines the decorrelation time $\left(D_c(k)k^2\right)^{-1}$ of a density fluctuation of typical wavenumber $k$.},
 \begin{equation}
   D_c(\vec{k}) = D_0 + \bar{\rho}\kT \frac{\vec{k}\cdot\tens{M}\cdot{\vec{k}}}{k^2}.
 \end{equation}
 
-In 3D, $D_c = D_0$ (since the divergence of the mobility is null), as expected for ideal particles. However, for q2D it is not difficult to show that,
+In 3D, $D_c = D_0$ (since the divergence of the mobility is null), as expected for ideal particles. However, for q2D it is not difficult to show \cite{Bleibel2017, Pelaez2018} that,
 \begin{equation}
   D_c = D_0 + (L_nk)^{-1} + O(k),
 \end{equation}
@@ -4183,11 +4279,11 @@ with
   L_n := \frac{2}{3\pi a\bar{\rho}_{\text{2D}}},
 \end{equation}
 where $\bar{\rho}_{\text{2D}}$ is the surface density. Thus collective diffusion increases as the inverse of the wave number.
-This analysis clearly indicates that the Brownian dynamics corresponding to q2d necessarily includes a thermal or spurious drift related to the divergence of the (effective) q2D mobility, $(\vec{\partial}_{\vec{s}}\cdot\tens{M})_{z=0}$ (according to eq. \eqref{eq:flowq2Ddivergence}). The resulting particle dynamics \textbf{at the confining plane} are described by eq. \eqref{eq:bdfull}.
+This analysis indicates that  to impose the strict\footnote{If $U=\half K_sz^2$ is used, there is no need of $\nabla_{\vec{s}}\cdot\tens{M}$, because we resolve the whole 2D flow.} confinement condition in q2D of Brownian particles one needs to include the thermal or spurious drift related to the divergence of the (effective) q2D mobility, $(\vec{\partial}_{\vec{s}}\cdot\tens{M})_{z=0}$ (according to eq. \eqref{eq:flowq2Ddivergence}). The resulting particle dynamics \textbf{at the confining plane} are described by eq. \eqref{eq:bdfull}.
 This means that we can simply remove the $z$ component in our description and write
 \begin{equation}
   \label{eq:bdq2d}
-  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}} + \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)\dt,
+  d\vec{\ppos} = \tens{M}\vec{F}dt + \sqrt{2\kT \tens{M}}d\vec{\widetilde{W}} + \kT\left(\vec{\partial}_{\vec{\ppos}}\cdot\tens{M}\right)dt,
 \end{equation}
 where the particle positions and forces, the mobility and the noise are now defined only in the plane.
 In order to implement eq. \eqref{eq:bdq2d} within the \gls{FCM} procedure (introduced in section \ref{sec:fcm}) we use the second equality of eq. \eqref{eq:driftq2d}, including also putative forces $\vec{F}$ (per particle) arising from colloidal interactions and/or external fields. In such a case the force density is,
@@ -4198,9 +4294,9 @@ We have generalized the Dirac delta by using the spreading operator, $\oper{S}$ 
 
 Following the \gls{FCM}, we will set $\oper{S}$ as a Gaussian, and in order to implement a purely 2D computational set up, we need to integrate out the effect of the third direction, $z$, from the equations of motion. To that end, we recall that $\tens{M} = \oper{J}\tens{G}\oper{S}$, where $\tens{G}$ is the Green function for the fluid velocity field. The particle kernels are separable ($\oper{S} = \phi(x)\phi(y)\phi(z)$) which permits including them into the 2D Fourier transform of the Green function, to yield,
 \begin{equation}
-  \hat{\tens{G}}_{\qtd}(\vec{k} = (k_x, k_y)) = \int_{z=0}\phi(z)\tens{G}(r;z=0)\phi(z)\exp(i\vec{k}\vec{s})d\vec{s}.
+  \hat{\tens{G}}_{\qtd}(\vec{k} = (k_x, k_y)) = \frac{1}{2\pi}\int_{k_z=-\infty}^\infty\fou{\phi}(k_z)^2\fou{\tens{G}}_{\text{3D}}(\vec{k};k_z)dk_z.
 \end{equation}
-For a Gaussian kernel,
+Using a Gaussian kernel for $\phi$ and the Oseen tensor for $\tens{G}_{\text{3D}}$,
 
 \begin{equation}
   \label{eq:q2dGreenintegral}
@@ -4230,7 +4326,7 @@ We can also write the Green's function for true 2D by redefining $f_k$ and $g_k$
 \end{equation}
 The Green's function \eqref{eq:q2dGreenintegral} is purely two-dimensional, allowing to reuse the \gls{FCM} machinery without the third direction altogether.
 
-Using Eq. \eqref{eq:t2dfg} instead of Eq. \eqref{eq:q2dfg} allows for our algorithm to simulate a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known.
+Using Eq. \eqref{eq:t2dfg} instead of Eq. \eqref{eq:q2dfg} allows for our algorithm to simulate a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known\footnote{For instance, the Saffman kernel for membrane hydrodynamics \cite{Brown20112.}}.
 
 The particle dynamics can thus be formally written as
 
@@ -4306,12 +4402,12 @@ On the other hand, we know that fluctuation-dissipation (discussed in chapter \r
 \end{equation}
 must be related with the mobility as
 \begin{equation}
-  \langle\tilde{\vec{\pvel}}_i\otimes\tilde{\vec{\pvel}}_i\rangle = 2\kT \tens{M}_{\qtd}.
+  \langle\tilde{\vec{\pvel}}_i\otimes\tilde{\vec{\pvel}}_i\rangle = \frac{2\kT}{dt} \tens{M}_{\qtd}.
 \end{equation}
 Equivalently, we can write the fluctuation-dissipation relation for the fluid velocity in Fourier space,
 \begin{equation}
   \label{eq:q2dfdb}
-  \left\langle\fou{\vec{w}}\otimes \fou{\vec{w}}\right\rangle = 2\kT \fou{\tens{G}}_{\qtd}.
+  \left\langle\fou{\vec{w}}\otimes \fou{\vec{w}}\right\rangle = \frac{2\kT}{dt} \fou{\tens{G}}_{\qtd}.
 \end{equation}
 It is straightforward to devise a functional form for the stochastic fluid velocity that satisfies Eq. \eqref{eq:q2dfdb}.
 We can use a similar trick as we did for \gls{PSE} in Eq. \eqref{eq:psenoise} to separate the contribution of the noise in two,
@@ -4464,7 +4560,7 @@ Whose solution is
 \begin{equation}
   \fou{p}(k, z) = C_1\exp(-kz) + C_2\exp(kz).
 \end{equation}
-By using the boundness of the pressure at $|z|\rightarrow\infty$ we can write the solution outside the domain
+By using the boundedness of the pressure at $|z|\rightarrow\infty$ we can write the solution outside the domain
 \begin{equation}
   \begin{aligned}
     &\fou{p}(k,z\le -H) = C_2\exp(kz)\\
@@ -4476,7 +4572,7 @@ This implies
   \label{eq:dpstokespressurebcs}
   (\partial_z\pm k)\fou{p}(k, z=\pm H) = 0.
 \end{equation}
-For a given wave number, $k$, the system in Eq. \eqref{eq:dpstokesfreepressure} along the \glspl{BC} in Eq. \eqref{eq:dpstokespressurebcs} constitute a \gls{BVP} that can be solved in Chebyshev space with the solver described in Appendix \ref{sec:bvp}.
+For a given wave number, $k$, the system in Eq. \eqref{eq:dpstokesfreepressure} along the \glspl{BC} in Eq. \eqref{eq:dpstokespressurebcs} constitutes a \gls{BVP} that can be solved in Chebyshev space with the solver described in Appendix \ref{sec:bvp}.
 
 Since this solver requires to define $z$ in the Chebyshev basis, we can apply $\partial_z$ in linear time by using recurrent relations on the Chebyshev coefficients (in this case of $\fou{f}^z$) instead of via \emph{ik} differentiation. As discussed in Appendix \ref{sec:bvp}, the Fourier-Chebyshev\footnote{Fourier in the plane $(x,y)$ and Chebyshev in $z$.} coefficients $\fou{p}(\vec{k}, z)$ are computed via a hybrid \gls{FFT}-\gls{FCT}. Which amounts to performing the 3D \gls{FFT} of $\vec{f}$ periodic extended in $z$.
 
@@ -4624,16 +4720,16 @@ Evaluating Eq. \eqref{eq:dpstokesincompres} and replacing $\partial_z\fou{\fvel}
 \end{equation}
 We now have a linear system of 8 equations and 8 unknowns ($\vec{C}$ and $\vec{D}$). Once this system is solved\footnote{The system can be written in matrix form and partially precomputed (via matrix inversion) so that solving the slit correction at runtime amounts to a simple 8x8 matrix-vector multiplication. The related functions in \uammd can be found in the file \emph{StokesSlab/Correction.cuh}.} we can evaluate the correction and compute its Chebyshev coefficients. Finally we sum the correction to the free domain solution, obtaining the final result as per Eq. \eqref{eq:dpstokescorrsum}.
 
-\section{The zero wave number}
-Instead of computing the zero mode for each of the subproblems separately (the free space solver and the correction solve) we treat them as a unique solver for simplicity. The free space solver (no walls) does not require a correction and handling the zero mode amounts to simply setting $\vec{\fvel}(\vec{k}=0,z) = 0$. Let us go through the bottom wall and slit channel geometries.
+\section{The zeroth wave number}
+Instead of computing the zeroth mode for each of the subproblems separately (the free space solver and the correction solve) we treat them as a unique solver for simplicity. The free space solver (no walls) does not require a correction and handling the zeroth mode amounts to simply setting $\vec{\fvel}(\vec{k}=0,z) = 0$. Let us go through the bottom wall and slit channel geometries.
 
 \subsection*{Bottom wall}
-For the zero mode, the equation for total pressure is reduced to
+For the zeroth mode, the equation for total pressure is reduced to
 \begin{equation}
   \label{eq:dppressurebtm}
   \partial_z\fou{p}(\vec{k}=0, z) = \fou{f}_z(\vec{k} = 0, z),
 \end{equation}
-which solution is
+the solution of which is
 \begin{equation}
   \fou{p}(\vec{k}=0, z) = \int_{-H}^z\fou{\vec{f}}(\vec{k} = 0, z')dz' + C.
 \end{equation}
@@ -4666,7 +4762,7 @@ Making use of the no-slip wall, we can simply choose $\fou{\vec{\fvel}}^\perp(\v
 Since the difference between the boundary conditions of the slit channel and bottom wall cases only affect the velocity at the boundaries, the computation of the pressure is equivalent in both cases.
 Furthermore, since for the bottom wall we chose $\fou{\vec{\fvel}}_z(\vec{k}=0, z) =0$ just by using the no-slip condition at the bottom wall, this component is also equivalent\footnote{Any other value would result in a net flow across the no-slip walls, which is of course impossible.}.
 
-The \gls{BVP} for the parallel velocities can be laid out following similar arguments as with the bottom wall case. In particular, the zero mode satisfies
+The \gls{BVP} for the parallel velocities can be laid out following similar arguments as with the bottom wall case. In particular, the zeroth mode satisfies
 \begin{equation}
   \partial_z^2\fou{\vec{\fvel}}^\parallel(\vec{k} = 0, z) = -\eta^{-1}
   \begin{bmatrix}
@@ -4675,14 +4771,14 @@ The \gls{BVP} for the parallel velocities can be laid out following similar argu
   \end{bmatrix}
   \fou{f}_z.
 \end{equation}
-For the \glspl{BC}, due to the no-slip, we have $\fou{\vec{\fvel}}^\parallel(\vec{k} = 0, z=\pm H) = 0$.
+For the \glspl{BC}, due to the no-slip condition, we have $\fou{\vec{\fvel}}^\parallel(\vec{k} = 0, z=\pm H) = 0$.
 
-\section{About spreading and interpolation}
+\section{On spreading and interpolation}
 
 Using the Chebyshev basis to discretize the $z$ direction makes the grid of our solver non-regular. In particular, we will have a regular binning in the plane directions and bins defined at the extrema of the Chebyshev polynomials in $z$.
 %Thus we need to evaluate the forces in Eq. \eqref{eq:dpstokes} at the roots of the Chebyshev polynomials in the $z$ direction.
 
-Similarly to all the Force Coupling Method-like methods described thus far, the communication between the particles information and the grid (in this case to construct $\vec{f}$ in Eq. \eqref{eq:dpstokes} and interpolate back the velocities to the particle positions) is carried out via the Immersed Boundary module in UAMMD (see chapter \ref{ch:icm}). Note however, that there is a fundamental difference with respect to the rest of the use cases for the \gls{IBM} up to this point. In particular, now the grid is not regular in the $z$ direction, being a Chebyshev grid instead (see Fig. \ref{fig:chebgrid}). 
+Similarly to all the Force Coupling Method-like methods described thus far, the communication between the particles information and the grid (in this case to construct $\vec{f}$ in Eq. \eqref{eq:dpstokes} and interpolate the velocities back to the particle positions) is carried out via the Immersed Boundary module in UAMMD (see chapter \ref{ch:icm}). Note however, that there is a fundamental difference with respect to the rest of the use cases for the \gls{IBM} up to this point. In particular, now the grid is not regular in the $z$ direction, being a Chebyshev grid instead (see Fig. \ref{fig:chebgrid}). 
 \begin{figure}[h]
   \centering
   \includesvg[width=0.5\columnwidth]{gfx/chebgrid}
@@ -4715,7 +4811,7 @@ where $\vec{\ppos}_i^{\text{img}}$ is the particle's point of reflection about t
   &\vec{\ppos}_i^{\text{img}_t} = \vec{\ppos}_i + 2(H-r_z)\hat{\vec{e}}_z, \quad \text{For the top wall}.
 \end{aligned}
 \end{equation}
-Here $\hat{\vec{e}}_z$ is a unitary vector in the $z$ direction. The no-slip condition is then imposed by the fact that a particle at the height of a wall does not affect (nor it is affected by) the fluid. A visual representation of the effect of the images is available in Fig. \ref{fig:dpstokesspread}.
+Here $\hat{\vec{e}}_z$ is a unitary vector in the $z$ direction. The no-slip condition is then imposed by the fact that a particle at the height of a wall does not affect (nor is it affected by) the fluid. A visual representation of the effect of the images is available in Fig. \ref{fig:dpstokesspread}.
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/dpstokesspread}
@@ -4954,7 +5050,7 @@ The tolerance parameter is the maximum relative error allowed in the potential f
 %\begin{itemize}
 %\item Introduce the need for slit channel electrostatics
 %\end{itemize}
-We present a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and arbitrary surface charges at the domain walls (in the open direction).
+We present a novel algorithm for computing the electrostatic energies and forces for a collection of charges in a doubly-periodic environment (a slab). Our algorithm can account for arbitrary dielectric jumps across the boundaries of the slab and an arbitrary distribution of surface charge at the domain walls (in the open direction).
 
 \begin{figure}[h]
   \centering
@@ -4968,13 +5064,17 @@ We present a novel algorithm for computing the electrostatic energies and forces
 %A triply periodic solver is also available in UAMMD. See [3] for more info.
 %### Algorithm summary  
 A complete description of the algorithm can be found in ~\cite{Maxian2021}.
-We model charges as Gaussian sources (as opposed to point charges). Even so our algorithm provides spectral accuracy via Ewald splitting, which naturally decouples the width of the sources and the grid size. This allows to use an arbitrarily narrow Gaussian to simulate point charges if needed. By using Gaussian charges we avoid divergent self-interactions while more closely modelling electrolyte solutions, in which solvated ions are not point charges but rather have a certain characteristic charge size that we can mimic via the Gaussian width.
-We want to solve the Poisson equation with Gaussian charge sources
+We model charges as Gaussian sources (as opposed to point charges). Even so our algorithm provides spectral accuracy via Ewald splitting, which naturally decouples the width of the sources and the grid size. This allows us to use an arbitrarily narrow Gaussian to simulate point charges if needed. By using Gaussian charges we avoid divergent self-interactions while more closely modelling electrolyte solutions, in which solvated ions are not point charges but rather have a certain characteristic charge size that we can mimic via the Gaussian width.
+We want to solve the Poisson equation with Gaussian charge sources in a doubly periodic domain of width $H$ and size $L_{xy}$ in the plane. In particular, we seek to solve
 \begin{equation}\label{eq:dppoisson}
- \varepsilon_0\Delta\phi(\vec{x} = (x,y,z))=-f(\vec{x})=-\oper{S}(\vec{r})\vec{Q}
+ \varepsilon_0\Delta\phi(\vec{x} = (x,y,z))=-f(\vec{x})=-\oper{S}(\vec{x})\vec{Q},
 \end{equation}
-In a doubly periodic domain of width $H$ and size $L_{xy}$ in the plane\footnote{In \uammd's implementation, the permittivity inside the domain is set to unity and the charges are reescaled as $\vec{Q}' = \vec{Q}/\varepsilon_0$.}.
-We impose that the sources do not overlap the boundaries in the $z$ direction, $f(z>\topl \text{ or } z<\botl) = 0$, so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma a \ge 4 a$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $q$.
+where 
+\begin{equation}\label{eq:dppoissongauss}
+ \oper{S}(\vec{x})\vec{Q} = \sum_iQ_i\left(2\pi a^2\right)^{-3/2}\exp\left(-\frac{||\vec{\ppos}_i-\vec{x}||^2}{2a^2}\right),
+\end{equation}
+where $a$ is the width of the Gaussian charges with strength $Q_i$\footnote{In \uammd's implementation, the permittivity inside the domain is set to unity and the charges are reescaled as $\vec{Q}' = \vec{Q}/\varepsilon_0$.}.
+We impose that the sources do not overlap the boundaries in the $z$ direction, $f(z>\topl \text{ or } z<\botl) = 0$, so that the charge density integrates to one inside the slab. Given that the Gaussian is not compactly supported we truncate it at $n_\sigma a \ge 4 a$ to overcome this, ensuring that the integral is at least $99.9\%$ of the charge $Q$.
 
 Finally, we solve \eqref{eq:dppoisson} with the following set of \bcs for the potential
 \begin{equation}\phi(x,y,z\rightarrow \botl^+)=\phi(x,y,z\rightarrow \botl^-)\label{eq:dppoissonbcs1}\end{equation}  
@@ -4986,13 +5086,13 @@ We introduce, via these \bcs, the possibility of having arbitrary surface charge
 Finally, we assume that the domain is overall electroneutral,
 \begin{equation}
   \label{eq:dppoisson_electroneutral}
-  \sum_{k=1}^N{q_k} + \int_0^{L_{xy}}{\int_0^{L_{xy}}{(\sigma_b(x,y) + \sigma_t(x,y))dx dy}} = 0.
+  \sum_{k=1}^N{Q_k} + \int_0^{L_{xy}}{\int_0^{L_{xy}}{(\sigma_b(x,y) + \sigma_t(x,y))dx dy}} = 0.
 \end{equation}
-Similarly as in the triply periodic algorithm described in chapter \ref{ch:tppoisson}, we are interested in computing the system energy and the particle forces.
-Once the potential is known the total electrostatic energy can be computed as
+Similarly to the triply periodic algorithm described in chapter \ref{ch:tppoisson}, we are interested in computing the system energy and the particle forces.
+Once the potential is known the total electrostatic energy (inside the simulation domain) can be computed as
 \begin{equation}
   \label{eq:dppu}
-  U = \frac{1}{2}\sum_i{q_i\oper{J}_{\vec{q}_i}\phi} + \frac{1}{2}\sum_{wall=b,t}{\int_{x,y}{\sigma_{wall}\phi(x,y,wall)dx dy}}
+  U = \frac{1}{2}\sum_i{Q_i\oper{J}_{\vec{q}_i}\phi} + \frac{1}{2}\sum_{wall=b,t}{\int_{x,y}{\sigma_{wall}\phi(x,y,wall)dx dy}}
 \end{equation}
 Where $\oper{J}$ represents the interpolation operator as in chapter \ref{ch:tppoisson}.
 In the same way as with the triply periodic algorithm, we can compute the electric field using Eq. \eqref{eq:tppoisson_fieldnablaphi} and interpolate it to the particles positions with Eq. \eqref{tppoisson_avgfield}. Finally, we compute the force acting on each particle with Eq. \eqref{eq:tppoisson_force}.
@@ -5000,12 +5100,12 @@ In the same way as with the triply periodic algorithm, we can compute the electr
 Since we do not have periodic boundaries in the $z$ direction, the application of the nabla operator on the potential to compute the electric field is not as straightforward as in the triply periodic case. In particular, as we will study in the following sections, our solver works in the Fourier-Chebyshev space (similar to the doubly periodic Stokes solver in chapter \ref{sec:dpstokes}).
 
 \section{Solver description}
-We use a grid-based solver to get an algorithm with linear complexity with the number of particles. We evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (similarly as in chapter \ref{ch:tppoisson}), then solve the potential in that grid and finally interpolate the required quantities back to the particle positions (i.e the energy in Eq. \eqref{eq:dppu} or the force with Eq. \eqref{eq:tppoisson_force}).
-In order to accurately describe the charge density $f(\vec{x})$ in the grid we must choose a sufficiently small grid size, $h$. Since the correct description of the charge density field produced by the Gaussian sources requires $h \sim a$ this method will be inefficient for point-like charges ($a\rightarrow 0$). To overcome this limitation (similarly as with the triply periodic case described in chapter \ref{ch:tppoisson}) we make use of Ewald splitting.
+We use a grid-based solver to get an algorithm with linear complexity with the number of particles. We evaluate the \rhs of \eqref{eq:dppoisson} in a grid by spreading the charges (as in Chapter \ref{ch:tppoisson}), then solve the potential on that grid and finally interpolate the required quantities back to the particle positions (i.e the energy in Eq. \eqref{eq:dppu} or the force with Eq. \eqref{eq:tppoisson_force}).
+In order to accurately describe the charge density $f(\vec{x})$ in the grid we must choose a sufficiently small grid size, $h$. Since the correct description of the charge density field produced by the Gaussian sources requires $h \sim a$ this method will be inefficient for point-like charges ($a\rightarrow 0$). To overcome this limitation (similarly to the triply periodic case described in chapter \ref{ch:tppoisson}) we make use of Ewald splitting.
 
 Let us start with the non-Ewald split case by considering that the distance between charges is comparable to their width, $a$.
 
-Reminiscent of the \gls{DP} Stokes algorithm in chapter \ref{sec:dpstokes} we start by separating the problem into two sub-problems. First we solve \eqref{eq:dppoisson} in free space (no dielectric jumps or surface charges) and then introduce an harmonic correction to account for the jump \bcs (section \ref{sec:dpcorr}). In particular, we separate the potential as
+In a move reminiscent of the \gls{DP} Stokes algorithm in Chapter \ref{sec:dpstokes} we start by separating the problem into two sub-problems. First we solve \eqref{eq:dppoisson} in free space (no dielectric jumps or surface charges) and then introduce a harmonic correction to account for the jump \bcs (section \ref{sec:dpcorr}). In particular, we separate the potential as
 \begin{equation}
   \label{eq:dppoissonpotsep}
   \phi = \phi_{\dpr} + \phi_{\corr}
@@ -5013,7 +5113,7 @@ Reminiscent of the \gls{DP} Stokes algorithm in chapter \ref{sec:dpstokes} we st
 
 
 We first find the free-space potential, $\phi_{\dpr}$, by solving the Poisson equation \eqref{eq:dppoisson} with free-space \bcs and uniform permittivity $\varepsilon_0$ (see Eq. \eqref{eq:dppoissonfreespacepot}). Then we compute the correction, $\phi_{\corr}$, by solving a Laplace equation that satisfies the \bcs in Eqs. \eqref{eq:dppoissonbcs1}-\eqref{eq:dppoissonbcs4}.
-Notice that on one hand the free-space potential is oblivious to the presence of the surface charged walls and, in contrast, the harmonic correction does not include the Gaussian sources in its formulation. This means that each separate problem is not necessarily electroneutral, we address electroneutrality further on in section \ref{sec:dpelectroneutral}.
+Notice that on the one hand the free-space potential is oblivious to the presence of the surface charged walls and, on the other, the harmonic correction does not include the Gaussian sources in its formulation. This means that each separate problem is not necessarily electroneutral, we address electroneutrality further on in section \ref{sec:dpelectroneutral}.
 
 \subsection{Free space solver, $\phi_{\dpr}$}\label{sec:dpsolver}
 Let us start by describing the free-space solver. We want to solve
@@ -5021,8 +5121,8 @@ Let us start by describing the free-space solver. We want to solve
   \label{eq:dppoissonfreespacepot}
   \varepsilon_0 \Delta \phi_{\dpr}(\vec{\fpos}) = -f(\vec{\fpos}) \quad \text{for}\quad \botl<z<\topl
 \end{equation}
-bounded at infinity so that $\partial_z\phi_{\dpr}(z \rightarrow \pm \infty) \rightarrow 0$ and periodic boundary conditions in the plane.
-We can use the fact that the source charges are contained inside the domain $z\in[\botl, \topl]$ to find the necessary \bcs to constitute a \gls{BVP}, which can then be solved using the solver in Appendix \ref{sec:bvp} (first introduced in chapter \ref{sec:dpstokes} for the Stokes equation). In particular, we can write
+bounded at infinity so that $\partial_z\phi_{\dpr}(z \rightarrow \pm \infty) \rightarrow 0$ and with periodic boundary conditions in the plane.
+We can use the fact that the source charges are contained inside the domain $z\in[\botl, \topl]$ to find the necessary \bcs to constitute a \gls{BVP}, which can then be solved by the method in Appendix \ref{sec:bvp} (first introduced in chapter \ref{sec:dpstokes} for the Stokes equation). In particular, we can write
 \begin{equation}
   \varepsilon_0 \Delta \phi_{\dpr} = 0\quad\text{for}\quad z\le\botl \quad\text{or}\quad z\ge \topl.
 \end{equation}
@@ -5039,7 +5139,7 @@ hinting at the following \bcs for Eq. \eqref{eq:dppoissonfreespacepot},
   \label{eq:dppoissonfreespacebcs}
   (\partial_z + k)\fou{\phi}_{\dpr}(\vec{k}, \topl) = 0\quad\text{and}\quad(\partial_z - k)\fou{\phi}_{\dpr}(\vec{k}, \botl) = 0, 
 \end{equation}
-owning to the continuity of $\phi_{\dpr}$ and $\partial_z\phi_{\dpr}$ at the boundaries.
+owing to the continuity of $\phi_{\dpr}$ and $\partial_z\phi_{\dpr}$ at the boundaries.
 We can now write Eq. \eqref{eq:dppoissonfreespacepot} in Fourier space in the plane and couple it with the \bcs in Eq. \eqref{eq:dppoissonfreespacebcs} to constitute a two point \gls{BVP} that can be efficiently solved in the \gpu with the solver described in Appendix \ref{sec:bvp}. We can thus rewrite Eq. \eqref{eq:dppoissonfreespacepot} as
 \begin{equation}
   \label{eq:dppoissonfreespacepotbvp}
@@ -5047,7 +5147,7 @@ We can now write Eq. \eqref{eq:dppoissonfreespacepot} in Fourier space in the pl
 \end{equation}
 The $k=0$ mode requires special treatment, since the \gls{BVP} in Eqs. \eqref{eq:dppoissonfreespacepotbvp} with \bcs in Eq. \eqref{eq:dppoissonfreespacebcs} is not necessarily electroneutral (since it does not consider the surface charges), we will consider it later along with the correction (given that the problem for $\phi$ is indeed electroneutral).
 \subsection{Harmonic correction, $\phi_{\corr}$}\label{sec:dpcorr}
-We now correct the solution $\phi_{\dpr}$, for which we did not take into account the \bcs in Eqs. \eqref{eq:dppoissonbcs1}-\eqref{eq:dppoissonbcs4}, mainly neglecting the surface charges $\sigma_{b/t}$. In contrast, the correction potential does not require to take into account the Gaussian sources, which were included in $\phi_{\dpr}$. Thus, the correction will have a Laplace equation
+We now correct the solution $\phi_{\dpr}$, for which we did not take into account the \bcs in Eqs. \eqref{eq:dppoissonbcs1}-\eqref{eq:dppoissonbcs4}, mainly neglecting the surface charges $\sigma_{b/t}$. In contrast, the correction potential does not require taking into account the Gaussian sources, which were included in $\phi_{\dpr}$. Thus, the correction will have a Laplace equation
 \begin{equation}
   \label{eq:dppoissonlaplacecorr}
   \Delta \phi_{\corr} = 0
@@ -5071,7 +5171,7 @@ Using $\phi = \phi_{\dpr} + \phi_{\corr}$ we can write them in terms of the alre
     &m_E^{t} = (\varepsilon_0 - \varepsilon_{t})\partial_z\phi_{\dpr}(z=\topl) - \sigma_{t}.
   \end{aligned}
 \end{equation}
-Where we have used the continuity of $\phi_{\dpr}$ and its derivative at the domain limits to simplify the expressions for the field mismatch. Additionally, the potential mismatch is zero in the current case, nonetheless we keep it in the description, since it will become non-zero in the Ewald splitted case (see section \ref{sec:dpewald}).
+Where we have used the continuity of $\phi_{\dpr}$ and its derivative at the domain limits to simplify the expressions for the field mismatch. Additionally, the potential mismatch is zero in the current case, nonetheless we keep it in the description, since it will become non-zero in the Ewald split case (see section \ref{sec:dpewald}).
 
 We can write the general solution for the correction potential inside the domain in Fourier space (as usual, transformed only in the plane) as 
 \begin{equation}
@@ -5095,12 +5195,12 @@ Where we have defined for convenience the helper function, $\alpha(k)$, as
 \begin{equation}
   \alpha(k) := \left(k(\varepsilon_b +1)(\varepsilon_t+1) - (\varepsilon_b\varepsilon_t + \varepsilon_b + \varepsilon_t -1)\exp(-2Hk) \right)^{-1}
 \end{equation}
-The expression for the correction potential in Eq. \eqref{eq:dppoissoncorrpot} has been carefully laid out to minimize overflow errors in a numerical implementation (due to the evaluation of the exponential terms). In particular, \uammd's implementation evaluates this expression in double precision regardless of the overall precision mode, since the standard math library allows for a maximum exponent of $~709$. Exponential overflow is not an issue in the non-Ewald splitted case, but as we will see in the following sections, the Ewald-splitted case requires to evaluate Eq. \eqref{eq:dppoissoncorrpot} below $z=-H_e$, which results in the term $\exp(kH_e)$ being evaluated.
+The expression for the correction potential in Eq. \eqref{eq:dppoissoncorrpot} has been carefully laid out to minimize overflow errors in a numerical implementation (due to the evaluation of the exponential terms). In particular, \uammd's implementation evaluates this expression in double precision regardless of the overall precision mode, since the standard math library allows for a maximum exponent of $~709$. Exponential overflow is not an issue in the non-Ewald split case, but as we will see in the following sections, the Ewald-split case requires evaluating Eq. \eqref{eq:dppoissoncorrpot} below $z=-H_e$, which results in the term $\exp(kH_e)$ being evaluated.
 
 The only missing piece in our description is the $k=0$ mode, which must be computed for directly for $\phi$, since this is the only way to ensure the solution is well defined (which requires electroneutrality, i.e the integral of the overall charge being zero).
  
 \subsection{The $k=0$ mode}\label{sec:dpelectroneutral}
-For the zero mode we can write the equation for the uncorrected potential as
+For the zeroth mode we can write the equation for the uncorrected potential as
 \begin{equation}
   \label{eq:dppoissonk0}
   \partial_z ^2\fou{\phi}_{\dpr}(\vec{k}=\vec{0}, z) = -  \varepsilon_0^{-1}\fou{f}(\vec{0}, z).
@@ -5114,7 +5214,7 @@ For the zero mode we can write the equation for the uncorrected potential as
 %\begin{equation}
 %  \int_{-H}^H
 %\end{equation}
-Which can be solved by integrating the zero mode of the charge density twice, making use of the Chebyshev coefficients of $\fou{f}$. Alternatively, our \gls{BVP} solver can handle Eq. \eqref{eq:dppoissonfreespacepotbvp} with the (homogeneous) \bcs in Eq. \eqref{eq:dppoissonfreespacebcs} in the case $k=0$\footnote{Which is how \uammd computes the linear mode.}.
+Which can be solved by integrating the zeroth mode of the charge density twice, making use of the Chebyshev coefficients of $\fou{f}$. Alternatively, our \gls{BVP} solver can handle Eq. \eqref{eq:dppoissonfreespacepotbvp} with the (homogeneous) \bcs in Eq. \eqref{eq:dppoissonfreespacebcs} in the case $k=0$\footnote{Which is how \uammd computes the linear mode.}.
 The potential in Eq. \eqref{eq:dppoissonk0} is only valid up to a linear correction, given by the solution of Eq. \eqref{eq:dppoissoncorrpoteq} for $k=0$,
 \begin{equation}
   \fou{\phi}_{\corr}(\vec{0}, \botl\le z\le \topl) = A_0z + B_0.
@@ -5141,14 +5241,14 @@ We only need the values of $A_0$ and $B_0$ in order to compute $\fou{\phi}(\vec{
 \begin{equation}
   A_0^b = -\partial_z\fou{\phi}_{\dpr}(\vec{0}, z\le\botl),\quad\text{and}\quad A_0^t = -\partial_z\fou{\phi}_{\dpr}(\vec{0}, z\ge\topl).
 \end{equation}
-Using the above expressions we can arrive to two solutions, which are identical for electroneutral slabs, for $A_0$,
+Using the above expressions we can arrive at two solutions, which are identical for electroneutral slabs, for $A_0$,
 \begin{equation}
   \begin{aligned}
     A_0 &= -\varepsilon_0^{-1}(m_E^b +\varepsilon_b\partial_z\fou{\phi}_{\dpr}(\vec{0}, \botl)) =\\
     &= -\varepsilon_0^{-1}(m_E^t +\varepsilon_t\partial_z\fou{\phi}_{\dpr}(\vec{0}, \topl)).
 \end{aligned}
 \end{equation}
-In \uammd's implementation we average both expressions to minimize the discretization errors\footnote{In \uammd, the code for the zero mode correction can be found in the mismatch compute source file, \emph{PoissonSlab/MismatchCompute.cuh}.}
+In \uammd's implementation we average both expressions to minimize the discretization errors\footnote{In \uammd, the code for the zeroth mode correction can be found in the mismatch compute source file, \emph{PoissonSlab/MismatchCompute.cuh}.}
 
 %On the other hand, the equation for the correction potential (see Eq. \eqref{eq:dppoissonlaplacecorr}) with $k=0$ is
 %\begin{equation}
@@ -5163,7 +5263,7 @@ In \uammd's implementation we average both expressions to minimize the discretiz
 %
 
 \subsection{Wrapping up}
-Once the correction is evaluated for all wavenumbers (except the zero mode, which as we have seen is handled independently), we apply the \gls{FCT} to each one, obtaining the Chebyshev coefficients that can then be summed to the uncorrected solution, $\fou{\phi}_{\dpr}$ to finally get the total potential, $\phi$, via Eq. \eqref{eq:dppoissonpotsep}.
+Once the correction is evaluated for all wavenumbers (except the zeroth mode, which as we have seen is handled independently), we apply the \gls{FCT} to each one, obtaining the Chebyshev coefficients that can then be summed to the uncorrected solution, $\fou{\phi}_{\dpr}$ to finally get the total potential, $\phi$, via Eq. \eqref{eq:dppoissonpotsep}.
 
 In order to compute the electric field we can use \emph{ik} differentiation in the plane directions and use the Chebyshev coefficients in z for each wavenumber to compute its derivative (see Appendix \ref{sec:bvp}).
 
@@ -5171,9 +5271,9 @@ Then we apply the inverse Fourier-Chebyshev transform to get the potential and/o
 
 
 \section{Ewald splitting}\label{sec:dpewald}
-In order to reuse the Ewald splitting machinery laid out for the triply periodic case (see chapter \ref{ch:tppoisson}) we must shift our approach and describe the problem using images charges instead of boundary conditions.
+In order to reuse the Ewald splitting machinery laid out for the triply periodic case (see chapter \ref{ch:tppoisson}) we must shift our approach and describe the problem using image charges instead of boundary conditions.
 \subsection*{The method of images}
-In the presence of a single wall with a jump in permittivity (for instance, the bottom wall at $z=0$, below of which the permittivity is $\varepsilon_b$), the method of images states that the potential (and field) at the location, $(x,y,z)$, of a charge $q$ is equivalent to that of a medium with uniform permittivity, $\varepsilon_0$, containing the original charge along with an image charge reflected across the wall, $(x,y,-z)$, with charge
+In the presence of a single wall with a jump in permittivity (for instance, the bottom wall at $z=0$, below of which the permittivity is $\varepsilon_b$), the method of images  \cite{Griffiths2014} states that the potential (and field) created by a charge, $q$, at the location, $(x,y,z)$, is equivalent to that of a medium with uniform permittivity, $\varepsilon_0$, containing the original charge along with an image charge reflected across the wall, $(x,y,-z)$, with charge
 \begin{equation}
   q^* = -q\frac{\varepsilon_b - \varepsilon_0}{\varepsilon_b + \varepsilon_0}.
 \end{equation}
@@ -5197,10 +5297,10 @@ As discussed in sec \ref{sec:tppoisson_ewald}, the range of the near field Green
 Besides having to include the first images, this part of the algorithm is then identical to the triply periodic case in chapter \ref{sec:tppoisson_ewald}.\footnote{In \uammd's implementation, the near field images are handled via a special \emph{Transverser} that checks, for a given neighbour, its position and that of its two images (top and bottom wall). The related code can be found at the file \emph{Interactor/DoublyPeriodic/PoissonSlab/NearField.cuh}.}.
 \subsection{Far field}
 
-The treatment for the far field is quite convoluted due to the requirement of solving the potential outside and inside the domain while taking into account the image charges in an spectrally accurate manner. The algorithm for the far field is carefully laid out in ~\cite{Maxian2021}.
+The treatment for the far field is quite convoluted due to the requirement of solving the potential outside and inside the domain while taking into account the image charges in a spectrally accurate manner. The algorithm for the far field is carefully laid out in ~\cite{Maxian2021}.
 
 \section{How to use in UAMMD}
-The creation of the Doubly Periodic Poisson Interactor is similar to that for the triply periodic case. With the exception that now the box size is communicated separately in the parallel and perpendicular directions and the permittivity can be different inside and outside the domain. Besides the parameters in the source code example \ref{code:dppoisson}, additional ones are available to fine tune several internal precision parameters (such as support, upsampling or overall tolerance). By default, the module will provide an overall tolerance of around 4 digits, which is the study case in the original work describing the doubly periodic algorithm~\cite{Maxian2021}. Additionally, a special functor can be provided specifying the surface charges. The description of the surface charge parameter is left for UAMMD's online documentation (see Appendix \ref{ch:online}).
+The creation of the Doubly Periodic Poisson Interactor is similar to that of the triply periodic case. With the exception that now the box size is communicated separately in the parallel and perpendicular directions and the permittivity can be different inside and outside the domain. Besides the parameters in the source code example \ref{code:dppoisson}, additional ones are available to fine-tune several internal precision parameters (such as support, upsampling or overall tolerance). By default, the module will provide an overall tolerance of around 4 digits, which is the study case in the original work describing the doubly periodic algorithm~\cite{Maxian2021}. Additionally, a special functor can be provided specifying the surface charges. The description of the surface charge parameter is left for UAMMD's online documentation (see Appendix \ref{ch:online}).
 In all instances, the surface charge will enforce overall electroneutrality inside the domain. For instance, if a single positive charge of strength $Q$ is located inside the domain, each wall will be assigned a constant charge of $-Q/2$.
 
 \begin{code2}[Usage example of the doubly periodic Poisson module.]{label=code:dppoisson}
@@ -5317,16 +5417,16 @@ auto createDPPoissonInteractor(UAMMD sim){
 \part{New physics and applications}\label{pt:applications}
 
 In this part we showcase the works, published in scientific journals, that resulted from the development of this thesis. We will see new physics and works in which \uammd played a fundamental role either as a simulation engine or accelerator.
-This section does not intend to be self contained (the readers are referred to the published material), but rather a way to illustrate the capabilities of UAMMD in disparate physical scenarios.
+This section does not intend to be self-contained (the readers are referred to the published material), but is rather a way to illustrate the capabilities of UAMMD in disparate physical scenarios.
 
-
+Besides the works presented in this part of the manuscript, it is worth mentioning ~\cite{Maxian2021Fibers}, a recent publication in which the author of this manuscript appears as a collaborator, in which UAMMD acts as an external accelerator library. In particular, an already established, in-house code written in python by the author for simulations of dynamically cross-linked actin networks offloads the construction of a neighbour list to UAMMD (using the cell list). Thanks to the inclusion of UAMMD, the previous bottle-neck of their implementation became effectively instantaneous and allowed them to reach larger simulation times and systems.
 
 \chapter{Measuring intracellular viscosity}
 
 In ~\cite{Pelaez2019} we use \gls{PSE} (chapter \ref{sec:pse}) to model the environment of a cell. In particular, we study how the presence of microtubulae affects the viscosity measured by a nanorocker marker.
 The experimental collaborators in ~\cite{Pelaez2019} were testing the effects of two drugs, colchicine and Taxol, on the internal structure of HeLa cells (which are $20$-$40\mu$m in diameter). These drugs are so-called tubulin interactors, meaning that they either promote the polymerization (Taxol) or depolymerization (colchicine) of microtubulae (i.e the cell's cytoskeleton).
 In particular, local mesoscopic intracellular viscosity was being probed via a non-spherical upconverting nanorocker particle (a $\beta-NaYF_4$ hexagonal-shaped nanoparticle with a $400$nm thickness, see fig \ref{fig:cellvis}). The mean squared angular displacement (MSAD) of the nanorocker is sampled using a polarized spectroscopy technique that allows to track the orientation of the nanoparticle in real time~\cite{RodriguezSevilla2016}.
-The orientational fluctuations (a.i. the MSAD) of the nanorocker can then be related directly with the local viscosity using the well known relation for the time evolution of the MSAD for a disk-like particle,
+The orientational fluctuations (a.i. the MSAD) of the nanorocker can then be related directly to the local viscosity using the well-known relation for the time evolution of the MSAD for a disk-like particle,
 \begin{equation}
   \label{eq:msad}
   \text{MSAD}(t) = \frac{\kT}{3\eta V f/f_0}t.
@@ -5335,20 +5435,20 @@ Where $V$ is the volume of the particle and $f/f_0$ is the so-called Perrin's fr
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{gfx/hexagon}
-  \caption{Representation of the simulation environment used to model the experimental setup in ~\cite{Pelaez2019}. The nanorocker (grey) and the microtubulae (red) are modeled as spring connected blobs.}
+  \caption{Representation of the simulation environment used to model the experimental setup in ~\cite{Pelaez2019}. The nanorocker (grey) and the microtubulae (red) are modeled as spring-connected blobs.}
   \label{fig:cellvis}
 \end{figure}
-Experiments with Taxol and colchicine revealed a strong and unintuitive relation between the concentration of microtubulae and the mesoscopic intracellular viscosity. In particular, experiments showed a $10$x reduction in the viscosity after Taxol administration, corresponding to the presence of a higher concentration of microtubulae in the cellular environment. Consistently, the posterior administration of colchicine, which depolymerizes the microtubulae into a suspension of tubuline heterodimers, induces an increase in viscosity.
+Experiments with Taxol and colchicine revealed a strong and unintuitive relation between the concentration of microtubulae and the mesoscopic intracellular viscosity. In particular, experiments showed a ten-fold reduction in the viscosity after Taxol administration, corresponding to the presence of a higher concentration of microtubulae in the cellular environment. Consistently, the posterior administration of colchicine, which depolymerizes the microtubulae into a suspension of tubuline heterodimers, induces an increase in viscosity.
 
-We elucidate the origin of the viscosity reduction lies in the specific sampling size of the nanorocker (with an average size of $400$nm). For a typical concentration of tubulin ($25$-$100\mu$M) in the cytoplasm the volume fraction occupied by the microtubulae is between $5$~$10^{-3}$ and $5$~$10^{-2}$. At these concentrations we find a polydisperse ensemble of rods that form a fractal gel with pores typically smaller than the average length of the rods. A tracer particle diffusing in this scenario is known to have a severely reduced translational and rotational diffusion~\cite{Solomon2010,Alcazar2018}. However, after Taxol administration, the microtubule network is formed by much larger rods, resulting in the nanorocker diffusing through much larger structures. Colchicine produces the opposite effect, reducing the typical rod size and, consequently, the average length of the cytoplasm components that drag the sampling particle. Our hypothesis relies on the expectation that, when the typical distance between microtubules in the ordered phase (after Taxol administration) becomes larger than the nanorocker size the steric hidrance of the microtubulae is significantly reduced. In order to validate this, we setup a series of simulation using the \gls{PSE} method (see chapter \ref{sec:pse}) with various concentration of microtubulae such that the average free space between rods is larger than the rocker's size (see figure \ref{fig:msad}).
+We infer the origin of the viscosity reduction lies in the specific sampling size of the nanorocker (with an average size of $400$nm). For a typical concentration of tubulin ($25$-$100\mu$M) in the cytoplasm the volume fraction occupied by the microtubulae is between $5$~$10^{-3}$ and $5$~$10^{-2}$. At these concentrations we find a polydisperse ensemble of rods that form a fractal gel with pores typically smaller than the average length of the rods. A tracer particle diffusing in this scenario is known to have a severely reduced translational and rotational diffusion~\cite{Solomon2010,Alcazar2018}. However, after Taxol administration, the microtubule network is formed by much larger rods, resulting in the nanorocker diffusing through much larger structures. Colchicine produces the opposite effect, reducing the typical rod size and, consequently, the average length of the cytoplasm components that drag the sampling particle. Our hypothesis relies on the expectation that, when the typical distance between microtubules in the ordered phase (after Taxol administration) becomes larger than the nanorocker size the steric hidrance of the microtubulae is significantly reduced. In order to validate this, we setup a series of simulation using the \gls{PSE} method (see chapter \ref{sec:pse}) with various concentration of microtubulae such that the average free space between rods is larger than the rocker's size (see figure \ref{fig:msad}).
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{gfx/MSDA_comparison_exp}
-  \caption{Computed and experimentally measured mean squared angular displacement (MSAD) over time. Comparison is made between simulations of free (brown line) and laser-illuminated (confined, orange line) nanorocker, surrounded by 10 microtubules (MT), and the experimental results (Exp.) after 5 h incubation time with Taxol (purple data). Thered dashed line represents the MSAD calculated from Equation (1) using the measured viscosity for an incubation time of 5 h. The good agreement between the red and purple curves validates the approximation of the nanorocker to a disk. The inset shows the mean squared displacement (MSD) for free nanorockers in the presence of 0, 5, and 10 microtubules. The agreement between the experimental and simulation results indicates that the movement of the particle is not affected by the presence of microtubules since their size is much bigger than the particle.}
+  \caption{Computed and experimentally measured mean squared angular displacement (MSAD) over time. Comparison is made between simulations of free (brown line) and laser-illuminated (confined, orange line) nanorocker, surrounded by 10 microtubules (MT), and the experimental results (Exp.) after 5 h incubation time with Taxol (purple data). Thered dashed line represents the MSAD calculated from Equation (1) using the measured viscosity for an incubation time of 5 h. The good agreement between the red and purple curves validates the approximation of the nanorocker to a disk. The inset shows the mean squared displacement (MSD) for free nanorockers in the presence of 0, 5, and 10 microtubules. The agreement between the experimental and simulation results indicates that the movement of the particle is not affected by the presence of microtubules since their separation is much bigger than the particle.}
   \label{fig:msad}
 \end{figure}
-We perform simulations with and without taking into account the translational confining effect of the probing laser on the nanorocker (by trapping the nanorocker with a soft potential well to a domain about 10\% larger than its size) and find no discernable effect on its rotational diffusion. In the confined case, any modification of the particle rotation is only due to the hydrodynamic effects of the microtubulae. This evidences that the translational confinement of the probing beam does not affects its orientational fluctuating motion.
-Our simulations yield MSAD curves that match the theory and simulations in the absence of microtubulae to within statistical uncertainty. This evidences that the presence of microtubulae, at these concentrations, has practically no effect on the viscosity sampled by the nanorocker. From this, we conclude that, once all microtubulae is formed due to the effect of Taxol, there is less amount of intracellular material of comparable size to the nanorocker, which effectively reduces the viscosity sensed by it.
+We perform simulations with and without taking into account the translational confining effect of the probing laser on the nanorocker (by trapping the nanorocker with a soft potential well to a domain about 10\% larger than its size) and find no discernable effect on its rotational diffusion. In the confined case, any modification of the particle rotation is only due to the hydrodynamic effects of the microtubulae. This evidences that the translational confinement of the probing beam does not affect its orientational fluctuating motion.
+Our simulations yield MSAD curves that match the theory and simulations in the absence of microtubulae to within statistical uncertainty. This evidences that the presence of microtubulae, at these concentrations, has practically no effect on the viscosity sampled by the nanorocker. From this, we conclude that, once all microtubulae are formed due to the effect of Taxol, there is less amount of intracellular material of comparable size to the nanorocker, which effectively reduces the viscosity sensed by it.
 
 %Chemicals capable of producing structural and chemical changes on cells are used to treat diseases (e.g., cancer). Further development and optimization of chemotherapies require thorough knowledge of the effect of the chemical on the cellular structure and dynamics. This involves studying, in a noninvasive way, the properties of individual cells after drug administration. Intracellular viscosity is affected by chemical treatments and it can be reliably used to monitor chemotherapies at the cellular level. Here, cancer cell monitoring during chemotherapeutic treatments is demonstrated using intracellular allocated upconverting nanorockers. A simple analysis of the polarized visible emission of a single particle provides a real-time readout of its rocking dynamics that are directly correlated to the cytoplasmic viscosity. Numerical simulations and immunodetection are used to correlate the measured intracellular viscosity alterations to the changes produced in the cytoskeleton of cancer cells by anticancer drugs (colchicine and Taxol). This study evidences the possibility of monitoring cellular properties under an external chemical stimulus for the study and development of new treatments. Moreover, it provides the biomedical community with new tools to study intracellular dynamics and cell functioning.
 %
@@ -5373,11 +5473,11 @@ We investigate tank-treading and breathing dynamics of individual star molecules
 Let us start by discussing two works that study hydrodynamics in confined geometries. First in section \ref{sec:softconf} when particles are confined to the plane via a soft harmonic potential and then in section \ref{sec:strictconf} when the confinement is strict (in the quasi 2D regime introduced in chapter \ref{sec:q2D}).
 
 \section{From soft to strict confinement}\label{sec:softconf}
-In ~\cite{Pelaez2017} we study the hydrodynamics-enhanced collective diffusion of a group of colloids under soft two dimensional confinement as the confinement becomes stiff. Colloids are embedded in an unbounded fluid but their movement in the Z direction is constrained via an harmonic potential (see Fig. \ref{fig:q2dsch}) as we introduced in chapter \ref{sec:q2D}. As the spring constant of the confining (parabolic) potential is decreased, in this work we study the crossover between purely 3D hydrodynamics and quasi2D both numerically and theoretically.
+In ~\cite{Pelaez2017} we study the hydrodynamics-enhanced collective diffusion of a group of colloids under soft two dimensional confinement as the confinement becomes stiff. Colloids are embedded in an unbounded fluid but their movement in the Z direction is constrained via a harmonic potential (see Fig. \ref{fig:q2dsch}) as we introduced in chapter \ref{sec:q2D}. As the spring constant of the confining (parabolic) potential is decreased, in this work we study the crossover between purely 3D hydrodynamics and quasi2D both numerically and theoretically.
 
 It is well-known that, in quasi2D, collective diffusion is enhanced due to the effective compressibility of the in-plane hydrodynamics. This is evidenced in Eq. \eqref{eq:q2Deffrepulsion} (and related discussion), where we saw how the divergence of the in-plane mobility can be interpreted as the colloids interacting via a Coulomb-like repulsive potential in an incompressible fluid. In ~\cite{Pelaez2017} we find that the enhancement of the collective diffusion is quite robust and remains significant when moving from strict to soft confinement.
 
-The enhancement, being collective in nature, decreases with the concentration of colloids. As an example, for a projected surface fraction, $\phi = \pi a^2N/L^2$, of about $0.4$, a rather soft confining potential of width $\delta = 3a$ will induce more than a $10$-fold increase in collective diffusion for a density perturbation of typical size given by a wavelength $ka \sim 6\cdot 10^{-2}$ (corresponding to a wavelength around $100a$). For nanoparticles (of about $10$ nm) these lengths are not small (order $10$ microns). We can find several experimental set-ups where the confinement is even more stiff than our example, $\delta\sim a$ (and thus the increase in diffusion is more pronounced). For instance, in the presence of walls (note that the mobility will be regularized by the presence of a wall) depletion forces can constrain the out-of-plane diffusion of colloids near the wall to $\delta\sim a$. If the surface and the colloids are charged the confinement will be related to the Debye length (nanometers). On the other hand, the theory presented in ~\cite{Pelaez2017} can be directly applicable to confinement by ultrasound~\cite{Balboa2013}. The pressure waves generated by high frequency (MHz) ultrasounds (an effective quadratic potential) can confine micron-sized colloids to a width $\delta \sim a$.
+The enhancement, being collective in nature, decreases with the concentration of colloids. As an example, for a projected surface fraction, $\phi = \pi a^2N/L^2$, of about $0.4$, a rather soft confining potential of width $\delta = 3a$ will induce more than a ten-fold increase in collective diffusion for a density perturbation of typical size given by a wavelength $ka \sim 6\cdot 10^{-2}$ (corresponding to a wavelength around $100a$). For nanoparticles (of about $10$ nm) these lengths are not small (order $10$ microns). We can find several experimental set-ups where the confinement is even stiffer than our example, $\delta\sim a$ (and thus the increase in diffusion is more pronounced). For instance, in the presence of walls (note that the mobility will be regularized by the presence of a wall) depletion forces can constrain the out-of-plane diffusion of colloids near the wall to $\delta\sim a$. If the surface and the colloids are charged the confinement will be related to the Debye length (nanometers). On the other hand, the theory presented in ~\cite{Pelaez2017} can be directly applicable to confinement by ultrasound~\cite{Balboa2013}. The pressure waves generated by high frequency (MHz) ultrasounds (an effective quadratic potential) can confine micron-sized colloids to a width $\delta \sim a$.
 In Fig. \ref{fig:q2DEnhancement} we show the collective diffusion coefficient at short times, given by ~\cite{Dhont1996},
 \begin{equation}
   \label{eq:q2dcoldif}
@@ -5404,7 +5504,7 @@ Figure~\ref{fig:q2Dfrom3dto2d} shows the gradual transition from quasi-2D (enhan
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{gfx/q2Dfrom3dto2d}
-  \caption{The enhancement of the collective diffusion (given by the hydrodynamic function $H_c(k)$ in Eq. \ref{eq:q2dcoldif}) of a group of ideal colloids ($S(k)=1$) as the confinement goes from non-existent ($\delta\rightarrow \infty$) to stiff ($\delta\rightarrow 0$) trap. Dashed lines correspond to Eq. (18) in ~\cite{Pelaez2017}, from where this figure has been taken from.}
+  \caption{The enhancement of the collective diffusion (given by the hydrodynamic function $H_c(k)$ in Eq. \ref{eq:q2dcoldif}) of a group of ideal colloids ($S(k)=1$) as the confinement goes from non-existent ($\delta\rightarrow \infty$) to stiff ($\delta\rightarrow 0$) trap. Dashed lines correspond to Eq. (18) in ~\cite{Pelaez2017}, from where this figure has been taken.}
   \label{fig:q2Dfrom3dto2d}
 \end{figure}
 
@@ -5414,7 +5514,7 @@ Figure~\ref{fig:q2Dfrom3dto2d} shows the gradual transition from quasi-2D (enhan
 In ~\cite{Pelaez2018} we focus on the limit $\delta\rightarrow 0$ by taking the mathematical limit of the confining force becoming infinite. We already introduced this limit in chapter \ref{sec:q2D} by introducing a constraint into the mobility $M=M(z)$, leading to a thermal drift $\partial_zM\neq 0$. We saw how the confining force propagates to the fluid resulting in an effectively compressible in-plane mobility (which is the origin of the anomalous collective diffusion). In fact, as represented in Fig. \ref{fig:q2DEnhancement} the collective diffusion coefficient diverges like the inverse of the wavenumber.
 
 In ~\cite{Pelaez2018} we extend the previously existing hydrodynamic theory to account for a species/color labeling of the particles (which is needed to model experiments based on fluorescent techniques). We then study the magnitude and dynamics of the density and color density fluctuations theoretically (using linearized fluctuating hydrodynamics) and simulations (with our novel \gls{BDHI} quasi 2D \gpu algorithm, see chapter \ref{sec:q2D}).
-The effects of the effective repulsion fundamentally change the dynamics in quasi 2D as evidenced in figs. \ref{fig:q2Doverdens} and \ref{fig:q2Dstripes}, where we place striped over-densities in the middle of the domain and study their time evolution.
+The action of the effective repulsion fundamentally changes the dynamics in quasi 2D as evidenced in figs. \ref{fig:q2Doverdens} and \ref{fig:q2Dstripes}, where we place striped over-densities in the middle of the domain and study their time evolution.
 
 We measure concentration as the number density defined as
 \begin{equation}
@@ -5425,11 +5525,11 @@ We measure concentration as the number density defined as
   \hspace*{-2.0cm}
   \subfloat{\includegraphics[width=0.7\linewidth]{gfx/q2Dstripehisttotal}}
   \subfloat{\includegraphics[width=0.7\linewidth]{gfx/q2Dstripehist}}
-  \caption{Time evolution of a striped density perturbation initially localized in the middle third of the domain in quasi 2D. Shown here are the density profiles averaged both in ensemble and in the x direction. (Left) The total density, $c^{(1)}(y, t)$, at time $t=0$ (dashed-solid black line) and at a later point in time (red squares), theory for the quasi 2D line (red) comes from our mean field (Eq. 30 in ~\cite{Pelaez2018}). The solution to the diffusion equation without hydrodynamic interactions (at the same time) is shown as a solid black line. (Right) We tag particles starting in the middle stripe as green ($c^{(1)}_G$, green lines and squares) and the rest as red ($c^{(1)}_R$, red lines and circles) and plot their density profiles, $c^{(1)}_{R/G}$. Red and green symbols correspond to $c^{(1)}_R$ and $c^{(1)}_G$ at the same point in time as the left pane. Dotted lines correspond to $t=0$. Our mean field theory is also shown here with solid lines. Dashed lines correspond to the diffusion equation without hydrodynamic interactions. All particles are passive tracers.}
+  \caption{Time evolution of a stripe density perturbation initially localized in the middle third of the domain in quasi 2D. Shown here are the density profiles averaged both in ensemble and in the x direction. (Left) The total density, $c^{(1)}(y, t)$, at time $t=0$ (dashed-solid black line) and at a later point in time (red squares), theory for the quasi 2D line (red) comes from our mean field (Eq. 30 in ~\cite{Pelaez2018}). The solution to the diffusion equation without hydrodynamic interactions (at the same time) is shown as a solid black line. (Right) We tag particles starting in the middle stripe as green ($c^{(1)}_G$, green lines and squares) and the rest as red ($c^{(1)}_R$, red lines and circles) and plot their density profiles, $c^{(1)}_{R/G}$. Red and green symbols correspond to $c^{(1)}_R$ and $c^{(1)}_G$ at the same point in time as the left pane. Dotted lines correspond to $t=0$. Our mean field theory is also shown here with solid lines. Dashed lines correspond to the diffusion equation without hydrodynamic interactions. All particles are passive tracers.}
   \label{fig:q2Doverdens}
 \end{figure}
-Fig. \ref{fig:q2Doverdens} shows the ensemble average of the time evolution of the density profiles, evidencing the effect of the enhance collective diffusion (marked as q2D in the figure).
-On the other hand, we study non-equilibrium giant fluctuations by looking at the time evolution of a single realization of the diffusing stripes. In Fig. \ref{fig:q2Dstripes} we look at the time evolution of an overdensity, while \ref{fig:q2Dcolorstripe} shows simulations with ``color'' density gradients. In the latter simulations the system has uniform total density across the whole domain, but we mark (color) particles starting in the middle third of the domain and study the evolution of their concentration.
+Fig. \ref{fig:q2Doverdens} shows the ensemble average of the time evolution of the density profiles, evidencing the effect of the enhanced collective diffusion (marked as q2D in the figure).
+On the other hand, we study non-equilibrium giant fluctuations by looking at the time evolution of a single realization of the diffusing stripes. In Fig. \ref{fig:q2Dstripes} we look at the time evolution of an over-density, while \ref{fig:q2Dcolorstripe} shows simulations with ``color'' density gradients. In the latter simulations the system has uniform total density across the whole domain, but we mark (color) particles starting in the middle third of the domain and study the evolution of their concentration.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{gfx/q2Dstripes}
@@ -5443,12 +5543,12 @@ The visual appearance of the true 2D panes is similar in figs. \ref{fig:q2Dstrip
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{gfx/q2Dcolorstripe}
-  \caption{Time evolution (snapshots at times increasing from left to right) of a color (species) density perturbation initially localized in the middle third of the domain. All simulations have an uniform total density, with a packing fraction of $\phi = 1$. We show snapshots in the absence of hydrodynamics (BD, top row), quasi 2D (middle row) and true 2D (bottom row) at the same diffusive times ($t^{BD/t2D/q2D}= tD_0^{BD/t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $64^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
+  \caption{Time evolution (snapshots at times increasing from left to right) of a color (species) density perturbation initially localized in the middle third of the domain. All simulations have a uniform total density, with a packing fraction of $\phi = 1$. We show snapshots in the absence of hydrodynamics (BD, top row), quasi 2D (middle row) and true 2D (bottom row) at the same diffusive times ($t^{BD/t2D/q2D}= tD_0^{BD/t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $64^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
   \label{fig:q2Dcolorstripe}
 \end{figure}
 
-Another puzzling effect discovered in this work is the effect of q2D dynamic's on the single particle diffusion (ideal tracers).
-In contrast with the diverging collective diffusion we find that the long time self diffusion coefficient is reduced (see Fig. \ref{fig:q2Dselfreduction}). Although the effect is small (less than 15\% reduction of the self diffusion coefficient, see Fig. \ref{fig:q2Dselfreduction}) its physics are an example of coupling between density fluctuations and single particle diffusion, in systems where the mobility divergence is not zero. The phenomena has been also observed in charged particles, where the electrostatic potential has the same role as the thermal drift $\partial_zM$ here~\cite{Pelaez2018}.
+Another puzzling fact discovered in this work is the effect of q2D dynamics on the single particle diffusion (ideal tracers).
+In contrast to the diverging collective diffusion we find that the long time self diffusion coefficient is reduced (see Fig. \ref{fig:q2Dselfreduction}). Although the effect is small (less than 15\% reduction of the self diffusion coefficient, see Fig. \ref{fig:q2Dselfreduction}) its physics are an example of coupling between density fluctuations and single particle diffusion, in systems where the divergence of mobility is not zero. The phenomena has also been observed in charged particles, where the electrostatic potential has the same role as the thermal drift $\partial_zM$ here~\cite{Pelaez2018}.
 
 The mathematical formalism for these type of phenomena is not trivial, and reference ~\cite{Pelaez2018} provides a first sketch of it.
 %due to the hydrodynamic coupling between a single particle and collective density fluctuations (even for non-interacting particles). We dilucidate the cause of this is \todo{fill}
@@ -5471,48 +5571,48 @@ The mathematical formalism for these type of phenomena is not trivial, and refer
 
 In ~\cite{Melendez2019} \uammd is used in conjunction with an already established in-house solver for interaction between particles and optical fields to study the hydrodynamically-enhanced dispersion of a collection of nanoscale dumbbells in a vortex lattice formed by an incident laser~\cite{Buscalioni2018}. In particular, the system is simulated with open boundaries via the Cholesky decomposition approach in chapter \ref{sec:chol}. In some simulations hydrodynamics are turned off to isolate their effect by using plain \gls{BD} (introduced in chapter \ref{sec:bd}).
 
-Previous research has shown that gold nanoparticles immersed in water in an optical vortex lattice formed by the perpendicular intersection of two standing light waves with a $\pi/2$ rad phase difference will experience enhanced dispersion that scales with the intensity of the incident laser. We show that flexible nanoscale dumbbells (created by attaching two such gold particles by means of a molecule chain such as a DNA o oligomer) in the same field display different types of motion depending on the chain length and field intensity. We have not disregarded the secondary optical forces due to light scattering. The dumbbells may disperse, rotate, or remain trapped. For some values of the parameters, the (enhanced) dispersion possesses a displacement distribution with exponential tails and exhibiting time-dependent diffusion, including anomalous (though Brownian) diffusion.
+Previous research has shown that gold nanoparticles immersed in water in an optical vortex lattice formed by the perpendicular intersection of two standing light waves with a $\pi/2$ rad phase difference will experience enhanced dispersion that scales with the intensity of the incident laser. We show that flexible nanoscale dumbbells (created by attaching two such gold particles by means of a molecule chain such as a DNA or oligomer) in the same field display different types of motion depending on the chain length and field intensity. We have not disregarded the secondary optical forces due to light scattering. The dumbbells may disperse, rotate, or remain trapped. For some values of the parameters, the (enhanced) dispersion possesses a displacement distribution with exponential tails and exhibiting time-dependent diffusion, including anomalous (though Brownian) diffusion.
 
-The interested reader is referred to ~\cite{Melendez2019} for details. For the sake of this dissertation, the main outcome of this work (and research line) is to highlight the ability of UAMMD to include other type of interactions between fields and particles, which can be expressed in terms of Green functions. In particular, secondary optic forces (arising from light scattered by the nanoparticles) are evaluated from the optic Green function (see ~\cite{Buscalioni2018,Melendez2019}). The techniques developed here for the hydrodynamic propagators can be also used for the optic problem, and this subject is part of ongoing research, teh resulting ``opto-hydrodynamic'' computational framework promises to be of great usefulness to analyze recent experiments with plasmonic nanoparticles ~\cite{Ye2020}.
+The interested reader is referred to ~\cite{Melendez2019} for details. For the sake of this dissertation, the main outcome of this work (and research line) is to highlight the ability of UAMMD to include other type of interactions between fields and particles, which can be expressed in terms of Green functions. In particular, secondary optical forces (arising from light scattered by the nanoparticles) are evaluated from the optical Green function (see ~\cite{Buscalioni2018,Melendez2019}). The techniques developed here for the hydrodynamic propagators can also be used for the optical problem, and this subject is part of ongoing research, the resulting ``opto-hydrodynamic'' computational framework promises to be of great usefulness to analyze recent experiments with plasmonic nanoparticles ~\cite{Ye2020}.
 
 
 
-Besides the works presented in the current chapter, it is worth to mention ~\cite{Maxian2021Fibers}, a recent publication in which the author of this manuscript appears as a collaborator, in which UAMMD acts as an external accelerator library. In particular, an already established, in-house code written in python by the author for simulations of dynamically cross-linked actin networks offloads the construction of a neighbour list to UAMMD (using the cell list). Thanks to the inclusion of UAMMD, the previous bottle-neck of their implementation became effectively instantaneous and allowed them to reach larger simulation times and systems.
+
 
 
 \chapter{Ongoing work, future directions and conclusions}\label{ch:conclusions}
-We are living in the origins of the GPU era, in which new computing technologies evolve every day and the software development kits (SDK) that allow to use them evolve alongside them. Lagging behind both hardware and SDK are the applications that make use of them, such as UAMMD. Finally, one step behind all of them lie the novel algorithms, some of which have been developed during this thesis. Climbing up the proverbial ladder requires constant work and research into these new technologies, as if we were walking a mechanical ladder in reverse. In order to successfully survive the constant climb it is worth to, in my opinion, lose the fear of returning back to basics, to reinvent the wheel. We chose CUDA for UAMMD because it was the best choice at the moment, but we did so knowing that this might change over time. In UAMMD reinventing the wheel is easy by design. The base modules (\emph{Interactor}, \emph{Integrator}, \emph{ParticleData},...) are simple and short, allowing for extension or modification of even the most basic assumptions. 
+We are living in the birth of the GPU era, in which new computing technologies evolve every day and the software development kits (SDK) that allow to use them evolve alongside them. Lagging behind both hardware and SDK are the applications that make use of them, such as UAMMD. Finally, one step behind all of them lie the novel algorithms, some of which have been developed during this thesis. Climbing up the proverbial ladder requires constant work and research into these new technologies, as if we were walking a mechanical escalator in reverse. In order to successfully survive the constant climb it is worth to, in my opinion, lose the fear of returning back to basics, to reinvent the wheel. We chose CUDA for UAMMD because it was the best choice at the moment, but we did so knowing that this might change over time. In UAMMD reinventing the wheel is easy by design. The base modules (\emph{Interactor}, \emph{Integrator}, \emph{ParticleData},...) are simple and short, allowing for extension or modification of even the most basic assumptions. 
 
 \subsubsection*{New programming interfaces}
 Recently SYCL, a cross-platform C++ programming model for heterogeneous computing, has been gaining a lot of traction. The SYCL standard was introduced by the Khronos group (the same group behind OpenCL and OpenGL) and several implementations already exist (like Intel's DPC++ and hipSYCL just to name a few). SYCL aims to provide a common specification allowing to write code that will run in any massively parallel accelerator, such as a GPU or CPU, by having backends to accomodate the different hardware vendors (CUDA for NVIDIA, ROCm for AMD, oneAPI for Intel...). In the future, it is within the realm of possibilities to port UAMMD to SYCL, which will enable it to run on any hardware and, moreover, would make it more future-proof.
 
 \subsubsection*{multi-GPU}
-Currently UAMMD is a single GPU library. Once a GPU is selected at initialization every other GPU in the system is ignored. As a matter of fact, in the description of the different algorithms we have not acknowledge the existence of multi GPU. While some algorithms, such as the neighbour lists or the immersed boundary method, present almost linear scalings when using several processors, others, mainly the ones involving the Fourier transform, require an all-to-all communication in a multi GPU environment. Many novel algorithms in UAMMD are based on the \gls{FFT} and, given that a single GPU can already fit quite a large system, the extra software complexity and maintenance burden associated with a multi GPU implementation was deemed not worthy. Furthermore, our simulations are often governed by thermal fluctuations and require us to launch the same simulation many times to gather statistics. In this case the multi GPU parallelization is trivial. Nonetheless, the codebase was designed with the possibility of going multi GPU in mind. In the future it would be possible for a developer to incrementally make the different basic UAMMD modules multi-GPU-aware, but it is not something being considered at the moment.
+Currently UAMMD is a single GPU library. Once a GPU is selected at initialization every other GPU in the system is ignored. As a matter of fact, in the description of the different algorithms we have not acknowledged the existence of multi-GPU. While some algorithms, such as the neighbour lists or the immersed boundary method, present almost linear scalings when using several processors, others, mainly the ones involving the Fourier transform, require an all-to-all communication in a multi-GPU environment. Many novel algorithms in UAMMD are based on the \gls{FFT} and, given that a single GPU can already fit quite a large system, the extra software complexity and maintenance burden associated with a multi-GPU implementation was deemed not worthy of the effort. Furthermore, our simulations are often governed by thermal fluctuations and require us to launch the same simulation many times to gather statistics. In this case the multi-GPU parallelization is trivial. Nonetheless, the codebase was designed with the possibility of going multi-GPU in mind. In the future it would be possible for a developer to incrementally make the different basic UAMMD modules multi-GPU-aware, but it is not something being considered at the moment.
 \subsubsection*{Outreach}
-UAMMD offers a plethora of tools that researchers can leverage to accelerate their simulations, however, making use of them requires certain knowledge and resources that might not be in the skillset of a typical research group, moreover a experimental group. One of our current lines of work consists on bridging the gap between us, producers of scientific software, and their potential users, such as experimental research groups. In particular by offering easy-to-use graphical user interfaces (GUI) tailored for the (quantitative) reproduction of specific experiments or experimental techniques. At the moment, we are pursuing this idea by iterating, with the help of a research group at CSIC, towards a GUI for a ``virtual QCM'' which will aid in the characterization of samples for this sensor.
+UAMMD offers a plethora of tools that researchers can leverage to accelerate their simulations, however, making use of them requires certain knowledge and resources that might not be in the skillset of a typical research group, much less an experimental group. One of our current lines of work consists in bridging the gap between us, producers of scientific software, and their potential users, such as experimental research groups, in particular by offering easy-to-use graphical user interfaces (GUI) tailored for the (quantitative) reproduction of specific experiments or experimental techniques. At the moment, we are pursuing this idea by iterating, with the help of a research group at CSIC, towards a GUI for a ``virtual QCM'' which will aid in the characterization of samples for this sensor.
 
 \subsubsection*{What others are doing with UAMMD}
-At the moment, extensions to UAMMD is being actively developed by several collaborators. I still retain my role as the lead developer and routinely push fixes, improvements and new modules to the main repository, but other researchers have been forking, extending and hacking UAMMD for some time now. It is worth mentioning here some of the ongoing projects that are being carried out by collaborators using UAMMD.
+At the moment, extensions to UAMMD are being actively developed by several collaborators. I still retain my role as the lead developer and routinely push fixes, improvements and new modules to the main repository, but other researchers have been forking, extending and hacking UAMMD for some time now. It is worth mentioning here some of the ongoing projects that are being carried out by collaborators using UAMMD.
 
 \begin{itemize}
 \item Pablo Ibañez is studying mechanical properties of virus capsids under the stress of an atomic force microscope's tip.
-\item Marc Melendez and collaborators are studying the dynamical properties of a Quartz Crystal Microbalance (QCM) biosensor for sample characterization, which involves embedding an oscillating wall in a fluid with inertial effects. The subtle coupling between a sample (placed on top of the wall) and the oscillating motion of the wall is studied to provide insights about the sample.
+\item Marc Meléndez and collaborators are studying the dynamical properties of a Quartz Crystal Microbalance (QCM) biosensor for sample characterization, which involves embedding an oscillating wall in a fluid with inertial effects. The subtle coupling between a sample (placed on top of the wall) and the oscillating motion of the wall is studied to provide insights about the sample.
 \item Pablo Palacios is studying the response of bioconjugated magnetic nanoparticles to an alternating magnetic field for biomarker detection. This endeavor requires the development of a new \gls{FCM}-like algorithm for magnetism. Furthermore, the aforementioned nanoparticles have a direction, requiring to take torques and angular displacements into account when adding hydrodynamics.
 \item Collaborators at the New York University are using UAMMD's hydrodynamic and electrostatics modules for several works, such as the study of the rheological properties of a fiber suspension (actin networks), charge diffusion in ionic channels, and more. 
   % \item Interaction between particles and fields via free energy functionals.
-\item Salvatore Assenza is incorporating coarse grained models for simulations of ADN strand suspensions.
+\item Salvatore Assenza is incorporating coarse-grained models for simulations of ADN strand suspensions.
 \end{itemize}
 
-Finally, several works exploring UAMMD's facet as an external, GPU-enabled, accelerator library are ongoing. Mostly making use of the hydrodynamic solvers, electrostatic solvers and neighbour list capabilities of UAMMD. In particular, I routinely provide external collaborators with python interfaces for the different UAMMD modules required by their research.
+Finally, several works exploring UAMMD's facet as an external, GPU-enabled, accelerator library are ongoing, mostly making use of the hydrodynamic solvers, electrostatic solvers and neighbour list capabilities of UAMMD. In particular, I routinely provide external collaborators with python interfaces for the different UAMMD modules required by their research.
 
 \subsubsection*{Novel algorithms}
-New algorithms have been developed that enable simulations of physical regimes that where previously unachievable. These algorithms are accompanied by highly performant GPU implementations in UAMMD, boosting their applicability. The gross of this thesis contribution to this end deals with hydrodynamics and electrostatics in confined geometries. Furthermore, an efficient, GPU-enabled, algorithm for particle-grid communication has been developed and shown to outperform existing alternatives in the use-cases habitual to complex fluid simulations.
+New algorithms have been developed that enable simulations of physical regimes that where previously unachievable. These algorithms are accompanied by highly performant GPU implementations in UAMMD, boosting their applicability. The bulk of this thesis contribution to this end deals with hydrodynamics and electrostatics in confined geometries. Furthermore, an efficient, GPU-enabled, algorithm for particle-grid communication has been developed and shown to outperform existing alternatives in the common use cases in complex fluid simulations.
 
 
 \subsubsection*{New physics}
 %\begin{itemize}
 %\item
-Although this thesis is not centered in new physics per se, several works presenting new physics have been shown. In particular, works studying diffusion in confined geometries, rheological properties of star polymer suspensions, intra-cellular viscosity and opto-hydrodynamics have been discussed. Some of these lines of work are still active and more publications are expected.
+Although this thesis is more centered around developing new techniques and software than finding and/or explaining new physical phenomena per se, several works presenting new physics have been shown. In particular, works studying diffusion in confined geometries, rheological properties of star polymer suspensions, intra-cellular viscosity and opto-hydrodynamics have been discussed. Some of these lines of work are still active and more publications are expected.
 
 
 
@@ -5525,7 +5625,7 @@ Durante esta tesis se han desarollado nuevos algoritmos que permiten la simulaci
 \subsubsection*{Nueva Física}
 %\begin{itemize}
 %\item
-Aunque esta tesis no está centrada en la obtención de resultados per se, se han mostrado varios trabajos presentando nueva física. En particular se han mencionado trabajos que estudian difusión en geometrías confinadas, propiedades rehológicas de polímeros estrella en suspensión, viscosidad intra celular y opto-hidrodinámica. Algunas de estas lineas de trabajo están aún activas y se esperan más publicaciones.
+Aunque esta tesis no está centrada en encontrar/explicar nuevos fenómenos físicos per se, se han mostrado varios trabajos presentando nueva física. En particular se han mencionado trabajos que estudian difusión en geometrías confinadas, propiedades rehológicas de polímeros estrella en suspensión, viscosidad intra celular y opto-hidrodinámica. Algunas de estas lineas de trabajo están aún activas y se esperan más publicaciones.
 
 
 

@@ -8,7 +8,7 @@
    version="1.1"
    id="svg5"
    sodipodi:docname="dppoisson_images.svg"
-   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -24,15 +24,15 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="1.280221"
-     inkscape:cx="129.66511"
-     inkscape:cy="115.60504"
+     inkscape:zoom="2.6261132"
+     inkscape:cx="162.02653"
+     inkscape:cy="155.36269"
      inkscape:window-width="1920"
-     inkscape:window-height="1052"
-     inkscape:window-x="1080"
-     inkscape:window-y="385"
+     inkscape:window-height="1020"
+     inkscape:window-x="0"
+     inkscape:window-y="567"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="g6958" />
   <defs
      id="defs2">
     <g
@@ -1003,6 +1003,56 @@
              width="100%"
              height="100%" />
         </g>
+        <g
+           style="fill:#008000;fill-opacity:1"
+           id="g1524-3"
+           transform="matrix(3.993075,0,0,3.993075,-404.75543,-103.52428)">
+          <use
+             xlink:href="#symbol6371"
+             x="128.343"
+             y="77.817001"
+             id="use1836-6"
+             width="100%"
+             height="100%"
+             style="fill:#008000;fill-opacity:1" />
+        </g>
+        <g
+           style="fill:#008000;fill-opacity:1"
+           id="g4017-7"
+           transform="matrix(3.993075,0,0,3.993075,-404.75543,-103.52428)">
+          <use
+             xlink:href="#symbol5929"
+             x="132.10699"
+             y="78.874001"
+             id="use3474-5"
+             width="100%"
+             height="100%"
+             style="fill:#008000;fill-opacity:1" />
+        </g>
+        <g
+           style="fill:#000000;fill-opacity:1"
+           id="g1758-9"
+           transform="matrix(3.7274324,0,0,3.7274324,-349.47024,-82.986885)">
+          <use
+             xlink:href="#symbol6371"
+             x="141.98599"
+             y="77.817001"
+             id="use4515-1"
+             width="100%"
+             height="100%" />
+        </g>
+        <g
+           style="fill:#000000;fill-opacity:1"
+           id="g1096-2"
+           transform="matrix(3.7274324,0,0,3.7274324,-349.47024,-82.986885)">
+          <use
+             xlink:href="#symbol6220"
+             x="145.75"
+             y="78.814003"
+             id="use8209-7"
+             width="100%"
+             height="100%" />
+        </g>
       </g>
     </g>
     <g
@@ -1217,6 +1267,32 @@
              id="use5408"
              width="100%"
              height="100%" />
+        </g>
+        <g
+           style="fill:#aa0000;fill-opacity:1"
+           id="g462-3"
+           transform="matrix(4.6598119,0,0,4.6598119,-612.80574,-139.51146)">
+          <use
+             xlink:href="#symbol5995"
+             x="137.005"
+             y="77.877998"
+             id="use8334-5"
+             width="100%"
+             height="100%"
+             style="fill:#aa0000;fill-opacity:1" />
+        </g>
+        <g
+           style="fill:#aa0000;fill-opacity:1"
+           id="g114-6"
+           transform="matrix(4.6598119,0,0,4.6598119,-612.80574,-139.51146)">
+          <use
+             xlink:href="#symbol3284"
+             x="140.769"
+             y="78.875"
+             id="use8389-2"
+             width="100%"
+             height="100%"
+             style="fill:#aa0000;fill-opacity:1" />
         </g>
       </g>
     </g>
