@@ -296,7 +296,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
       This thing is complex... so complex not even God gets it.\\ \medskip
     --- Rafa Buscalioni
     \\ \medskip\medskip
-        There is no way you are getting a quote for your stupid thesis\\ \medskip
+        There is no way you are getting a quote for your thesis\\ \medskip
     --- NVIDIA
 
 \end{center}
@@ -1554,8 +1554,19 @@ Lets now see the different \gpu algorithms implemented in \uammd.
 
 \section{Cell list}\label{sec:celllist}
 
+\begin{figure}
+  \centering
+  \includesvg[width=0.65\columnwidth]{gfx/celllist_sketch}
+  \caption{Sketch of the cell list algorithm. Space is binned (black grid) and the bin (cell) of each particle is computed. In order to look for the neighbours of the black particle (those inside the green dashed circle) all the particles inside the adjacent cells (bins inside the orange dashed square, $27$ cells in three dimensions) are checked. The orange particles are therefore false positives. Finally, the yellow particles are never considered when looking for neighbours of the black one.}
+  \label{fig:celllist_sketch}
+\end{figure}
+
+
+
+
+
 This algorithm is based on the \emph{particles} algorithm originally devised by NVIDIA and published in the acclaimed book GPU Gems 3\cite{Nguyen2008}. It is reminiscent of the classic CPU linked cells algorithm\cite{Allen2017} and in some ways an adaptation of it to the \gpu architecture. This algorithm is the standard in \gls{GPU} cell list generation and lots of works can be found describing it or variations of it~\cite{Anderson2008}\cite{Dominguez2011}\cite{Howard2016}\cite{Brown2011}. In particular, our approach to building a cell list shares many similarities with the one described in~\cite{Tang2014}.
-The main idea behind the cell list is to perform a spatial binning and assign a hash to each particle according to the bin it is in. If we then sort these hashes we get a list in which all the particles in a given cell are contiguous. By accessing, for a certain particle, the particles in the $27$ surrounding cells we can find its neighbours without checking too many false positives. Ideally, for a given particle, we would want to check the distance only with the $N_{neigh}$ particles that lie at a distance closer than (or equal to) the cut off distance, $r_{c}$, thus requiring to check a volume of $V_{min}=\frac{4}{3}\pi r_{c}^3$. However, as the cell list partitions the space into cubes of side $r_{c}$, a volume of $V_{cl} = 27r_{c}^3$ around each particle has to be visited.
+The main idea behind the cell list is to perform a spatial binning and assign a hash to each particle according to the bin it is in. If we then sort these hashes we get a list in which all the particles in a given cell are contiguous. By accessing, for a certain particle, the particles in the $27$ surrounding cells we can find its neighbours without checking too many false positives, Fig. \ref{fig:celllist_sketch} provides an sketch of the cell list algorithm. Ideally, for a given particle, we would want to check the distance only with the $N_{neigh}$ particles that lie at a distance closer than (or equal to) the cut off distance, $r_{c}$, thus requiring to check a volume of $V_{min}=\frac{4}{3}\pi r_{c}^3$. However, as the cell list partitions the space into cubes of side $r_{c}$, a volume of $V_{cl} = 27r_{c}^3$ around each particle has to be visited.
 Assuming the particles are uniformly distributed, the cell list will, on average, check a number of unnecessary particles that scales as $N_{cl}/N_{neigh} = V_{cl}/V_{min} \approx 6$. Although the cell list potentially requires visiting more than $6$ times the number of particles that would strictly count as neighbours, its construction and traversal are so efficient that it is usually worth it.
 We are going to describe the algorithm for a rectangular box of side $\vec{L}=(L_x, L_y, L_z)$ with a cut-off distance $r_{c}$. This requires partitioning the domain into a number of cells $\vec{n}=\textrm{floor}(\vec{L}/r_{c}) = (n_x, n_y, n_z)$. Where \emph{floor} represents the largest integer smaller than the argument. It is important to ensure the resulting cell size is at least the cut-off radius, so that $\vec{l} = \vec{L}/\vec{n} \ge r_{c}$.
 
@@ -1572,7 +1583,7 @@ The algorithm for the cell list construction can be summarized in three separate
 \item Sort the particles and hashes using the hashes as the ordering label (technically this is known as sorting by key). So that particles with positions lying in the same cell become contiguous in memory.
 \item Identify where each cell starts and ends in the sorted particle positions array.
 \end{enumerate}
-After these steps we end up with enough information to visit the $27$ neighbour cells of a given particle.
+After these steps we end up with enough information to visit the $27$ neighbour cells of a given particle.1
 We have to compute the assigned cell of a given position at several points during the algorithm. Doing this is straightforward. For a position inside the domain, $x \in [0, L)$, the bin assigned to it is $i = \textrm{floor}(x/n_x) \in [0, n_x- 1]$. It is important to notice that a particle located at exactly $x = L$ will be assigned the cell with index $n_x$, special consideration must be taken into account to avoid this situation. In particular, in a periodic domain, a particle at $x=L$ should be assigned to the cell $i=0$\footnote{Although this might sound evident, it is an easy-to-miss detail and the consequences resulting from its omission will haunt a naive developer for weeks (or so I am told).}.
 Figure \ref{fig:cl1} contains a representation of the binning.
 Let's describe now each step in detail
