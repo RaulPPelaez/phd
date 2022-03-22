@@ -5,62 +5,29 @@
 @page scroll 5%
 @page inout 5%
 @link page off
-@map font 8 to "Courier", "Courier"
-@map font 10 to "Courier-Bold", "Courier-Bold"
-@map font 11 to "Courier-BoldOblique", "Courier-BoldOblique"
-@map font 9 to "Courier-Oblique", "Courier-Oblique"
-@map font 15 to "Dingbats-Regular", "Dingbats-Regular"
+@map font 13 to "ZapfDingbats", "ZapfDingbats"
 @map font 4 to "Helvetica", "Helvetica"
 @map font 6 to "Helvetica-Bold", "Helvetica-Bold"
-@map font 7 to "Helvetica-BoldOblique", "Helvetica-BoldOblique"
 @map font 5 to "Helvetica-Oblique", "Helvetica-Oblique"
-@map font 20 to "NimbusMonoL-Bold", "NimbusMonoL-Bold"
-@map font 21 to "NimbusMonoL-BoldOblique", "NimbusMonoL-BoldOblique"
-@map font 22 to "NimbusMonoL-Regular", "NimbusMonoL-Regular"
-@map font 23 to "NimbusMonoL-RegularOblique", "NimbusMonoL-RegularOblique"
-@map font 24 to "NimbusRomanNo9L-Medium", "NimbusRomanNo9L-Medium"
-@map font 25 to "NimbusRomanNo9L-MediumItalic", "NimbusRomanNo9L-MediumItalic"
-@map font 26 to "NimbusRomanNo9L-Regular", "NimbusRomanNo9L-Regular"
-@map font 27 to "NimbusRomanNo9L-RegularItalic", "NimbusRomanNo9L-RegularItalic"
-@map font 37 to "NimbusSans-Regular", "NimbusSans-Regular"
-@map font 28 to "NimbusSansL-Bold", "NimbusSansL-Bold"
-@map font 29 to "NimbusSansL-BoldCondensed", "NimbusSansL-BoldCondensed"
-@map font 30 to "NimbusSansL-BoldCondensedItalic", "NimbusSansL-BoldCondensedItalic"
-@map font 31 to "NimbusSansL-BoldItalic", "NimbusSansL-BoldItalic"
-@map font 32 to "NimbusSansL-Regular", "NimbusSansL-Regular"
-@map font 33 to "NimbusSansL-RegularCondensed", "NimbusSansL-RegularCondensed"
-@map font 34 to "NimbusSansL-RegularCondensedItalic", "NimbusSansL-RegularCondensedItalic"
-@map font 35 to "NimbusSansL-RegularItalic", "NimbusSansL-RegularItalic"
-@map font 36 to "StandardSymbolsL-Regular", "StandardSymbolsL-Regular"
-@map font 55 to "StandardSymbolsPS-Regular", "StandardSymbolsPS-Regular"
-@map font 12 to "Symbol", "Symbol"
-@map font 2 to "Times-Bold", "Times-Bold"
-@map font 3 to "Times-BoldItalic", "Times-BoldItalic"
-@map font 1 to "Times-Italic", "Times-Italic"
+@map font 7 to "Helvetica-BoldOblique", "Helvetica-BoldOblique"
+@map font 17 to "Nimbus-Sans-L-Regular-Condensed", "Nimbus-Sans-L-Regular-Condensed"
+@map font 18 to "Nimbus-Sans-L-Bold-Condensed", "Nimbus-Sans-L-Bold-Condensed"
+@map font 19 to "Nimbus-Sans-L-Regular-Condensed-Italic", "Nimbus-Sans-L-Regular-Condensed-Italic"
+@map font 20 to "Nimbus-Sans-L-Bold-Condensed-Italic", "Nimbus-Sans-L-Bold-Condensed-Italic"
 @map font 0 to "Times-Roman", "Times-Roman"
-@map font 61 to "URWBookman-Demi", "URWBookman-Demi"
-@map font 62 to "URWBookman-DemiItalic", "URWBookman-DemiItalic"
-@map font 63 to "URWBookman-Light", "URWBookman-Light"
-@map font 64 to "URWBookman-LightItalic", "URWBookman-LightItalic"
-@map font 42 to "URWBookmanL-DemiBold", "URWBookmanL-DemiBold"
-@map font 43 to "URWBookmanL-DemiBoldItalic", "URWBookmanL-DemiBoldItalic"
-@map font 44 to "URWBookmanL-Light", "URWBookmanL-Light"
-@map font 45 to "URWBookmanL-LightItalic", "URWBookmanL-LightItalic"
-@map font 46 to "URWChanceryL-MediumItalic", "URWChanceryL-MediumItalic"
-@map font 70 to "URWGothic-Book", "URWGothic-Book"
-@map font 71 to "URWGothic-BookOblique", "URWGothic-BookOblique"
-@map font 72 to "URWGothic-Demi", "URWGothic-Demi"
-@map font 73 to "URWGothic-DemiOblique", "URWGothic-DemiOblique"
-@map font 47 to "URWGothicL-Book", "URWGothicL-Book"
-@map font 48 to "URWGothicL-BookOblique", "URWGothicL-BookOblique"
-@map font 49 to "URWGothicL-Demi", "URWGothicL-Demi"
-@map font 50 to "URWGothicL-DemiOblique", "URWGothicL-DemiOblique"
-@map font 51 to "URWPalladioL-Bold", "URWPalladioL-Bold"
-@map font 52 to "URWPalladioL-BoldItalic", "URWPalladioL-BoldItalic"
-@map font 53 to "URWPalladioL-Italic", "URWPalladioL-Italic"
-@map font 54 to "URWPalladioL-Roman", "URWPalladioL-Roman"
-@map font 82 to "Z003-MediumItalic", "Z003-MediumItalic"
-@map font 13 to "ZapfDingbats", "ZapfDingbats"
+@map font 2 to "Times-Bold", "Times-Bold"
+@map font 1 to "Times-Italic", "Times-Italic"
+@map font 3 to "Times-BoldItalic", "Times-BoldItalic"
+@map font 8 to "Courier", "Courier"
+@map font 10 to "Courier-Bold", "Courier-Bold"
+@map font 9 to "Courier-Oblique", "Courier-Oblique"
+@map font 11 to "Courier-BoldOblique", "Courier-BoldOblique"
+@map font 29 to "URW-Palladio-L-Roman", "URW-Palladio-L-Roman"
+@map font 30 to "URW-Palladio-L-Bold", "URW-Palladio-L-Bold"
+@map font 31 to "URW-Palladio-L-Italic", "URW-Palladio-L-Italic"
+@map font 32 to "URW-Palladio-L-Bold-Italic", "URW-Palladio-L-Bold-Italic"
+@map font 12 to "Symbol", "Symbol"
+@map font 34 to "URW-Chancery-L-Medium-Italic", "URW-Chancery-L-Medium-Italic"
 @map color 0 to (255, 255, 255), "white"
 @map color 1 to (0, 0, 0), "black"
 @map color 2 to (255, 0, 0), "red"
@@ -96,17 +63,7 @@
 @timestamp rot 0
 @timestamp font 0
 @timestamp char size 1.000000
-@timestamp def "Mon May 18 16:02:58 2020"
-@with string
-@    string on
-@    string loctype view
-@    string 0.458333333333, 0.283088235294
-@    string color 1
-@    string rot 0
-@    string font 0
-@    string just 0
-@    string char size 1.000000
-@    string def "U(r) = U\s0\N((r>d)*exp(-(r-d)/b)+(r<=d)*(1-(r-d)/b))\nU\s0\N=1\nd=1\nb=0.1"
+@timestamp def "Tue Mar 22 09:18:00 2022"
 @with string
 @    string on
 @    string loctype view
@@ -115,8 +72,8 @@
 @    string rot 0
 @    string font 0
 @    string just 0
-@    string char size 1.000000
-@    string def "Density=0.1"
+@    string char size 2.000000
+@    string def "Soft potential"
 @r0 off
 @link r0 to g0
 @r0 type above
@@ -163,7 +120,7 @@
 @g0 fixedpoint format general general
 @g0 fixedpoint prec 6, 6
 @with g0
-@    world 0, 0.0001, 2, 0.01
+@    world 0.1, 0.0001, 2.1, 0.01
 @    stack world 0, 0, 0, 0
 @    znorm 1
 @    view 0.150000, 0.150000, 1.100000, 0.850000
@@ -185,11 +142,11 @@
 @    xaxis  bar on
 @    xaxis  bar color 1
 @    xaxis  bar linestyle 1
-@    xaxis  bar linewidth 2.0
+@    xaxis  bar linewidth 3.0
 @    xaxis  label "T/U\s0\N"
 @    xaxis  label layout para
 @    xaxis  label place auto
-@    xaxis  label char size 1.500000
+@    xaxis  label char size 2.000000
 @    xaxis  label font 0
 @    xaxis  label color 1
 @    xaxis  label place normal
@@ -201,11 +158,11 @@
 @    xaxis  tick in
 @    xaxis  tick major size 1.000000
 @    xaxis  tick major color 1
-@    xaxis  tick major linewidth 2.0
+@    xaxis  tick major linewidth 3.0
 @    xaxis  tick major linestyle 1
 @    xaxis  tick major grid off
 @    xaxis  tick minor color 1
-@    xaxis  tick minor linewidth 2.0
+@    xaxis  tick minor linewidth 3.0
 @    xaxis  tick minor linestyle 1
 @    xaxis  tick minor grid off
 @    xaxis  tick minor size 0.500000
@@ -225,7 +182,7 @@
 @    xaxis  ticklabel start 0.000000
 @    xaxis  ticklabel stop type auto
 @    xaxis  ticklabel stop 0.000000
-@    xaxis  ticklabel char size 1.250000
+@    xaxis  ticklabel char size 2.000000
 @    xaxis  ticklabel font 0
 @    xaxis  ticklabel color 1
 @    xaxis  tick place both
@@ -236,11 +193,11 @@
 @    yaxis  bar on
 @    yaxis  bar color 1
 @    yaxis  bar linestyle 1
-@    yaxis  bar linewidth 2.0
+@    yaxis  bar linewidth 3.0
 @    yaxis  label "step/d"
 @    yaxis  label layout para
 @    yaxis  label place auto
-@    yaxis  label char size 1.500000
+@    yaxis  label char size 2.000000
 @    yaxis  label font 0
 @    yaxis  label color 1
 @    yaxis  label place normal
@@ -252,11 +209,11 @@
 @    yaxis  tick in
 @    yaxis  tick major size 1.000000
 @    yaxis  tick major color 1
-@    yaxis  tick major linewidth 2.0
+@    yaxis  tick major linewidth 3.0
 @    yaxis  tick major linestyle 1
 @    yaxis  tick major grid off
 @    yaxis  tick minor color 1
-@    yaxis  tick minor linewidth 2.0
+@    yaxis  tick minor linewidth 3.0
 @    yaxis  tick minor linestyle 1
 @    yaxis  tick minor grid off
 @    yaxis  tick minor size 0.500000
@@ -276,7 +233,7 @@
 @    yaxis  ticklabel start 0.000000
 @    yaxis  ticklabel stop type auto
 @    yaxis  ticklabel stop 0.000000
-@    yaxis  ticklabel char size 1.250000
+@    yaxis  ticklabel char size 2.000000
 @    yaxis  ticklabel font 0
 @    yaxis  ticklabel color 1
 @    yaxis  tick place both
@@ -285,7 +242,7 @@
 @    altyaxis  off
 @    legend on
 @    legend loctype view
-@    legend 0.808333333333, 0.971568627451
+@    legend 0.581617646725, 0.822058823078
 @    legend box color 1
 @    legend box pattern 1
 @    legend box linewidth 2.0
@@ -293,7 +250,7 @@
 @    legend box fill color 0
 @    legend box fill pattern 1
 @    legend font 0
-@    legend char size 1.000000
+@    legend char size 2.000000
 @    legend color 1
 @    legend length 4
 @    legend vgap 1
@@ -306,7 +263,7 @@
 @    frame pattern 1
 @    frame background color 0
 @    frame background pattern 0
-@    s0 hidden false
+@    s0 hidden true
 @    s0 type xydy
 @    s0 symbol 1
 @    s0 symbol size 0.530000
@@ -357,11 +314,11 @@
 @    s0 legend  "N=16384, acc=0.2"
 @    s1 hidden false
 @    s1 type xydy
-@    s1 symbol 2
+@    s1 symbol 1
 @    s1 symbol size 0.530000
-@    s1 symbol color 2
+@    s1 symbol color 1
 @    s1 symbol pattern 1
-@    s1 symbol fill color 2
+@    s1 symbol fill color 1
 @    s1 symbol fill pattern 1
 @    s1 symbol linewidth 2.0
 @    s1 symbol linestyle 1
@@ -370,8 +327,8 @@
 @    s1 symbol skip 0
 @    s1 line type 1
 @    s1 line linestyle 1
-@    s1 line linewidth 2.0
-@    s1 line color 2
+@    s1 line linewidth 3.0
+@    s1 line color 1
 @    s1 line pattern 1
 @    s1 baseline type 0
 @    s1 baseline off
@@ -393,7 +350,7 @@
 @    s1 avalue offset 0.000000 , 0.000000
 @    s1 errorbar on
 @    s1 errorbar place both
-@    s1 errorbar color 2
+@    s1 errorbar color 1
 @    s1 errorbar pattern 1
 @    s1 errorbar size 0.280000
 @    s1 errorbar linewidth 2.0
@@ -406,11 +363,11 @@
 @    s1 legend  "N=16384, acc=0.5"
 @    s2 hidden false
 @    s2 type xydy
-@    s2 symbol 3
+@    s2 symbol 2
 @    s2 symbol size 0.530000
-@    s2 symbol color 3
+@    s2 symbol color 2
 @    s2 symbol pattern 1
-@    s2 symbol fill color 3
+@    s2 symbol fill color 2
 @    s2 symbol fill pattern 1
 @    s2 symbol linewidth 2.0
 @    s2 symbol linestyle 1
@@ -419,8 +376,8 @@
 @    s2 symbol skip 0
 @    s2 line type 1
 @    s2 line linestyle 1
-@    s2 line linewidth 2.0
-@    s2 line color 3
+@    s2 line linewidth 3.0
+@    s2 line color 2
 @    s2 line pattern 1
 @    s2 baseline type 0
 @    s2 baseline off
@@ -442,7 +399,7 @@
 @    s2 avalue offset 0.000000 , 0.000000
 @    s2 errorbar on
 @    s2 errorbar place both
-@    s2 errorbar color 3
+@    s2 errorbar color 2
 @    s2 errorbar pattern 1
 @    s2 errorbar size 0.280000
 @    s2 errorbar linewidth 2.0
@@ -452,8 +409,8 @@
 @    s2 errorbar riser clip off
 @    s2 errorbar riser clip length 0.100000
 @    s2 comment "results.soft/dens0.1.N16384.acc0.8.dat"
-@    s2 legend  "N16384, acc=0.8"
-@    s3 hidden false
+@    s2 legend  "N=16384, acc=0.8"
+@    s3 hidden true
 @    s3 type xydy
 @    s3 symbol 4
 @    s3 symbol size 0.530000
@@ -504,11 +461,11 @@
 @    s3 legend  "N=3300, acc=0.2"
 @    s4 hidden false
 @    s4 type xydy
-@    s4 symbol 5
+@    s4 symbol 3
 @    s4 symbol size 0.530000
-@    s4 symbol color 11
+@    s4 symbol color 3
 @    s4 symbol pattern 1
-@    s4 symbol fill color 11
+@    s4 symbol fill color 3
 @    s4 symbol fill pattern 1
 @    s4 symbol linewidth 2.0
 @    s4 symbol linestyle 1
@@ -517,8 +474,8 @@
 @    s4 symbol skip 0
 @    s4 line type 1
 @    s4 line linestyle 1
-@    s4 line linewidth 2.0
-@    s4 line color 11
+@    s4 line linewidth 3.0
+@    s4 line color 3
 @    s4 line pattern 1
 @    s4 baseline type 0
 @    s4 baseline off
@@ -540,7 +497,7 @@
 @    s4 avalue offset 0.000000 , 0.000000
 @    s4 errorbar on
 @    s4 errorbar place both
-@    s4 errorbar color 11
+@    s4 errorbar color 3
 @    s4 errorbar pattern 1
 @    s4 errorbar size 0.280000
 @    s4 errorbar linewidth 2.0
@@ -553,11 +510,11 @@
 @    s4 legend  "N=3300, acc=0.5"
 @    s5 hidden false
 @    s5 type xydy
-@    s5 symbol 6
+@    s5 symbol 4
 @    s5 symbol size 0.530000
-@    s5 symbol color 6
+@    s5 symbol color 4
 @    s5 symbol pattern 1
-@    s5 symbol fill color 6
+@    s5 symbol fill color 4
 @    s5 symbol fill pattern 1
 @    s5 symbol linewidth 2.0
 @    s5 symbol linestyle 1
@@ -566,8 +523,8 @@
 @    s5 symbol skip 0
 @    s5 line type 1
 @    s5 line linestyle 1
-@    s5 line linewidth 2.0
-@    s5 line color 6
+@    s5 line linewidth 3.0
+@    s5 line color 4
 @    s5 line pattern 1
 @    s5 baseline type 0
 @    s5 baseline off
@@ -589,7 +546,7 @@
 @    s5 avalue offset 0.000000 , 0.000000
 @    s5 errorbar on
 @    s5 errorbar place both
-@    s5 errorbar color 6
+@    s5 errorbar color 4
 @    s5 errorbar pattern 1
 @    s5 errorbar size 0.280000
 @    s5 errorbar linewidth 2.0
@@ -600,7 +557,7 @@
 @    s5 errorbar riser clip length 0.100000
 @    s5 comment "results.soft/dens0.1.N3300.acc0.8.dat"
 @    s5 legend  "N=3300, acc=0.8"
-@    s6 hidden false
+@    s6 hidden true
 @    s6 type xydy
 @    s6 symbol 7
 @    s6 symbol size 0.530000
@@ -649,7 +606,7 @@
 @    s6 errorbar riser clip length 0.100000
 @    s6 comment "results.soft/dens0.1.N6600.acc0.2.dat"
 @    s6 legend  "N=6600, acc=0.2"
-@    s7 hidden false
+@    s7 hidden true
 @    s7 type xydy
 @    s7 symbol 8
 @    s7 symbol size 0.530000
@@ -698,7 +655,7 @@
 @    s7 errorbar riser clip length 0.100000
 @    s7 comment "results.soft/dens0.1.N6600.acc0.5.dat"
 @    s7 legend  "N=6600, acc=0.5"
-@    s8 hidden false
+@    s8 hidden true
 @    s8 type xydy
 @    s8 symbol 9
 @    s8 symbol size 0.530000

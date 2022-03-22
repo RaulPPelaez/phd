@@ -4,7 +4,7 @@
 %    \WarningFilter{titlesec}{Non standard sectioning command detected}
 \documentclass[ twoside,openright,titlepage,numbers=noenddot,%1headlines,
 headinclude,footinclude,cleardoublepage=empty,abstract=on,
-BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
+BCOR=5mm,paper=b5,fontsize=11pt, dvipsnames
 ]{scrreprt}
 \usepackage[utf8]{inputenc}
 \usepackage{todonotes}
@@ -235,7 +235,7 @@ BCOR=5mm,paper=a4,fontsize=11pt, dvipsnames
 
         \vfill
 
-        \includegraphics[width=13cm]{gfx/titleimage} \\ \medskip
+        \includegraphics[width=13cm]{gfx/froggy} \\ \medskip
 
         %\myDegree \\
         \myDepartment \\
@@ -331,6 +331,7 @@ La presente tesis extiende los límites de la simulación numérica de fluidos c
 
 \cleardoublepage
 \newpage
+\vspace*{-20pt}
 \pdfbookmark[1]{Publications}{publications}
 \chapter*{Publications}
 
@@ -346,26 +347,26 @@ The following publications resulted from the development of this work
 
 
 \cleardoublepage
-\pdfbookmark[1]{Acknowledgments}{acknowledgments}
-
-\begin{flushright}{\slshape}
-\end{flushright}
-
-
-
-\bigskip
-
-\begingroup
-\let\cleardoublepage\relax
-\let\cleardoublepage\relax
-\let\cleardoublepage\relax
-\chapter*{Acknowledgments}
-
-Thanks y'all.
-
-
-\cleardoublepage
-
+%\pdfbookmark[1]{Acknowledgments}{acknowledgments}
+%
+%\begin{flushright}{\slshape}
+%\end{flushright}
+%
+%
+%
+%\bigskip
+%
+%\begingroup
+%\let\cleardoublepage\relax
+%\let\cleardoublepage\relax
+%\let\cleardoublepage\relax
+%\chapter*{Acknowledgments}
+%
+%Thanks y'all.
+%
+%
+%\cleardoublepage
+%
 \glsunsetall
 \pagestyle{scrheadings}
 %\phantomsection
@@ -571,10 +572,12 @@ Furthermore, while most packages require compilation into a binary or library in
 %Developing algorithms for the ground up with the GPU architecture in mind is essential. Leverage ultra efficient \gpu \gls{FFT} by developing spectral algorithms.
 \newpage
 \cleardoublepage
-\ctparttext{An overview of the UAMMD infrastructure.}
+  
+\ctparttext{An overview of the UAMMD infrastructure.\newline\newline\includegraphics[width=1.3\linewidth]{gfx/titleimage}}
 \part{UAMMD: Design and components}\label{pt:uammd}
 
 \chapter{The Fermation of subproblems}
+
 The Trinity test, the first atomic bomb detonation in history, was carried out in 1945. The scientists of the Manhattan project dumbfoundedly observed how the detonation unraveled from a base afar. Among them was Enrico Fermi, the so-called architect of the nuclear age, who was 44 at the time. Fermi had absent-mindedly torn apart a sheet of paper moments before the detonation took place and held the pieces in his hands. Forty seconds after the blast the then withered shock-wave hit the crew. At the first sign of the shockwave Fermi, who had placed his hands above his head in expectation, released the paper bits, which landed a couple of meters past him. After a brief moment of meditation, Fermi announced to the crew that the detonation had released about 10 kilotons of energy.
 It took weeks of analyzing the data from the plethora of sensors available on site to confirm Fermi's estimate of the energy, which is now believed to have been near 20 kilotons.
 
@@ -621,16 +624,16 @@ Then, we can focus on each of the last two assumptions and apply this separation
 
 Similarly, in section \ref{sec:dynamics} we break down the \emph{Integrator} branch (bottom left of Fig. \ref{fig:uammdsketch}) into the several ways the state of the particles can evolve (see Fig. \ref{fig:uammdsketch_integrators}).
 
-During the following chapters, we will discuss in detail this conceptual and programmatic hierarchy and follow its branches down to the leaves. These ``final'' computational objects representing the leaves of \uammd encapsulate the actual algorithms and physics in the form of isolated, individual modules. A ``module'' can be understood as a piece of code which receives information, processes it, and send back some output. The internal complexity of a module is usually much larger than that related with its input and output. Input and output are the essence of the communication between modules.
+During the following chapters, we will discuss in detail this conceptual and programmatic hierarchy and follow its branches down to the leaves. These ``final'' computational objects representing the leaves of \uammd encapsulate the actual algorithms and physics in the form of isolated, individual modules. A ``module'' can be understood as a piece of code which receives information, processes it, and sends back some output. The internal complexity of a module is usually much larger than that related with its input and output. Input and output are the essence of the communication between modules.
 
 In general, these modules will communicate only via the closed loop described by \emph{ParticleData}-\emph{Integrator}-\emph{Interactor} in Fig. \ref{fig:uammdsketch}.
 
-One of the main unwritten lessons we will glean that it is never a good idea to introduce dependencies that climb up through the tree. Just to give some examples of this:
+One of the main unwritten lessons we will glean is that it is never a good idea to introduce dependencies that climb up through the tree. Just to give some examples of this:
 \begin{itemize}
 \item A neighbour list should not assume it is going to be used to
   compute the forces of a group of repulsive particles.
 \item The existence
-  of a hydrodynamics integrator module should not incur in the
+  of a hydrodynamics integrator module should not incur the
   modification of the \emph{Integrator} interface.
 \end{itemize}
 In other words, conceptual complexity and problem specificity should increase only downwards through the tree. This forces us as developers to modify a certain module only to generalize it, and never to specialize it. If a module appears to require being specialized, it is almost always a sign that either it should actually be generalized or exist as a separate entity beneath the initial one. This is what makes \uammd so modular and extensible. See figures \ref{fig:uammdsketch_interactors} or \ref{fig:uammdsketch_integrators}, the next lower branches.
@@ -641,13 +644,13 @@ In other words, conceptual complexity and problem specificity should increase on
 It is common knowledge that good software starts with a good acronym. \uammd stands for Universally Adaptable Multiscale Molecular Dynamics in an attempt to abridge the simple-yet-powerful four assumptions in the previous chapter\footnote{Naturally, the fact that the acronym for the Universidad Autonoma de Madrid is there is merely a coincidence.}. Each of the words carries a different aspect of the framework's philosophy. In this chapter, we will discuss each of them.
 \section{\uppercase{\textbf{U}}niversality}
 
-Complex fluids are one of the prime examples of a multiphysics system. As such, multiphysics are deeply ingrained in \uammd. Our framework can potentially take into account physical phenomena emerging from seemingly disparate fields.
+Complex fluids are a prime examples of a multiphysics system. As such, multiphysics are deeply ingrained in \uammd. Our framework can potentially take into account physical phenomena emerging from seemingly disparate fields.
 One of the key features for \emph{universality} is to be able to communicate between Eulerian (fields) and Lagrangian (``particles'') descriptions. This hybrid approach permits \uammd to efficiently solve problems involving hydrodynamics, electrostatics, magnetism, light-matter interactions, and more... 
   
 %Although we focus on the dynamics of particles, which have a Lagrangian description, using an intermediate Eulerian description is a possibility in these situations.
 In chapter \ref{sec:bdhi}, we will describe a series of Eulerian-Lagrangian algorithms that incorporate the effect of a solvent in a group of submerged particles (hydrodynamics) by describing it explicitly. On the other hand, we will adapt these techniques to compute electrostatics in chapter \ref{ch:tppoisson} by describing an explicit \emph{charge-density field}.
 
-Quantum physics have not been mentioned yet and for the time being we have limited our toolset to the classical world. Thus, staying in the realm of classical physics could be considered a fifth (soft) assumption.
+Quantum physics has not been mentioned yet and for the time being we have limited our toolset to the classical world. Thus, staying in the realm of classical physics could be considered a fifth (soft) assumption.
 
 It is however important to stress that the central (class) object in \uammd are the particles (see below). In fact, the fourth assumption in chapter \ref{pt:uammd} states that particles are expected to interact with each other or via an external influence. When particles are submerged in a fluid, its effect on the former can be considered an external influence. Even when the fluid itself is also affected by the presence particles, as is the case with hydrodynamics.
 
@@ -676,7 +679,7 @@ This does not imply that each module should exist in a completely isolated envir
 
 Adaptability also means that, when it makes sense, a module can be specialized from the outside. For instance, the \emph{Interactor} module that computes bonded forces (particles joined by springs or similar ligatures) is not specific to a particular potential. As users, we can specialize it, via the use of C++ templates, to work with a harmonic, FENE\cite{Warner1972}, Morse\cite{Morse1929}, or an arbitrarily complex potential.
 
-The use of metaprogramming (in the C++ sense) reaches every corner of the code base, in many cases allowing to customize (or hack) an utility or module beyond its intended scope without having to modify a single line of it.
+The use of metaprogramming (in the C++ sense) reaches every corner of the code base, in many cases allowing to customize (or hack) a utility or module beyond its intended scope without having to modify a single line of it.
 
 \uammd is presented as a CUDA/C++ header-only library and it is mostly self-contained in terms of dependencies. The use of the word library is not chosen lightly here. We have discussed how an \emph{Integrator} is joined with a collection of \emph{Interactors}, maybe suggesting that the latter cannot function without the former. This is not the case since our framework provides a completely open ecosystem, facilitating (and actually encouraging) the incorporation of \uammd modules outside their \emph{normal} environment.
 All the utilities in \uammd, including \emph{Interactors}, \emph{Integrators}, neighbour lists, linear solvers and many more\footnote{A list of all the modules in \uammd at the time of writing can be found in Appendix \ref{sec:modulelist}.} can be used in an isolated way from outside the code base. This also means that parts of \uammd can be used as accelerators in already established codes. For instance, an already written simulation code can include one of our fast \gpu hydrodynamics implementations into their description with just a few lines of code.
@@ -695,7 +698,7 @@ Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Inte
   \label{fig:landscape}
 \end{figure}
 
-Describing a given system in a reductionist manner, by solving the dynamics of every atom involved, is of course unfeasible. The \uammd infrastructure can accommodate for several levels of description by making use of coarse-graining techniques. Coarse graining allows to realistically describe a system using fewer degrees of freedom.
+Describing a given system in a reductionist manner, by solving the dynamics of every atom involved, is of course unfeasible. The \uammd infrastructure can accommodate several levels of description by making use of coarse-graining techniques. Coarse graining allows to realistically describe a system using fewer degrees of freedom.
 In general, a level of description is tied to a certain time scale and is characterized by a series of relevant variables coupled via a (usually stochastic) dynamic equation.
 
 Although \uammd is not restricted to soft matter systems, this work will concentrate mainly on such systems. In this regard we can identify a series of clearly separated levels of description. It is worthwhile to summarize them here since this manuscript will discuss many of them in detail. They are furthermore available as \uammd \emph{Integrator} modules. A representation of the different levels of description is available in Fig. \ref{fig:multiscale}, while the numerical methods employed to numerically study each of them can be seen in Fig. \ref{fig:sptime-land}. Figure \ref{fig:landscape} provides an overview of the different fields of soft matter simulation and its characteristic spatio-temporal scales. We can distinguish between the following levels of description (from most to least detailed):
@@ -727,7 +730,7 @@ One of the basic theories for coarse graining is embedded in the Fokker-Planck f
     \partial_t P = -\vec{\partial}_{\vec{x}}\cdot \vec{J}
   \end{equation}
 Where $P_0 := P(\vec{x}_0, t_0)$ is known, $\vec{J}$ is the flux of probability vector  and $\vec{\partial}_{\vec{x}}\cdot \vec{J} := \nabla_{\vec{x}}\cdot\vec{J} = \sum_i\partial J_i/\partial x_i  $ represents the divergence (note that the derivation is made with respect to the slow variables by using supervectors, i.e. all the variables and their coordinates\cite{Dhont1996}).
-Using the well-known backwards Kramers-Moyal expansion~\cite{Risken2012} truncated at the second term\footnote{The Pawula theorem~\cite{Tabar2019} can be invoked here, which proves that all terms beyond the second are meaningless. In particular, the Pawula theorem states that there are only three possible truncations of the Kramers-Moyal expansion: (1) truncating at the first term, in which case the process is deterministic; (2) truncating at the second term, in which case the process is diffusive; (3) keeping all terms up to infinity. However, keeping any term beyond the second results in a non-positive probability density.}, the probability flux vector, $\vec{J}$, result to be,
+Using the backwards Kramers-Moyal expansion~\cite{Risken2012} truncated at the second term\footnote{The Pawula theorem~\cite{Tabar2019} can be invoked here, which proves that all terms beyond the second are meaningless. In particular, the Pawula theorem states that there are only three possible truncations of the Kramers-Moyal expansion: (1) truncating at the first term, in which case the process is deterministic; (2) truncating at the second term, in which case the process is diffusive; (3) keeping all terms up to infinity. However, keeping any term beyond the second results in a non-positive probability density.}, the probability flux vector, $\vec{J}$, can be expressed as,
 \begin{equation}
   \label{eq:fpefluxkinetic}
     \vec{J}(\vec{x}, t) := \widetilde{\vec{D}}^{(1)}(\vec{x},t)P - \vec{\partial}_{\vec{x}}\cdot\left[\tens{D}^{(2)}(\vec{x}, t)  P\right]
@@ -830,7 +833,7 @@ In a stationary or equilibrium state we have $\partial_t\left.\tens{\sigma}\righ
 \end{equation}
 This key relation is known as the Fluctuation-Dissipation Balance, and it can be also used in steady, yet non-equilibrium, states~\cite{Zarate2006}.
 
-We can now go a little bit further and investigate the evolution of the relevant variables during a small time interval, $dt$, which will allow us to derive an \gls{SDE}.
+We can now go a little bit further and investigate the evolution of the relevant variables during a small time interval, $dt$, which will allow us to derive a \gls{SDE}.
 Let us assume that we know the values of the relevant variables at some initial point in time, $t_0 = 0$, so that $P(\vec{x}, t_0) = \delta(\vec{x}-\vec{x}_0)$ (where $\vec{x}_0 :=\vec{x}(t_0)$).
 
 If the time interval, $dt := t-t_0$, is small enough, we can safely assume that the transport coefficients remain mostly constant ($\left\langle\vec{D}^{(i)}(\vec{x},t)\right\rangle_{t\in[0,t_0]}=\vec{D}^{(i)}(\vec{x}_0)$). Furthermore, we can neglect any terms beyond $dt$. 
@@ -880,7 +883,7 @@ So that,
 \end{equation}
 Which is the celebrated Einstein relation. Note that the Einstein relation also relates fluctuations (governed by $\tens{D}^{(2)}$) with dissipation (determined by the inverse mobility, aka friction).
 
-In colloidal systems $\tens{M}(\vec{x})$ is calculated from macroscopic (deterministic) hydrodynamics. For instance, the mobility of a single (isolated) sphere with a no-slip surface moving in a fluid at rest with velocity $\vec{\pvel}$ can be obtained \cite{Dhont1996} by studying the total traction created by the fluid stress on its surface, $\vec{F} = \oint\tens{\sigma}\cdot \hat{\vec{n}}dS$ where $\tens{\sigma}$ is the fluid pressure tensor. The result is the well-known Stokes relation
+In colloidal systems $\tens{M}(\vec{x})$ is calculated from macroscopic (deterministic) hydrodynamics. For instance, the mobility of a single (isolated) sphere with a no-slip surface moving in a fluid at rest with velocity $\vec{\pvel}$ can be obtained \cite{Dhont1996} by studying the total traction created by the fluid stress on its surface, $\vec{F} = \oint\tens{\sigma}\cdot \hat{\vec{n}}dS$ where $\tens{\sigma}$ is the fluid pressure tensor. The result is the Stokes relation
 \begin{equation}
   \label{eq:stokesrel}
   \vec{F} = -M_0^{-1} \vec{\pvel}
@@ -912,7 +915,7 @@ In \uammd particles are the relevant simulation entity as specified by the \emph
 %  Dashed circles represents ongoing work or features that will not be discussed in this manuscript.
 %}
 %
-This manuscript encases three distinct, somewhat interleaved, narratives: physics, algorithms and their implementations in a GPU (always under UAMMD).
+This manuscript encases three distinct, somewhat interleaved, narratives: physics, algorithms and their implementations for a GPU (always under UAMMD).
 The lion's share of the author's contribution to the field has gone into the implementation (i.e UAMMD), which is not thoroughly discussed here. In UAMMD's online documentation (see Appendix \ref{ch:online}) the weight leans more heavily on implementation. A reader with a special interest in the implementation of a particular module should have the UAMMD code base at hand when going through the module's chapter in this manuscript. The UAMMD codebase is thoroughly documented, many times in an almost pedagogical manner.
 Most chapters beyond this point have a corresponding UAMMD module and are organized as follows; first the physical problem to solve is introduced and its mathematical foundations are laid out. Then, the relevant algorithms are discussed. If the discussed algorithm contains some novel aspects, its implementation is described in detail. Regardless, each chapter ends with a usage example of the module under the UAMMD infrastructure.
 
@@ -984,7 +987,7 @@ struct UAMMD{
 \uammd is a \gpu software, which requires special considerations. In particular, given that the \gpu works as a co-processor with its own separated memory space, when allocating or accessing memory we must specify \emph{where} that memory resides. This location can sometimes be subtle when looking at an isolated piece of code. The separation of memory spaces can become a nuisance especially when dealing with quantities that must naturally be accessed from both the CPU and the \gpu.
 
 The \emph{ParticleData} \uammd class\footnote{Note that since \uammd usually exposes a so-called module via a single C++ \emph{class} we will often use the words \emph{class} and \emph{module} as synonyms.} hides the two memory spaces from the user by handling them internally, ensuring that the CPU and \gpu versions of the arrays it provides are synchronized when requested. This is reflected mainly when requesting a particle property from \emph{ParticleData}, which requires to specify both a location (CPU or \gpu) and a usage intention (read, write or both). \emph{ParticleData} can then use this information to provide an up-to-date reference to the data in the correct memory space.
-In CUDA/C++, a function is executed in the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the program crashing.
+In CUDA/C++, a function is executed on the CPU unless it is explicitly marked as a \gpu one (see Appendix \ref{sec:cpp} for more information about CUDA/C++ programming). Accessing \gpu memory in a CPU function is thus illegal and results in the program crashing.
 
 \emph{ParticleData} can provide handles giving access to the different particle properties.
 When requesting a handle to a property from \emph{ParticleData} with the intention of writing the requesting entity becomes the sole owner of it until the handle is released (destroyed or out of scope). If some other part of the code tries to access the same property (while another part still has the write handle) an error will be issued, since this could result in both versions of the property becoming out of sync. The solution is to simply refrain from storing the \emph{ParticleData}-issued handles (for example as members of a class), requesting the handles just before use and destroying them when they are no longer needed. Furthermore, trying to use a handle for a different intention than requested (choosing the GPU as the device but accesing from the CPU or writing to a handle that was requested for reading) will result in either undefined behavior or the code crashing\footnote{Whenever is possible \uammd will throw an exception instead of crashing.}. The example code \ref{code:pd} showcases the basic usage of the \emph{ParticleData} class. In particular, showing how to access and modify particle properties.
@@ -1174,7 +1177,7 @@ class MyInteractor: public Interactor{
   // by Integrators, to sum
   // forces, energies and/or virial
   // on the particles
-  virtual void sum(Computables comp, cudaStream_t st) override{
+  void sum(Computables comp, cudaStream_t st) override{
     //"sys" and "pd" are provided by the Interactor base class
     sys->log<System::MESSAGE>("Computing interaction");
     if(comp.force){
@@ -1195,7 +1198,7 @@ class MyInteractor: public Interactor{
 
 \end{code2}
 
-The \emph{Computables} type in the \emph{sum} function simply contains a list of boolean values describing the needs of the caller (which will typically be an \emph{Integrator}). As of today, an \emph{Interactor} can be asked to compute only forces, energies and or virials acting on the particles. The \emph{Computables} structure exists also to facilitate the future inclusion of additional quantities to the \emph{Interactor} responsibilities.
+The \emph{Computables} type in the \emph{sum} function simply contains a list of boolean values describing the needs of the caller (which will typically be an \emph{Integrator}). As of today, an \emph{Interactor} can be asked to compute only forces, energies and or virials\footnote{Where the virial of a particle $i$ is defined as $T_i=\half\sum_j\vec{F}_{ij}\cdot\vec{r}_{ij}$.} is defined acting on the particles. The \emph{Computables} structure exists also to facilitate the future inclusion of additional quantities to the \emph{Interactor} responsibilities.
 
 Note that \emph{Interactor} is what is called a \emph{pure-virtual} class in C++ (and programming in general). This means that \emph{Interactor} is not a class that can be used by itself (such as, for instance, \emph{ParticleData}). It is a conceptual base class that must be inherited\footnote{See Appendix \ref{sec:cpp} for more information about C++ classes an inheritance.}, as in code snippet \ref{code:interactor}. The same way a \emph{dog} is a type of \emph{animal}, \emph{MyInteractor} in code \ref{code:interactor} is a type of \emph{Interactor}. We will see other examples shortly.
 
@@ -1269,7 +1272,7 @@ Furthermore, this problem is a really good fit for a \gls{GPU} as we are going t
 \end{figure}
 
 \section{The NBody algorithm}
-Algorithm \ref{alg:nbodynaive} summarizes the naive parallel approach that checks, for each particle, every other would simply assign a particle (or a group of them) to a thread and then iterate over the rest.
+Algorithm \ref{alg:nbodynaive} summarizes the naive parallel approach. With the naive approach we assign a particle (or a group of them) to a thread. Then, each thread iterates over all the other particles.
 \begin{algorithm}[H]
   \caption{Naive NBody algorithm. Each particle, i, visits all the others.}\label{alg:nbodynaive}
   \Input{A list of $N$ particles}
@@ -1340,6 +1343,12 @@ There are three ways to access this algorithm depending on the usage:
 An example of each one is available in code \ref{code:nbody}.
 The \emph{Transverser} and \emph{Potential} interfaces are described in detail in Appendix \ref{ch:transverser}.
 
+If the \emph{NeighbourCounter} example in Appendix \ref{ch:transverser} is given as a \emph{Transverser}, the number of particles will be stored in the result of each particle.
+
+While the first two functions in source code \ref{code:nbody} actually perform a computation (as encoded in the provided \emph{Transverser}), the third merely creates an \emph{Interactor} (in particular, of type \emph{PairForces}). In order for the \emph{Interactor} to compute forces, energies and/or virials, its member function \mintinline{\ucpp}{sum} must be called, either directly or by an \emph{Integrator}.
+
+Source code \ref{code:nbody} is the first one in this manuscript that provides a function creating an actual instance of an \emph{Interactor} (in this case, \emph{PairForces}), to place it into context, Appendix \ref{ch:fullexample} provides an example showcasing how to put together an \emph{Integrator} and an \emph{Interactor} to construct a simulation.
+
 \begin{code2}[Usage examples of the three different ways the NBody algorithm is exposed in \uammd. The \emph{Transverser} and \emph{Potential} interfaces are described in Appendix \ref{ch:transverser}. Note that nothing in this example hints at the computation being long ranged, besides of the fact that the NBody algorithm is being used. While this ensures that every pair of particles in the system will be visited, the \emph{Transverser} (or \emph{Potential}, any of which will provide the actual computation logic/physics) can simply choose to, for instance, ignore any pair further than a certain distance.]{label=code:nbody}
 #include<uammd.cuh>
 using namespace uammd;
@@ -1354,8 +1363,7 @@ void transverseWithoutUAMMD(real4* gpupositions,
 }
 
 #include<Interactor/NBody.cuh>
-//For each particle, applies a Transverser
-// with all other particles.
+//For each particle, applies a Transverser with all other particles.
 template<class Transverser>
 void tranverseWithNBody(UAMMD sim, Transverser tr){
   NBody nb(sim.pd);
@@ -1370,18 +1378,13 @@ auto createPairForcesWithPotential(UAMMD sim, Potential pot){
 }
 \end{code2}
 %\todo{This code and the explanation are mystifying. At least mention what a transverser does ``A transverser   applies a series of operations to each item in a list, taking    advantage of the particularities of GPU computing described above.''. The code by itself is a little lacking without context. An example using this for something in particular should be present. In particular the third function is just creating an interactor, so it is not performing any computation, this should be made clear. Furthermore, Nothing in the code says that the interaction is long-ranged. The sheer abstraction makes it difficult to see how to use functions in practice.}
-If the \emph{NeighbourCounter} example in Appendix \ref{ch:transverser} is given as a \emph{Transverser}, the number of particles will be stored in the result of each particle.
-
-While the first two functions in source code \ref{code:nbody} actually perform a computation (as encoded in the provided \emph{Transverser}), the third merely creates an \emph{Interactor} (in particular, of type \emph{PairForces}). In order for the \emph{Interactor} to compute forces, energies and/or virials, its member function \mintinline{\ucpp}{sum} must be called, either directly or by an \emph{Integrator}.
-
-Source code \ref{code:nbody} is the first one in this manuscript that provides a function creating an actual instance of an \emph{Interactor} (in this case, \emph{PairForces}), to place it into context, Appendix \ref{ch:fullexample} provides an example showcasing how to put together an \emph{Integrator} and an \emph{Interactor} to construct a simulation.
 
 Long range interactions in a periodic domain pose a special challenge. Direct summation would require taking into account the periodic copies of the system. On the other hand, this summation might even be conditionally convergent, as is the case with electrostatics. It is necessary to elaborate special algorithms for these cases. In \uammd, algorithms to solve the Poisson equation for electrostatics with triple and double periodicity are available. However, these algorithms rely on a mathematical machinery that will be discussed later on in this manuscript and thus we have delayed their description to chapter \ref{ch:tppoisson}.
 
 
 
 \chapter{Short range interactions}\label{sec:shortrange}
-Particles interacting closely allow for specific optimizations abusing the locality of the required computation.
+Particles interacting closely allow for specific optimization taking advantage of the locality of the required computation.
 In reality it can happen that the effect of one particle on another is short ranged in nature, as could be the case for interactions stemming directly from quantum effects such as van der Walls forces. It can also happen that a combination of several long-ranged interactions result in an effective short-ranged one, such as a screened electrostatic interaction (like the DLVO potential). Other times when the interaction cannot be made to decay rapidly using natural arguments we can still partially transform it into a short range one with techniques such as Ewald splitting, which will be discussed in future sections.
 
 The reason for giving short range interactions so much credit is simple: imagine a system with $N$ uniformly distributed particles inside a given domain. If we let each particle interact with every other we need to check $N^2$ pairs of particles as we already saw. On the other hand, restricting the interaction to a certain distance, such that each particle has a number of neighbours $k<<N$ reduces the number of checks to $kN$.
@@ -1760,9 +1763,13 @@ See Fig. \ref{fig:nlist}.
 
 Constructing the list has therefore a cost given by the cost of traversing the cell list (but larger due to the extra memory writes). Once it is constructed, the number of false positives will depend on the safety radius, $r_s$. In particular, assuming a uniform distribution of particles, the number of false positives will be given by $N_s/N_{\text{neigh}} = V_s/V_{\text{neigh}} = r_s^3/r_c^3$. In order to get an optimal number of false positives, similar to the ones checked by the cell list (in which $N_{cl}/N_{\text{neigh}} \approx 6$) we would need to set $r_s > 1.8r_c$, which results in a threshold distance of $r_t = 0.4r_c$. Assuming the cut-off radius is the typical one for the \gls{LJ} potential ($r_c \sim 2.5\sigma$, see sec. \ref{sec:lj}) this means that the list does not have to be reconstructed until one particle has diffused more than $r_t \sim \sigma$ from its starting position. Assuming each position update typically moves a particle less than $1\%\sigma$ this means that the list is rebuilt only once every several hundred steps.
 
-On the other hand, the cost of constructing the neighbour list from the cell list also increases with $r_s$. There is therefore a trade-off between the compensated cost of list construction over many steps and the artificially inflated traversal cost. The optimal safety radius should be tuned for each type of simulation by inspecting how the timing depends on it. For instance, in a really dense system where particles are mostly still the optimal safety radius will be wildly different from a gas of rapidly diffusing particles. A good default is usually around $r_s\approx 1.1r_c$. 
+On the other hand, the cost of constructing the neighbour list from the cell list also increases with $r_s$. There is therefore a trade-off between the compensated cost of list construction over many steps and the artificially inflated traversal cost. The optimal safety radius should be tuned for each type of simulation by inspecting how the timing depends on it. For instance, in a really dense system where particles are mostly still the optimal safety radius will be wildly different from a gas of rapidly diffusing particles. A good default is usually around $r_s\approx 1.15r_c$. 
 
 In the special case of $r_s=r_c$, which yields $r_t = 0$, the Verlet list can be used as a regular neighbour list.
+The list is constructed by storing a private list of neighbours for each particle in a column-major fashion. In order to achieve a cache-friendly memory pattern this ``private'' lists are stored in the same contiguous array. Since we do not know in advance how many neighbours each particle has we set up a maximum number of neighbours per particle, $N_{\text{max}}$, and allocate an array of size $N_{\text{max}}N$ elements. Later on we traverse the list by assigning a thread per particle, which prompts for a column-major layout of the list. That is, threads will tend to read contiguous memory locations if we place the first neighbours of all particles contiguously, then the second, and so forth and so on. A row-major layout (in which we place all neighbours of a certain particle contiguously) will be beneficial if we assign a \emph{block} of threads per particle when traversing.
+Measuring is required to know which strategy is best in each case (thread-per-particle vs block-per-particle). UAMMD chooses a column-major format, as testing suggests this is the better choice in our habitual use-cases.\footnote{Nonetheless this fact is abstracted away in the interface and changing between column- and row-major formats can be done easily and without affecting the users code.}
+
+Finally, the maximum number of neighbours per particles, which affects both performance and memory consumption, is autotuned at each update to be the nearest multiple of 32 (the CUDA warp size) of the particle with the greatest number of neighbours.
 
 \subsection*{Use in UAMMD}
 
@@ -1844,7 +1851,7 @@ void constructListWithPositions(Iterator positions,
 \section{LBVH list}\label{sec:lbvh}
 
 The Linear Bounding Volume Hierarchy (LBVH) neighbour list works by partitioning space into boxes according to a tree hierarchy in such a way that interacting pairs of particles can be located quickly. The innermost level of partitioning encases single particles, and boxes sharing faces are hierarchically bubbled together to form a tree structure. In contrast, the cell list partitions space in identical cubes independently of the particles positions or their distribution inside the domain. The ``object awareness'' of the LBVH results in a better handling of systems with large density fluctuations or objects of highly different size\footnote{In contrast, the cell list is not aware of the size of the particles, only accepting a cut off distance. If a system contains particles of different sizes (and therefore interaction cut offs), the cell list must be constructed using the largest one. In the presence of large size disparities (say a set of large particles interacting with tiny ones), a lot of unnecessary particle pairs will be visited (in particular when checking the neighbours of a tiny particle).}.
-A full detailed description of the algorithm goes beyond the scope of this manuscript. We provide here is a brief break down, which it is beautifully laid out in detail in references \cite{Howard2016}, \cite{Howard2016} and \cite{Torres2009}, with only minor modifications to them present in UAMMD's implementation.
+A full detailed description of the algorithm goes beyond the scope of this manuscript. We provide here is a brief break down, which it is beautifully laid out in detail in references \cite{Howard2016}, \cite{Howard2019} and \cite{Torres2009}, with only minor modifications to them present in UAMMD's implementation.
 
 \begin{enumerate}
 \item We start by assigning a different type to each particle based on its size (understanding that if particles have not been assigned a size, they will all have the same type).
@@ -1896,8 +1903,35 @@ void constructListWithUAMMD(UAMMD sim){
 
 \end{code2}
  
+\section{Performance comparisons}
 
- \chapter{Bonded Interactions}\label{sec:bonded}
+It is worth comparing the performance of the three kinds of neighbour list strategies laid out in previous sections. In particular, we will inspect the time each list takes to construct and traverse in order to compute the \gls{LJ} forces (see section \ref{sec:lj}) of a suspension of particles in a periodic domain. We will integrate the temporal dynamics of the system using a Langevin thermostat (which will be introduced in section \ref{sec:langevin}), which will allow us to see the effect of the particles diffusion on the performance of the Verlet list. Since the other strategies (the cell list and the LBVH list) are reconstructed at each step their performance is largely independent on the temperature.
+
+We start with a suspension of particles in an equilibrium configuration and average the time per step during 1000 steps. The time required to update the particle positions (as well as the rest of the computations besides list construction and traversal) is neglegible.
+
+We consider a LJ liquid in a cubic box with periodic boundary conditions and all particles having $\sigma = 2a$, where $a=1$ (particle radius) represents the units of length, and $\epsilon = \kT$ (unless stated otherwise). The interaction is cut off at the standard distance, $r_c=2.5a$. In order to study linear scaling we use a uniform density of particles, either $\rho :=N/L^3= a^{-3}$ or $\rho = 0.1a^{-3}$. The biggest system considered has $N=16777216$ particles with a cubic size of $L=322.54a$ (for $\rho=a^{-3}$) and $L=694.98a$ (for $\rho=0.1a^{-3}$).
+
+The performance of the Verlet list is affected by the safety cut-off radius, $r_s$ (see Fig. \ref{fig:verletlistsafety}). Increasing $r_s$ will cause the list to update more sparingly at the cost of more false-positive neighbour checks and an enlarged memory requirement\footnote{The Verlet list requires to reserve an array of size $N_{\text{max}}$ for each particle, where $N_{\text{max}}$ is, at least, the maximum number of neighbours that a particle has.}. On the other hand, a small value of $r_s$ will result in a more ``optimal'' neighbour list (in memory access pattern, false positive neighbours and size) at the expense of more regular updates. Based on Fig. \ref{fig:verletlistsafety} we choose $r_s = 1.2r_c$ for all tests.
+\begin{figure}
+  \centering
+  \includegraphics[width=0.75\linewidth]{nlistperfmult}
+  \caption{Performance of the Verlet list versus the safety cut-off radius, $r_s$, in a \gls{LJ} fluid simulation. The system has one million particles. Tests ran on an RTX2080 GPU.}
+  \label{fig:verletlistsafety}
+\end{figure}
+We compare the performance of the three neighbour lists strategies in Figure \ref{fig:nlistcomp}. At low system sizes the performance is mostly independent on the number of particles. This is a standard behavior in GPU computing coming from the fact that not all resources in the GPU are being utilized. When the computational load is large enough to fill the GPU (which happens at around 50K particles and beyond) performance exhibits the expected linear scaling, evidencing the fact that all of this strategies show a $O(N)$ complexity. 
+\begin{figure}
+  \centering
+  \includegraphics[width=0.75\linewidth]{nlistperf_dens1}\\
+  \includegraphics[width=0.75\linewidth]{nlistperf_dens0.1}
+  \caption{Performance comparison of the different neighbour list strategies in a LJ liquid at two different particle concentrations. The number of steps between reconstructions of the Verlet list is highly dependent on any parameter that modifies the diffusivity of the particles (like the temperature or the time step), which directly affects performance. In contrast, the other lists, being reconstructed every step regardless, are oblivious to the temperature or, in general, to changes in the diffusivity of particles. All tests were carried out in a RTX2080 GPU.}
+  \label{fig:nlistcomp}
+\end{figure}
+
+The tests in this section constitute a very specific benchmark that can be unfair with, for instance, the LBVH list. In particular, a uniform density benefits the cell list and thus, the Verlet list. On the other hand, the cell list excels when all particles have the same interacting radius ($r_c=2.5a$ in this case) as in these tests. A more in depth comparison of the neighbour list strategies should take into account systems with density and/or cut-off (i.e particles of different radius) disparities. In general, the cell list is the best one-size-fits-all choice, although this decision should be reevaluated on a case by case basis.
+Memory requirements are the other consideration when choosing a neighbour list. The Verlet list is always the more memory-hungry option, given that it relays on other implementation to construct the neighbour list (for instance, the cell list) and stores an additional ``private'' list for each particle. The storage for the cell list grows with the total number of cells, $n_{\text{tot}}=(L/r_c)^3$ in a cubic box. Finally, the LBVH is the most lightweight option, as it only requires $O(N)$ storage.
+
+
+\chapter{Bonded Interactions}\label{sec:bonded}
 
 As bonds can be expected to present great disparity in the number of bonds per particle, instead of using the same strategy as with the neighbour list, for the bonded interactions \uammd generates a compacted list of bonds per particle similar to the cell list.
 For each particle, a list of all the bonds it is involved in is stored. Note that this means that the information for a given bond is stored several times (two times for pair bonds, three for angular bonds and so on).
@@ -2079,7 +2113,7 @@ If the function is smooth and analytic (well behaved), we can write its Taylor e
   \label{eq:fdmtaylor}
   f(t+\dt) = f(t)+\dot{f}(t)\dt + \half\ddot{f}(t)\dt^2 + O(\dt^3)
 \end{equation}
-For convenience, we will refer to the function evaluated at time $t$ as $f^n := f(t)$ and as $f^{n\pm 1} := f(t\pm \dt)$ when evaluated at $t\pm \dt$. This notation can be extended to refer to points separated furthe in time, in general defining $f^{n\pm j} := f(t\pm j\dt)$.
+For convenience, we will refer to the function evaluated at time $t$ as $f^n := f(t)$ and as $f^{n\pm 1} := f(t\pm \dt)$ when evaluated at $t\pm \dt$. This notation can be extended to refer to points separated further in time, in general defining $f^{n\pm j} := f(t\pm j\dt)$.
 Solving Eq. \eqref{eq:fdmtaylor} for the first derivative
 \begin{equation}
  \dot{f}^n  =  \frac{f^{n+1} - f^n}{\dt} - \half\ddot{f}^n\dt + O(\dt^2),
@@ -2105,7 +2139,7 @@ On the other hand, we can approximate the integral using the left Riemann sum wi
   \label{eq:eulerriemman}
   \int_t^{t+\dt}\dot{f}(t')dt' \approx \dt \dot{f}^n
 \end{equation}
-By combining Eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} we arrive to \eqref{eq:basiceuler} again.
+By combining Eqs. \eqref{eq:eulerftc} and \eqref{eq:eulerriemman} we arrive at \eqref{eq:basiceuler} again.
 This derivation will come in handy later when describing integration schemes for equations with terms that cannot be approximated by Eq. \eqref{eq:fdmtaylor}.
 Furthermore, Eq. \eqref{eq:eulerriemman} opens the door to a family of numerical integrators based on improving this approximation by using more intervals between $t$ and $t+\dt$. Some examples are the Runge-Kutta methods or the so-called linear multistep methods, such as the Adams Bashforth family of algorithms~\cite{Butcher2016}.
 Often these methods improve numerical stability at the cost of evaluating the function derivative (in our case meaning the force and also, often, the velocity which is less expensive computationally) several times per time step. Given that in a \gls{MD} simulation this is, often by orders of magnitude, the most expensive part of the computation we wont be making use of them for the time being.
@@ -2224,8 +2258,9 @@ The next natural step after \gls{MD} equations are the so-called \gls{LD}.
 %\todo{There should be some example here on how to add interactors to integrators.}
 
 \chapter{Langevin Dynamics}\label{sec:langevin}
-
-In section \ref{sec:fpe} we introduced the Fokker-Plack formalism, which coarse grains the effects of a series of fast variables into drift and diffusion coefficients, enabling us to leave in our description only the slow relevant variables.
+\glsreset{FPE}
+\glsreset{SDE}
+In section \ref{sec:fpe} we introduced the Fokker-Planck formalism, which coarse grains the effects of a series of fast variables into drift and diffusion coefficients, enabling us to leave in our description only the slow relevant variables.
 
 At the Langevin level of description, the dynamics of the solvent molecules (e.g. water) are orders of magnitude faster than the solute particles, leaving the positions and momenta of the solute particles as relevant variables. The dynamics of the solute particles are governed by a so-called Langevin equation, a manifestation of the \gls{FPE} that is often described as ``\gls{MD} with a thermostat''.
 %The solvent particles are removed entirely, the idea is that the motion of the solvent particles (water) is much faster than that of the submerged objects. Furthermore, the size of the simulation units is much larger than the size of the solvent particles. Instead of simulating a time scale fast enough to keep track of each individual collision between a slow object and a solvent particle we assume that between one instant and the next so many solvent particles have collided with the object that we can consider it an stochastic process.
@@ -2383,7 +2418,7 @@ It can be shown that this limit converges in probability\cite{Cohen2015}.
 %  \noise^{n+1} := d\noise
 %\end{equation}
 We can use the Riemann sum to transform Eq. \eqref{eq:langevinwiennerinc} into a sum with an arbitrarily large number of terms. Since in this case $f(t) = \sqrt{2\xi\kT}$ we are left with a sum of Gaussian distributed random numbers, which also happens to be a Gaussian random number . We can compute $d\noise$ as Gaussian random numbers with zero mean and standard deviation $\left\langle d\noise^nd\noise^m\right\rangle = 2\xi\kT\dt\delta_{n,m}$ (uncorrelated in time).
-This realization now opens the door to a family of Verlet-like integration schemes, in particular we are going to describe the algorithm developed by Grønbech-Jensen and Farago \cite{Gronbech2013}.
+This realization now opens the door to a family of Verlet-like integration schemes, in particular we are going to describe the algorithm developed by Grønbech-Jensen and Farago~\cite{Gronbech2013}.
 
 \section{Grønbech-Jensen}\label{sec:gronbechjensen}
 Without approximations, we can write Eq. \eqref{eq:langevinriemann} as
@@ -2453,6 +2488,7 @@ auto createIntegratorVerletNVT(UAMMD sim){
 The Langevin model makes several assumptions to arrive at Eq. \eqref{eq:langevinfull}. At long times, hydrodynamic effects due to momentum propagation of the solvent (leading to long-time tails in the velocity correlation of the particle) are neglected. The dynamics of short times $\tau<\gamma/m$ are also wrong, as memory effects in the noise forces start to matter at fast small scales. While solving these small scale effects requires to explicitly describe the solvent-solute forces using \gls{MD}, we will see in subsequent chapters how to improve the long-time limit introducing the solvent hydrodynamics.
 
 \chapter{Dissipative Particle Dynamics}\label{ch:dpd}
+\glsreset{LD}
 One of the most popular techniques used to reintroduce some of the degrees of freedom lost with \gls{LD} is \gls{DPD}. This coarse graining technique can be used to go further in the spatio-temporal scale by choosing groups of fluid particles as the simulation unit, sitting inbetween microscopic (as in \gls{MD}) and macroscopic (hydrodynamic) descriptions. In practice \gls{DPD} is a Langevin approach where friction acts by pairs of particles and conserves momentum. \gls{DPD} equations can be defined from the microscopic Hamiltonian using coarse-graining theory\cite{Hijon2010}.
 In the standard \gls{DPD}, particles interact via a soft potential, modelling the interaction between two large groups of fluid particles.
 In many instances\cite{Sablic2007} \gls{DPD} is used as a momentum-conserving thermostat, which thus permits to include hydrodynamics (contrary to a single Langevin approach). Local momemtum conservation results in the emergence of macroscopic hydrodynamic effects. These momentum conserving forces can then be tuned to reproduce not only thermodynamics, but also dynamical and rheological properties of diverse complex fluids.
@@ -2461,7 +2497,7 @@ The equations of motion in \gls{DPD} have the same functional form as \gls{LD} a
   \label{eq:dpddyn}
   m\vec{a} = \vec{F^c} + \vec{F^d} + \vec{F^r}.
 \end{equation}
-Where the three forces are traditionally expressed as,
+Where the three forces are traditionally expressed as\cite{Groot1997,Espanol1995},
 \begin{equation}
   \label{eq:dpdforces}
   \begin{aligned}
@@ -2482,7 +2518,7 @@ The weight function $\omega(r)$ is a soft repulsive force usually defined as
 \end{equation}
 Where $r_{c}$ is a cut-off distance. The strength parameter, $\alpha$, can in principle be different for each pair of particles ,$i$-$j$, but for simplicity we will assume it is the same for every pair. In fact, the conservative force, $\vec{F}_c$ can be derived from a bottom-up approach, resulting in the gradient of an effective potential\cite{Hijon2010}.
 
-Numerical integration of the \gls{SDE} \eqref{eq:dpddyn} is tricky for the same reasons as with Eq. \eqref{eq:langevin}. We have already described some methods of solving such an equation in sec. \ref{sec:gronbechjensen}. However, the Gronbech-Jensen method is not valid for \gls{DPD} since in this case the forces depend on the velocities of the particles. A simple modification can be made, sacrificing stability, by approximating the velocity to just first order in Eq. \eqref{eq:gsfinal}, so that the velocity depends only on the force for the current step. Unfortunately, this leads to artifacts in the transport properties and unacceptable temperature drifts. There are several strategies in the literature trying to overcome this, usually presented as modifications of the velocity Verlet algorithm. A good summary can be found in~\cite{Leimhuler2015}. These methods include empirical tweaks to velocity Verlet via a free parameter\cite{Groot1997}, a self-consistent correction to the velocity to avoid the temperature drift\cite{Pagonabarraga1998} or a recomputation of the dissipative forces after the velocity update\cite{Besold2000}.
+Numerical integration of the \gls{SDE} \eqref{eq:dpddyn} is tricky for the same reasons as with Eq. \eqref{eq:langevin}. We have already described some methods of solving such an equation in sec. \ref{sec:gronbechjensen}. However, the Grønbech-Jensen method is not valid for \gls{DPD} since in this case the forces depend on the velocities of the particles. A simple modification can be made, sacrificing stability, by approximating the velocity to just first order in Eq. \eqref{eq:gsfinal}, so that the velocity depends only on the force for the current step. Unfortunately, this leads to artifacts in the transport properties and unacceptable temperature drifts. There are several strategies in the literature trying to overcome this, usually presented as modifications of the velocity Verlet algorithm. A good summary can be found in~\cite{Leimhuler2015}. These methods include empirical tweaks to velocity Verlet via a free parameter\cite{Groot1997}, a self-consistent correction to the velocity to avoid the temperature drift\cite{Pagonabarraga1998} or a recomputation of the dissipative forces after the velocity update\cite{Besold2000}.
 All of these methods improve the accuracy of the predicted transport properties and response functions in exchange for increased computational cost. 
 One popular approach is to simply use velocity Verlet as described in sec. \ref{sec:velocityverlet} with the forces in Eq. \eqref{eq:dpdforces}. This yields ``poor'' stability and presents certain artifacts\cite{Besold2000} due to the mistreatment of the derivative of the noise term incurred by treating Eq. \eqref{eq:dpddyn} as an \gls{ODE} instead of a proper \gls{SDE}. However, it is often good enough and while it might require a smaller time step to recover measurables to an acceptable tolerance it is the fastest approach and trivial to implement in a code already providing the velocity Verlet algorithm.
 %\todo{Preguntar a Rafa sobre integradores DPD. Por que nadie lo trata como una SDE y evalua v en $t+1/2$?}
@@ -2656,7 +2692,7 @@ A solution to Eq. \eqref{eq:bd} is one that satisfies
 \end{equation}
 
 \subsection*{Numerical integration}
-In order to numerically integrate Eq. \eqref{eq:bd} we must discretize the Brownian motion in \eqref{eq:itonoise}. We can do so by integrating the Brownian during a small time interval,$[t_n, t_{n+1}]$, where $t_{n+1}-t_{n} = \dt$. If the time interval is small enough, we can approximate the Riemman sum by only its first term. Using the discrete time notation we can write
+In order to numerically integrate Eq. \eqref{eq:bd} we must discretize the Brownian motion in \eqref{eq:itonoise}. We can do so by integrating it during a small time interval,$[t_n, t_{n+1}]$, where $t_{n+1}-t_{n} = \dt$. If the time interval is small enough, we can approximate the Riemman sum by only its first term. Using the discrete time notation we can write
 \begin{equation}
   \label{eq:itonoise2}
   \int_{t_n}^{t_{n+1}}f(t')d\noise(t') \approx f^n \mathcal{\noise}^n = f^n \left(\noise^{n+1} - \noise^n\right),
@@ -2744,7 +2780,7 @@ On the other hand, the Langevin equation \eqref{eq:bd} at equilibrium presents a
 \end{equation}
 Where the entropy is defined as $Z = \int\exp\left(-U(\vec{Q})/\kT\right)$ and $U(\vec{Q})$ is the internal energy (such that $\vec{F} = -\nabla U$).
 
-Once we have a proposed transition kernel (Eq. \eqref{eq:malakernel}) and a target probability density (the equilibrium one in Eq. \eqref{eq:malatarget}) we can use the Metropolis-Hastings method to design an updating scheme, refereed to as MALA~\cite{Roberts1996}~\cite{Besag1994}.
+Once we have a proposed transition kernel (Eq. \eqref{eq:malakernel}) and a target probability density (the equilibrium one in Eq. \eqref{eq:malatarget}) we can use the Metropolis-Hastings method to design an updating scheme, referred to as MALA~\cite{Roberts1996}~\cite{Besag1994}.
 
 Instead of sampling configurations using the Euler-Maruyama scheme (as discussed in sec. \ref{sec:bd}) we now propose a new configuration using Eq. \eqref{eq:eulermaruyama} as
 \begin{equation}
@@ -2761,7 +2797,7 @@ Numerically, this can be done by drawing a uniform random number $\xi^n \in [0,1
 
 In contrast to the naive Metropolis-Hasting algorithm, that blindly proposes configurations, MALA proposes configurations that always have a higher propability in $\pi$, increasing the chances of acceptance.
 
-We are not restricted to using the same value for $\dt$ in all steps\footnote{Theoretically the step size should not be adjusted dynamically for correct sampling (as it violates detailed balance).} must be , since in an MCMC algorithm $\dt$ has lost its meaning as a \emph{time step} and it is now simply a parameter describing the \emph{distance} in phase space between two given configurations. As such, we can tune it to get a desired configuration acceptance ratio.
+We are not restricted to using the same value for $\dt$ in all steps\footnote{Theoretically the step size should not be adjusted dynamically for correct sampling (as it violates detailed balance).} since in an MCMC algorithm $\dt$ has lost its meaning as a \emph{time step} and it is now simply a parameter describing the \emph{distance} in phase space between two given configurations. As such, we can tune it to get a desired configuration acceptance ratio.
 With MALA we are not solving the dynamics of the system, but rather sampling equilibrium configurations (or moving the system towards equilibrium). We can use the MALA algorithm and its ability to handle any $\dt$ for thermalization or to get a running simulation ``unstuck''. For instance, if a simulation of hard spheres (modeled with some repulsive potential, for instance the WCA in sec. \ref{sec:lj}) has reached an invalid configuration due to thermal fluctuations (i.e. two particles overlapping, which promptly causes the simulation to ``explode'') the MALA algorithm could be used to safely move the simulation away from this state (since MALA will mostly modify the state of the configuration only when a new configuration is more favorable).
 
 Although MALA proves to be useful for thermalising or initializing simulations, testing suggests that hard steric repulsion between particles (like LJ) requires such a small time step to ensure a reasonable acceptance ratio that the algorithm becomes unusable in practice. In these cases using \gls{BD} directly is preferable.
@@ -2770,12 +2806,23 @@ In order to tune the jump step ($\dt$) to ensure a certain acceptance ratio on a
 
 Another disadvantage of MALA is that usually the energy change coming from moving all particles in the system grows, on average, with the number of particles. This results in the optimal jump step decreasing with the number of particles. Thus defeating the purpose.
 \begin{figure}[H]
-  \label{fig:malastep}
   \centering    
-  \subcaptionbox{Soft potential}{\includegraphics[width=0.49\textwidth]{gfx/malasoft}}\label{fig:malastepsoft}
-  \subcaptionbox{LJ potential}{\includegraphics[width=0.49\textwidth]{gfx/malalj}}\label{fig:malasteplj}
-  \caption{Optimal time step in MALA for several acceptance ratios and number of particles using a soft repulsive potential (left) and a hard steric WCA interaction (right). Naturally, a higher acceptance ratio (with corresponding $1$ to accepting all configurations and $0$ to never accepting them) results in a lower $\dt$. A by-product of the MALA algorithm comparing the total energy change is that $\dt$ depends on the number of particles so that more particles result in a lower optimal $\dt$.}
+  \includegraphics[width=0.8\textwidth]{gfx/malasoft}\\
+  \includegraphics[width=0.8\textwidth]{gfx/malalj}
+  \caption{Optimal time step in MALA for several acceptance ratios and number of particles using a soft repulsive potential given by Eq. \eqref{eq:malasoft} (left) and a hard steric WCA interaction (right). Naturally, a higher acceptance ratio (with $1$ corresponding to accepting all configurations and $0$ to never accepting them) results in a lower step size, $\dt$. A by-product of the MALA algorithm comparing the total energy change is that $\dt$ depends on the number of particles so that more particles result in a lower optimal $\dt$. In all cases the number density of particles is kept at $\rho := N/V = 0.1a^{-3}$.}
+  \label{fig:malastep}
 \end{figure}
+In Fig. \ref{fig:malastep} we compare the optimal step size of the MALA algorithm for different acceptance ratios in different scenarios. In particular, we compare results using a hard-repulsion WCA potential (truncated \gls{LJ}, see sec. \ref{sec:lj}) with a soft core repulsive interaction given by the potential
+
+\begin{equation}
+  \label{eq:malasoft}
+U(r)= U_0
+\begin{cases}
+  \exp(-(r-d)/b) & r>d\\
+  1-(r-d)/b & r\le d
+\end{cases}
+\end{equation}
+Where $U_0$ represents the repulsive strength, $d$ is a typical repulsive radius and we choose the scale factor $b=0.1$.
 
 \subsection*{Use in UAMMD}
 The MALA algorithm is available in \uammd as an \emph{Integrator} module. Its usage is similar to the ones we have seen thus far. The MALA module will query its \emph{Interactors} for both force and energy (whereas, for instance, \gls{BD}, will only request forces).
@@ -2932,7 +2979,7 @@ This solution is known as the Oseen tensor~\cite{Lisicki2013}, the response of a
 Figure \ref{fig:oseen} contains a visual representation of the Oseen tensor.
 \begin{figure}
   \centering
-  \includesvg[width=0.7\columnwidth]{gfx/oseen}
+  \includesvg[width=0.6\columnwidth]{gfx/oseen}
   \caption{Representation of the Oseen mobility in 2D. A force acting on a point (green) is propagated to the fluid via the Oseen tensor (blue lines). The fluid behind the source will be dragged onto it, while the fluid in front will be pushed away. Note that the action of the Oseen tensor decays as the inverse of the distance, a behavior this representation does not convey.}
   \label{fig:oseen}
 \end{figure}
@@ -3092,8 +3139,7 @@ auto createIntegratorBDHICholesky(UAMMD sim){
   par.temperature = sim.par.temperature;
   par.viscosity = sim.par.viscosity;
   //For Cholesky the radius is optional.
-  //If not selected, the module will use the individual 
-  //  radius of each particle.
+  //If not selected, the module will use the individual radius of each particle.
   //par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
   par.dt = sim.par.dt;
   auto bdhi = std::make_shared<Cholesky>(sim.pd, par);
@@ -3127,8 +3173,7 @@ auto createIntegratorBDHILanczos(UAMMD sim){
   par.temperature = sim.par.temperature;
   par.viscosity = sim.par.viscosity;
   //For Lanczos the radius is optional.
-  //If not selected, the module will use the individual 
-  //  radius of each particle.
+  //If not selected, the module will use the individual radius of each particle.
   //par.hydrodynamicRadius = sim.par.hydrodynamicRadius;
   par.dt = sim.par.dt;
   //The tolerance for the stochastic term computation
@@ -3349,7 +3394,7 @@ As demonstrated in section \ref{sec:bdhicon}, there is a one-to-one relation bet
 %\end{equation}
 \subsection*{The near field}
 
-For the near field, we can use the infrastructure in the \emph{Lanczos} algorithm (see sec. \ref{sec:lanczos}) with the mobility in Eq. \eqref{eq:pserpynear}. We can leverage here the fact that only local terms in the mobility matrix are non-zero (i.e elements owing to close particles) to accelerate the matrix-vector multiplication. In \uammd, this is achieved by using a neighbour list with a \emph{Transverser} that takes the forces acting on the particles and computes the product with the mobility for each particle (see sec. \ref{sec:transverser}). The same \emph{Transverser} is then used to compute the fluctuations via the \emph{Lanczos} algorithm.
+For the near field, we can use the infrastructure in the \emph{Lanczos} algorithm (see sec. \ref{sec:lanczos}) with the mobility in Eq. \eqref{eq:pserpynear}. We can leverage here the fact that only local terms in the mobility matrix are non-zero (i.e. elements owing to close particles) to accelerate the matrix-vector multiplication. In \uammd, this is achieved by using a neighbour list with a \emph{Transverser} that takes the forces acting on the particles and computes the product with the mobility for each particle (see sec. \ref{sec:transverser}). The same \emph{Transverser} is then used to compute the fluctuations via the \emph{Lanczos} algorithm.
 
 The functions $F$ and $G$ in Eq. \eqref{eq:pserpynear} are evaluated in double precision to reduce numerical errors and then tabulated\footnote{\uammd provides an infrastructre for tabulating functions called \emph{TabulatedFunction}. Check its documentation for more information.}. Both of them are truncated up to a certain distance, $r_{\textrm{cut}}^{\textrm{nf}}$. According to ~\cite{Lindbo2011} the real space truncation error is bounded by $E_n\approx \exp(-\xi^2r_{\textrm{cut}}^{\textrm{nf}})$. Thus, we can choose
 \begin{equation}
@@ -3623,7 +3668,7 @@ All the algorithms laid out in this chapter make use of the spreading and interp
 \chapter{The Immersed Boundary Method (IBM) kernels}\label{sec:ibm}
 If we want to directly solve Eq. \eqref{eq:bdhibdrelation} instead of imposing a specific mobility (perhaps because we do not know the analytical form of the Green's function for a particular geometry), we need to discretize the spreading and interpolation operators in Eqs. \eqref{eq:spreadoper} and \eqref{eq:bdhifvel}. However, we cannot directly discretize deltas and we would like to take into account the size of the particles. We could smear the delta into a Gaussian, but the Gaussian kernels come with some inconveniences. In particular, their infinite range forces us to truncate them at a certain length. We would like to reduce the support of our kernels as much as possible without damaging accuracy. We can borrow some lessons from the \gls{IBM} to help us in this regard.
 
-The \gls{IBM}~\cite{Peskin1977}~\cite{Peskin2002} is a mathematical framework for simulation of fluid-structure interaction. It is commonly used to discretize the spreading and interpolation operations we have seen in sec. \ref{sec:bdhi}\footnote{Which incidentally happen to be identical to the ones for electrostatics (sec. \ref{ch:tppoisson}).}. In \gls{IBM} the forces acting on a certain marker (particle) are distributed (spread) to the nearby fluid grid points via some smeared delta function (see figure \ref{fig:ibm}). \gls{IBM} offers us a way to discretize the spreading (Eq. \eqref{eq:spreadoper}) and interpolation (Eq. \eqref{eq:bdhifvel}) operators via some sophisticated $\delta_a$ kernels often refereed to as Peskin kernels\footnote{In honor of their creator~\cite{Peskin1977}.}.
+The \gls{IBM}~\cite{Peskin1977}~\cite{Peskin2002} is a mathematical framework for simulation of fluid-structure interaction. It is commonly used to discretize the spreading and interpolation operations we have seen in sec. \ref{sec:bdhi}\footnote{Which incidentally happen to be identical to the ones for electrostatics (sec. \ref{ch:tppoisson}).}. In \gls{IBM} the forces acting on a certain marker (particle) are distributed (spread) to the nearby fluid grid points via some smeared delta function (see figure \ref{fig:ibm}). \gls{IBM} offers us a way to discretize the spreading (Eq. \eqref{eq:spreadoper}) and interpolation (Eq. \eqref{eq:bdhifvel}) operators via some sophisticated $\delta_a$ kernels often referred to as Peskin kernels\footnote{In honor of their creator~\cite{Peskin1977}.}.
 Furthermore, the spreading and interpolation algorithms that we are going to devise for its implementation will also be applicable to other situations outside its intended purpose. For instance, to spread charges and interpolate electric fields when solving the Poisson equation (see sec. \ref{ch:tppoisson} or \ref{ch:dppoisson}). In general, we can use the spreading and interpolation algorithms here for transforming between a Lagrangian (particles) and an Eulerian (grid) description.
 
 We will discretize the interpolation operator in Eq. \eqref{eq:bdhifvel} on a grid as
@@ -3938,12 +3983,20 @@ In any case, if the kernel evaluation becomes a problem due to it being expensiv
 The following remarks about performance trends should be taken with a grain of salt, since with time the \gpu architecture tends to become more and more forgiving about things like the memory access pattern, atomic operations, etc. The compiler also grows smarter with time, being able to better optimize the code. However, it is worth mentioning here at least some of the trends that will probably hold. Performance measurements were carried out using a NVIDIA RTX 2080Ti \gpu, which has the \emph{sm\_75} architecture.
 
 The TPP strategies particularly benefit from the AoS approach, where testing suggest that spreading $4$ numbers at once is overall $5\times$ faster than spreading a single number. Alas, the overall more performant BPP strategy does not seem to benefit from this particular optimization and, in fact, the cost of spreading $4$ numbers in an AoS manner is slightly higher than spreading $4$ times separately.
-\begin{figure}[h]
+\begin{figure}
   \centering
-  \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens1_2080ti}}
-  \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens0.1_2080ti}}
+  \includegraphics[width=0.75\linewidth]{gfx/ibm_comp_dens1_2080ti}\\
+  \includegraphics[width=0.75\linewidth]{gfx/ibm_comp_dens0.1_2080ti}
 \caption{Performance comparison between the different spreading schemes considered for two different densities. Particles are distributed uniformly on a cubic grid and spread with a support $n_s=8$ using a Gaussian kernel. A single scalar is spread per particle. The considered algorithms are: A block-per-particle (BPP), the algorithm used in \uammd. A thread-per-particle (TPP) precomputing the kernel to register memory (register, similar to \emph{GM-sort} in Shih2021~\cite{Shih2021}) and recomputing it (recompute). Finally, timing for the BDP algorithm (\emph{SM} in ~\cite{Shih2021}) is also presented. For these tests, particle sorting was not employed, i.e. the particles are randomly distributed in memory with respect to their physical positions. Performance data was gathered in an RTX2080Ti \gpu using single precision. The crossover between BPP and SM happens at around $2$ million particles in both cases.}
 \label{fig:ibmcomp}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.75\linewidth]{gfx/ibm_comp_dens1_sorted_2080ti}\\
+  \includegraphics[width=0.75\linewidth]{gfx/ibm_comp_dens0.1_sorted_2080ti}
+\caption{The same situation as in Fig. \ref{fig:ibmcomp}, but in this case particles are presorted to increase spatial locality in memory (particles close in space are placed close in memory). Both the positions and the spread quantity are sorted. Sorting is carried out using the same Morton hash technique laid out in chapter \ref{sec:celllist}. Sorting takes a neglegible amount of time and, moreover, it does not need to be done every time spreading occurs. Typically particles are sorted at the start of a given simulation and then every few diffusive times.}
+\label{fig:ibmcompsorted}
 \end{figure}
 
 Spatial hashing and sorting dramatically improves performance for all of our algorithms\footnote{We observe a speedup of up to $10\times $ for BPP and as high as $400\times $ for TPP.} for medium to large problem sizes (for BPP, the performance crossover between unsorted and sorted happens at around $n_x=n_y=n_z=100$ regardless of density). For small sizes, we elucidate the increased atomic overlap caused by sorting hurts the internal atomic handling system in the particular architecture at hand. Furthermore, the performance of the sorting algorithm (radix sort) increases with the number of particles. Figure \ref{fig:ibmcompsorted} presents the same situation as figure \ref{fig:ibmcomp} but with particle pre-sorting.
@@ -3953,13 +4006,6 @@ Finally, if sorting is used, the performance of BPP appears to be robust to chan
 
 According to the carried out tests, the overall better choice is therefore the BPP algorithm with particle sorting.
 Sizes beyond $512$ cells per direction (in a cubic domain) start to suffer from memory issues ($n=512$ with density $1$ takes up at least $4GB$ of memory) and the sheer number of particles involved, $N\sim 10^8$ for density $1$, render them impractical for most purposes.
-\begin{figure}[h]
-  \centering
-  \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens1_sorted_2080ti}}
-  \subfloat{\includegraphics[width=0.5\linewidth]{gfx/ibm_comp_dens0.1_sorted_2080ti}}
-\caption{The same situation as in Fig. \ref{fig:ibmcomp}, but in this case particles are presorted to increase spatial locality in memory (particles close in space are placed close in memory). Both the positions and the spread quantity are sorted. Sorting is carried out using the same Morton hash technique laid out in chapter \ref{sec:celllist}. Sorting takes a neglegible amount of time and, moreover, it does not need to be done every time spreading occurs. Typically particles are sorted at the start of a given simulation and then every few diffusive times.}
-\label{fig:ibmcompsorted}
-\end{figure}
 
 
 \subsubsection*{Interpolation algorithm}
@@ -3972,7 +4018,7 @@ Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the
 %\todo{Differences maybe due to block size?, should be faster I would say}
 \begin{figure}[h]
   \centering
-\includegraphics[width=0.6\linewidth]{gfx/ibm_comp_interp_2080ti}
+\includegraphics[width=0.75\linewidth]{gfx/ibm_comp_interp_2080ti}
 \caption{Interpolation performance for different densities. Particles are distributed uniformly in a cubic grid and one value is interpolated with a support $n_s=8$ using a Gaussian kernel. Performance data was gathered in an RTX2080Ti \gpu using single precision. All data lies near the 9ns mark.}
   \label{fig:ibmcompinterp}
 \end{figure}
@@ -6005,6 +6051,10 @@ Several categories of iterators exists depending on the functionality they provi
 \end{figure}
 Iterators play a central role in connecting algorithms with containers in C++ and allow for deep customization. For instance, say that a given algorithm requires as input an ordered range of numbers and, after some operations, fills with some results the contents of two output arrays. Furthermore, say we are only interested in one of the two output arrays. Instead of allocating three vectors and filling the first with the range of numbers we could use some fancy iterators to save a lot of work; For the input range of numbers, we could pass an input \emph{counting iterator} (see example code \ref{code:iterators}). For the non-required output, we could provide the algorithm with an output \emph{discard iterator}\footnote{The thrust library provides a series of fancy iterators like the ones mentioned in this paragraph (counting, constant, discard...).} that simply ignores any value that is assigned to any of its elements (thus preventing unnecessary memory copies).
 
+In another instance an algorithm may require to iterate through the elements of a container in reverse (starting at the last element and iterating up to the first), a \emph{reverse} iterator could be used instead of reordering the container prior to the execution of the algorithm.
+
+Iterators appear many times in \uammd. For instance, any \emph{random access} iterator can be provided for the input per-particle and per-grid quantities in the \gls{IBM} module (see chapter \ref{sec:ibm}). The only restriction here would be that depending on whether we are spreading or interpolating, the iterators will be required to be either input or output ones. A simple example case of this would be, for instance, spreading the charges of a collection of equally charged particles. A \emph{constant iterator} could be provided in this case.
+
 \begin{code2}[Using iterators in C++. In this example a counting iterator for the range 0-5 is constructed from three different sources. For the first two cases a container (vector) is created and filled with the actual integers from 0 to 5 (requiring memory allocation). We then get an iterator to the range of the container via the method \emph{begin} of the vector (which returns an iterator pointing to the first element, see the variable ``vit''). An equivalent way in this case is to simply get a pointer to the first element of the container (variable ``pit''). Finally, a counting iterator is constructed using the one available in the thrust library. This special iterator is not associated to an underlying container, instead it is an object that provides an overloaded bracket operator that when given an integer, ``i'', simply returns that same integer, ``i''. Note that in this example, ``vit'' and ``pit'' are input/output iterators, while ``cit'' is just an input iterator. The method ``cbegin'' in vector can be used to make ``vit'' an input iterator instead. Additionally, making the type of ``pit'' be ``const int*'' will also turn it into an input iterator. On the other hand, ``cit'' cannot be an output iterator, since there is nothing to write to behind it.] {label=code:iterators}
 #include<iostream>
 #include<vector>
@@ -6023,10 +6073,6 @@ int main(){
   return 0;
 }
 \end{code2}
-In another instance an algorithm may require to iterate through the elements of a container in reverse (starting at the last element and iterating up to the first), a \emph{reverse} iterator could be used instead of reordering the container prior to the execution of the algorithm.
-
-Iterators appear many times in \uammd. For instance, any \emph{random access} iterator can be provided for the input per-particle and per-grid quantities in the \gls{IBM} module (see chapter \ref{sec:ibm}). The only restriction here would be that depending on whether we are spreading or interpolating, the iterators will be required to be either input or output ones. A simple example case of this would be, for instance, spreading the charges of a collection of equally charged particles. A \emph{constant iterator} could be provided in this case.
-
 \subsection*{Other keywords}
 The \mintinline{\ucpp}{const} keyword simply informs the reader (and compiler) that the value of the accompanying variable cannot be modified after its declaration. When appearing in the signature of an object's member function, it conveys that the function will not modify the state of the object in any way.
 

@@ -63,7 +63,7 @@
 @timestamp rot 0
 @timestamp font 0
 @timestamp char size 1.000000
-@timestamp def "Mon Jun 14 17:48:45 2021"
+@timestamp def "Tue Mar 22 10:13:41 2022"
 @r0 off
 @link r0 to g0
 @r0 type above
@@ -132,7 +132,7 @@
 @    xaxis  bar on
 @    xaxis  bar color 1
 @    xaxis  bar linestyle 1
-@    xaxis  bar linewidth 2.0
+@    xaxis  bar linewidth 3.0
 @    xaxis  label "x/h"
 @    xaxis  label layout para
 @    xaxis  label place auto
@@ -148,11 +148,11 @@
 @    xaxis  tick in
 @    xaxis  tick major size 1.000000
 @    xaxis  tick major color 1
-@    xaxis  tick major linewidth 2.0
+@    xaxis  tick major linewidth 3.0
 @    xaxis  tick major linestyle 1
 @    xaxis  tick major grid off
 @    xaxis  tick minor color 1
-@    xaxis  tick minor linewidth 2.0
+@    xaxis  tick minor linewidth 3.0
 @    xaxis  tick minor linestyle 1
 @    xaxis  tick minor grid off
 @    xaxis  tick minor size 0.500000
@@ -183,7 +183,7 @@
 @    yaxis  bar on
 @    yaxis  bar color 1
 @    yaxis  bar linestyle 1
-@    yaxis  bar linewidth 2.0
+@    yaxis  bar linewidth 3.0
 @    yaxis  label "|E\sa\N - <E\sa\N>|"
 @    yaxis  label layout para
 @    yaxis  label place auto
@@ -199,11 +199,11 @@
 @    yaxis  tick in
 @    yaxis  tick major size 1.000000
 @    yaxis  tick major color 1
-@    yaxis  tick major linewidth 2.0
+@    yaxis  tick major linewidth 3.0
 @    yaxis  tick major linestyle 1
 @    yaxis  tick major grid off
 @    yaxis  tick minor color 1
-@    yaxis  tick minor linewidth 2.0
+@    yaxis  tick minor linewidth 3.0
 @    yaxis  tick minor linestyle 1
 @    yaxis  tick minor grid off
 @    yaxis  tick minor size 0.500000
@@ -232,7 +232,7 @@
 @    altyaxis  off
 @    legend on
 @    legend loctype view
-@    legend 0.569362745373, 0.954411761961
+@    legend 0.449264705784, 0.953186271804
 @    legend box color 1
 @    legend box pattern 1
 @    legend box linewidth 2.0
@@ -240,7 +240,7 @@
 @    legend box fill color 0
 @    legend box fill pattern 1
 @    legend font 0
-@    legend char size 1.750000
+@    legend char size 2.000000
 @    legend color 1
 @    legend length 4
 @    legend vgap 1
@@ -304,21 +304,21 @@
 @    s0 legend  "G 3pt"
 @    s1 hidden false
 @    s1 type xy
-@    s1 symbol 2
-@    s1 symbol size 0.280000
-@    s1 symbol color 7
+@    s1 symbol 0
+@    s1 symbol size 0.780000
+@    s1 symbol color 1
 @    s1 symbol pattern 1
-@    s1 symbol fill color 7
+@    s1 symbol fill color 1
 @    s1 symbol fill pattern 1
 @    s1 symbol linewidth 2.0
 @    s1 symbol linestyle 1
 @    s1 symbol char 65
 @    s1 symbol char font 0
 @    s1 symbol skip 0
-@    s1 line type 0
+@    s1 line type 1
 @    s1 line linestyle 1
-@    s1 line linewidth 2.0
-@    s1 line color 7
+@    s1 line linewidth 4.0
+@    s1 line color 1
 @    s1 line pattern 1
 @    s1 baseline type 0
 @    s1 baseline off
@@ -340,7 +340,7 @@
 @    s1 avalue offset 0.000000 , 0.000000
 @    s1 errorbar on
 @    s1 errorbar place both
-@    s1 errorbar color 7
+@    s1 errorbar color 1
 @    s1 errorbar pattern 1
 @    s1 errorbar size 1.000000
 @    s1 errorbar linewidth 2.0
@@ -350,8 +350,8 @@
 @    s1 errorbar riser clip off
 @    s1 errorbar riser clip length 0.100000
 @    s1 comment "gaus_4pt.dat.plot"
-@    s1 legend  "G 4pt"
-@    s2 hidden false
+@    s1 legend  "Gaussian 4pt"
+@    s2 hidden true
 @    s2 type xy
 @    s2 symbol 3
 @    s2 symbol size 0.280000
@@ -399,24 +399,24 @@
 @    s2 errorbar riser clip off
 @    s2 errorbar riser clip length 0.100000
 @    s2 comment "gaus_6pt.dat.plot"
-@    s2 legend  "G 6pt"
+@    s2 legend  "Gaussian 6pt"
 @    s3 hidden false
 @    s3 type xy
-@    s3 symbol 4
-@    s3 symbol size 0.280000
-@    s3 symbol color 4
+@    s3 symbol 0
+@    s3 symbol size 0.780000
+@    s3 symbol color 2
 @    s3 symbol pattern 1
-@    s3 symbol fill color 4
+@    s3 symbol fill color 2
 @    s3 symbol fill pattern 1
 @    s3 symbol linewidth 2.0
 @    s3 symbol linestyle 1
 @    s3 symbol char 65
 @    s3 symbol char font 0
 @    s3 symbol skip 0
-@    s3 line type 0
-@    s3 line linestyle 1
-@    s3 line linewidth 2.0
-@    s3 line color 4
+@    s3 line type 1
+@    s3 line linestyle 8
+@    s3 line linewidth 4.0
+@    s3 line color 2
 @    s3 line pattern 1
 @    s3 baseline type 0
 @    s3 baseline off
@@ -438,7 +438,7 @@
 @    s3 avalue offset 0.000000 , 0.000000
 @    s3 errorbar on
 @    s3 errorbar place both
-@    s3 errorbar color 4
+@    s3 errorbar color 2
 @    s3 errorbar pattern 1
 @    s3 errorbar size 1.000000
 @    s3 errorbar linewidth 2.0
@@ -448,24 +448,24 @@
 @    s3 errorbar riser clip off
 @    s3 errorbar riser clip length 0.100000
 @    s3 comment "gaus_10pt.dat.plot"
-@    s3 legend  "G 10pt"
+@    s3 legend  "Gaussian 10pt"
 @    s4 hidden false
 @    s4 type xy
-@    s4 symbol 5
-@    s4 symbol size 0.280000
-@    s4 symbol color 11
+@    s4 symbol 0
+@    s4 symbol size 0.780000
+@    s4 symbol color 3
 @    s4 symbol pattern 1
-@    s4 symbol fill color 11
+@    s4 symbol fill color 3
 @    s4 symbol fill pattern 1
 @    s4 symbol linewidth 2.0
 @    s4 symbol linestyle 1
 @    s4 symbol char 65
 @    s4 symbol char font 0
 @    s4 symbol skip 0
-@    s4 line type 0
-@    s4 line linestyle 1
-@    s4 line linewidth 2.0
-@    s4 line color 11
+@    s4 line type 1
+@    s4 line linestyle 3
+@    s4 line linewidth 4.0
+@    s4 line color 3
 @    s4 line pattern 1
 @    s4 baseline type 0
 @    s4 baseline off
@@ -487,7 +487,7 @@
 @    s4 avalue offset 0.000000 , 0.000000
 @    s4 errorbar on
 @    s4 errorbar place both
-@    s4 errorbar color 11
+@    s4 errorbar color 3
 @    s4 errorbar pattern 1
 @    s4 errorbar size 1.000000
 @    s4 errorbar linewidth 2.0
@@ -497,24 +497,24 @@
 @    s4 errorbar riser clip off
 @    s4 errorbar riser clip length 0.100000
 @    s4 comment "fcm_peskin_3pt.dat.plot"
-@    s4 legend  "P 3pt"
+@    s4 legend  "Peskin 3pt"
 @    s5 hidden false
 @    s5 type xy
-@    s5 symbol 6
-@    s5 symbol size 0.280000
-@    s5 symbol color 6
+@    s5 symbol 0
+@    s5 symbol size 0.780000
+@    s5 symbol color 4
 @    s5 symbol pattern 1
-@    s5 symbol fill color 6
+@    s5 symbol fill color 4
 @    s5 symbol fill pattern 1
 @    s5 symbol linewidth 2.0
 @    s5 symbol linestyle 1
 @    s5 symbol char 65
 @    s5 symbol char font 0
 @    s5 symbol skip 0
-@    s5 line type 0
-@    s5 line linestyle 1
-@    s5 line linewidth 2.0
-@    s5 line color 6
+@    s5 line type 1
+@    s5 line linestyle 4
+@    s5 line linewidth 4.0
+@    s5 line color 4
 @    s5 line pattern 1
 @    s5 baseline type 0
 @    s5 baseline off
@@ -536,7 +536,7 @@
 @    s5 avalue offset 0.000000 , 0.000000
 @    s5 errorbar on
 @    s5 errorbar place both
-@    s5 errorbar color 6
+@    s5 errorbar color 4
 @    s5 errorbar pattern 1
 @    s5 errorbar size 1.000000
 @    s5 errorbar linewidth 2.0
@@ -546,24 +546,24 @@
 @    s5 errorbar riser clip off
 @    s5 errorbar riser clip length 0.100000
 @    s5 comment "fcm_peskin_4pt.dat.plot"
-@    s5 legend  "P 4pt"
+@    s5 legend  "Peskin 4pt"
 @    s6 hidden false
 @    s6 type xy
-@    s6 symbol 7
-@    s6 symbol size 0.280000
-@    s6 symbol color 2
+@    s6 symbol 0
+@    s6 symbol size 0.780000
+@    s6 symbol color 11
 @    s6 symbol pattern 1
-@    s6 symbol fill color 2
+@    s6 symbol fill color 11
 @    s6 symbol fill pattern 1
 @    s6 symbol linewidth 2.0
 @    s6 symbol linestyle 1
 @    s6 symbol char 65
 @    s6 symbol char font 0
 @    s6 symbol skip 0
-@    s6 line type 0
-@    s6 line linestyle 1
-@    s6 line linewidth 2.0
-@    s6 line color 2
+@    s6 line type 1
+@    s6 line linestyle 5
+@    s6 line linewidth 4.0
+@    s6 line color 11
 @    s6 line pattern 1
 @    s6 baseline type 0
 @    s6 baseline off
@@ -585,7 +585,7 @@
 @    s6 avalue offset 0.000000 , 0.000000
 @    s6 errorbar on
 @    s6 errorbar place both
-@    s6 errorbar color 2
+@    s6 errorbar color 11
 @    s6 errorbar pattern 1
 @    s6 errorbar size 1.000000
 @    s6 errorbar linewidth 2.0
@@ -595,7 +595,7 @@
 @    s6 errorbar riser clip off
 @    s6 errorbar riser clip length 0.100000
 @    s6 comment "fcm_peskin_6pt.dat.plot"
-@    s6 legend  "P 6pt"
+@    s6 legend  "Peskin 6pt"
 @target G0.S0
 @type xy
 0.001 0.0339932

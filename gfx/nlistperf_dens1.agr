@@ -63,17 +63,17 @@
 @timestamp rot 0
 @timestamp font 0
 @timestamp char size 1.000000
-@timestamp def "Tue Mar 22 09:21:16 2022"
+@timestamp def "Wed Mar 16 13:45:41 2022"
 @with string
 @    string on
 @    string loctype view
-@    string 0.310049019608, 0.295343137255
+@    string 0.770833333333, 0.287990196078
 @    string color 1
 @    string rot 0
 @    string font 0
 @    string just 0
 @    string char size 2.000000
-@    string def "LJ potential"
+@    string def "\xr\0=a\S-3\N"
 @r0 off
 @link r0 to g0
 @r0 type above
@@ -120,7 +120,7 @@
 @g0 fixedpoint format general general
 @g0 fixedpoint prec 6, 6
 @with g0
-@    world 0, 4e-07, 2, 0.0004
+@    world 1000, 0.01, 100000000, 1000
 @    stack world 0, 0, 0, 0
 @    znorm 1
 @    view 0.150000, 0.150000, 1.100000, 0.850000
@@ -132,7 +132,7 @@
 @    subtitle font 0
 @    subtitle size 1.000000
 @    subtitle color 1
-@    xaxes scale Normal
+@    xaxes scale Logarithmic
 @    yaxes scale Logarithmic
 @    xaxes invert off
 @    yaxes invert off
@@ -143,7 +143,7 @@
 @    xaxis  bar color 1
 @    xaxis  bar linestyle 1
 @    xaxis  bar linewidth 3.0
-@    xaxis  label "T/\xe\0"
+@    xaxis  label "Number of particles"
 @    xaxis  label layout para
 @    xaxis  label place auto
 @    xaxis  label char size 2.000000
@@ -151,8 +151,8 @@
 @    xaxis  label color 1
 @    xaxis  label place normal
 @    xaxis  tick on
-@    xaxis  tick major 0.5
-@    xaxis  tick minor ticks 1
+@    xaxis  tick major 10
+@    xaxis  tick minor ticks 9
 @    xaxis  tick default 6
 @    xaxis  tick place rounded true
 @    xaxis  tick in
@@ -167,8 +167,8 @@
 @    xaxis  tick minor grid off
 @    xaxis  tick minor size 0.500000
 @    xaxis  ticklabel on
-@    xaxis  ticklabel format general
-@    xaxis  ticklabel prec 5
+@    xaxis  ticklabel format engineering
+@    xaxis  ticklabel prec 0
 @    xaxis  ticklabel formula ""
 @    xaxis  ticklabel append ""
 @    xaxis  ticklabel prepend ""
@@ -194,7 +194,7 @@
 @    yaxis  bar color 1
 @    yaxis  bar linestyle 1
 @    yaxis  bar linewidth 3.0
-@    yaxis  label "step/\xs\0"
+@    yaxis  label "Time per step (ms)"
 @    yaxis  label layout para
 @    yaxis  label place auto
 @    yaxis  label char size 2.000000
@@ -242,7 +242,7 @@
 @    altyaxis  off
 @    legend on
 @    legend loctype view
-@    legend 0.58039215702, 0.575735294431
+@    legend 0.209068627608, 0.818382353353
 @    legend box color 1
 @    legend box pattern 1
 @    legend box linewidth 2.0
@@ -303,22 +303,22 @@
 @    s0 errorbar place both
 @    s0 errorbar color 1
 @    s0 errorbar pattern 1
-@    s0 errorbar size 0.280000
-@    s0 errorbar linewidth 2.0
+@    s0 errorbar size 0.340000
+@    s0 errorbar linewidth 3.0
 @    s0 errorbar linestyle 1
-@    s0 errorbar riser linewidth 2.0
+@    s0 errorbar riser linewidth 3.0
 @    s0 errorbar riser linestyle 1
 @    s0 errorbar riser clip off
 @    s0 errorbar riser clip length 0.100000
-@    s0 comment "dens0.1.N16384.acc0.5.dat"
-@    s0 legend  "N=16384, acc=0.5"
-@    s1 hidden false
+@    s0 comment "/home/raul/perfCL.dat"
+@    s0 legend  "Cell list"
+@    s1 hidden true
 @    s1 type xy
 @    s1 symbol 2
 @    s1 symbol size 0.780000
-@    s1 symbol color 2
+@    s1 symbol color 1
 @    s1 symbol pattern 1
-@    s1 symbol fill color 2
+@    s1 symbol fill color 1
 @    s1 symbol fill pattern 1
 @    s1 symbol linewidth 2.0
 @    s1 symbol linestyle 1
@@ -328,7 +328,7 @@
 @    s1 line type 1
 @    s1 line linestyle 1
 @    s1 line linewidth 3.0
-@    s1 line color 2
+@    s1 line color 1
 @    s1 line pattern 1
 @    s1 baseline type 0
 @    s1 baseline off
@@ -350,24 +350,24 @@
 @    s1 avalue offset 0.000000 , 0.000000
 @    s1 errorbar on
 @    s1 errorbar place both
-@    s1 errorbar color 2
+@    s1 errorbar color 1
 @    s1 errorbar pattern 1
-@    s1 errorbar size 0.280000
-@    s1 errorbar linewidth 2.0
+@    s1 errorbar size 0.340000
+@    s1 errorbar linewidth 3.0
 @    s1 errorbar linestyle 1
-@    s1 errorbar riser linewidth 2.0
+@    s1 errorbar riser linewidth 3.0
 @    s1 errorbar riser linestyle 1
 @    s1 errorbar riser clip off
 @    s1 errorbar riser clip length 0.100000
-@    s1 comment "dens0.1.N16384.acc0.8.dat"
-@    s1 legend  "N=16384, acc=0.8"
+@    s1 comment "perfCL.dat"
+@    s1 legend  "Cell list"
 @    s2 hidden true
 @    s2 type xy
-@    s2 symbol 3
+@    s2 symbol 1
 @    s2 symbol size 0.780000
-@    s2 symbol color 3
+@    s2 symbol color 2
 @    s2 symbol pattern 1
-@    s2 symbol fill color 3
+@    s2 symbol fill color 2
 @    s2 symbol fill pattern 1
 @    s2 symbol linewidth 2.0
 @    s2 symbol linestyle 1
@@ -377,7 +377,7 @@
 @    s2 line type 1
 @    s2 line linestyle 1
 @    s2 line linewidth 3.0
-@    s2 line color 3
+@    s2 line color 2
 @    s2 line pattern 1
 @    s2 baseline type 0
 @    s2 baseline off
@@ -399,24 +399,24 @@
 @    s2 avalue offset 0.000000 , 0.000000
 @    s2 errorbar on
 @    s2 errorbar place both
-@    s2 errorbar color 3
+@    s2 errorbar color 2
 @    s2 errorbar pattern 1
-@    s2 errorbar size 0.280000
-@    s2 errorbar linewidth 2.0
+@    s2 errorbar size 0.340000
+@    s2 errorbar linewidth 3.0
 @    s2 errorbar linestyle 1
-@    s2 errorbar riser linewidth 2.0
+@    s2 errorbar riser linewidth 3.0
 @    s2 errorbar riser linestyle 1
 @    s2 errorbar riser clip off
 @    s2 errorbar riser clip length 0.100000
-@    s2 comment "dens0.1.N3300.acc0.2.dat"
-@    s2 legend  "N=3300, acc=0.2"
-@    s3 hidden false
+@    s2 comment "perfVL.dat"
+@    s2 legend  "Verlet list"
+@    s3 hidden true
 @    s3 type xy
-@    s3 symbol 3
+@    s3 symbol 1
 @    s3 symbol size 0.780000
-@    s3 symbol color 3
+@    s3 symbol color 4
 @    s3 symbol pattern 1
-@    s3 symbol fill color 3
+@    s3 symbol fill color 4
 @    s3 symbol fill pattern 1
 @    s3 symbol linewidth 2.0
 @    s3 symbol linestyle 1
@@ -426,7 +426,7 @@
 @    s3 line type 1
 @    s3 line linestyle 1
 @    s3 line linewidth 3.0
-@    s3 line color 3
+@    s3 line color 4
 @    s3 line pattern 1
 @    s3 baseline type 0
 @    s3 baseline off
@@ -448,73 +448,24 @@
 @    s3 avalue offset 0.000000 , 0.000000
 @    s3 errorbar on
 @    s3 errorbar place both
-@    s3 errorbar color 3
+@    s3 errorbar color 4
 @    s3 errorbar pattern 1
-@    s3 errorbar size 0.280000
-@    s3 errorbar linewidth 2.0
+@    s3 errorbar size 0.340000
+@    s3 errorbar linewidth 3.0
 @    s3 errorbar linestyle 1
-@    s3 errorbar riser linewidth 2.0
+@    s3 errorbar riser linewidth 3.0
 @    s3 errorbar riser linestyle 1
 @    s3 errorbar riser clip off
 @    s3 errorbar riser clip length 0.100000
-@    s3 comment "dens0.1.N3300.acc0.5.dat"
-@    s3 legend  "N=3300, acc=0.5"
-@    s4 hidden false
-@    s4 type xy
-@    s4 symbol 4
-@    s4 symbol size 0.780000
-@    s4 symbol color 4
-@    s4 symbol pattern 1
-@    s4 symbol fill color 4
-@    s4 symbol fill pattern 1
-@    s4 symbol linewidth 2.0
-@    s4 symbol linestyle 1
-@    s4 symbol char 65
-@    s4 symbol char font 0
-@    s4 symbol skip 0
-@    s4 line type 1
-@    s4 line linestyle 1
-@    s4 line linewidth 3.0
-@    s4 line color 4
-@    s4 line pattern 1
-@    s4 baseline type 0
-@    s4 baseline off
-@    s4 dropline off
-@    s4 fill type 0
-@    s4 fill rule 0
-@    s4 fill color 1
-@    s4 fill pattern 1
-@    s4 avalue off
-@    s4 avalue type 2
-@    s4 avalue char size 1.000000
-@    s4 avalue font 0
-@    s4 avalue color 1
-@    s4 avalue rot 0
-@    s4 avalue format general
-@    s4 avalue prec 3
-@    s4 avalue prepend ""
-@    s4 avalue append ""
-@    s4 avalue offset 0.000000 , 0.000000
-@    s4 errorbar on
-@    s4 errorbar place both
-@    s4 errorbar color 4
-@    s4 errorbar pattern 1
-@    s4 errorbar size 0.280000
-@    s4 errorbar linewidth 2.0
-@    s4 errorbar linestyle 1
-@    s4 errorbar riser linewidth 2.0
-@    s4 errorbar riser linestyle 1
-@    s4 errorbar riser clip off
-@    s4 errorbar riser clip length 0.100000
-@    s4 comment "dens0.1.N3300.acc0.8.dat"
-@    s4 legend  "N=3300, acc=0.8"
-@    s5 hidden true
+@    s3 comment "../perf.agr"
+@    s3 legend  "BVH list"
+@    s5 hidden false
 @    s5 type xy
-@    s5 symbol 6
+@    s5 symbol 2
 @    s5 symbol size 0.780000
-@    s5 symbol color 6
+@    s5 symbol color 2
 @    s5 symbol pattern 1
-@    s5 symbol fill color 6
+@    s5 symbol fill color 2
 @    s5 symbol fill pattern 1
 @    s5 symbol linewidth 2.0
 @    s5 symbol linestyle 1
@@ -523,8 +474,8 @@
 @    s5 symbol skip 0
 @    s5 line type 1
 @    s5 line linestyle 1
-@    s5 line linewidth 2.0
-@    s5 line color 6
+@    s5 line linewidth 3.0
+@    s5 line color 2
 @    s5 line pattern 1
 @    s5 baseline type 0
 @    s5 baseline off
@@ -546,24 +497,24 @@
 @    s5 avalue offset 0.000000 , 0.000000
 @    s5 errorbar on
 @    s5 errorbar place both
-@    s5 errorbar color 6
+@    s5 errorbar color 2
 @    s5 errorbar pattern 1
-@    s5 errorbar size 0.280000
-@    s5 errorbar linewidth 2.0
+@    s5 errorbar size 0.340000
+@    s5 errorbar linewidth 3.0
 @    s5 errorbar linestyle 1
-@    s5 errorbar riser linewidth 2.0
+@    s5 errorbar riser linewidth 3.0
 @    s5 errorbar riser linestyle 1
 @    s5 errorbar riser clip off
 @    s5 errorbar riser clip length 0.100000
-@    s5 comment "dens0.1.N6600.acc0.5.dat"
-@    s5 legend  "N=6600, acc=0.5"
-@    s6 hidden true
+@    s5 comment "perfVLT1.dat"
+@    s5 legend  "Verlet list \xe\0=kT"
+@    s6 hidden false
 @    s6 type xy
-@    s6 symbol 7
+@    s6 symbol 6
 @    s6 symbol size 0.780000
-@    s6 symbol color 7
+@    s6 symbol color 15
 @    s6 symbol pattern 1
-@    s6 symbol fill color 7
+@    s6 symbol fill color 15
 @    s6 symbol fill pattern 1
 @    s6 symbol linewidth 2.0
 @    s6 symbol linestyle 1
@@ -572,8 +523,8 @@
 @    s6 symbol skip 0
 @    s6 line type 1
 @    s6 line linestyle 1
-@    s6 line linewidth 2.0
-@    s6 line color 7
+@    s6 line linewidth 3.0
+@    s6 line color 15
 @    s6 line pattern 1
 @    s6 baseline type 0
 @    s6 baseline off
@@ -595,105 +546,190 @@
 @    s6 avalue offset 0.000000 , 0.000000
 @    s6 errorbar on
 @    s6 errorbar place both
-@    s6 errorbar color 7
+@    s6 errorbar color 15
 @    s6 errorbar pattern 1
-@    s6 errorbar size 0.280000
-@    s6 errorbar linewidth 2.0
+@    s6 errorbar size 0.340000
+@    s6 errorbar linewidth 3.0
 @    s6 errorbar linestyle 1
-@    s6 errorbar riser linewidth 2.0
+@    s6 errorbar riser linewidth 3.0
 @    s6 errorbar riser linestyle 1
 @    s6 errorbar riser clip off
 @    s6 errorbar riser clip length 0.100000
-@    s6 comment "dens0.1.N6600.acc0.8.dat"
-@    s6 legend  "N=6600, acc=0.8"
+@    s6 comment "perf.dat"
+@    s6 legend  "Verlet list \xe\0=10kT"
+@    s7 hidden false
+@    s7 type xy
+@    s7 symbol 2
+@    s7 symbol size 0.780000
+@    s7 symbol color 4
+@    s7 symbol pattern 1
+@    s7 symbol fill color 4
+@    s7 symbol fill pattern 1
+@    s7 symbol linewidth 2.0
+@    s7 symbol linestyle 1
+@    s7 symbol char 65
+@    s7 symbol char font 0
+@    s7 symbol skip 0
+@    s7 line type 1
+@    s7 line linestyle 1
+@    s7 line linewidth 3.0
+@    s7 line color 4
+@    s7 line pattern 1
+@    s7 baseline type 0
+@    s7 baseline off
+@    s7 dropline off
+@    s7 fill type 0
+@    s7 fill rule 0
+@    s7 fill color 1
+@    s7 fill pattern 1
+@    s7 avalue off
+@    s7 avalue type 2
+@    s7 avalue char size 1.000000
+@    s7 avalue font 0
+@    s7 avalue color 1
+@    s7 avalue rot 0
+@    s7 avalue format general
+@    s7 avalue prec 3
+@    s7 avalue prepend ""
+@    s7 avalue append ""
+@    s7 avalue offset 0.000000 , 0.000000
+@    s7 errorbar on
+@    s7 errorbar place both
+@    s7 errorbar color 4
+@    s7 errorbar pattern 1
+@    s7 errorbar size 0.340000
+@    s7 errorbar linewidth 3.0
+@    s7 errorbar linestyle 1
+@    s7 errorbar riser linewidth 3.0
+@    s7 errorbar riser linestyle 1
+@    s7 errorbar riser clip off
+@    s7 errorbar riser clip length 0.100000
+@    s7 comment "perfBV.dat"
+@    s7 legend  "LBVH list"
 @target G0.S0
 @type xy
-0.2 4.878431e-05
-0.4 5.4111555e-05
-0.6 6.2556385e-05
-0.8 8.7022115e-05
-1 0.00010485437
-1.2 0.00010243907
-1.4 9.6776635e-05
-1.6 8.918997e-05
-1.8 8.275635e-05
-2 7.9080545e-05
+1024 0.22247167
+2048 0.48272333
+4096 0.48794833
+8192 0.48827833
+16384 0.50886167
+32768 0.52727833
+65536 0.59102667
+131072 0.77893833
+262144 1.1749633
+524288 1.9266
+1048576 3.5169167
+2097152 6.7971667
+4194304 13.64815
+8388608 27.816333
+16777216 57.273833
+33554432 118.906
 &
 @target G0.S1
 @type xy
-0.2 3.8908e-07
-0.4 7.161837e-06
-0.6 1.375394e-05
-0.8 2.4825975e-05
-1 3.2732905e-05
-1.2 3.854037e-05
-1.4 3.910927e-05
-1.6 3.7375465e-05
-1.8 3.7420545e-05
-2 3.57362e-05
+1024 0.098215
+2048 0.27112167
+4096 0.238505
+8192 0.27688833
+16384 0.281385
+32768 0.33749
+65536 0.38856167
+131072 0.506635
+262144 0.82909167
+524288 1.3916333
+1048576 2.5220667
+2097152 4.8782833
+4194304 9.6422667
+8388608 19.581
+16777216 40.273833
+33554432 81.367
 &
 @target G0.S2
 @type xy
-0.1 0.0002198424
-0.3 0.00022203255
-0.5 0.00020844175
-0.7 0.00020957145
-0.9 0.00026053005
-1.1 0.00030699675
-1.3 0.00029331405
-1.5 0.00027316655
-1.7 0.0002539278
-1.9 0.00023431705
+1024 0.104344
+2048 0.16311517
+4096 0.16770167
+8192 0.17190667
+16384 0.18181667
+32768 0.19437833
+65536 0.27137833
+131072 0.35523167
+262144 0.57849
+524288 1.0129967
+1048576 1.80975
+2097152 3.4447167
+4194304 6.81895
+8388608 13.61285
+16777216 28.1215
+33554432 56.465333
 &
 @target G0.S3
 @type xy
-0.1 0.0001325222
-0.3 0.00013443875
-0.5 0.0001274449
-0.7 0.0001369856
-0.9 0.00018021565
-1.1 0.0001873613
-1.3 0.00017862855
-1.5 0.0001693118
-1.7 0.0001584547
-1.9 0.0001452662
-&
-@target G0.S4
-@type xy
-0.1 1.2173015e-06
-0.3 4.399306e-05
-0.5 5.2868275e-05
-0.7 7.1980855e-05
-0.9 8.830465e-05
-1.1 9.29046e-05
-1.3 8.424768e-05
-1.5 8.24369e-05
-1.7 7.748673e-05
-1.9 7.2784065e-05
+1024 0.15179617
+2048 0.23004667
+4096 0.23805833
+8192 0.281565
+16384 0.28870333
+32768 0.31603333
+65536 0.41934
+131072 0.64409333
+262144 1.1187567
+524288 2.19365
+1048576 4.1348
+2097152 8.1792833
+4194304 16.358583
+8388608 31.515833
+16777216 63.7755
 &
 @target G0.S5
 @type xy
-0.2 9.118539e-05
-0.4 9.323643e-05
-0.6 0.000101402
-0.8 0.0001219201
-1 0.00014691375
-1.2 0.0001435316
-1.4 0.0001353826
-1.6 0.00012622775
-1.8 0.00011771655
-2 0.00010910235
+1024 0.15110183
+2048 0.19894667
+4096 0.19481833
+8192 0.21996333
+16384 0.23320333
+32768 0.27573667
+65536 0.42361833
+131072 0.75763833
+262144 1.4051067
+524288 2.7040833
+1048576 5.15305
+2097152 10.0837
+4194304 20.395667
+8388608 40.338833
 &
 @target G0.S6
 @type xy
-0.2 8.61051e-06
-0.4 2.001258e-05
-0.6 2.6677245e-05
-0.8 4.8777445e-05
-1 6.456567e-05
-1.2 6.5540095e-05
-1.4 6.1908335e-05
-1.6 5.7828255e-05
-1.8 5.693097e-05
-2 5.32064e-05
+1024 0.082149333
+2048 0.079485333
+4096 0.082161
+8192 0.085284
+16384 0.088918667
+32768 0.12095283
+65536 0.14086067
+131072 0.23785167
+262144 0.457505
+524288 0.89575167
+1048576 1.7135
+2097152 3.3984667
+4194304 6.8212833
+8388608 13.693
+&
+@target G0.S7
+@type xy
+1024 0.29293333
+2048 0.55961667
+4096 0.57079333
+8192 0.57250167
+16384 0.59698
+32768 0.66955
+65536 0.778465
+131072 1.1558417
+262144 1.9142
+524288 3.5367
+1048576 6.7294833
+2097152 13.344017
+4194304 27.502833
+8388608 56.274667
+16777216 116.8225
 &
