@@ -8,6 +8,7 @@ BCOR=5mm,paper=b5,fontsize=11pt, dvipsnames
 ]{scrreprt}
 \usepackage[utf8]{inputenc}
 \usepackage{todonotes}
+\usepackage{multicol}
 \usepackage{xspace}
 \usepackage{float} 
 \usepackage{courier}
@@ -43,6 +44,7 @@ BCOR=5mm,paper=b5,fontsize=11pt, dvipsnames
     listing only,
     listing engine=minted,
     listing remove caption=true,
+    list text={ },
     title={~#1},
     minted language=\ucpp,
     enhanced jigsaw,
@@ -390,35 +392,35 @@ The following publications resulted from the development of this work
     %*******************************************************
     % List of Figures
     %*******************************************************
-    \phantomsection
-    \addcontentsline{toc}{chapter}{\listfigurename}
-    \pdfbookmark[1]{\listfigurename}{lof}
-    \listoffigures
+    \begin{multicols}{2}[\chapter*{List of Figures}]
+      \setlength{\columnseprule}{1pt}
+      \def\columnseprulecolor{\color{black}}
 
-    \vspace{8ex}
+      \phantomsection
+      \addcontentsline{toc}{chapter}{\listfigurename}
+      \pdfbookmark[1]{\listfigurename}{lof}
+      % \listoffigures
+      \makeatletter
+      \@starttoc{lof}% Print List of Figures
+      \makeatother
 
-    %*******************************************************
-    % List of Tables
-    %*******************************************************
-    %\phantomsection
-    %\addcontentsline{toc}{chapter}{\listtablename}
-    %\pdfbookmark[1]{\listtablename}{lot}
-    %\listoftables
 
-   % \vspace{8ex}
-    % \newpage
-
-    %*******************************************************
-    % List of Listings
-    %*******************************************************
-    \phantomsection
-    \addcontentsline{toc}{chapter}{\lstlistlistingname}
-    \pdfbookmark[1]{\lstlistlistingname}{lol}
-
-    %\lstlistoflistings
-    \tcblistof[\section*]{lol}{List of Codes}
-    \vspace{8ex}
-
+      \vspace{8ex}
+    \end{multicols}
+    \newpage
+    \begin{multicols}{2}[\chapter*{List of Codes}]
+      \setlength{\columnseprule}{1pt}
+      \def\columnseprulecolor{\color{black}}
+      % *******************************************************
+      % List of Listings
+      % *******************************************************
+      \phantomsection
+      \addcontentsline{toc}{chapter}{\lstlistlistingname}
+      \pdfbookmark[1]{\lstlistlistingname}{lol}
+      %vspace here is a hack to remove the title of the listoflistings
+      \tcblistof[\vspace*]{lol}{-\baselineskip}
+      \vspace{8ex}
+    \end{multicols}
     %*******************************************************
     % Acronyms
     %*******************************************************
@@ -458,7 +460,7 @@ The mesoscale poses a series of theoretical and numerical challenges, because it
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/scales}
-  \caption{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales involved in a biological system or, in general, a complex fluid. Zooming in from the bottom-left we have the blood inside a section of a vein, the plasmic environment in a small drop of blood (where cells, platelets, viruses, etc. are present), a virus, a single protein and finally the individual atoms that compose it along with the surrounding fluid particles (water).}
+  \caption[ ]{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales involved in a biological system or, in general, a complex fluid. Zooming in from the bottom-left we have the blood inside a section of a vein, the plasmic environment in a small drop of blood (where cells, platelets, viruses, etc. are present), a virus, a single protein and finally the individual atoms that compose it along with the surrounding fluid particles (water).}
   \label{fig:sptime-land}
 \end{figure}
 
@@ -469,7 +471,7 @@ Recently, a new paradigm of supercomputing has arisen. The \gpu, a massively par
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{gpu_and_me}
-  \caption{A picture a GPU (NVIDIA Tesla). This card will grant its owner the computing power of a small CPU cluster for a price of around 1000€.}
+  \caption[ ]{A picture a GPU (NVIDIA Tesla). This card will grant its owner the computing power of a small CPU cluster for a price of around 1000€.}
   \label{fig:gpuandme}
 \end{figure}
 
@@ -524,7 +526,7 @@ See Fig. \ref{fig:cudablocks} for a schematic representation of the CUDA threadi
 \begin{figure}[H]
   \centering
   \includesvg[width=\columnwidth]{gfx/cudablocks}
-  \caption{Representation of the thread geometry for a kernel launch with $2$ blocks of $4$ threads (\emph{blockDim} = (2,2)). Threads inside the same block run concurrently, while different blocks might run desynchronized between them. Each thread has a small local (and private) register memory space. Furthermore, threads inside the same block can share memory among them via the low-latency \emph{shared memory}. All threads can access the same, low-bandwidth, \emph{global memory} space.}
+  \caption[ ]{Representation of the thread geometry for a kernel launch with $2$ blocks of $4$ threads (\emph{blockDim} = (2,2)). Threads inside the same block run concurrently, while different blocks might run desynchronized between them. Each thread has a small local (and private) register memory space. Furthermore, threads inside the same block can share memory among them via the low-latency \emph{shared memory}. All threads can access the same, low-bandwidth, \emph{global memory} space.}
   \label{fig:cudablocks}
 \end{figure}
 
@@ -532,7 +534,7 @@ Although it is not required by the programming model, threads inside a block exc
 \begin{figure}[H]
   \centering
   \includesvg[width=0.8\columnwidth]{gfx/branchdivergence}
-  \caption{Representation of a divergent branch. The 32 threads conforming a warp (curvy arrows) encounter a piece of divergent code (a conditional branch that separates threads in the same warp). When divergent code is encountered each branch is executed in serial (as opposed to, for instance, a parallel CPU code), execution does not continue until all threads have concluded processing all branches since all threads in the same warp must execute instructions in lock-step.}
+  \caption[ ]{Representation of a divergent branch. The 32 threads conforming a warp (curvy arrows) encounter a piece of divergent code (a conditional branch that separates threads in the same warp). When divergent code is encountered each branch is executed in serial (as opposed to, for instance, a parallel CPU code), execution does not continue until all threads have concluded processing all branches since all threads in the same warp must execute instructions in lock-step.}
   \label{fig:branchdivergence}
 \end{figure}
 
@@ -610,7 +612,7 @@ These are the four pillars depicted in Fig. \ref{fig:uammdsketch}. The software 
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/sketchUAMMD}
-  \caption{The basic hierarchy of concepts (and code) in \uammd, represented by a series of modules connected by arrows that convey the direction of the data flow. \emph{System} holds information about the actual physical hardware, and all the entities below rely on it to interact with the environment. \emph{ParticleData} (a ``real class'' in the code) stores all the information about the particles in the simulation, such as positions ($\vec{r}$), velocities ($\vec{v}$), mass, etc, as well as other properties like the current forces acting on it ($\vec{F}$), energy ($E$) or virial ($T$). Modules below (explained later) can request, at their leisure, a list with any of the particles properties. \emph{Integrators} and \emph{Interactors} are interfaces (called virtual classes in programming terms), are in charge of, respectively, forwarding the simulation one step in time and computing the forces, energies and/or virials acting on each particle. These ``Interfaces'' (drawn in red) are abstract objects that cannot be instanced on their own but rather must be inherited. For instance, Brownian Dynamics (section. \ref{sec:bd}) would be an \emph{Integrator}, while a module that computes gravitational forces would be an \emph{Interactor}.}
+  \caption[ ]{The basic hierarchy of concepts (and code) in \uammd, represented by a series of modules connected by arrows that convey the direction of the data flow. \emph{System} holds information about the actual physical hardware, and all the entities below rely on it to interact with the environment. \emph{ParticleData} (a ``real class'' in the code) stores all the information about the particles in the simulation, such as positions ($\vec{r}$), velocities ($\vec{v}$), mass, etc, as well as other properties like the current forces acting on it ($\vec{F}$), energy ($E$) or virial ($T$). Modules below (explained later) can request, at their leisure, a list with any of the particles properties. \emph{Integrators} and \emph{Interactors} are interfaces (called virtual classes in programming terms), are in charge of, respectively, forwarding the simulation one step in time and computing the forces, energies and/or virials acting on each particle. These ``Interfaces'' (drawn in red) are abstract objects that cannot be instanced on their own but rather must be inherited. For instance, Brownian Dynamics (section. \ref{sec:bd}) would be an \emph{Integrator}, while a module that computes gravitational forces would be an \emph{Interactor}.}
   \label{fig:uammdsketch}
 \end{figure}
 %\todo{Add something about gpu arch in System in the fig, gpu arch, ncores,...}
@@ -662,7 +664,7 @@ It is however important to stress that the central (class) object in \uammd are 
   %\includegraphics[width=\textwidth]{landscape}
   %\includesvg[width=0.8\columnwidth]{gfx/modular}
   \includesvg[width=0.8\columnwidth]{gfx/virus}
-  \caption{A simulation is constructed by putting together several modules. In this instance, the simulation of a virus submerged in water could be constructed by joining a hydrodynamics \emph{Integrator} module with several \emph{Interactors} describing the interactions between particles, such as sterics, bonds, electrostatics,...}
+  \caption[ ]{A simulation is constructed by putting together several modules. In this instance, the simulation of a virus submerged in water could be constructed by joining a hydrodynamics \emph{Integrator} module with several \emph{Interactors} describing the interactions between particles, such as sterics, bonds, electrostatics,...}
   \label{fig:modular}
 \end{figure}
 
@@ -694,7 +696,7 @@ Be it an \emph{Integrator} (hydrodynamics, molecular dynamics,...) or \emph{Inte
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/landscape}
-  \caption{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales involved in a biological system or, in general, a complex fluid. Image courtesy of Rafael Delgado-Buscalioni.}
+  \caption[ ]{The spatio-temporal landscape and its numerical techniques. Different techniques are applied to simulate the different scales involved in a biological system or, in general, a complex fluid. Image courtesy of Rafael Delgado-Buscalioni.}
   \label{fig:landscape}
 \end{figure}
 
@@ -705,7 +707,7 @@ Although \uammd is not restricted to soft matter systems, this work will concent
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/multiscale}
-  \caption{The different levels of coarse grained description available in \uammd for soft matter simulations. $\vec{q}_i$ represents the positions of particles, $\vec{u}_i$ their velocity. $\vec{v}(\vec{r},t)$ represents an Eulerian fluid velocity field, $M(\vec{q}_{ij})$ a mobility tensor and $\xi(\vec{q}_{ij})$ a friction kernel. Arrows represent standard routes for the formal bottom-up derivation using coarse-graining theory. In order, we have: (1) in \cite{Camargo2018}, (2) in \cite{Hijon2010} and (3) in \cite{Dhont1996}.}
+  \caption[ ]{The different levels of coarse grained description available in \uammd for soft matter simulations. $\vec{q}_i$ represents the positions of particles, $\vec{u}_i$ their velocity. $\vec{v}(\vec{r},t)$ represents an Eulerian fluid velocity field, $M(\vec{q}_{ij})$ a mobility tensor and $\xi(\vec{q}_{ij})$ a friction kernel. Arrows represent standard routes for the formal bottom-up derivation using coarse-graining theory. In order, we have: (1) in \cite{Camargo2018}, (2) in \cite{Hijon2010} and (3) in \cite{Dhont1996}.}
   \label{fig:multiscale}
 \end{figure}
 
@@ -930,7 +932,7 @@ Figure \ref{fig:overview} presents an overview of the different layers of UAMMD,
 \begin{figure}[H]
   \centering
   \includesvg[width=\columnwidth]{gfx/outline}
-  \caption{A bird's-eye of the different conceptual layers of the UAMMD infrastructure. Many (but not all) of the implemented modules are represented inside the red circle, we will discuss all of them through this manuscript. At the innermost level, the library level, we have the basic tools and algorithms on which the rest of the project is supported. The next layer is the solver layer, with modules for particle interaction and dynamics. In general, all these modules are black-box input/output modules that can be used in any other code in a library-like fashion as external accelerators (especially the ones at the library level). Outside the red circle we find the application layer, in which several of the inner tools are joined to study the physics of a new system. For instance, to study the phenomenon of electrochemical impedance we need electrostatics (interactions) and hydrodynamics (dynamics) in a slit channel (chapters \ref{ch:dppoisson} and \ref{sec:dpstokes}, respectively), the modules inside blue circles are connected first to construct the interaction and dynamics modules, which in turn are used to set up a simulation.}
+  \caption[ ]{A bird's-eye of the different conceptual layers of the UAMMD infrastructure. Many (but not all) of the implemented modules are represented inside the red circle, we will discuss all of them through this manuscript. At the innermost level, the library level, we have the basic tools and algorithms on which the rest of the project is supported. The next layer is the solver layer, with modules for particle interaction and dynamics. In general, all these modules are black-box input/output modules that can be used in any other code in a library-like fashion as external accelerators (especially the ones at the library level). Outside the red circle we find the application layer, in which several of the inner tools are joined to study the physics of a new system. For instance, to study the phenomenon of electrochemical impedance we need electrostatics (interactions) and hydrodynamics (dynamics) in a slit channel (chapters \ref{ch:dppoisson} and \ref{sec:dpstokes}, respectively), the modules inside blue circles are connected first to construct the interaction and dynamics modules, which in turn are used to set up a simulation.}
   \label{fig:overview}
 \end{figure}
 The rest of the manuscript is organized in three main parts: In the first one (part \ref{part:voyage}) we will go through the different techniques used to solve particle interactions and dynamics (as described by the different levels of detail introduced in chapter \ref{sec:multiscale}) with a particular focus on their adaptation and implementation in a \gpu architecture. Whenever a new technique/algorithm is introduced an accompanying code example showing how to use it in \uammd will be present.
@@ -1138,14 +1140,14 @@ We start with the case of particles interacting with each and every other in cha
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/sketchUAMMD_interactors}
-  \caption{The next level in the \emph{Interactor} branch of the tree presented in Fig. \ref{fig:uammdsketch}. Names in blue represent \uammd modules that can be specialized with outside logic. For instance, the bonded interactions module is general to any arbitrarily complex potential, which can be provided to the module via the use of metaprogramming.}
+  \caption[ ]{The next level in the \emph{Interactor} branch of the tree presented in Fig. \ref{fig:uammdsketch}. Names in blue represent \uammd modules that can be specialized with outside logic. For instance, the bonded interactions module is general to any arbitrarily complex potential, which can be provided to the module via the use of metaprogramming.}
   \label{fig:uammdsketch_interactors}
 \end{figure}
 
 \begin{figure}[h]
   \centering
   \includesvg[width=0.7\columnwidth]{gfx/sketchUAMMD_interactor_slr}
-  \caption{Overview of the concepts in the following chapters. Green text represents template arguments, while generic algorithms are purple. Long- and short-ranged interactions can be specialized from the outside via the \emph{Potential} interface (see Appendix \ref{sec:transverser}). Arrows denote logical dependence.}
+  \caption[ ]{Overview of the concepts in the following chapters. Green text represents template arguments, while generic algorithms are purple. Long- and short-ranged interactions can be specialized from the outside via the \emph{Potential} interface (see Appendix \ref{sec:transverser}). Arrows denote logical dependence.}
   \label{fig:uammdsketch_interactors_slr}
 \end{figure}
 
@@ -1211,7 +1213,7 @@ Particles are often located inside a certain domain. In each direction, we disti
 \begin{figure}[h]
   \centering
   \includesvg[width=0.6\columnwidth]{gfx/pbc}
-  \caption{A representation of periodic boundary conditions. The unit cell, containing the system, will interact with the surrounding copies of itself if periodic boundary conditions are in place. Given two particles in the unit cell, if the \gls{MIC} is considered, they will only interact with the closest images of each other (included the one in the unit cell).}
+  \caption[ ]{A representation of periodic boundary conditions. The unit cell, containing the system, will interact with the surrounding copies of itself if periodic boundary conditions are in place. Given two particles in the unit cell, if the \gls{MIC} is considered, they will only interact with the closest images of each other (included the one in the unit cell).}
   \label{fig:pbc}
 \end{figure}
 
@@ -1222,7 +1224,7 @@ On the other hand, periodic domains are common in numerical simulation as a way 
 %In order to conserve the total volume of the system we use the \gls{MIC}, where a particle that leaves the simulation domain though one side appears on the other.
 
 \begin{algorithm}
-  \caption{Minimum Image Convention, takes a position or displacement vector and returns the coordinates of the image the simulation domain}
+  \caption[ ]{Minimum Image Convention, takes a position or displacement vector and returns the coordinates of the image the simulation domain}
   \label{alg:mic}
   \begin{algorithmic}[1]
     \Function{MIC}{r, L}   
@@ -1267,14 +1269,14 @@ Furthermore, this problem is a really good fit for a \gls{GPU} as we are going t
 \begin{figure}[h]
   \centering
   \includesvg[width=0.75\columnwidth]{gfx/nbodycon}
-  \caption{Five particles (black circles) must interact with every other (represented by red lines) in a NBody interaction. There are $N(N-1)=20$ lines, since self interactions are not depicted here.}
+  \caption[ ]{Five particles (black circles) must interact with every other (represented by red lines) in a NBody interaction. There are $N(N-1)=20$ lines, since self interactions are not depicted here.}
   \label{fig:nbodycon}
 \end{figure}
 
 \section{The NBody algorithm}
 Algorithm \ref{alg:nbodynaive} summarizes the naive parallel approach. With the naive approach we assign a particle (or a group of them) to a thread. Then, each thread iterates over all the other particles.
 \begin{algorithm}[H]
-  \caption{Naive NBody algorithm. Each particle, i, visits all the others.}\label{alg:nbodynaive}
+  \caption[ ]{Naive NBody algorithm. Each particle, i, visits all the others.}\label{alg:nbodynaive}
   \Input{A list of $N$ particles}
   \begin{algorithmic}[1]
     \Require A thread is launched per particle    
@@ -1298,7 +1300,7 @@ The optimal size of a tile will be an optimization parameter also depending on t
 This results in an overall speedup of 30 compared with the naive algorithm.
 The algorithm is summarized in algorithm \ref{alg:nbody} and a schematic representation of the process is presented in Fig. \ref{fig:nbody}.
 \begin{algorithm}[H]
-  \caption{Shared memory NBody algorithm GPU kernel. Although the number of particles per tile is unconstrained, for simplicity this pseudocode assumes a tile has a size equal to the number of threads per block, with a number of tiles equal to the number of thread blocks.} \label{alg:nbody}
+  \caption[ ]{Shared memory NBody algorithm GPU kernel. Although the number of particles per tile is unconstrained, for simplicity this pseudocode assumes a tile has a size equal to the number of threads per block, with a number of tiles equal to the number of thread blocks.} \label{alg:nbody}
   \Input{A list of $N$ particles (positions, velocities,...)}
   \begin{algorithmic}[1]
     \Require
@@ -1329,7 +1331,7 @@ Note that the computation as described here is not restricted to computing force
 \begin{figure}[H]
   \centering
   \includesvg[width=0.75\columnwidth]{gfx/nbody}
-  \caption{Representation of algorithms \ref{alg:nbodynaive} (upper half of the figure) and \ref{alg:nbody} (bottom half). Two thread blocks ($b_{0,1}$), with two threads each ($t_{0,1,2,3}$), have to process four particles ($p_{0,1,2,3}$). Each thread must go through all particles and fetch some arbitrary information for each of them (i.e. positions, velocities and/or any other data required by the computation), represented by colored lines. The naive algorithms does not make use of the shared memory space available to threads in the same block and thus each thread needs to read all particles. On the other hand, the shared algorithm benefits from the shared memory space. In particular, each particle must be fetched only once per block (as opposed to once per thread in the naive algorithm). This is depicted by the reduced number of colored lines in the lower side of the figure.}
+  \caption[ ]{Representation of algorithms \ref{alg:nbodynaive} (upper half of the figure) and \ref{alg:nbody} (bottom half). Two thread blocks ($b_{0,1}$), with two threads each ($t_{0,1,2,3}$), have to process four particles ($p_{0,1,2,3}$). Each thread must go through all particles and fetch some arbitrary information for each of them (i.e. positions, velocities and/or any other data required by the computation), represented by colored lines. The naive algorithms does not make use of the shared memory space available to threads in the same block and thus each thread needs to read all particles. On the other hand, the shared algorithm benefits from the shared memory space. In particular, each particle must be fetched only once per block (as opposed to once per thread in the naive algorithm). This is depicted by the reduced number of colored lines in the lower side of the figure.}
   \label{fig:nbody}
 \end{figure}
 
@@ -1405,7 +1407,7 @@ Where $r = ||\vec{r}||$ is the modulus of the distance vector. The characteristi
 \begin{figure}
   \centering
   \includegraphics[width=0.75\textwidth]{lj}
-  \caption{The Lennard-Jones potential described in Eq. \ref{eq:lj}}
+  \caption[ ]{The Lennard-Jones potential described in Eq. \ref{eq:lj}}
   \label{fig:lj}
 \end{figure}
 
@@ -1463,14 +1465,14 @@ auto createPairForcesWithPotential(UAMMD sim, Potential pot){
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/nlist}
-  \caption{A depiction of a neighbour list in a section of a particle distribution (left). Particles inside the blue circle (of radius $r_c$) are neighbours of the red particle. The Verlet list strategy (section \ref{sec:verletlist}) defines a second safety radius, $r_s$, that can be leveraged to reuse the list even after particles have moved. In the worst-case scenario of the red particle and another particle just outside $r_s$ approaching each other (right), the list will be invalidated only when each has moved $r_t = \half(r_s-r_c)$ since the last rebuild.}
+  \caption[ ]{A depiction of a neighbour list in a section of a particle distribution (left). Particles inside the blue circle (of radius $r_c$) are neighbours of the red particle. The Verlet list strategy (section \ref{sec:verletlist}) defines a second safety radius, $r_s$, that can be leveraged to reuse the list even after particles have moved. In the worst-case scenario of the red particle and another particle just outside $r_s$ approaching each other (right), the list will be invalidated only when each has moved $r_t = \half(r_s-r_c)$ since the last rebuild.}
   \label{fig:nlist}
 \end{figure}
 
 \begin{figure}[h]
   \centering
   \includesvg[width=0.7\columnwidth]{gfx/sketchUAMMD_nlist}
-  \caption{The three types of neighbour lists in \uammd. All of them can be used via the same unifying interfaces; \emph{Transverser} (described in Appendix \ref{sec:transverser}) and \emph{NeighbourContainer} (described in sec \ref{sec:ncontainer}). Additionally, the internal structures of each list can be requested for custom use.}
+  \caption[ ]{The three types of neighbour lists in \uammd. All of them can be used via the same unifying interfaces; \emph{Transverser} (described in Appendix \ref{sec:transverser}) and \emph{NeighbourContainer} (described in sec \ref{sec:ncontainer}). Additionally, the internal structures of each list can be requested for custom use.}
   \label{fig:uammdsketch_nlist}
 \end{figure}
 
@@ -1479,7 +1481,7 @@ Imagine a system composed of a uniform distribution of argon atoms, whose intera
 Once a list is constructed, the traversal algorithm depends on the type of neighbour list. However, the logic behind traversal will always be the same (see algorithm \ref{alg:nlist}) and compatible with the \emph{Transverser} interface (which is actually the main reason for its existence). In \uammd neighbour lists can always be used by providing them with a \emph{Transverser}.
 
 \begin{algorithm}
-  \caption{Traversing a neighbour list. Each particle, i, visits all the others in its interaction list.
+  \caption[ ]{Traversing a neighbour list. Each particle, i, visits all the others in its interaction list.
     In general, instead of launching a thread per particle, it is also possible to launch a thread block per particle and then perform a block reduction to obtain the final result. However, the \emph{NeighbourContainer} interface is restricted to one thread per particle}\label{alg:nlist}
   \Input{A list of $N$ particles, A neighbour list}
   \begin{algorithmic}[1]
@@ -1560,7 +1562,7 @@ Lets now see the different \gpu algorithms implemented in \uammd.
 \begin{figure}
   \centering
   \includesvg[width=0.65\columnwidth]{gfx/celllist_sketch}
-  \caption{Sketch of the cell list algorithm. Space is binned (black grid) and the bin (cell) of each particle is computed. In order to look for the neighbours of the black particle (those inside the green dashed circle) all the particles inside the adjacent cells (bins inside the orange dashed square, $27$ cells in three dimensions) are checked. The orange particles are therefore false positives. Finally, the yellow particles are never considered when looking for neighbours of the black one.}
+  \caption[ ]{Sketch of the cell list algorithm. Space is binned (black grid) and the bin (cell) of each particle is computed. In order to look for the neighbours of the black particle (those inside the green dashed circle) all the particles inside the adjacent cells (bins inside the orange dashed square, $27$ cells in three dimensions) are checked. The orange particles are therefore false positives. Finally, the yellow particles are never considered when looking for neighbours of the black one.}
   \label{fig:celllist_sketch}
 \end{figure}
 
@@ -1577,7 +1579,7 @@ It is possible to reduce the cell size in exchange for visiting more neighbourin
 \begin{figure}
   \centering
   \includesvg[width=\columnwidth]{gfx/celllist1}
-  \caption{Representation of the spatial binning for a 2D distribution of particles. The particle marked as $i$ lies in the cell with coordinates $(1,2)$, these coordinates will then be used to assign a hash to particle $i$. The dotted red line represents the order given by the space-filling curve, starting at the (0,0) cell. Blue particles lie in arbitrary indexes, aka memory locations, (blue numbers). After hashing the positions according to the red dashed line and sorting, particle positions of particles in the same cell are stored contiguously in \emph{sortPos} (right), particles inside the same cell have an undetermined order. Solid red lines mark the end of a cell or, equivalently, the start of the next one, information that is stored in the \emph{cellStart} and \emph{cellEnd} arrays.}
+  \caption[ ]{Representation of the spatial binning for a 2D distribution of particles. The particle marked as $i$ lies in the cell with coordinates $(1,2)$, these coordinates will then be used to assign a hash to particle $i$. The dotted red line represents the order given by the space-filling curve, starting at the (0,0) cell. Blue particles lie in arbitrary indexes, aka memory locations, (blue numbers). After hashing the positions according to the red dashed line and sorting, particle positions of particles in the same cell are stored contiguously in \emph{sortPos} (right), particles inside the same cell have an undetermined order. Solid red lines mark the end of a cell or, equivalently, the start of the next one, information that is stored in the \emph{cellStart} and \emph{cellEnd} arrays.}
   \label{fig:cl1}
 \end{figure}
 The algorithm for the cell list construction can be summarized in three separate steps
@@ -1607,7 +1609,7 @@ This algorithm is comprised of two functions; First a \emph{mask} function that 
 As an example, lets say we want to compute a $6$ bit Morton hash from two $3$ bit coordinates. In that case a particle in a 2D cell with coordinates $(i,j)$, encoded as two $3$ bit numbers with bits $(i_0i_1i_2, j_0j_1j_2)$ will first get converted to the two $6$ bit numbers $(i_00i_10i_20, j_00j_10j_20)$ (via two calls to \emph{mask} in algorithm \ref{alg:mortonhash}) and then converted into a Morton hash (via the \emph{mortonhash} function) by interleaving them into a single $6$ bit number, $i_0j_0i_1j_1i_2j_2$.
 
 \begin{algorithm}
-  \caption{Computing a hash from the coordinates of a cell by interleaving three Morton hashes. The symbols $\ll$ (left shift), | (bitwise OR) and \& (bitwise AND) represent the bitwise C operators. } \label{alg:mortonhash}
+  \caption[ ]{Computing a hash from the coordinates of a cell by interleaving three Morton hashes. The symbols $\ll$ (left shift), | (bitwise OR) and \& (bitwise AND) represent the bitwise C operators. } \label{alg:mortonhash}
   \Input{The 3d coordinates of a cell in the grid $(i,j,k)$}
   \begin{algorithmic}[1]
     
@@ -1647,7 +1649,7 @@ The most efficient way to perform this sorting operation in a \gpu (as far as th
 By construction, positions lying in the same cell are contiguous in the array of positions sorted by hash. We can construct a cell list by finding the indexes such that the cell of that index is different from the previous one. If we store the indexes for the first and last particle in each cell, we can later use them to access the range of particles in it.
 This is an easily parallelizable operation, we can simply assign a thread to each particle and ask whether its cell is different from the cell of the previous particle in the list. If this is the case, we know that this particle is the first in its cell (and store it in the \emph{cellStart} array) and also the last of the previous cell (and store it in the \emph{cellEnd} array). The procedure is listed in algorithm \ref{alg:fillcl}.
 \begin{algorithm}
-  \caption{Constructing a cell list from a list of sorted-by-hash positions.} \label{alg:fillcl}
+  \caption[ ]{Constructing a cell list from a list of sorted-by-hash positions.} \label{alg:fillcl}
   \textbf{Input:} Grid information, a list of $N$ postions sorted by hash\\
   \textbf{Output:} Arrays cellStart and cellEnd containing the indexes (in the positions array) of the first and last particles in each cell.\\
   \textbf{Requires:} A thread per particle
@@ -1915,7 +1917,7 @@ The performance of the Verlet list is affected by the safety cut-off radius, $r_
 \begin{figure}
   \centering
   \includegraphics[width=0.75\linewidth]{nlistperfmult}
-  \caption{Performance of the Verlet list versus the safety cut-off radius, $r_s$, in a \gls{LJ} fluid simulation. The system has one million particles. Tests ran on an RTX2080 GPU.}
+  \caption[ ]{Performance of the Verlet list versus the safety cut-off radius, $r_s$, in a \gls{LJ} fluid simulation. The system has one million particles. Tests ran on an RTX2080 GPU.}
   \label{fig:verletlistsafety}
 \end{figure}
 We compare the performance of the three neighbour lists strategies in Figure \ref{fig:nlistcomp}. At low system sizes the performance is mostly independent on the number of particles. This is a standard behavior in GPU computing coming from the fact that not all resources in the GPU are being utilized. When the computational load is large enough to fill the GPU (which happens at around 50K particles and beyond) performance exhibits the expected linear scaling, evidencing the fact that all of this strategies show a $O(N)$ complexity. 
@@ -1923,7 +1925,7 @@ We compare the performance of the three neighbour lists strategies in Figure \re
   \centering
   \includegraphics[width=0.75\linewidth]{nlistperf_dens1}\\
   \includegraphics[width=0.75\linewidth]{nlistperf_dens0.1}
-  \caption{Performance comparison of the different neighbour list strategies in a LJ liquid at two different particle concentrations. The number of steps between reconstructions of the Verlet list is highly dependent on any parameter that modifies the diffusivity of the particles (like the temperature or the time step), which directly affects performance. In contrast, the other lists, being reconstructed every step regardless, are oblivious to the temperature or, in general, to changes in the diffusivity of particles. All tests were carried out in a RTX2080 GPU.}
+  \caption[ ]{Performance comparison of the different neighbour list strategies in a LJ liquid at two different particle concentrations. The number of steps between reconstructions of the Verlet list is highly dependent on any parameter that modifies the diffusivity of the particles (like the temperature or the time step), which directly affects performance. In contrast, the other lists, being reconstructed every step regardless, are oblivious to the temperature or, in general, to changes in the diffusivity of particles. All tests were carried out in a RTX2080 GPU.}
   \label{fig:nlistcomp}
 \end{figure}
 
@@ -2018,7 +2020,7 @@ In a bottom-up manner, referring to the complexity of the numerical methods, we 
 \begin{figure}
   \centering
   \includesvg[width=\columnwidth]{gfx/sketchUAMMD_integrators}
-  \caption{The next level in the \emph{Integrator} branch of the tree presented in Fig. \ref{fig:uammdsketch}. Different methods are available for each of the levels of description (pink) introduced in chapter \ref{ch:design}. Methods available as \uammd modules are in black.}
+  \caption[ ]{The next level in the \emph{Integrator} branch of the tree presented in Fig. \ref{fig:uammdsketch}. Different methods are available for each of the levels of description (pink) introduced in chapter \ref{ch:design}. Methods available as \uammd modules are in black.}
   \label{fig:uammdsketch_integrators}
 \end{figure}
 
@@ -2809,7 +2811,7 @@ Another disadvantage of MALA is that usually the energy change coming from movin
   \centering    
   \includegraphics[width=0.8\textwidth]{gfx/malasoft}\\
   \includegraphics[width=0.8\textwidth]{gfx/malalj}
-  \caption{Optimal time step in MALA for several acceptance ratios and number of particles using a soft repulsive potential given by Eq. \eqref{eq:malasoft} (left) and a hard steric WCA interaction (right). Naturally, a higher acceptance ratio (with $1$ corresponding to accepting all configurations and $0$ to never accepting them) results in a lower step size, $\dt$. A by-product of the MALA algorithm comparing the total energy change is that $\dt$ depends on the number of particles so that more particles result in a lower optimal $\dt$. In all cases the number density of particles is kept at $\rho := N/V = 0.1a^{-3}$.}
+  \caption[ ]{Optimal time step in MALA for several acceptance ratios and number of particles using a soft repulsive potential given by Eq. \eqref{eq:malasoft} (left) and a hard steric WCA interaction (right). Naturally, a higher acceptance ratio (with $1$ corresponding to accepting all configurations and $0$ to never accepting them) results in a lower step size, $\dt$. A by-product of the MALA algorithm comparing the total energy change is that $\dt$ depends on the number of particles so that more particles result in a lower optimal $\dt$. In all cases the number density of particles is kept at $\rho := N/V = 0.1a^{-3}$.}
   \label{fig:malastep}
 \end{figure}
 In Fig. \ref{fig:malastep} we compare the optimal step size of the MALA algorithm for different acceptance ratios in different scenarios. In particular, we compare results using a hard-repulsion WCA potential (truncated \gls{LJ}, see sec. \ref{sec:lj}) with a soft core repulsive interaction given by the potential
@@ -2980,7 +2982,7 @@ Figure \ref{fig:oseen} contains a visual representation of the Oseen tensor.
 \begin{figure}
   \centering
   \includesvg[width=0.6\columnwidth]{gfx/oseen}
-  \caption{Representation of the Oseen mobility in 2D. A force acting on a point (green) is propagated to the fluid via the Oseen tensor (blue lines). The fluid behind the source will be dragged onto it, while the fluid in front will be pushed away. Note that the action of the Oseen tensor decays as the inverse of the distance, a behavior this representation does not convey.}
+  \caption[ ]{Representation of the Oseen mobility in 2D. A force acting on a point (green) is propagated to the fluid via the Oseen tensor (blue lines). The fluid behind the source will be dragged onto it, while the fluid in front will be pushed away. Note that the action of the Oseen tensor decays as the inverse of the distance, a behavior this representation does not convey.}
   \label{fig:oseen}
 \end{figure}
 
@@ -3445,7 +3447,7 @@ An alternative is to use a so-called MAC (Marker and cell), or staggered, grid~\
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/staggered}
-  \caption{Representation of a staggered grid. Each quantity is defined on its own grid, with origin (circles) shifted by $h/2$ between them. Crosses mark cell centers in the various grids. The $x$ coordinates of vectors are defined on the red grid, $y$ coordinates on the green. Tensors are defined on the orange one and finally, scalars are defined on the black grid.}
+  \caption[ ]{Representation of a staggered grid. Each quantity is defined on its own grid, with origin (circles) shifted by $h/2$ between them. Crosses mark cell centers in the various grids. The $x$ coordinates of vectors are defined on the red grid, $y$ coordinates on the green. Tensors are defined on the orange one and finally, scalars are defined on the black grid.}
   \label{fig:staggered}  
 \end{figure}
 
@@ -3684,7 +3686,7 @@ Where the sum goes over all the cells, $j$, in the grid, with centers at $\vec{\
 \begin{figure}[h]
   \centering
   \includesvg[width=0.7\columnwidth]{gfx/ibm}
-  \caption{A representation of the Immersed Boundary. The blue circle represents a particle (with the green cross marking its center). Some quantity (i.e. the force) acting on it will be spread to the grid points inside its radius of action(red crosses).}
+  \caption[ ]{A representation of the Immersed Boundary. The blue circle represents a particle (with the green cross marking its center). Some quantity (i.e. the force) acting on it will be spread to the grid points inside its radius of action(red crosses).}
   \label{fig:ibm}  
 \end{figure}
 
@@ -3860,14 +3862,14 @@ It is important to note that if the support is even, the value of the factor $\v
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/ibm2}
-  \caption{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($N_x=5, N_y=N_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by the spreading or interpolation operations for each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation. In this particular example, the shift, $P$, on the bottom (even) support case will be $2$ for the red particle and $1$ for the blue one.}
+  \caption[ ]{Two particles (red and blue circles, centered at the green circles) in a one dimensional grid ($N_x=5, N_y=N_z=1$). The kernel has a support of $n_s=3$ cells (top) and $4$ cells (bottom). Dashed lines indicate the middle of each cell and crosses represent the cells that need to be visited by the spreading or interpolation operations for each particle. If the support is even, depending on where a particle is inside the cell, some set of neighbours or another will be visited for spreading/interpolation. In this particular example, the shift, $P$, on the bottom (even) support case will be $2$ for the red particle and $1$ for the blue one.}
   \label{fig:ibm2}  
 \end{figure}
 
 
 The interaction between a cell $j$ and a particle $i$ is mediated via the kernel $\delta_a(\vec{\ppos}_i-\vec{\fpos}_j)$, in principle, this would incur $n_s^3$ evaluations of the kernel for spreading or interpolation. However, if the kernels are separable (so that $\delta_a(\vec{r}) = \phi_x(r_x)\phi_y(r_y)\phi_z(r_z)$ by the first postulate in Eq. \eqref{eq:peskinseparable}) we can reduce it to just $3n_s$ by precomputing and storing $\phi_X(\ppos^i_x-\fpos^j_x)$ (and similarly for the other directions) for each direction before spreading/interpolating each particle. We can then just multiply the stored evaluations of $\phi_{x/y/z}$ in each direction to get $\delta_a$. Algorithm \ref{alg:precomputeKernel} shows how to take advantage of this optimization via two functions: The first one takes a position inside the unit box and its corresponding cell shift $P$ and stores (in some arrays with an undetermined location) the $3n_s$ necessary kernel evaluations. The second function takes the 3D index of a neighbour cell ($[0, n_s)$ in each direction) and uses the stored kernel evaluations (which assumes the first function has been called already) to compute and return the weight for that neighbour cell. 
 \begin{algorithm}[H]
-  \caption{Precomputing the kernel and accessing it via linear indexes. We used a similar strategy when discussing the cell list, see alg. \ref{alg:visitneigh}.}
+  \caption[ ]{Precomputing the kernel and accessing it via linear indexes. We used a similar strategy when discussing the cell list, see alg. \ref{alg:visitneigh}.}
   \label{alg:precomputeKernel}
   \begin{algorithmic}[1]
     \Function{precomputeKernel}{$\vec{\ppos} \in [0, L)_{\mathbb R^3}$, $\vec{P}_s$}
@@ -3890,7 +3892,7 @@ The interaction between a cell $j$ and a particle $i$ is mediated via the kernel
 
 In a serial implementation of spreading, we can simply sum the contribution, $\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{F}_i$, of each particle, $i$, to each of the cells, $j$, in its support by looping. In the case of interpolation a similar strategy can be employed, where each particle accumulates the quantity $\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{v}$ from its nearby cells. Algorithm \ref{alg:visitneigh} summarizes the strategy to spread or interpolate a given particle thus far.
 \begin{algorithm}[H]
-  \caption{Visiting the neighbour cells of a particle, $i$, located at $\vec{\ppos}_i \in [0, L)_{\mathbb R ^3}$ for spreading or interpolation. We define $\vec{u}:=(1,1,1)$ for convenience.}
+  \caption[ ]{Visiting the neighbour cells of a particle, $i$, located at $\vec{\ppos}_i \in [0, L)_{\mathbb R ^3}$ for spreading or interpolation. We define $\vec{u}:=(1,1,1)$ for convenience.}
   \label{alg:visitneigh}
   \begin{algorithmic}[1]
     \State $\vec{c}_i \gets$ cell of particle $i$ \label{alg:visitneighgetcell}
@@ -3938,7 +3940,7 @@ While assigning a thread to a particle sounds like a reasonable separation of ta
 We suggest a particle-based approach, presenting subtle differences with the existing ones~\cite{Shih2021}~\cite{Guo2015}~\cite{Fiore2017}, specifically tailored for the \gpu. We assign a thread block to each particle and then make each thread in the block spread to a different cell atomically. Since all threads in the block handle the same particle, all the per-particle information can be stored in shared memory. This includes the $3n_s$ evaluations of the kernel, which can be precomputed into shared memory collaboratively by all threads in the same block (see algorithm \ref{alg:precomputeKernelSM}, a slight modification to algorithm \ref{alg:precomputeKernel} that takes this parallelization into account). The available shared memory is much larger than register memory so in this instance storing the $3n_s$ evaluations is not an issue. We refer to this method as block-per-particle (BPP)\footnote{Changing algorithm \ref{alg:visitneigh} into a block-per-particle geometry amounts to assigning different elements of the cell loop to different threads, in the same way as in passing from algorithm \ref{alg:precomputeKernel} to \ref{alg:precomputeKernelSM}.}.
 %\todo{improve alg so a different thread is asigned to each dir} 
 \begin{algorithm}[h]
-  \caption{Precomputing the kernel in GPU shared memory collaboratively. This algorithm is quite similar to alg. \ref{alg:precomputeKernel}, but each element in the loop is asigned to a different thread in the block. The arrays $\phi_{X/Y/Z}$ are located in shared memory.}
+  \caption[ ]{Precomputing the kernel in GPU shared memory collaboratively. This algorithm is quite similar to alg. \ref{alg:precomputeKernel}, but each element in the loop is asigned to a different thread in the block. The arrays $\phi_{X/Y/Z}$ are located in shared memory.}
   \label{alg:precomputeKernelSM}
   \begin{algorithmic}[1]
     \Function{precomputeKernelSM}{$\vec{\ppos} \in [0, L)_{\mathbb R^3}$, $\vec{P}_s$}
@@ -3987,7 +3989,7 @@ The TPP strategies particularly benefit from the AoS approach, where testing sug
   \centering
   \includegraphics[width=0.75\linewidth]{gfx/ibm_comp_dens1_2080ti}\\
   \includegraphics[width=0.75\linewidth]{gfx/ibm_comp_dens0.1_2080ti}
-\caption{Performance comparison between the different spreading schemes considered for two different densities. Particles are distributed uniformly on a cubic grid and spread with a support $n_s=8$ using a Gaussian kernel. A single scalar is spread per particle. The considered algorithms are: A block-per-particle (BPP), the algorithm used in \uammd. A thread-per-particle (TPP) precomputing the kernel to register memory (register, similar to \emph{GM-sort} in Shih2021~\cite{Shih2021}) and recomputing it (recompute). Finally, timing for the BDP algorithm (\emph{SM} in ~\cite{Shih2021}) is also presented. For these tests, particle sorting was not employed, i.e. the particles are randomly distributed in memory with respect to their physical positions. Performance data was gathered in an RTX2080Ti \gpu using single precision. The crossover between BPP and SM happens at around $2$ million particles in both cases.}
+\caption[ ]{Performance comparison between the different spreading schemes considered for two different densities. Particles are distributed uniformly on a cubic grid and spread with a support $n_s=8$ using a Gaussian kernel. A single scalar is spread per particle. The considered algorithms are: A block-per-particle (BPP), the algorithm used in \uammd. A thread-per-particle (TPP) precomputing the kernel to register memory (register, similar to \emph{GM-sort} in Shih2021~\cite{Shih2021}) and recomputing it (recompute). Finally, timing for the BDP algorithm (\emph{SM} in ~\cite{Shih2021}) is also presented. For these tests, particle sorting was not employed, i.e. the particles are randomly distributed in memory with respect to their physical positions. Performance data was gathered in an RTX2080Ti \gpu using single precision. The crossover between BPP and SM happens at around $2$ million particles in both cases.}
 \label{fig:ibmcomp}
 \end{figure}
 
@@ -3995,7 +3997,7 @@ The TPP strategies particularly benefit from the AoS approach, where testing sug
   \centering
   \includegraphics[width=0.75\linewidth]{gfx/ibm_comp_dens1_sorted_2080ti}\\
   \includegraphics[width=0.75\linewidth]{gfx/ibm_comp_dens0.1_sorted_2080ti}
-\caption{The same situation as in Fig. \ref{fig:ibmcomp}, but in this case particles are presorted to increase spatial locality in memory (particles close in space are placed close in memory). Both the positions and the spread quantity are sorted. Sorting is carried out using the same Morton hash technique laid out in chapter \ref{sec:celllist}. Sorting takes a neglegible amount of time and, moreover, it does not need to be done every time spreading occurs. Typically particles are sorted at the start of a given simulation and then every few diffusive times.}
+\caption[ ]{The same situation as in Fig. \ref{fig:ibmcomp}, but in this case particles are presorted to increase spatial locality in memory (particles close in space are placed close in memory). Both the positions and the spread quantity are sorted. Sorting is carried out using the same Morton hash technique laid out in chapter \ref{sec:celllist}. Sorting takes a neglegible amount of time and, moreover, it does not need to be done every time spreading occurs. Typically particles are sorted at the start of a given simulation and then every few diffusive times.}
 \label{fig:ibmcompsorted}
 \end{figure}
 
@@ -4019,7 +4021,7 @@ Figure \ref{fig:ibmcompinterp} shows the performance of BPP interpolation in the
 \begin{figure}[h]
   \centering
 \includegraphics[width=0.75\linewidth]{gfx/ibm_comp_interp_2080ti}
-\caption{Interpolation performance for different densities. Particles are distributed uniformly in a cubic grid and one value is interpolated with a support $n_s=8$ using a Gaussian kernel. Performance data was gathered in an RTX2080Ti \gpu using single precision. All data lies near the 9ns mark.}
+\caption[ ]{Interpolation performance for different densities. Particles are distributed uniformly in a cubic grid and one value is interpolated with a support $n_s=8$ using a Gaussian kernel. Performance data was gathered in an RTX2080Ti \gpu using single precision. All data lies near the 9ns mark.}
   \label{fig:ibmcompinterp}
 \end{figure}
 
@@ -4150,7 +4152,7 @@ We truncate the Gaussian kernel at a distance $r_c$ so that $\phi_G(r_c) < \epsi
 Figure \ref{fig:ibm_hydrovar} shows the average error inside a fluid cell for the Peskin kernels, compared to similarly supported Gaussian kernels. At first sight, it might seem like the error is not much better for the Peskin kernels as compared with the Gaussian ones. However, the Gaussian kernels require a greater upsampling (i.e more cells, see Eq. \eqref{eq:gaussianupsampling}) than the Peskin ones to achieve the same tolerance and thus the latter are in general a better choice. Figure \ref{fig:ibmvar} shows the hydrodynamic radius variance inside a cell for some kernels, but in a slice of the cell (at the center height).
 \begin{figure}[H]
 \includegraphics[width=0.8\textwidth]{gfx/ibm_hydrodeviation}
-\caption{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating Eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean subtracted. Since the signal is symmetrical only the range $[0.5, 1]h$ is presented.}
+\caption[ ]{Deviation from the average hydrodynamic radius inside a cell in the $x$ direction. Shown here is the error computed by evaluating Eq. \eqref{hydroerr} inside a range $x=[0, 1]h$ with the mean subtracted. Since the signal is symmetrical only the range $[0.5, 1]h$ is presented.}
 \label{fig:ibm_hydrovar}
 \end{figure}
 Finally, in the case of BM the quadrature error and hydrodynamic radius are different for each $n_s$, $\beta$ and $h$. In a way, a new kernel is obtained for each support (which relates to the tolerance) and $\beta$ must be tweaked to achieve a particular hydrodynamic radius. The actual relations are still being tested and thus we refrain from laying them out here for the time being. It is worth mentioning that, provided the same support, the BM kernel tends to greatly outperform the Gaussian (by yielding a lower quadrature error). Still, there are some considerations that must be taking into account when using the BM kernel for immersed boundary, in particular coming from the fact that it is not separable. A more in depth discussion about the BM kernel can be found in ~\cite{Barnett2019}.
@@ -4168,7 +4170,7 @@ We perform the same tests using the \gls{FIB}, which uses a staggered grid.
   \subcaptionbox{Peskin 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_peskin_3pt}}\label{fig:ibm_peskin3pt}
   \subcaptionbox{BM 3pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_bm_3pt}}\label{fig:ibm_bm3pt}
   \subcaptionbox{Gaussian 10pt}{\includegraphics[width=0.49\textwidth]{gfx/fcm_gauss_10pt}}\label{fig:ibm_gauss10pt}
-  \caption{Variance of the hydrodynamic radius inside a cell (2D slice at $z=L/2+h/2$ of a 3D system) for different kernels in \gls{FCM}. Tests were carried out on a cubic box of size $L=32a$.} \label{fig:ibmvar}
+  \caption[ ]{Variance of the hydrodynamic radius inside a cell (2D slice at $z=L/2+h/2$ of a 3D system) for different kernels in \gls{FCM}. Tests were carried out on a cubic box of size $L=32a$.} \label{fig:ibmvar}
 \end{figure}
 
 In general using a staggered grid requires a smaller grid to get the same hydrodynamic radius (with a similar translational invariance) than a collocated one. On the other hand, the access patterns in a staggered grid are usually more complex and can result in less performant code, even when the cost of the FFT will be slightly inferior. In the case of a triply periodic system, using a staggered grid via the \gls{FIB} is not worth it in general as compared to the \gls{FCM}.
@@ -4203,7 +4205,7 @@ The doubly periodic Stokes algorithm will be the last methodology for hydrodynam
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/q2d}
-  \caption{Representation of a colloidal system under soft confinement in the perpendicular ($z$) direction. Particles are confined via some external potential that distributes them near $z=0$ with a typical width $\delta$. The confining forces acting on the particles are propagated to the plane via the Oseen tensor (orange lines).}
+  \caption[ ]{Representation of a colloidal system under soft confinement in the perpendicular ($z$) direction. Particles are confined via some external potential that distributes them near $z=0$ with a typical width $\delta$. The confining forces acting on the particles are propagated to the plane via the Oseen tensor (orange lines).}
   \label{fig:q2dsch}
 \end{figure}
 
@@ -4515,7 +4517,7 @@ Thus far we have seen how to compute hydrodynamic displacements in domains that 
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/dpstokes_sketch}
-  \caption{Representation of a lipid membrane inside a doubly periodic domain. The \glspl{BC} can be customized at the domain limits ($z=-H,H$) to be either open or have no-slip walls.}
+  \caption[ ]{Representation of a lipid membrane inside a doubly periodic domain. The \glspl{BC} can be customized at the domain limits ($z=-H,H$) to be either open or have no-slip walls.}
   \label{fig:dpstokessketch}
 \end{figure}
 
@@ -4839,7 +4841,7 @@ Similarly to all the Force Coupling Method-like methods described thus far, the 
 \begin{figure}[h]
   \centering
   \includesvg[width=0.5\columnwidth]{gfx/chebgrid}
-  \caption{Representation of a hybrid regular-Chebyshev grid. In the Doubly Periodic Stokes algorithm, the plane-parallel components ($x$ and $y$) are described on a regular grid (with nodes at $x = -L/2 + i/N L$ and similarly for $y$), whereas the perpendicular direction ($z$) is discretized at the Gauss-Chebyshev-Lobatto points (the extrema of the Chebyshev polynomials), $z=H\cos(\pi i/N_z)$ (where $i$ runs from $0$ to $N_z$).}
+  \caption[ ]{Representation of a hybrid regular-Chebyshev grid. In the Doubly Periodic Stokes algorithm, the plane-parallel components ($x$ and $y$) are described on a regular grid (with nodes at $x = -L/2 + i/N L$ and similarly for $y$), whereas the perpendicular direction ($z$) is discretized at the Gauss-Chebyshev-Lobatto points (the extrema of the Chebyshev polynomials), $z=H\cos(\pi i/N_z)$ (where $i$ runs from $0$ to $N_z$).}
   \label{fig:chebgrid}
 \end{figure}
 
@@ -4872,7 +4874,7 @@ Here $\hat{\vec{e}}_z$ is a unitary vector in the $z$ direction. The no-slip con
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/dpstokesspread}
-  \caption{Representation of the image spreading in the \gls{DP} Stokes algorithm. Forces acting on particles (blue circles) are translated to the fluid as a force density. Due to images, part of the particle's force is zero near walls. Zero fluid forcing is depicted as white. A particle located at exactly the height of a wall has no effect on the fluid.}
+  \caption[ ]{Representation of the image spreading in the \gls{DP} Stokes algorithm. Forces acting on particles (blue circles) are translated to the fluid as a force density. Due to images, part of the particle's force is zero near walls. Zero fluid forcing is depicted as white. A particle located at exactly the height of a wall has no effect on the fluid.}
   \label{fig:dpstokesspread}
 \end{figure}
 
@@ -5112,7 +5114,7 @@ We present a novel algorithm for computing the electrostatic energies and forces
 \begin{figure}[h]
   \centering
   \includesvg[width=\columnwidth]{gfx/dppoisson_sketch}
-  \caption{Schematic representation of the doubly periodic domain described by Eqs. \ref{eq:dppoisson} and \ref{eq:dppoissonbcs1}-\ref{eq:dppoissonbcs4}. Each domain wall is represented with a different color. Blue clouds represent Gaussian charge sources.}
+  \caption[ ]{Schematic representation of the doubly periodic domain described by Eqs. \ref{eq:dppoisson} and \ref{eq:dppoissonbcs1}-\ref{eq:dppoissonbcs4}. Each domain wall is represented with a different color. Blue clouds represent Gaussian charge sources.}
   \label{fig:dppoisson_sketch}
 \end{figure}
 
@@ -5342,7 +5344,7 @@ With two walls the situation becomes much more complex, since the image charges 
 \begin{figure}
   \centering
   \includesvg[width=\columnwidth]{gfx/dppoisson_images}
-  \caption{Enforcing the dielectric jumps using images. The presence of the two dielectric boundaries (at $z=\botl$ and $z=\topl$) causes each charge to have infinite reflections. For instance, the charge $q$ reflects through the bottom with an effective charge $q^*$, which in turn reflects again through the top wall with $q^{**}$. We manage to Ewald split the problem into a near and far field contributions in such a way that both parts only need to take into account the first reflections at most.}
+  \caption[ ]{Enforcing the dielectric jumps using images. The presence of the two dielectric boundaries (at $z=\botl$ and $z=\topl$) causes each charge to have infinite reflections. For instance, the charge $q$ reflects through the bottom with an effective charge $q^*$, which in turn reflects again through the top wall with $q^{**}$. We manage to Ewald split the problem into a near and far field contributions in such a way that both parts only need to take into account the first reflections at most.}
   \label{fig:dppoisson_images}
 \end{figure}
 The image construction enforces the \bcs in Eqs. \eqref{eq:dppoissonbcs1}-\eqref{eq:dppoissonbcs4} without surface charges (which we will introduce later) even when the particles are Gaussian clouds instead of point-like charges.
@@ -5401,7 +5403,7 @@ auto createDPPoissonInteractor(UAMMD sim){
 %  \label{fig:spunto}
 %  \centering
 %  \includegraphics[width=\textwidth]{gfx/shotlogo}
-%  \caption{A screenshot of a \gls{LJ} fluid quenched to a low temperature made with superpunto. The simulation contains $10$ million particles, which are being rendered to the screen at about 30 frames per second in a GTX 980 \gpu.}
+%  \caption[ ]{A screenshot of a \gls{LJ} fluid quenched to a low temperature made with superpunto. The simulation contains $10$ million particles, which are being rendered to the screen at about 30 frames per second in a GTX 980 \gpu.}
 %\end{figure}
 %
 %\begin{itemize}
@@ -5492,7 +5494,7 @@ Where $V$ is the volume of the particle and $f/f_0$ is the so-called Perrin's fr
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{gfx/hexagon}
-  \caption{Representation of the simulation environment used to model the experimental setup in ~\cite{Pelaez2019}. The nanorocker (grey) and the microtubulae (red) are modeled as spring-connected blobs.}
+  \caption[ ]{Representation of the simulation environment used to model the experimental setup in ~\cite{Pelaez2019}. The nanorocker (grey) and the microtubulae (red) are modeled as spring-connected blobs.}
   \label{fig:cellvis}
 \end{figure}
 Experiments with Taxol and colchicine revealed a strong and unintuitive relation between the concentration of microtubulae and the mesoscopic intracellular viscosity. In particular, experiments showed a ten-fold reduction in the viscosity after Taxol administration, corresponding to the presence of a higher concentration of microtubulae in the cellular environment. Consistently, the posterior administration of colchicine, which depolymerizes the microtubulae into a suspension of tubuline heterodimers, induces an increase in viscosity.
@@ -5501,7 +5503,7 @@ We infer the origin of the viscosity reduction lies in the specific sampling siz
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{gfx/MSDA_comparison_exp}
-  \caption{Computed and experimentally measured mean squared angular displacement (MSAD) over time. Comparison is made between simulations of free (brown line) and laser-illuminated (confined, orange line) nanorocker, surrounded by 10 microtubules (MT), and the experimental results (Exp.) after 5 h incubation time with Taxol (purple data). Thered dashed line represents the MSAD calculated from Equation (1) using the measured viscosity for an incubation time of 5 h. The good agreement between the red and purple curves validates the approximation of the nanorocker to a disk. The inset shows the mean squared displacement (MSD) for free nanorockers in the presence of 0, 5, and 10 microtubules. The agreement between the experimental and simulation results indicates that the movement of the particle is not affected by the presence of microtubules since their separation is much bigger than the particle.}
+  \caption[ ]{Computed and experimentally measured mean squared angular displacement (MSAD) over time. Comparison is made between simulations of free (brown line) and laser-illuminated (confined, orange line) nanorocker, surrounded by 10 microtubules (MT), and the experimental results (Exp.) after 5 h incubation time with Taxol (purple data). Thered dashed line represents the MSAD calculated from Equation (1) using the measured viscosity for an incubation time of 5 h. The good agreement between the red and purple curves validates the approximation of the nanorocker to a disk. The inset shows the mean squared displacement (MSD) for free nanorockers in the presence of 0, 5, and 10 microtubules. The agreement between the experimental and simulation results indicates that the movement of the particle is not affected by the presence of microtubules since their separation is much bigger than the particle.}
   \label{fig:msad}
 \end{figure}
 We perform simulations with and without taking into account the translational confining effect of the probing laser on the nanorocker (by trapping the nanorocker with a soft potential well to a domain about 10\% larger than its size) and find no discernable effect on its rotational diffusion. In the confined case, any modification of the particle rotation is only due to the hydrodynamic effects of the microtubulae. This evidences that the translational confinement of the probing beam does not affect its orientational fluctuating motion.
@@ -5514,7 +5516,7 @@ Our simulations yield MSAD curves that match the theory and simulations in the a
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{star}
-  \caption{A star polymer solution under a shear flow.}
+  \caption[ ]{A star polymer solution under a shear flow.}
   \label{fig:starpic}
 \end{figure}
 
@@ -5545,7 +5547,7 @@ In Eq. \eqref{eq:q2dcoldif} $S(k)$ is the structure factor (which is $1$ for ide
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{gfx/q2DEnhancement}
-  \caption{Collective diffusion, $D_c(k)$, of a group of ideal colloids under strict confinement ($\delta\rightarrow 0$) for several densities. Dashed line correspond to $D_c/D_0 = 1 + \frac{\lambda}{2\pi L_h}$. Here $L_h := \frac{2a}{3\phi}$ is the hydrodynamic length and $\lambda := \frac{2\pi}{k}$ is the wavelenght of a density perturbation. Note that for $\lambda \rightarrow \infty$, $D_c\rightarrow D_0$, corresponding to the single particle diffusion coefficient, i.e. in this limit there are no collective effects (in the case of ideal particles).}
+  \caption[ ]{Collective diffusion, $D_c(k)$, of a group of ideal colloids under strict confinement ($\delta\rightarrow 0$) for several densities. Dashed line correspond to $D_c/D_0 = 1 + \frac{\lambda}{2\pi L_h}$. Here $L_h := \frac{2a}{3\phi}$ is the hydrodynamic length and $\lambda := \frac{2\pi}{k}$ is the wavelenght of a density perturbation. Note that for $\lambda \rightarrow \infty$, $D_c\rightarrow D_0$, corresponding to the single particle diffusion coefficient, i.e. in this limit there are no collective effects (in the case of ideal particles).}
   \label{fig:q2DEnhancement}
 \end{figure}
 
@@ -5561,7 +5563,7 @@ Figure~\ref{fig:q2Dfrom3dto2d} shows the gradual transition from quasi-2D (enhan
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{gfx/q2Dfrom3dto2d}
-  \caption{The enhancement of the collective diffusion (given by the hydrodynamic function $H_c(k)$ in Eq. \ref{eq:q2dcoldif}) of a group of ideal colloids ($S(k)=1$) as the confinement goes from non-existent ($\delta\rightarrow \infty$) to stiff ($\delta\rightarrow 0$) trap. Dashed lines correspond to Eq. (18) in ~\cite{Pelaez2017}, from where this figure has been taken.}
+  \caption[ ]{The enhancement of the collective diffusion (given by the hydrodynamic function $H_c(k)$ in Eq. \ref{eq:q2dcoldif}) of a group of ideal colloids ($S(k)=1$) as the confinement goes from non-existent ($\delta\rightarrow \infty$) to stiff ($\delta\rightarrow 0$) trap. Dashed lines correspond to Eq. (18) in ~\cite{Pelaez2017}, from where this figure has been taken.}
   \label{fig:q2Dfrom3dto2d}
 \end{figure}
 
@@ -5582,7 +5584,7 @@ We measure concentration as the number density defined as
   \hspace*{-2.0cm}
   \subfloat{\includegraphics[width=0.7\linewidth]{gfx/q2Dstripehisttotal}}
   \subfloat{\includegraphics[width=0.7\linewidth]{gfx/q2Dstripehist}}
-  \caption{Time evolution of a stripe density perturbation initially localized in the middle third of the domain in quasi 2D. Shown here are the density profiles averaged both in ensemble and in the x direction. (Left) The total density, $c^{(1)}(y, t)$, at time $t=0$ (dashed-solid black line) and at a later point in time (red squares), theory for the quasi 2D line (red) comes from our mean field (Eq. 30 in ~\cite{Pelaez2018}). The solution to the diffusion equation without hydrodynamic interactions (at the same time) is shown as a solid black line. (Right) We tag particles starting in the middle stripe as green ($c^{(1)}_G$, green lines and squares) and the rest as red ($c^{(1)}_R$, red lines and circles) and plot their density profiles, $c^{(1)}_{R/G}$. Red and green symbols correspond to $c^{(1)}_R$ and $c^{(1)}_G$ at the same point in time as the left pane. Dotted lines correspond to $t=0$. Our mean field theory is also shown here with solid lines. Dashed lines correspond to the diffusion equation without hydrodynamic interactions. All particles are passive tracers.}
+  \caption[ ]{Time evolution of a stripe density perturbation initially localized in the middle third of the domain in quasi 2D. Shown here are the density profiles averaged both in ensemble and in the x direction. (Left) The total density, $c^{(1)}(y, t)$, at time $t=0$ (dashed-solid black line) and at a later point in time (red squares), theory for the quasi 2D line (red) comes from our mean field (Eq. 30 in ~\cite{Pelaez2018}). The solution to the diffusion equation without hydrodynamic interactions (at the same time) is shown as a solid black line. (Right) We tag particles starting in the middle stripe as green ($c^{(1)}_G$, green lines and squares) and the rest as red ($c^{(1)}_R$, red lines and circles) and plot their density profiles, $c^{(1)}_{R/G}$. Red and green symbols correspond to $c^{(1)}_R$ and $c^{(1)}_G$ at the same point in time as the left pane. Dotted lines correspond to $t=0$. Our mean field theory is also shown here with solid lines. Dashed lines correspond to the diffusion equation without hydrodynamic interactions. All particles are passive tracers.}
   \label{fig:q2Doverdens}
 \end{figure}
 Fig. \ref{fig:q2Doverdens} shows the ensemble average of the time evolution of the density profiles, evidencing the effect of the enhanced collective diffusion (marked as q2D in the figure).
@@ -5590,7 +5592,7 @@ On the other hand, we study non-equilibrium giant fluctuations by looking at the
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{gfx/q2Dstripes}
-  \caption{Time evolution (snapshots at times increasing from left to right) of a density perturbation initially localized in the middle third of the domain (blue represents zero concentration of particles). We show snapshots for quasi 2D (top row) and true 2D (bottom row) at the same diffusive times ($t^{t2D/q2D}= tD_0^{t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $128^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
+  \caption[ ]{Time evolution (snapshots at times increasing from left to right) of a density perturbation initially localized in the middle third of the domain (blue represents zero concentration of particles). We show snapshots for quasi 2D (top row) and true 2D (bottom row) at the same diffusive times ($t^{t2D/q2D}= tD_0^{t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $128^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
   \label{fig:q2Dstripes}
 \end{figure}
 Giant fluctuations (evident in the bottom row of Fig. \ref{fig:q2Dstripes} for true 2D) have disappeared in quasi 2D in the presence of a density gradient. However, in Fig. \ref{fig:q2Dstripes} giant fluctuations are being masked by the vast dispersion enhanced by the collective diffusion in the presence of density gradients.
@@ -5600,7 +5602,7 @@ The visual appearance of the true 2D panes is similar in figs. \ref{fig:q2Dstrip
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{gfx/q2Dcolorstripe}
-  \caption{Time evolution (snapshots at times increasing from left to right) of a color (species) density perturbation initially localized in the middle third of the domain. All simulations have a uniform total density, with a packing fraction of $\phi = 1$. We show snapshots in the absence of hydrodynamics (BD, top row), quasi 2D (middle row) and true 2D (bottom row) at the same diffusive times ($t^{BD/t2D/q2D}= tD_0^{BD/t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $64^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
+  \caption[ ]{Time evolution (snapshots at times increasing from left to right) of a color (species) density perturbation initially localized in the middle third of the domain. All simulations have a uniform total density, with a packing fraction of $\phi = 1$. We show snapshots in the absence of hydrodynamics (BD, top row), quasi 2D (middle row) and true 2D (bottom row) at the same diffusive times ($t^{BD/t2D/q2D}= tD_0^{BD/t2D/q2D}/a^2$). The images show the number density by counting the number of particles in each cell of a $64^2$ grid; the color bar is fixed across all panes from 0(blue) to 0.4 (red). All particles are passive tracers.}
   \label{fig:q2Dcolorstripe}
 \end{figure}
 
@@ -5612,7 +5614,7 @@ The mathematical formalism for these type of phenomena is not trivial, and refer
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{gfx/q2Dselfreduction}
-  \caption{Self diffusion coefficient (measured via the mean square displacement (MSD)) of a single particle in quasi 2D for different packing densities, $\phi$.}
+  \caption[ ]{Self diffusion coefficient (measured via the mean square displacement (MSD)) of a single particle in quasi 2D for different packing densities, $\phi$.}
   \label{fig:q2Dselfreduction}
 \end{figure}
 
@@ -6046,7 +6048,7 @@ Several categories of iterators exists depending on the functionality they provi
 \begin{figure}
   \centering
   \includesvg[width=0.25\columnwidth]{gfx/iterator}
-  \caption{The different kinds of C++ iterators. Iterators can be either for input (reading), output (writing) or both (read/write). The most generic type of iterator is called \emph{Random Access} and allows for arbitrary access to its elements. Below, a \emph{Bidirectional} constrains the access to be always next to the previously accessed element. In other words, a \emph{Bidirectional} iterator can only be issued to advance or regress one element at a time. Finally, the most restricted iterator kind, the \emph{Forward} iterator, can only be accesed element by element in order. }
+  \caption[ ]{The different kinds of C++ iterators. Iterators can be either for input (reading), output (writing) or both (read/write). The most generic type of iterator is called \emph{Random Access} and allows for arbitrary access to its elements. Below, a \emph{Bidirectional} constrains the access to be always next to the previously accessed element. In other words, a \emph{Bidirectional} iterator can only be issued to advance or regress one element at a time. Finally, the most restricted iterator kind, the \emph{Forward} iterator, can only be accesed element by element in order. }
   \label{fig:iterator}
 \end{figure}
 Iterators play a central role in connecting algorithms with containers in C++ and allow for deep customization. For instance, say that a given algorithm requires as input an ordered range of numbers and, after some operations, fills with some results the contents of two output arrays. Furthermore, say we are only interested in one of the two output arrays. Instead of allocating three vectors and filling the first with the range of numbers we could use some fancy iterators to save a lot of work; For the input range of numbers, we could pass an input \emph{counting iterator} (see example code \ref{code:iterators}). For the non-required output, we could provide the algorithm with an output \emph{discard iterator}\footnote{The thrust library provides a series of fancy iterators like the ones mentioned in this paragraph (counting, constant, discard...).} that simply ignores any value that is assigned to any of its elements (thus preventing unnecessary memory copies).
