@@ -2,18 +2,11 @@
 %    \WarningFilter{scrreprt}{Usage of package `titlesec'}
 %    \WarningFilter{scrreprt}{Activating an ugly workaround}
 %    \WarningFilter{titlesec}{Non standard sectioning command detected}
-\documentclass[ twoside,openright,titlepage,numbers=noenddot,%1headlines,
+\documentclass[twoside,openright,titlepage,numbers=noenddot,%1headlines,
 headinclude,footinclude,cleardoublepage=empty,abstract=on,
-BCOR=5mm,paper=b5,fontsize=11pt, dvipsnames
+BCOR=5mm,fontsize=11pt, dvipsnames, paper=b5
 ]{scrreprt}
-\usepackage[utf8]{inputenc}
-\usepackage{todonotes}
-\usepackage{multicol}
-\usepackage{xspace}
-\usepackage{float} 
-\usepackage{courier}
-\usepackage{lmodern}
-\usepackage{titletoc}
+
 \def\ucpp{uammd_cpp_lexer.py:UAMMDCppLexer -x}
 %\def\ucpp{cuda}
 
@@ -55,19 +48,17 @@ BCOR=5mm,paper=b5,fontsize=11pt, dvipsnames
     #2
   }
 }
-
-%\makeatletter
-%\AtBeginDocument{%
-%\renewcommand\lstlistoflistings{\bgroup
-%  \let\contentsname\lstlistlistingname
-%  \def\l@lstlisting##1##2{\@dottedtocline{1}{-1.5em}{-2.3em}{##1}{##2}}
-%  \let\lst@temp\@starttoc \def\@starttoc##1{\lst@temp{lol}}%
-%  \tableofcontents \egroup}
-%}
-%\makeatother
-
-
 \input{classicthesis-config}
+%\usepackage[b5paper,layout=b5paper]{geometry}
+
+\usepackage[utf8]{inputenc}
+\usepackage{todonotes}
+\usepackage{multicol}
+\usepackage{xspace}
+\usepackage{float} 
+\usepackage{courier}
+\usepackage{lmodern}
+\usepackage{titletoc}
 \usepackage{amsmath}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
@@ -94,39 +85,6 @@ BCOR=5mm,paper=b5,fontsize=11pt, dvipsnames
   % \input{#1.pdf_tex}
   \includegraphics[#1]{#2.pdf}
 }
-
-%\pagecolor[rgb]{0.2,0.2,0.2}
-%\color[rgb]{1,1,1}
-
-%
-%\definecolor{kwcol}{HTML}{32b43f}
-%\definecolor{comcol}{HTML}{7e8775}
-%\definecolor{dircol}{HTML}{e090d7}
-%\definecolor{idcol}{HTML}{ff8531}
-%\definecolor{morecol}{HTML}{3ab5eb}
-%\definecolor{morecol3}{HTML}{972ebd}
-%\usepackage{listings}
-%\lstset{ 
-%  language=[11]C++,
-%  basicstyle= \ttfamily\small,
-%  numbers=none,
-%%  numberfirstline=true,
-%%  numbersep=5pt,                  % how far the line-numbers are from the code
-%  backgroundcolor=\color{white},      % choose the background color. You must add \usepackage{color}
-%  showspaces=false,       
-%  rulecolor=\color{black},
-%  breaklines=true,
-%  breakatwhitespace=true,
-%  keywordstyle=\bfseries\color{kwcol},      
-%  commentstyle=\color{comcol},
-%  identifierstyle=\color{black},
-%  directivestyle=\bfseries\color{dircol},
-%  stringstyle=\color{orange},   
-%  keywords=[2]{Parameters, UAMMD},
-%  keywordstyle=[2]\color{morecol},
-%  keywords=[3]{std, thrust, uammd, access},
-%  keywordstyle=[3]\color{morecol3}
-%}
 
 \makeglossaries
 \newacronym{UAMMD}{UAMMD}{Universally Adaptable Multiscale Molecular Dynamics}
@@ -237,7 +195,7 @@ BCOR=5mm,paper=b5,fontsize=11pt, dvipsnames
 
         \vfill
 
-        \includegraphics[width=13cm]{gfx/froggy} \\ \medskip
+        \includegraphics[width=0.7\linewidth]{gfx/froggy} \\ \medskip
 
         %\myDegree \\
         \myDepartment \\
@@ -389,13 +347,10 @@ The following publications resulted from the development of this work
 \begingroup
     \let\cleardoublepage\relax
     \let\cleardoublepage\relax
-    %*******************************************************
-    % List of Figures
-    %*******************************************************
+    \newpage
     \begin{multicols}{2}[\chapter*{List of Figures}]
       \setlength{\columnseprule}{1pt}
       \def\columnseprulecolor{\color{black}}
-
       \phantomsection
       \addcontentsline{toc}{chapter}{\listfigurename}
       \pdfbookmark[1]{\listfigurename}{lof}
@@ -403,17 +358,12 @@ The following publications resulted from the development of this work
       \makeatletter
       \@starttoc{lof}% Print List of Figures
       \makeatother
-
-
       \vspace{8ex}
     \end{multicols}
     \newpage
     \begin{multicols}{2}[\chapter*{List of Codes}]
       \setlength{\columnseprule}{1pt}
       \def\columnseprulecolor{\color{black}}
-      % *******************************************************
-      % List of Listings
-      % *******************************************************
       \phantomsection
       \addcontentsline{toc}{chapter}{\lstlistlistingname}
       \pdfbookmark[1]{\lstlistlistingname}{lol}
@@ -565,7 +515,7 @@ The \gpu offers mind-blowing raw computing power when used correctly. Developing
 \subsection*{Closed vs. Open ecosystems}
 Most commercial molecular dynamics packages share one foundational design principle; they are \emph{closed} ecosystems. This means that, for a user, the only option to interface with the packages is to encode a simulation in them in its totality. In other words, it is awkward (or straight up not possible) to use these packages as external accelerators for an already established, in-house, code.\footnote{If these software packages were hardware stores, a closed ecosystem would consist of the tools inside the store (the hammer, saw, etc) being chained to the counter, so you would need to bring your furniture into the store in order to fix it.}  
 
-A closed ecosystem allows to design the software under less assumptions, easing development. On the other hand, a closed ecosystem misses some opportunities in doing so. For instance, one of the first problems a soft matter software package must solve is the construction of a short ranged particle interaction list (a so-called neighbour list), which usually governs the overall computational cost of a simulation. Creating a public, library-like, interface exposing this list creation algorithm (in what we would call an open ecosystem) allows an user to take his existing code and accelerate it, as opposed to having to do it the other way around, that is porting the entirety of his simulation to the closed ecosystem.
+A closed ecosystem allows to design the software under less assumptions, easing development. On the other hand, a closed ecosystem misses some opportunities in doing so. For instance, one of the first problems a soft matter software package must solve is the construction of a short ranged particle interaction list (a so-called neighbour list), which usually governs the overall computational cost of a simulation. Creating a public, library-like, interface exposing this list creation algorithm (in what we would call an open ecosystem) allows a user to take his existing code and accelerate it, as opposed to having to do it the other way around, that is porting the entirety of his simulation to the closed ecosystem.
 
 \uammd attempts to provide an \emph{open} ecosystem, exposing most of its underlying algorithms in a library-like fashion\footnote{Following the hardware store analogy, the tools of an open ecosystem store would not only be unchained, but also available for rent. Furthermore, this would be an \emph{open-source} hardware store (bear with me) so the cost of renting the tools is zero euros per day. In this kind of store, you can just borrow the tool(s) you need and fix your stuff at home.}.
 Furthermore, while most packages require compilation into a binary or library in order to be used, \uammd is a header-only framework. Meaning that the compilation of a source code using parts of \uammd can be seamlessly blended in during the compilation process of another software.
@@ -575,7 +525,7 @@ Furthermore, while most packages require compilation into a binary or library in
 \newpage
 \cleardoublepage
   
-\ctparttext{An overview of the UAMMD infrastructure.\newline\newline\includegraphics[width=1.3\linewidth]{gfx/titleimage}}
+\ctparttext{An overview of the UAMMD infrastructure.\newline\newline\includegraphics[width=1.0\linewidth]{gfx/titleimage}}
 \part{UAMMD: Design and components}\label{pt:uammd}
 
 \chapter{The Fermation of subproblems}
