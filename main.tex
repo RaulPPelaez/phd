@@ -9,7 +9,7 @@ BCOR=5mm,fontsize=11pt, dvipsnames, paper=b5
 
 \def\ucpp{uammd_cpp_lexer.py:UAMMDCppLexer -x}
 %\def\ucpp{cuda}
-
+\everymath{\displaystyle}
 \usepackage{tcolorbox}
 \usepackage{xparse}
 \tcbuselibrary{breakable,minted,xparse,skins,listings}
@@ -284,8 +284,8 @@ Complex fluids is an umbrella term for the coexistence between two phases, in ou
 \newpage
 
 \chapter*{Spanish Abstract}
-El término fluido complejo se refiere a la consistencia entre dos fases, en nuestros casos de estudio habituales siendo una de ellas solida y la otra líquida. Un amplio rango de sistemas en materia blanda, a menudo de naturaleza biológica, pueden categorizarse como fluidos complejos. Típicamente nos encontramos con un grupo de objetos solidos, o blandos, cuya dinámica es lenta, que están sumergidos en un solvente compuesto de partículas más pequeñas y con una dinámica mucho mas rápida. Algunos ejemplos de fluidos complejos son una suspensión de partículas coloidales en agua o un pequeño virus difundiendo en el entorno celular.
-La dinámica de este tipo de sistemas está habitualmente influenciada (o incluso gobernada) por fluctuaciones térmicas y correlaciones hydrodinámicas que surgen de la eliminación de algunos de los grados de libertad del solvente.
+El término fluido complejo se refiere a la coexistencia entre dos fases, en nuestros casos de estudio habituales siendo una de ellas solida y la otra líquida. Un amplio rango de sistemas en materia blanda, a menudo de naturaleza biológica, pueden categorizarse como fluidos complejos. Típicamente nos encontramos con un grupo de objetos solidos, o blandos, cuya dinámica es lenta, que están sumergidos en un solvente compuesto de partículas más pequeñas y con una dinámica mucho mas rápida. Algunos ejemplos de fluidos complejos son una suspensión de partículas coloidales en agua o un pequeño virus difundiendo en el entorno celular.
+La dinámica de este tipo de sistemas está típicamente influenciada (o incluso gobernada) por fluctuaciones térmicas y correlaciones hidrodinámicas que surgen de la eliminación de algunos de los grados de libertad del solvente.
 Adicionalmente, el acoplamiento entre las dos fases a menudo impone restricciones geométricas que alteran fundamentalmente la dinámica de la solución, así como la del solvente. Ambos mecanismos requieren tener en cuenta consideraciones matemáticas y algorítmicas especiales (y en ocasiones completamente novedosas).
 La presente tesis extiende los límites de la simulación numérica de fluidos complejos. En este manuscrito, presento una serie de algoritmos, pasados y nuevos, adaptados a la GPU, un poderoso hardware extremadamente paralelo recientemente desarrollado. La culminación de esta tesis ha tenido como resultado la publicación de UAMMD, una nueva infrastructura de software para la simulación de fluidos complejos en la GPU. Además de las herramientas y metodología originales, también repasaré algunas aplicaciones prácticas que han resultado en avances científicos publicados en revistas de investigación.
 
@@ -2811,7 +2811,7 @@ The incompressible Navier-Stokes equations can be written as~\cite{Balboa2014}
   \begin{aligned}
     \overbrace{\underbrace{\rho\partial_t{\vec{\fvel}}}_{\text{time}} +\underbrace{\rho\nabla\cdot (\vec{\fvel}\otimes\vec{\fvel})}_{\text{convection}}}^{\text{fluid inertia}} + \underbrace{\nabla \pi}_{\text{internal stress}} &= \overbrace{\eta \nabla^2\vec{\fvel}}^{\text{momentum diffusion}} + \underbrace{\vec{f} + \nabla\cdot \mathcal{Z}}_{\text{\parbox{2cm}{\centering external forces\\[-4pt] and\\[-4pt] thermal noise}}}\\
     \nabla\cdot\vec{\fvel} &= 0\quad\mathllap{\underbrace{\phantom{\nabla\cdot\vec{\fvel} = 0}}_{\text{incompressibility}}}
-  \end{aligned}
+  \end{aligned} 
 \end{equation}
 Where $\vec{\fvel}(\vec{\fpos}, t)$ represents the velocity field of the fluid, $\pi$ the pressure, $\rho$ its density and $\eta$ its viscosity. $\vec{f}$ is some localized force density acting on the fluid (which can arise from the presence of submerged particles).
 
@@ -4416,7 +4416,7 @@ must be related with the mobility as
 Equivalently, we can write the fluctuation-dissipation relation for the fluid velocity in Fourier space,
 \begin{equation}
   \label{eq:q2dfdb}
-  \left\langle\fou{\vec{w}}\otimes \fou{\vec{w}}\right\rangle = \frac{2\kT}{dt} \fou{\tens{G}}_{\qtd}.
+  \left\langle\fou{\vec{w}}\otimes \fou{\vec{w}}\right\rangle = 2\kT \fou{\tens{G}}_{\qtd}.
 \end{equation}
 It is straightforward to devise a functional form for the stochastic fluid velocity that satisfies Eq. \eqref{eq:q2dfdb}.
 We can use a similar trick as we did for \gls{PSE} in Eq. \eqref{eq:psenoise} to separate the contribution of the noise in two,
