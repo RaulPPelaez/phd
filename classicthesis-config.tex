@@ -1,6 +1,6 @@
 \PassOptionsToPackage{utf8}{inputenc}
+\usepackage[pdfusetitle]{hyperref}
 \usepackage{inputenc}
-
 \PassOptionsToPackage{T1}{fontenc} % T2A for cyrillics
 \usepackage{fontenc}
 
@@ -16,6 +16,11 @@
   palatino=false,    % deactivate standard font for loading another one, see the last section at the end of this file for suggestions
   style=classicthesis % classicthesis, arsclassica
 }{classicthesis}
+
+\makeatletter
+\DeclareFixedFont{\chapterNumber}{U}{eur}{b}{n}{20}
+\DeclareFixedFont{\chapterNumber}{T1}{pplj}{m}{n}{20}
+\makeatother
 \usepackage{amsmath,amssymb}
 \usepackage{mathtools}
 
@@ -35,7 +40,6 @@
 \PassOptionsToPackage{american}{babel}
 \usepackage{babel}
 \usepackage{doi}
-\usepackage{hyperref}
 \usepackage{csquotes}
 \PassOptionsToPackage{%
   %backend=biber,bibencoding=utf8, %instead of bibtex
@@ -64,6 +68,8 @@
 \setlength{\extrarowheight}{3pt} % increase table row height
 \usepackage{listings}
 \usepackage{classicthesis}
+\makeatletter
+\AtBeginDocument{
 \hypersetup{%
 %  %draft, % hyperref's draft mode, for printing see below
   colorlinks=true
@@ -77,13 +83,16 @@
 %  hypertexnames=true, pdfhighlight=/O,%nesting=true,%frenchlinks,%
 %  urlcolor=CTurl, linkcolor=CTlink, citecolor=CTcitation, %pagecolor=RoyalBlue,%
 %  %urlcolor=Black, linkcolor=Black, citecolor=Black, %pagecolor=Black,%
-%  pdftitle={\myTitle},%
-%  pdfauthor={\textcopyright\ \myName, \myUni, \myFaculty},%
-%  pdfsubject={},%
+%  pdfpagelabels=true,
+  pdftitle={Complex fluids in the GPU era},        
+  pdfauthor={\textcopyright\ \myName, \myUni, \myFaculty},%
+%  pdfsubject={Complex fluids, GPUs},%
 %  pdfkeywords={},%
-%  pdfcreator={pdfLaTeX},%
-%  pdfproducer={LaTeX with hyperref and classicthesis}%
+  pdfcreator={pdfLaTeX},%
+  pdfproducer={LaTeX with hyperref and classicthesis}%
 }
+}
+\makeatother
 
 
 % Changing the text area

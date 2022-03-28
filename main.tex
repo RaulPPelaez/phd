@@ -1,3 +1,6 @@
+\pdfminorversion=5
+\pdfcompresslevel=9
+\pdfobjcompresslevel=3
 \RequirePackage{silence} % :-\
 %    \WarningFilter{scrreprt}{Usage of package `titlesec'}
 %    \WarningFilter{scrreprt}{Activating an ugly workaround}
@@ -5,8 +8,9 @@
 \documentclass[twoside,openright,titlepage,numbers=noenddot,%1headlines,
 headinclude,footinclude,cleardoublepage=empty,abstract=on,
 BCOR=5mm,fontsize=11pt, dvipsnames, paper=b5
-]{scrreprt}
+]{scrbook}
 
+%\usepackage{microtype}
 \def\ucpp{uammd_cpp_lexer.py:UAMMDCppLexer -x}
 %\def\ucpp{cuda}
 \everymath{\displaystyle}
@@ -49,8 +53,7 @@ BCOR=5mm,fontsize=11pt, dvipsnames, paper=b5
   }
 }
 \input{classicthesis-config}
-%\usepackage[b5paper,layout=b5paper]{geometry}
-
+\usepackage{bookmark}
 \usepackage[utf8]{inputenc}
 \usepackage{todonotes}
 \usepackage{multicol}
@@ -65,7 +68,6 @@ BCOR=5mm,fontsize=11pt, dvipsnames, paper=b5
 \algnewcommand{\LeftComment}[1]{\Statex \(\triangleright\) #1}
 \algnewcommand{\Input}[1]{\hspace*{\algorithmicindent} \textbf{Input:} #1}
 \usepackage{bm}
-\usepackage{hyperref}
 \usepackage[acronym]{glossaries}
 \usepackage{pgfplots}
 \usepackage{subcaption}
@@ -153,8 +155,9 @@ BCOR=5mm,fontsize=11pt, dvipsnames, paper=b5
 
 % \hyphenation{put special hyphenation here}
 \pdfmapfile{-mpfonts.map}
-
+\AtBeginDocument{\renewcommand{\thepart}{\Roman{part}}}
 \begin{document}
+\frontmatter
 \frenchspacing
 \raggedbottom
 \selectlanguage{american} % american ngerman
@@ -203,8 +206,6 @@ BCOR=5mm,fontsize=11pt, dvipsnames, paper=b5
         \myUni \\ \bigskip
 
         \myTime\ -- \myVersion
-        \\ \medskip\medskip
-        Disclaimer:\\ Only some GPUs were harmed during the development of this work\\ \medskip
     
         \vfill
 
@@ -337,6 +338,7 @@ The following publications resulted from the development of this work
 \setcounter{secnumdepth}{3} % <-- 3 numbers up to subsubsections
 \manualmark
 \markboth{\spacedlowsmallcaps{\contentsname}}{\spacedlowsmallcaps{\contentsname}}
+
 \tableofcontents
 \automark[section]{chapter}
 \renewcommand{\chaptermark}[1]{\markboth{\spacedlowsmallcaps{#1}}{\spacedlowsmallcaps{#1}}}
@@ -355,7 +357,7 @@ The following publications resulted from the development of this work
       \def\columnseprulecolor{\color{black}}
       \phantomsection
       \addcontentsline{toc}{chapter}{\listfigurename}
-      \pdfbookmark[1]{\listfigurename}{lof}
+%      \pdfbookmark[1]{\listfigurename}{lof}
       % \listoffigures
       \makeatletter
       \@starttoc{lof}% Print List of Figures
@@ -368,7 +370,7 @@ The following publications resulted from the development of this work
       \def\columnseprulecolor{\color{black}}
       \phantomsection
       \addcontentsline{toc}{chapter}{\lstlistlistingname}
-      \pdfbookmark[1]{\lstlistlistingname}{lol}
+%      \pdfbookmark[1]{\lstlistlistingname}{lol}
       %vspace here is a hack to remove the title of the listoflistings
       \tcblistof[\vspace*]{lol}{-\baselineskip}
       \vspace{8ex}
@@ -376,11 +378,12 @@ The following publications resulted from the development of this work
     %*******************************************************
     % Acronyms
     %*******************************************************
-    %\phantomsection
-    \pdfbookmark[1]{Acronyms}{acronyms}
+    \phantomsection
+%    \pdfbookmark[0]{Acronyms}{acronyms}
  %   \markboth{\spacedlowsmallcaps{Acronyms}}{\spacedlowsmallcaps{Acronyms}}
-%    \chapter*{Acronyms}
-    \printglossary[type=\acronymtype,nonumberlist]
+ %   \chapter*{Acronyms}
+    \printglossary[type=\acronymtype,nonumberlist, nogroupskip]
+    \addcontentsline{toc}{chapter}{Acronyms}
 \endgroup
 \glsresetall
 \newpage
@@ -390,6 +393,7 @@ The following publications resulted from the development of this work
 %\setcounter{page}{90}
 % use \cleardoublepage here to avoid problems with pdfbookmark
 \cleardoublepage
+\mainmatter
 \part{Introduction}\label{pt:intro}
 \chapter{Introduction}\label{ch:introduction}
 
@@ -1345,6 +1349,7 @@ The reason for giving short range interactions so much credit is simple: imagine
 
 The canonical example of a short range interaction is the Lennard-Jones potential.
 \section{The Lennard-Jones potential}\label{sec:lj}
+\glsreset{LJ}
 A standard potential employed to model the short range Van-der-Waals interactions is the \gls{LJ} potential \cite{Thol2015}. A rapidly-decaying repulsive radial potential with an attractive tail.
 \begin{equation}
   \label{eq:lj}
@@ -2441,7 +2446,7 @@ auto createIntegratorVerletNVT(UAMMD sim){
 
 The Langevin model makes several assumptions to arrive at Eq. \eqref{eq:langevinfull}. At long times, hydrodynamic effects due to momentum propagation of the solvent (leading to long-time tails in the velocity correlation of the particle) are neglected. The dynamics of short times $\tau<\gamma/m$ are also wrong, as memory effects in the noise forces start to matter at fast small scales. While solving these small scale effects requires to explicitly describe the solvent-solute forces using \gls{MD}, we will see in subsequent chapters how to improve the long-time limit introducing the solvent hydrodynamics.
 
-\chapter{Dissipative Particle Dynamics}\label{ch:dpd}
+\chapter{Dissipative Particle Dynamics}\label{ch:dpdchap}
 \glsreset{LD}
 One of the most popular techniques used to reintroduce some of the degrees of freedom lost with \gls{LD} is \gls{DPD}. This coarse graining technique can be used to go further in the spatio-temporal scale by choosing groups of fluid particles as the simulation unit, sitting inbetween microscopic (as in \gls{MD}) and macroscopic (hydrodynamic) descriptions. In practice \gls{DPD} is a Langevin approach where friction acts by pairs of particles and conserves momentum. \gls{DPD} equations can be defined from the microscopic Hamiltonian using coarse-graining theory\cite{Hijon2010}.
 In the standard \gls{DPD}, particles interact via a soft potential, modelling the interaction between two large groups of fluid particles.
@@ -2515,7 +2520,10 @@ It is worth mentioning that, following the ``one \emph{Integrator} with many \em
 %
 
 \chapter{Brownian Dynamics}\label{sec:bd}
-%\todo{Introduccion al origen de BD y que problemas resuelve que LD no}
+% \todo{Introduccion al origen de BD y que problemas resuelve que LD no}
+\glsreset{BD}
+\glsreset{SDE}
+\glsreset{FPE}
 When the viscous forces are much larger than the inertial forces, i.e. $ |\xi\vec{\pvel}| \gg |m\vec{a}|$, the inertial term in Eq. \eqref{eq:langevinfull} becomes irrelevant at very short time scales.
 \gls{BD} takes advantage of such a time scale separation between the particle velocity fluctuations and its displacement and can be interpreted as the overdamped, or non-inertial, limit of \gls{LD}. The decorrelation time of the velocity, defined as $\tau_l = m/\xi$ is much faster than the time needed for a particle to move farther than its own size. \gls{BD} represents the long time limit of the Langevin equation. This is a powerful property of \gls{BD}, since sampling the probability distributions of the underlying stochastic processes (stemming from the rapid movement of the solute particles) does not require sampling their fast dynamics.
 
@@ -2759,13 +2767,6 @@ Although MALA proves to be useful for thermalising or initializing simulations, 
 In order to tune the jump step ($\dt$) to ensure a certain acceptance ratio on average, we measure the acceptance ratio every once in a while, if it is lower than the target the jump step is decreased (and increased if it is larger). We increase the jump step slowly (a 2\% increase) and decrease it fast (a 10\%) as it is usually done in optimization algorithms.
 
 Another disadvantage of MALA is that usually the energy change coming from moving all particles in the system grows, on average, with the number of particles. This results in the optimal jump step decreasing with the number of particles. Thus defeating the purpose.
-\begin{figure}[H]
-  \centering    
-  \includegraphics[width=0.8\textwidth]{gfx/malasoft}\\
-  \includegraphics[width=0.8\textwidth]{gfx/malalj}
-  \caption[ ]{Optimal time step in MALA for several acceptance ratios and number of particles using a soft repulsive potential given by Eq. \eqref{eq:malasoft} (left) and a hard steric WCA interaction (right). Naturally, a higher acceptance ratio (with $1$ corresponding to accepting all configurations and $0$ to never accepting them) results in a lower step size, $\dt$. A by-product of the MALA algorithm comparing the total energy change is that $\dt$ depends on the number of particles so that more particles result in a lower optimal $\dt$. In all cases the number density of particles is kept at $\rho := N/V = 0.1a^{-3}$.}
-  \label{fig:malastep}
-\end{figure}
 In Fig. \ref{fig:malastep} we compare the optimal step size of the MALA algorithm for different acceptance ratios in different scenarios. In particular, we compare results using a hard-repulsion WCA potential (truncated \gls{LJ}, see sec. \ref{sec:lj}) with a soft core repulsive interaction given by the potential
 
 \begin{equation}
@@ -2777,6 +2778,14 @@ U(r)= U_0
 \end{cases}
 \end{equation}
 Where $U_0$ represents the repulsive strength, $d$ is a typical repulsive radius and we choose the scale factor $b=0.1$.
+
+\begin{figure}[H]
+  \centering    
+  \includegraphics[width=0.8\textwidth]{gfx/malasoft}\\
+  \includegraphics[width=0.8\textwidth]{gfx/malalj}
+  \caption[ ]{Optimal time step in MALA for several acceptance ratios and number of particles using a soft repulsive potential given by Eq. \eqref{eq:malasoft} (left) and a hard steric WCA interaction (right). Naturally, a higher acceptance ratio (with $1$ corresponding to accepting all configurations and $0$ to never accepting them) results in a lower step size, $\dt$. A by-product of the MALA algorithm comparing the total energy change is that $\dt$ depends on the number of particles so that more particles result in a lower optimal $\dt$. In all cases the number density of particles is kept at $\rho := N/V = 0.1a^{-3}$.}
+  \label{fig:malastep}
+\end{figure}
 
 \subsection*{Use in UAMMD}
 The MALA algorithm is available in \uammd as an \emph{Integrator} module. Its usage is similar to the ones we have seen thus far. The MALA module will query its \emph{Interactors} for both force and energy (whereas, for instance, \gls{BD}, will only request forces).
@@ -2801,7 +2810,7 @@ auto createIntegratorMALA(UAMMD sim){
 \end{code2}
 
 \chapter{Hydrodynamic Interactions}\label{sec:bdhi}
-In our discussion about \gls{BD} in chapter \ref{sec:bd} we neglected hydrodynamic interactions by considering only the diagonal terms of the mobility tensor in Eq. \eqref{eq:bdfull} (the so-called self-mobility). We considered the effect of the solvent on the submerged particles without considering the opposite interaction. Particles disturb the fluid around them, which in turn has an effect on the rest. When the hydrodynamic displacements are no longer negligible (for instance, due to the density of colloidal particles increasing), the full form of the mobility tensor must be taken into account. Alternatively, hydrodynamic effects can be taken into account (to some extent) by particle solvers equipped with local momentum conservation (such as \gls{DPD}, see chapter \ref{ch:dpd}). However, \gls{DPD} (and \gls{SPH}) explicitly solve the solvent particle dynamics (or some coarse-grained version of them). Furthermore, the \gls{DPD} and \gls{SPH} methods lie in the inertial regime of the solvent, forcing us to describe a fast time scale that might be of no interest in a given model, in particular the sound and viscous momentum propagation (vorticity). Thus far we have taken a bottom-up approach, starting by modeling the dynamics of the solvent particles themselves and then eliminating degrees of freedom aided by the Fokker-Planck formalism. This enabled us to elucidate Eq. \eqref{eq:bdfull}, giving us some clues about the mobility matrix and, more importantly, relating it with the diffusion via the fluctuation-dissipation balance. It is worth now to take a top-down approach by considering the hydrodynamics of the solvent and then bridge the gap back to \gls{BD}, which will give us more information about the actual form of the mobility.
+In our discussion about \gls{BD} in chapter \ref{sec:bd} we neglected hydrodynamic interactions by considering only the diagonal terms of the mobility tensor in Eq. \eqref{eq:bdfull} (the so-called self-mobility). We considered the effect of the solvent on the submerged particles without considering the opposite interaction. Particles disturb the fluid around them, which in turn has an effect on the rest. When the hydrodynamic displacements are no longer negligible (for instance, due to the density of colloidal particles increasing), the full form of the mobility tensor must be taken into account. Alternatively, hydrodynamic effects can be taken into account (to some extent) by particle solvers equipped with local momentum conservation (such as \gls{DPD}, see chapter \ref{ch:dpdchap}). However, \gls{DPD} (and \gls{SPH}) explicitly solve the solvent particle dynamics (or some coarse-grained version of them). Furthermore, the \gls{DPD} and \gls{SPH} methods lie in the inertial regime of the solvent, forcing us to describe a fast time scale that might be of no interest in a given model, in particular the sound and viscous momentum propagation (vorticity). Thus far we have taken a bottom-up approach, starting by modeling the dynamics of the solvent particles themselves and then eliminating degrees of freedom aided by the Fokker-Planck formalism. This enabled us to elucidate Eq. \eqref{eq:bdfull}, giving us some clues about the mobility matrix and, more importantly, relating it with the diffusion via the fluctuation-dissipation balance. It is worth now to take a top-down approach by considering the hydrodynamics of the solvent and then bridge the gap back to \gls{BD}, which will give us more information about the actual form of the mobility.
 \section*{Fluid dynamics}
 We start by considering the more general incompressible steady Navier-Stokes equations. Then, we will introduce the action of the particles as a force-density on the fluid (propagated by a smoothed delta-like function centered around each particle). We now study how this force propagates to the rest of the fluid.
 
@@ -3628,7 +3637,7 @@ Furthermore, the spreading and interpolation algorithms that we are going to dev
 We will discretize the interpolation operator in Eq. \eqref{eq:bdhifvel} on a grid as
 
 \begin{equation}
-  \label{eq:interpdiscrete}
+  \label{eq:interpdiscreteJ}
   \oper{J}_{\vec{\ppos}_i}\vec{\fvel} = \sum_j{\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{\fvel}_jdV(j)}
 \end{equation}
 
@@ -3783,7 +3792,7 @@ We want to devise algorithms for two purposes:
   \begin{equation}
     \vec{f}_j = \oper{S}\vec{F} = \sum_i \delta_a(\vec{\fpos}_j-\vec{\ppos}_i) \vec{F}_i.
   \end{equation}
-\item Interpolation (as defined in Eq. \eqref{eq:interpdiscrete}) from a discrete set of points:
+\item Interpolation (as defined in Eq. \eqref{eq:interpdiscreteJ}) from a discrete set of points:
   \begin{equation}
     \label{eq:interpdiscrete}
     \vec{u}_i = \oper{J}_{\vec{\ppos}_i}\vec{\fvel} = \sum_j{\delta_a(\vec{\ppos}_i - \vec{\fpos}_j)\vec{\fvel}_jdV}
@@ -4337,7 +4346,7 @@ We can also write the Green's function for true 2D by redefining $f_k$ and $g_k$
 \end{equation}
 The Green's function \eqref{eq:q2dGreenintegral} is purely two-dimensional, allowing to reuse the \gls{FCM} machinery without the third direction altogether.
 
-Using Eq. \eqref{eq:t2dfg} instead of Eq. \eqref{eq:q2dfg} allows for our algorithm to simulate a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known\footnote{For instance, the Saffman kernel for membrane hydrodynamics \cite{Brown20112.}}.
+Using Eq. \eqref{eq:t2dfg} instead of Eq. \eqref{eq:q2dfg} allows for our algorithm to simulate a true 2D system. In fact, any 2D hydrodynamic kernel can be used as long as $f_k$ and $g_k$ are known\footnote{For instance, the Saffman kernel for membrane hydrodynamics \cite{Brown20112}.}.
 
 The particle dynamics can thus be formally written as
 
@@ -5738,7 +5747,6 @@ Aunque esta tesis no está centrada en encontrar/explicar nuevos fenómenos fís
 
 \newpage
 \cleardoublepage
-
 \part{Appendix}
 
 \appendix
@@ -5969,9 +5977,9 @@ Without going into details (the reader can learn more online), a C++ shared poin
 \end{code2}
 
 \subsection*{Metaprogramming}
-In addition to inheritance, C++ offers another way of writing generic code called templates. A template is a function or object that is generic for any type (sometimes the type is restricted under some assumptions). For instance, let us rewrite the function \mintinline{\ucpp}{getAreaOf} in example \ref{code:sharedptr} using metaprogramming instead of inheritance.
+In addition to inheritance, C++ offers another way of writing generic code called templates. A template is a function or object that is generic for any type (sometimes the type is restricted under some assumptions). For instance, let us rewrite the function \mintinline{\ucpp}{getAreaOf} in example \ref{code:templates} using metaprogramming instead of inheritance.
 
-\begin{code2}[Using shared pointer to hold many types of polygons.] {label=code:sharedptr}
+\begin{code2}[Using templates to process many types of polygons with the same function.] {label=code:templates}
   //This function takes any type and returns its area. Of course, it will not compile if the provided type has no member function called area.
   //When we call this function, T will be replaced by the type of the provided argument
   template<class T>
@@ -6660,15 +6668,42 @@ Most of the modules listed below have a corresponding chapter in this manuscript
 \end{itemize}
 
 \newpage
-
-
+\backmatter
+\bookmarksetup{startatroot}
 \printbibliography[heading=bibintoc]
 
-%\newpage
+\newpage
 
 %\cleardoublepage\input{FrontBackmatter/Declaration}
 %\cleardoublepage\input{FrontBackmatter/Colophon}
 %\newpage
+\hfill
+
+\vfill
+
+\thispagestyle{empty}
+\phantomsection
+\pdfbookmark[-1]{Colophon}{colophon}
+\section*{Colophon}
+You can find the \LaTeX\  source for this manuscript (along with the most recent pdf version) at \url{https://github.com/RaulPPelaez/tesis} or the QR code below.
+\begin{figure*}[htpb]
+  \centering
+  \includesvg[width=0.3\columnwidth]{gfx/tesisqr}
+  \includesvg[width=0.3\columnwidth]{gfx/uammdqr}
+  \captionsetup{labelformat=empty}
+  \caption*{QR codes to the source of this manuscript and the UAMMD repository.}
+\end{figure*}
+\newline
+The author acknowledges the NVIDIA corporation for their GPU donations, some of which were used in the publications that resulted from this Ph.D.
+\newline
+\begin{center}
+  Disclaimer\\
+
+  Only some GPUs were harmed during the development of this work.
+\end{center}
+\bigskip
+
+\noindent\finalVersionString
 
 \end{document}
 

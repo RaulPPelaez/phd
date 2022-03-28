@@ -7,6 +7,8 @@ all: clean
 	@texfot	--ignore="This is" bibtex main1-blx
 	@texfot	--ignore="This is" pdflatex -interaction=batchmode -draftmode $(OPTIONS)  main
 	@texfot	--ignore="This is" makeglossaries main
+	@texfot	--ignore="This is" bibtex main
+	@texfot	--ignore="This is" pdflatex -interaction=batchmode -draftmode $(OPTIONS)  main
 	@texfot	--ignore="This is" pdflatex -interaction=batchmode $(OPTIONS) main
 
 verbose: clean
@@ -16,7 +18,10 @@ verbose: clean
 	bibtex main1-blx
 	pdflatex -draftmode $(OPTIONS)  main
 	makeglossaries main
+	bibtex main
+	pdflatex -draftmode $(OPTIONS)  main
 	pdflatex $(OPTIONS) main
+	gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.5 -dNOPAUSE -dQUIET -dBATCH -dPrinted=false -sOutputFile=main-compressed.pdf main.pdf
 
 rebuild:
 	@texfot	--ignore="This is" pdflatex -interaction=batchmode $(OPTIONS) main

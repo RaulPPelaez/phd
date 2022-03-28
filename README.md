@@ -3,7 +3,7 @@
 
 
 
-## Paquetes necesarios para compilar:
+## Compilation requirements:
 
   * Make 
   * A lot of Latex packages (just install texlive-full)	  
