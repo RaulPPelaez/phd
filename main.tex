@@ -203,7 +203,9 @@ BCOR=5mm,fontsize=11pt, dvipsnames, paper=b5
         \myUni \\ \bigskip
 
         \myTime\ -- \myVersion
-
+        \\ \medskip\medskip
+        Disclaimer:\\ Only some GPUs were harmed during the development of this work\\ \medskip
+    
         \vfill
 
     \end{center}
@@ -420,15 +422,15 @@ Recently, a new paradigm of supercomputing has arisen. The \gpu, a massively par
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{gpu_and_me}
-  \caption[ ]{A picture a GPU (NVIDIA Tesla). This card will grant its owner the computing power of a small CPU cluster for a price of around 1000€.}
+  \includegraphics[width=0.92\textwidth]{gpu_and_me}
+  \caption[ ]{A picture of the author with a GPU (NVIDIA GTX980) and a copy of this very manuscript. The trusty, consumer-grade, GTX980 GPU that has accompanied me throughout most of my Ph.D. will grant its owner the computing power of a small CPU cluster for a price of around 600€\footnotemark.}
   \label{fig:gpuandme}
 \end{figure}
-
+\footnotetext{Note, however, that a GPU series tends to be discontinued around two years after its release, so the GTX980 is no longer being manufactured at the time of writing. Much more powerful models are available nowadays at similar prices.}
 Yet, the \gpu technology, interpreted as some kind of specialized graphic circuit or co-processor, can be tracked back to the 1970s. Once electronic devices started having screens attached to them, it made sense to have some kind of chip translating the CPU information into the analogical signal of the display. It was then only a matter of time before more functionality was put into them. It started as a way to accelerate the display process in early video game hardware, such as arcade systems.
 Storing the data that goes into the screen takes a lot of space and, at the time, RAM memory was expensive (it is still, by the way!).
 
-In 1977, the Atari 2600 (one of the first home consoles) could simply not afford to store the contents of its 160x80 pixel display into its 128 bytes of RAM. Of course, these systems employed some truly creative software tricks to reduce memory usage. However, the numbers just do not add up. Even if we limit ourselves to a monochrome output (so one pixel takes one bit to store), the frame buffer for a 160x80 pixel display takes 1600 bytes\footnote{In contrast, the NVIDIA GTX 980 (the trusty, consumer-grade, GPU that has accompanied me throughout most of my Ph.D.) has 4 GB of memory and will happily output to several screens with 4k resolution (4096x2160 pixels).}.
+In 1977, the Atari 2600 (one of the first home consoles) could simply not afford to store the contents of its 160x80 pixel display into its 128 bytes of RAM. Of course, these systems employed some truly creative software tricks to reduce memory usage. However, the numbers just do not add up. Even if we limit ourselves to a monochrome output (so one pixel takes one bit to store), the frame buffer for a 160x80 pixel display takes 1600 bytes\footnote{In contrast, the NVIDIA GTX 980 has 4 GB of memory and will happily output to several screens with 4k resolution (4096x2160 pixels).}.
 The solution was not to have a frame buffer at all, but rather to outsource the display operations to specialized hardware. The Atari 2600's graphic chip had a 128 color palette and allowed developers to use close to 5 sprites to design their 2D games.
 
 These chips were little more than video display chips, but they were the predecessors to the \gpu.
