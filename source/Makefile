@@ -21,7 +21,6 @@ verbose: clean
 	bibtex main
 	pdflatex -draftmode $(OPTIONS)  main
 	pdflatex $(OPTIONS) main
-	gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.5 -dNOPAUSE -dQUIET -dBATCH -dPrinted=false -sOutputFile=main-compressed.pdf main.pdf
 
 rebuild:
 	@texfot	--ignore="This is" pdflatex -interaction=batchmode $(OPTIONS) main
@@ -31,5 +30,3 @@ ship: verbose
 
 clean:
 	rm -rf $(TOCLEAN)
-	(cd Chapters; rm -rf $(TOCLEAN))
-	(cd FrontBackmatter; rm -rf $(TOCLEAN))
