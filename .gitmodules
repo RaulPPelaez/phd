@@ -1,0 +1,3 @@
+[submodule "source/phd-dissertation"]
+	path = source/phd-dissertation
+	url = git@github.com:RaulPPelaez/phd-dissertation.git
