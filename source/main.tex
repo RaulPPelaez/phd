@@ -258,7 +258,7 @@ BCOR=5mm,fontsize=11pt, dvipsnames, paper=b5
       This thing is complex... so complex not even God gets it.\\ \medskip
     --- Rafa Buscalioni
     \\ \medskip\medskip
-        There is no way you are getting a quote for your thesis\\ \medskip
+        There is no way you are getting a quote for your thesis.\\ \medskip
     --- NVIDIA
 
 \end{center}
@@ -2935,7 +2935,7 @@ The Green's function, $\tens{G}$, of Eq. \eqref{eq:bdhivel} in the case of an un
 The inverse transform of Eq. \eqref{eq:greenstokes} can be computed analytically (with the help of some known mathematical relations~\cite{Lisicki2013}) to get
 \begin{equation}
   \label{eq:bdhioseen}
-\tens{O}(\vec{r}) := \frac{1}{8\pi\eta r}\left(\mathbb{I} - \frac{\vec{r}\otimes\vec{r}}{r^2}\right)
+\tens{O}(\vec{r}) := \frac{1}{8\pi\eta r}\left(\mathbb{I} + \frac{\vec{r}\otimes\vec{r}}{r^2}\right)
 \end{equation}
 This solution is known as the Oseen tensor~\cite{Lisicki2013}, the response of a three dimensional unbounded fluid at rest at infinity to a delta forcing.
 Figure \ref{fig:oseen} contains a visual representation of the Oseen tensor.
@@ -4022,7 +4022,7 @@ public:
     support(support){}
 
   __device__ int3 getSupport(real3 pos, int3 cell){
-    return {support, support, support}
+    return {support, support, support};
   }
 
   __device__ real phi(real r, real3 pos) const{
@@ -4032,7 +4032,7 @@ public:
 
 template<class Iter1, class Iter2>
 void spreadWithIBM(Grid grid, real4* positions,
-                   Iter dataAtCellPositions,
+                   Iter1 dataAtCellPositions,
                    Iter2 dataAtParticlePositions,
                    int numberParticles){
   const real width = 1; //An arbitrary width
@@ -4045,7 +4045,7 @@ void spreadWithIBM(Grid grid, real4* positions,
 
 template<class Iter1, class Iter2>
 void interpolateWithIBM(Grid grid, real4* positions,
-                        Iter dataAtCellPositions,
+                        Iter1 dataAtCellPositions,
                         Iter2 dataAtParticlePositions,
                         int numberParticles){
   const real width = 1; //An arbitrary width
@@ -4523,7 +4523,7 @@ Our approach consists in solving the Stokes equation in an unbounded domain, add
   \label{eq:dpstokescorrsum}
   \begin{aligned}
   &\vec{\fvel} =   \vec{\fvel}_{\dpr} +   \vec{\fvel}_{\corr}\\
-  &\vec{p} =   \vec{p}_{\dpr} +   \vec{p}_{\corr}.
+  &p =   p_{\dpr} +   p_{\corr}.
 \end{aligned}
 \end{equation}
 
@@ -6706,3 +6706,7 @@ The author acknowledges the NVIDIA corporation for their GPU donations, some of 
 
 \end{document}
 
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-command-extra-options: "-shell-escape"
+%%% End:
