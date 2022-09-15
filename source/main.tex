@@ -6188,6 +6188,23 @@ bool isNyquistWaveNumber(int3 ik, int3 n){
   return nyquist;
 }
 \end{code2}
+\subsection*{Discrete differential operators and Nyquist points}
+One important detail to keep in mind here is that we must be careful when applying differential operators in Fourier space in the discrete setting.
+
+In particular, while we know that $\fou{\nabla} = i\vec{k}$ in a continuum setting, this is not the case when using the Discrete Fourier Transform.
+
+If we define the DFT as
+$$\fou{y}_k = \sum_{i=0}^{N-1} y_n\exp\left(-\frac{2i\pi n}{N}k\right)$$
+By using finite differences for the derivative and working with this definition we can see that the coefficients for the derivative are equal to multiplying by $ik$ in each direction, \textbf{except} for the $N/2$ mode (only when N is even), which must be subtracted. In other words, we just set to zero the $N/2$ mode of the derivative.
+Funny enough, the second derivative is not equivalent to applying this rule twice, so that $\fou{\nabla}^2 = -k^2$ for every mode.
+Here is a nice reference explaining this: \url{https://math.mit.edu/~stevenj/fft-deriv.pdf}
+
+This has consequences, for instance, when implementing the \gls{FCM}. In that case the Greens function for the Stokes equation in Fourier space is
+$$\fou{\oper{G}}(\vec{k}) = \frac{1}{8\pi\eta k^2}\left(\mathbb{I} - \frac{\vec{k}\otimes\vec{k}}{k^2}\right)$$
+The issue is that this actually comes from the Fourier transform of
+$$\oper{G} = -\nabla^2\left(\mathbb{I} + \nabla\nabla^{-2}\nabla\right)$$
+in a continuum setting. So in order to apply $\fou{\oper{G}}$ one must take into account the discrete version of $\fou{\nabla}$.
+
 
 
 \cleardoublepage\chapter{Boundary Value Problem (BVP) Solver} \label{sec:bvp}
